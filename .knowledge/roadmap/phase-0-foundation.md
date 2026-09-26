@@ -464,13 +464,13 @@ create `.github/pull_request_template.md`.
 
 **Files:** modify `docs/index.md`; create `docs/design.md`.
 
-- [ ] **Step 1:** create `docs/design.md`: a short page stating that design
+- [x] **Step 1:** create `docs/design.md`: a short page stating that design
   decisions, contracts and the roadmap live in `.knowledge/` (OKF v0.2), with a
   link to `https://github.com/pedrocr83/biotapy/tree/master/.knowledge`.
   Add it to the `docs/index.md` toctree.
-- [ ] **Step 2: Build with warnings as errors**
+- [x] **Step 2: Build with warnings as errors**
   `uv run --group doc sphinx-build -W -b html docs docs/_build/html` -> `build succeeded`.
-- [ ] **Step 3: Commit** - `git add -A && git commit -m "docs: add design page pointing to the knowledge bundle"`
+- [x] **Step 3: Commit** - `git add -A && git commit -m "docs: add design page pointing to the knowledge bundle"`
 - [ ] **Step 4: Read the Docs** - the user imports the GitHub repo on
   readthedocs.org (outward action). Expected: first build green.
 
