@@ -95,3 +95,10 @@ def test_read_qiime2_metadata_duplicate_ids_are_named(table_qza, tmp_path):
     path.write_text("sample-id\tdepth\nS1\t10\nS1\t20\n")
     with pytest.raises(ValueError, match="S1"):
         bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_metadata_ignores_empty_trailing_cells(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\nS1\t10\t\nS2\t20\t\nS3\t30\t\n")
+    obs = bt.io.read_qiime2(table_qza, metadata=path).obs
+    assert obs["depth"].tolist() == [10, 20, 30]

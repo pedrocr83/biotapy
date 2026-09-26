@@ -127,8 +127,12 @@ def _metadata_rows(path: Path) -> tuple[list[str], list[list[str]], list[str] | 
 
 def _padded_row(row: list[str], header: list[str], path: Path) -> list[str]:
     if len(row) > len(header):
-        msg = f"metadata={str(path)!r} row {row[0]!r} has {len(row)} cells but the header has {len(header)}"
-        raise ValueError(msg)
+        # A spreadsheet export can add empty trailing cells; QIIME 2 drops those and only
+        # errors when an extra cell actually holds data.
+        if any(cell for cell in row[len(header) :]):
+            msg = f"metadata={str(path)!r} row {row[0]!r} has {len(row)} cells but the header has {len(header)}"
+            raise ValueError(msg)
+        return row[: len(header)]
     return row + [""] * (len(header) - len(row))
 
 
