@@ -1853,7 +1853,7 @@ expanded.
   - An optional `#q2:types` row gives `categorical|numeric` (case-insensitive).
   - Encoding is `utf-8-sig`.
 
-- [ ] **Step 1: Fixture** - append to `tests/io/conftest.py`:
+- [x] **Step 1: Fixture** - append to `tests/io/conftest.py`:
   ```python
   import uuid
   import zipfile
@@ -1874,7 +1874,7 @@ expanded.
 
       return make
   ```
-- [ ] **Step 2: Failing tests** - `tests/io/test_qiime2.py`:
+- [x] **Step 2: Failing tests** - `tests/io/test_qiime2.py`:
   ```python
   import numpy as np
   import pytest
@@ -1960,8 +1960,8 @@ expanded.
       with pytest.raises(ValueError, match="metadata="):
           bt.io.read_qiime2(table_qza, metadata=path)
   ```
-- [ ] **Step 3: Run, expect failure** -> `AttributeError: ... 'read_qiime2'`.
-- [ ] **Step 4: Implement** `src/biotapy/io/_qiime2.py`:
+- [x] **Step 3: Run, expect failure** -> `AttributeError: ... 'read_qiime2'`.
+- [x] **Step 4: Implement** `src/biotapy/io/_qiime2.py`:
   ```python
   """QIIME 2 artifacts (.qza) and metadata files, read without a QIIME 2 install."""
 
@@ -2106,10 +2106,10 @@ expanded.
   - Export `read_qiime2`.
   - The docstring example writes a bare `0000/` artifact: the reader needs only
     the payload path.
-- [ ] **Step 5: Docs** - add a "QIIME 2" section to `docs/guide/reading_data.md`
+- [x] **Step 5: Docs** - add a "QIIME 2" section to `docs/guide/reading_data.md`
   (which artifacts are read, the metadata rules, no QIIME 2 install needed), and
   add `io.read_qiime2` to `docs/api.md`.
-- [ ] **Step 6: Run, expect pass**; gate; commit `feat(io): read QIIME 2 artifacts and metadata`.
+- [x] **Step 6: Run, expect pass**; gate; commit `feat(io): read QIIME 2 artifacts and metadata`.
 
 ### Task 1.9: `io.read_dada2`
 

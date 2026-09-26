@@ -1,4 +1,6 @@
 import json
+import uuid
+import zipfile
 
 import biom
 import numpy as np
@@ -74,3 +76,19 @@ def biom_json_ids(tmp_path):
         return path
 
     return write
+
+
+@pytest.fixture
+def make_qza(tmp_path):
+    """Build a minimal .qza: <uuid>/metadata.yaml, <uuid>/VERSION, <uuid>/data/<payload>."""
+
+    def make(name, payload, content, semantic_type):  # noqa: PLR0917 -- one slot per .qza concept; test call sites are positional
+        uid = str(uuid.uuid5(uuid.NAMESPACE_URL, name))  # deterministic (R11.4)
+        path = tmp_path / f"{name}.qza"
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr(f"{uid}/metadata.yaml", f"uuid: {uid}\ntype: {semantic_type}\nformat: null\n")
+            archive.writestr(f"{uid}/VERSION", "QIIME 2\narchive: 5\nframework: 2024.10\n")
+            archive.writestr(f"{uid}/data/{payload}", content)
+        return path
+
+    return make

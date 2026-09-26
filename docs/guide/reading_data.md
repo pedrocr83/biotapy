@@ -71,3 +71,49 @@ than bare strings, even where a rank is missing. BIOM's HDF5 reader drops
 empty taxonomy entries on read, which would otherwise shift every rank after
 a missing one out of place; a bare prefix like `g__` stays truthy, so
 `read_biom` can map it back to the right rank by its letter.
+
+## QIIME 2
+
+`bt.io.read_qiime2` reads QIIME 2 artifacts (`.qza`) directly, without a
+QIIME 2 install: a `.qza` is just a zip file, and biotapy extracts the
+payload it needs from it.
+
+```python
+tdata = bt.io.read_qiime2(
+    "table.qza", taxonomy="taxonomy.qza", tree="tree.qza", metadata="sample-metadata.tsv"
+)
+```
+
+Only `table` is required. Each argument reads one artifact:
+
+- `table`: a `FeatureTable[Frequency]` artifact (`data/feature-table.biom`,
+  BIOM 2.1 HDF5), read the same way as `read_biom`.
+- `taxonomy`: a `FeatureData[Taxonomy]` artifact (`data/taxonomy.tsv`); its
+  `Taxon` column is parsed into rank columns exactly like BIOM taxonomy, and
+  an optional `Confidence` column becomes a `confidence` column in `var`.
+  Passing `taxonomy` replaces any taxonomy already in the table.
+- `tree`: a `Phylogeny[Rooted]` or `Phylogeny[Unrooted]` artifact
+  (`data/tree.nwk`), attached the same way as `read_biom`'s `tree` argument.
+
+An artifact is recognized by the payload file it holds, not by its
+`metadata.yaml`, so any `.qza` holding the expected payload works. Passing
+the wrong artifact - for example a taxonomy artifact as `table` - raises a
+`ValueError` naming the argument and the payload it expected.
+
+### Sample metadata
+
+`metadata` reads a QIIME 2 sample-metadata TSV, independent of any artifact:
+
+- The ID column is recognized by its header: `id`, `sampleid`, `sample id`,
+  `sample-id`, `featureid`, `feature id` and `feature-id` match
+  case-insensitively; the legacy `#SampleID`, `#Sample ID`, `#OTUID`,
+  `#OTU ID` and `sample_name` headers match exactly.
+- Leading `#`-comment lines and blank rows are skipped.
+- An optional `#q2:types` row declares each column `categorical` or
+  `numeric`; without it, a column becomes numeric only when every value it
+  holds parses as a number, matching QIIME 2's own type inference. Missing
+  values become `NaN`.
+- The file is read as `utf-8-sig`, so a BOM added by Excel does not break the
+  ID header.
+- Samples in the metadata that are not in the table are ignored; `obs` is
+  aligned to the table's sample order.

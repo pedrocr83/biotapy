@@ -1,6 +1,23 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: Task 1.8 done: added `bt.io.read_qiime2(table, *, taxonomy=None,
+  tree=None, metadata=None) -> TreeData`, reading QIIME 2 `.qza` artifacts
+  (feature table, taxonomy, tree) and a QIIME 2 sample-metadata TSV without a
+  QIIME 2 install. A `.qza` is read as a plain zip: `_payload` extracts
+  `<uuid>/data/<filename>` and raises `ValueError` naming the argument and
+  the expected payload if it is missing, so artifacts are recognized by
+  content rather than by `metadata.yaml` (no YAML dependency, per stage 1
+  design). The feature table reuses `_biom_parts` (Task 1.7c); taxonomy reuses
+  `split_lineage` and adds an optional `confidence` column from `Confidence`;
+  the tree reuses `tree_from_newick`. The metadata TSV parser recognizes both
+  modern (case-insensitive `sample-id`/`id`/...) and legacy (case-sensitive
+  `#SampleID`/...) ID headers, skips leading `#` comments and blank rows,
+  applies an optional `#q2:types` row, and otherwise infers numeric columns
+  the same way QIIME 2 does (every present value parses as a number).
+  `mypy --strict` passed with no annotation changes needed. Updated
+  `docs/guide/reading_data.md` (new "QIIME 2" section) and `docs/api.md`;
+  ticked Task 1.8's steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.7d done: added `bt.io.write_biom(adata, path, *,
   fmt="hdf5") -> None`, writing `X`, rank columns and `obs` back out as a BIOM
   2.1 HDF5 or BIOM 1.0 JSON table. Rank columns are written as prefixed
