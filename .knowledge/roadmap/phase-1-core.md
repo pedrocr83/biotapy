@@ -60,8 +60,10 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 # Dependencies to approve (ask at the start of the task named)
 | Task | Group | Package | Reason |
 |---|---|---|---|
-| 1.1 | runtime | scipy, pandas, anndata | sparse kernels, slots |
+| 1.1 | runtime | scipy, pandas (anndata already present) | sparse kernels, slots - approved 2026-09-26 |
+| 1.1 | dev | pandas-stubs, scipy-stubs | `mypy --strict` cannot type untyped scipy/pandas - approved 2026-09-26 |
 | 1.3 | runtime | treedata `>=0.3.1,<0.4`, networkx | container and tree |
+| 1.3 | dev | types-networkx | networkx ships no type information - approved 2026-09-26 |
 | 1.6 | runtime | rdata | read phyloseq `.rds`/`.RData` |
 | 1.7 | runtime | biom-format | BIOM 1.0 JSON and 2.1 HDF5 |
 | 1.7 | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination |
@@ -85,7 +87,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 ### Task 1.1: `_core` sparse kernels
 
 **Files:** create `src/biotapy/_core/_matrix.py`, `tests/core/test_matrix.py`;
-modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata).
+modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (runtime scipy, pandas; dev
+pandas-stubs, scipy-stubs).
 **Interfaces (produces):**
 - `as_csr(X: sp.spmatrix | sp.sparray | npt.ArrayLike) -> sp.csr_matrix`
 - `sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix`
@@ -364,7 +367,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
 `src/biotapy/datasets/_toy.py`, `tests/core/test_tree.py`,
 `tests/datasets/test_toy.py`, `docs/guide/index.md`, `docs/guide/data_model.md`;
 modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/api.md`,
-`pyproject.toml` (treedata, networkx).
+`pyproject.toml` (treedata, networkx; dev types-networkx).
 **Interfaces (produces):**
 - `PHYLO_KEY = "phylo"`; `TreeData` (re-exported type)
 - `tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph` (edge attribute `length`)
@@ -893,6 +896,17 @@ on ties), ranks below `rank` set to `NaN`.
   metadata -> normalized rank columns ([data-model-slots](/contracts/data-model-slots.md) convention 1);
   integer ids cast to `str`; duplicate ids raise naming them; tree tips not in the table and features not in the tree -> intersection plus one warning with both counts.
 - **Done when:** tests pass; `x_kind="counts"`; provenance `io.read_biom`.
+
+### Task 1.7b: `io.write_biom`
+Added 2026-09-26 at the user's request.
+- **Interface:** `write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None`,
+  through `biom-format` (approved with 1.7).
+- **Files:** `src/biotapy/io/_biom.py` (next to `read_biom`); tests in `tests/io/test_biom.py`.
+- **Tests:** `read_biom(write_biom(x))` round-trips `X`, `obs` and the rank columns for both
+  formats; the writer transposes back to features x samples exactly once; rank columns go
+  to observation `taxonomy` metadata in canonical order; input unchanged.
+- **Done when:** tests pass; the docstring says a TreeData's tree is not written (BIOM has
+  no tree slot) and has `R equivalent: ``biomformat::write_biom``.
 
 ### Task 1.8: `io.read_qiime2`
 - **Interface:** `read_qiime2(table: str | Path, *, taxonomy=None, tree=None, metadata=None) -> TreeData`
