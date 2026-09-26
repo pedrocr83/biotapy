@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
   "anndata",
+  "biom-format>=2.1.16",
   "networkx",
   "numpy",
   "pandas",
@@ -153,6 +154,13 @@ overrides = [
   # scikit-bio 0.7.4 ships no py.typed marker either; same treatment.
   { module = "skbio", follow_untyped_imports = true, implicit_reexport = true },
   { module = "skbio.*", follow_untyped_imports = true, implicit_reexport = true },
+  # biom-format 2.1.17 ships no py.typed marker either; same treatment.
+  { module = "biom", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "biom.*", follow_untyped_imports = true, implicit_reexport = true },
+  # Unlike treedata/skbio, biom-format's plain functions (load_table, Table.ids,
+  # Table.metadata) resolve to concrete untyped defs, so strict's
+  # disallow_untyped_calls fires on every call into them from this file.
+  { module = "biotapy.io._biom", disallow_untyped_calls = false },
 ]
 
 [tool.pytest]

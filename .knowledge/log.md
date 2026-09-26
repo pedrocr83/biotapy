@@ -1,6 +1,20 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: Task 1.7c done: added the `io` subpackage and
+  `bt.io.read_biom(path, *, tree=None) -> TreeData`, the first file reader,
+  reading both BIOM dialects (JSON 1.0, HDF5 2.1) through biom-format.
+  `_biom_parts` (private, reused by Task 1.8) transposes the matrix once so
+  samples are rows, casts ids to `str`, turns `taxonomy` metadata into rank
+  columns via `split_lineage`, and puts sample metadata straight into `obs`.
+  biom-format itself rejects duplicate ids; `make_treedata` handles the
+  tree/table alignment. Added runtime dependency biom-format (`>=2.1.16`) and
+  a mypy override for it, plus `disallow_untyped_calls = false` scoped to
+  `biotapy.io._biom` (biom-format's plain functions resolve to concrete
+  untyped defs, unlike treedata/skbio, so strict flags every call into them).
+  Added `docs/guide/reading_data.md` and an "Input and output" API block.
+  Updated [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md);
+  ticked Task 1.7c's steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.7b done: `_core._taxonomy` gained `normalize_ranks`
   (canonical lowercase rank columns, `domain` -> `kingdom`, `k__`/`D_0__`
   prefixes stripped, `""`/whitespace/`"NA"`/bare-prefix values -> NaN) and

@@ -5,7 +5,7 @@ description: torch, rpy2, plotnine, numba and unifrac install only through extra
 tags: [packaging, dependencies]
 status: stable
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
-commit: 2df26cb
+commit: 7929bdf
 sources:
   - id: spec
     resource: ../../plan.md
@@ -27,7 +27,8 @@ torch or an R installation into every install is unacceptable.[^spec]
   `pandas-stubs` and `scipy-stubs` so `mypy --strict` can check them.
   Task 1.3 added treedata and networkx, plus the dev-only `types-networkx`.
   Task 1.7a added scikit-bio (`>=0.7.4,<0.8`), which brings biom-format,
-  statsmodels and patsy.
+  statsmodels and patsy. Task 1.7c declared biom-format (`>=2.1.16`) directly
+  because `io` imports it.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

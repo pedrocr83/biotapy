@@ -137,4 +137,6 @@ nitpick_ignore = [
     # treedata ships no py.typed marker and its own docs key TreeData under a different
     # path, so intersphinx cannot resolve the internal module path autodoc emits.
     ("py:class", "treedata._core.treedata.TreeData"),
+    # biom-format publishes no intersphinx inventory, so its exception has nothing to link to.
+    ("py:exc", "biom.exception.TableException"),
 ]

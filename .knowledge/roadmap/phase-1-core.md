@@ -1406,8 +1406,8 @@ the docs (write BIOM + Newick + TSV).
   - the private `_biom_parts(table: biom.Table) -> tuple[sp.csr_matrix, pd.DataFrame, pd.DataFrame]`
     (X as samples x features, obs, var), reused by 1.8.
 
-- [ ] **Step 1: Dependency.** Add `"biom-format>=2.1.16"` to `[project] dependencies`, then run `uv sync`.
-- [ ] **Step 2: Fixtures** - `tests/io/conftest.py`:
+- [x] **Step 1: Dependency.** Add `"biom-format>=2.1.16"` to `[project] dependencies`, then run `uv sync`.
+- [x] **Step 2: Fixtures** - `tests/io/conftest.py`:
   ```python
   import json
 
@@ -1481,7 +1481,7 @@ the docs (write BIOM + Newick + TSV).
 
       return write
   ```
-- [ ] **Step 3: Failing tests** - `tests/io/test_biom.py`:
+- [x] **Step 3: Failing tests** - `tests/io/test_biom.py`:
   ```python
   import biom
   import numpy as np
@@ -1554,8 +1554,8 @@ the docs (write BIOM + Newick + TSV).
       meta = bt.io.read_biom(biom_hdf5).uns["biotapy"]
       assert meta["x_kind"] == "counts" and '"io.read_biom"' in meta["provenance"][-1]
   ```
-- [ ] **Step 4: Run, expect failure** - `uv run --group test pytest tests/io -q` -> `AttributeError: module 'biotapy' has no attribute 'io'`.
-- [ ] **Step 5: Implement** `src/biotapy/io/_biom.py`:
+- [x] **Step 4: Run, expect failure** - `uv run --group test pytest tests/io -q` -> `AttributeError: module 'biotapy' has no attribute 'io'`.
+- [x] **Step 5: Implement** `src/biotapy/io/_biom.py`:
   ```python
   """BIOM tables (JSON 1.0 and HDF5 2.1) through biom-format."""
 
@@ -1659,15 +1659,15 @@ the docs (write BIOM + Newick + TSV).
   - `src/biotapy/__init__.py`: add `io`.
   - **mypy:** if `biom` is untyped, add `follow_untyped_imports` overrides for
     `biom` and `biom.*`, as in 1.7a.
-- [ ] **Step 6: Docs.**
+- [x] **Step 6: Docs.**
   - `docs/guide/reading_data.md`, titled "Reading and writing data", with a
     "BIOM" section covering: samples become rows (one transpose); taxonomy
     dialects become rank columns; ids are strings; how a tree/table mismatch is
     handled; duplicate ids are rejected by biom-format.
   - Add it to the guide toctree.
   - `docs/api.md` gets an "Input and output" autosummary block (`.. module:: biotapy.io`) listing `io.read_biom`.
-- [ ] **Step 7: Run, expect pass** - the tests, the doctest and `sphinx-build -W`.
-- [ ] **Step 8: Knowledge and gate.**
+- [x] **Step 7: Run, expect pass** - the tests, the doctest and `sphinx-build -W`.
+- [x] **Step 8: Knowledge and gate.**
   - Add the dependency sentence to the dependency decision, and a log line.
   - Run `uvx prek run --all-files` and `uv run --group test pytest`.
   - Commit `feat(io): read BIOM tables`.
