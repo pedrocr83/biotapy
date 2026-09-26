@@ -8,7 +8,8 @@
 # Options:
 #   --against <ref>   Trunk ref. Default: origin/main, then main, then HEAD.
 #
-# Exit 1 if anything is reported, so both modes work as CI gates.
+# Exit 1 if anything is reported, so both modes work as CI gates; exit 2 when
+# --touched cannot diff against the trunk ref.
 set -uo pipefail
 
 BUNDLE=".knowledge"
@@ -104,8 +105,15 @@ if mode == "stale":
     sys.exit(1 if stale else 0)
 
 # mode == "touched": which concepts cover code this branch changed but did not update?
-base = git("merge-base", against, "HEAD").stdout.strip() or against
-changed = [f for f in git("diff", "--name-only", f"{base}..HEAD").stdout.splitlines() if f]
+def git_or_exit(*args):
+    res = git(*args)
+    if res.returncode != 0:
+        print(f"cannot compare against {against}: {res.stderr.strip()}", file=sys.stderr)
+        sys.exit(2)
+    return res.stdout
+
+base = git_or_exit("merge-base", against, "HEAD").strip()
+changed = [f for f in git_or_exit("diff", "--name-only", f"{base}..HEAD").splitlines() if f]
 edited_concepts = {f for f in changed if f.startswith(bundle.rstrip("/") + "/")}
 code_changed = [f for f in changed if f not in edited_concepts]
 

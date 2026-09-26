@@ -130,10 +130,10 @@ jobs:
         run: uv run --no-dev python -c "import biotapy, biotapy._core"
 
   # Informational: lists knowledge concepts whose code changed in this PR (playbooks/maintain-knowledge).
+  # Flagged concepts go to the job summary; the job fails only when the script cannot diff (exit 2).
   knowledge-touched:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -143,7 +143,11 @@ jobs:
       - name: Report concepts covering changed code
         env:
           BASE: ${{ github.base_ref }}
-        run: bash scripts/knowledge_stale.sh --touched --against "origin/$BASE"
+        run: |
+          status=0
+          bash scripts/knowledge_stale.sh --touched --against "origin/$BASE" > knowledge-report.txt || status=$?
+          { echo "### Knowledge concepts to review"; echo '```'; cat knowledge-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" -le 1
 
   # Check that all tests defined above pass. This makes it easy to set a single "required" test in branch
   # protection instead of having to update it frequently. See https://github.com/re-actors/alls-green#why.
