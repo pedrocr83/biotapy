@@ -1,6 +1,18 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: Task 1.7d done: added `bt.io.write_biom(adata, path, *,
+  fmt="hdf5") -> None`, writing `X`, rank columns and `obs` back out as a BIOM
+  2.1 HDF5 or BIOM 1.0 JSON table. Rank columns are written as prefixed
+  values (`k__` .. `g__`), including bare prefixes for missing ranks, because
+  BIOM's HDF5 reader drops empty taxonomy entries on read and a bare prefix
+  stays truthy so `read_biom` can still map it back to its rank. No tree,
+  layers or embeddings are written; sample metadata is written as text.
+  Confirmed against the installed biom-format source (`biom/table.py`
+  `general_formatter`/`vlen_list_of_str_parser`) that HDF5 accepts str sample
+  metadata and keeps `"g__"` on a round trip. Updated
+  `docs/guide/reading_data.md` and `docs/api.md`; ticked Task 1.7d's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.7c done: added the `io` subpackage and
   `bt.io.read_biom(path, *, tree=None) -> TreeData`, the first file reader,
   reading both BIOM dialects (JSON 1.0, HDF5 2.1) through biom-format.

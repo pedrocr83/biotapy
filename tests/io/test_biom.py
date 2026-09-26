@@ -1,11 +1,15 @@
+import anndata as ad
 import biom
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse as sp
 from biom.exception import TableException
 from biom.util import biom_open
 
 import biotapy as bt
+
+RANK_COLUMNS = ["kingdom", "phylum", "class", "order", "family", "genus"]
 
 
 def test_read_biom_hdf5_puts_samples_in_rows(biom_hdf5, biom_table):
@@ -68,3 +72,61 @@ def test_read_biom_without_taxonomy_has_no_rank_columns(tmp_path, biom_table):
 def test_read_biom_records_counts_and_provenance(biom_hdf5):
     meta = bt.io.read_biom(biom_hdf5).uns["biotapy"]
     assert meta["x_kind"] == "counts" and '"io.read_biom"' in meta["provenance"][-1]
+
+
+@pytest.mark.parametrize("fmt", ["hdf5", "json"])
+def test_write_biom_round_trips_toy(tmp_path, fmt):
+    toy = bt.datasets.toy()
+    path = tmp_path / "toy.biom"
+    bt.io.write_biom(toy, path, fmt=fmt)
+    back = bt.io.read_biom(path)
+    assert list(back.obs_names) == list(toy.obs_names) and list(back.var_names) == list(toy.var_names)
+    np.testing.assert_array_equal(back.X.toarray(), toy.X.toarray())
+    pd.testing.assert_frame_equal(
+        back.var[RANK_COLUMNS].fillna("-"), toy.var[RANK_COLUMNS].fillna("-"), check_dtype=False
+    )
+    assert back.obs["group"].tolist() == toy.obs["group"].astype(str).tolist()
+
+
+def test_write_biom_stores_features_by_samples(tmp_path):
+    path = tmp_path / "toy.biom"
+    bt.io.write_biom(bt.datasets.toy(), path)
+    table = biom.load_table(str(path))
+    assert table.shape == (8, 6) and list(table.ids("observation"))[:2] == ["f1", "f2"]
+
+
+def test_write_biom_prefixes_ranks_in_canonical_order(tmp_path):
+    path = tmp_path / "toy.biom"
+    bt.io.write_biom(bt.datasets.toy(), path)
+    table = biom.load_table(str(path))
+    assert list(table.metadata("f1", "observation")["taxonomy"]) == [
+        "k__Bacteria",
+        "p__Firmicutes",
+        "c__Clostridia",
+        "o__Lachnospirales",
+        "f__Lachnospiraceae",
+        "g__Blautia",
+    ]
+    assert list(table.metadata("f8", "observation")["taxonomy"])[-1] == "g__"
+
+
+def test_write_biom_without_taxonomy_writes_no_metadata(tmp_path):
+    adata = ad.AnnData(
+        X=sp.csr_matrix(np.eye(2)), obs=pd.DataFrame(index=["s1", "s2"]), var=pd.DataFrame(index=["a", "b"])
+    )
+    path = tmp_path / "bare.biom"
+    bt.io.write_biom(adata, path)
+    assert biom.load_table(str(path)).metadata(axis="observation") is None
+
+
+def test_write_biom_leaves_input_alone(tmp_path, assert_unchanged):
+    toy = bt.datasets.toy()
+    before = toy.copy()
+    bt.io.write_biom(toy, tmp_path / "toy.biom")
+    assert_unchanged(before, toy)
+
+
+def test_write_biom_does_not_write_the_tree(tmp_path):
+    path = tmp_path / "toy.biom"
+    bt.io.write_biom(bt.datasets.toy(), path)
+    assert "phylo" not in bt.io.read_biom(path).vart

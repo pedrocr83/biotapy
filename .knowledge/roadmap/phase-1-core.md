@@ -1682,7 +1682,7 @@ expanded.
 - **Consumes:** `read_biom` (for the round trip), `RANKS`, `as_csr`.
 - **Produces:** `bt.io.write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None`.
 
-- [ ] **Step 1: Failing tests** - append to `tests/io/test_biom.py`:
+- [x] **Step 1: Failing tests** - append to `tests/io/test_biom.py`:
   ```python
   import anndata as ad
   import scipy.sparse as sp
@@ -1742,8 +1742,8 @@ expanded.
       bt.io.write_biom(bt.datasets.toy(), path)
       assert "phylo" not in bt.io.read_biom(path).vart
   ```
-- [ ] **Step 2: Run, expect failure** -> `AttributeError: ... 'write_biom'`.
-- [ ] **Step 3: Implement.** Append to `src/biotapy/io/_biom.py`. Add imports
+- [x] **Step 2: Run, expect failure** -> `AttributeError: ... 'write_biom'`.
+- [x] **Step 3: Implement.** Append to `src/biotapy/io/_biom.py`. Add imports
   `from importlib.metadata import version`, `from typing import Literal`,
   `from anndata import AnnData`, `from biom.util import biom_open`, and `RANKS`
   from `biotapy._core`.
@@ -1820,11 +1820,11 @@ expanded.
     `rank[0]` a safe prefix.
   - If biom-format's HDF5 writer rejects the text sample metadata, confirm the
     cause in `biom/table.py` `general_formatter` before changing anything (R2.2).
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - Add a "Writing BIOM" subsection to `docs/guide/reading_data.md`: what is not
     written, and why ranks carry prefixes.
   - Add `io.write_biom` to `docs/api.md`.
-- [ ] **Step 5: Run, expect pass**; gate; commit `feat(io): write BIOM tables`.
+- [x] **Step 5: Run, expect pass**; gate; commit `feat(io): write BIOM tables`.
 
 ### Task 1.8: `io.read_qiime2`
 

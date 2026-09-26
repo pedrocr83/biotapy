@@ -1,14 +1,18 @@
 """BIOM tables (JSON 1.0 and HDF5 2.1) through biom-format."""
 
 from collections.abc import Iterable, Mapping, Sequence
+from importlib.metadata import version
 from pathlib import Path
+from typing import Literal, cast
 
 import biom
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from anndata import AnnData
+from biom.util import biom_open
 
-from biotapy._core import TreeData, as_csr, make_treedata, split_lineage, tree_from_newick
+from biotapy._core import RANKS, TreeData, as_csr, make_treedata, split_lineage, tree_from_newick
 
 
 def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
@@ -95,3 +99,73 @@ def _lineage(entry: Mapping[str, object]) -> str | float:
     if isinstance(value, Iterable):
         return "; ".join(str(part) for part in value)
     return np.nan
+
+
+def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None:
+    """Write ``X`` with taxonomy and sample metadata as a BIOM table.
+
+    Parameters
+    ----------
+    adata
+        Samples x features; rank columns in ``var`` become observation
+        ``taxonomy`` metadata, ``obs`` columns become sample metadata.
+    path
+        Output file.
+    fmt
+        ``"hdf5"`` (BIOM 2.1) or ``"json"`` (BIOM 1.0).
+
+    Notes
+    -----
+    R equivalent: ``biomformat::write_biom``
+    Guide: :doc:`/guide/reading_data`
+
+    BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
+    everything outside ``X``, rank columns and ``obs`` are not written.
+    Sample metadata is written as text. Missing ranks are written as bare
+    prefixes (``g__``) so every rank keeps its place.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> path = Path(tempfile.mkdtemp()) / "toy.biom"
+    >>> bt.io.write_biom(bt.datasets.toy(), path)
+    >>> bt.io.read_biom(path).shape
+    (6, 8)
+    """
+    table = biom.Table(
+        # biotapy keeps samples as rows; BIOM stores features x samples.
+        as_csr(adata.X).T,
+        [str(i) for i in adata.var_names],
+        [str(i) for i in adata.obs_names],
+        # anndata types .var/.obs as DataFrame | Dataset2D (its lazy/backed variant); biotapy's
+        # data model (data-model-slots) guarantees a real DataFrame here.
+        observation_metadata=_taxonomy_metadata(cast("pd.DataFrame", adata.var)),
+        sample_metadata=_sample_metadata(cast("pd.DataFrame", adata.obs)),
+    )
+    generated_by = f"biotapy {version('biotapy')}"
+    if fmt == "json":
+        Path(path).write_text(table.to_json(generated_by))
+        return
+    with biom_open(str(path), "w") as handle:
+        table.to_hdf5(handle, generated_by)
+
+
+def _taxonomy_metadata(var: pd.DataFrame) -> list[dict[str, list[str]]] | None:
+    ranks = [rank for rank in RANKS if rank in var.columns]
+    if not ranks:
+        return None
+    # Prefixed values keep their rank: BIOM HDF5 drops empty list entries on read.
+    values = var[ranks].astype("string").fillna("")
+    return [
+        {"taxonomy": [f"{rank[0]}__{value}" for rank, value in zip(ranks, row, strict=True)]}
+        for row in values.itertuples(index=False)
+    ]
+
+
+def _sample_metadata(obs: pd.DataFrame) -> list[dict[str, str]] | None:
+    if obs.columns.empty:
+        return None
+    values = obs.astype("string").fillna("")
+    return [dict(zip(map(str, values.columns), row, strict=True)) for row in values.itertuples(index=False)]

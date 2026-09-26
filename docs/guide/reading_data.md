@@ -51,3 +51,22 @@ Pass a Newick file's path as `tree=` to attach a phylogeny in `vart["phylo"]`.
 If the tree's tips and the table's features disagree, only the shared
 features are kept and one `UserWarning` names both counts - the same
 tree/table alignment every biotapy reader uses.
+
+### Writing BIOM
+
+`bt.io.write_biom` writes `X`, taxonomy and sample metadata back out as a BIOM
+2.1 HDF5 table by default, or BIOM 1.0 JSON with `fmt="json"`:
+
+```python
+bt.io.write_biom(tdata, "table.biom")
+```
+
+BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
+everything outside `X`, rank columns and `obs` are not written. Sample
+metadata is written as text.
+
+Rank columns are written as prefixed values (`k__`, `p__`, ..., `g__`) rather
+than bare strings, even where a rank is missing. BIOM's HDF5 reader drops
+empty taxonomy entries on read, which would otherwise shift every rank after
+a missing one out of place; a bare prefix like `g__` stays truthy, so
+`read_biom` can map it back to the right rank by its letter.
