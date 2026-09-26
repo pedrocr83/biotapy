@@ -123,7 +123,7 @@ only because an outdated sphinx plugin pins an older version.
 To initialize a virtual environment in the `.venv` directory of your project, simply run
 
 ```bash
-uv sync --all-extras
+uv sync --all-groups
 ```
 
 The `.venv` directory is typically automatically discovered by IDEs such as VS Code.
@@ -217,7 +217,7 @@ hatch test --all  # test with all supported Python versions
 :sync: uv
 
 ```bash
-uv run pytest
+uv run --group test pytest
 ```
 
 ::::
@@ -333,7 +333,7 @@ hatch run docs:open
 
 ```bash
 cd docs
-uv run sphinx-build -M html . _build -W
+uv run --group doc sphinx-build -M html . _build -W
 (xdg-)open _build/html/index.html
 ```
 

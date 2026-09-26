@@ -41,7 +41,7 @@ html_context = {
     "display_github": True,  # Integrate GitHub
     "github_user": "pedrocr83",
     "github_repo": project,
-    "github_version": "main",
+    "github_version": "master",
     "conf_py_path": "/docs/",
 }
 
