@@ -9,7 +9,7 @@ import itertools
 import math
 import warnings
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import cast
 
@@ -33,6 +33,13 @@ def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
     tree: nx.DiGraph[str] = nx.DiGraph()
     tree.add_weighted_edges_from(edges, weight="length")
     return tree
+
+
+def relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]:
+    """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs."""
+    # types-networkx's overloads for relabel_nodes resolve to Any here (PEP 696 default type
+    # params on a generic base class), even though the runtime call is exactly this typed.
+    return cast("nx.DiGraph[str]", nx.relabel_nodes(tree, dict(names), copy=True))
 
 
 def get_tree(tdata: TreeData) -> nx.DiGraph[str]:

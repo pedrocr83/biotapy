@@ -2136,7 +2136,7 @@ expanded.
 - `write.csv` leaves the first header cell empty and writes row names.
 - `.rds` input waits for the 1.6 decision (stage 2).
 
-- [ ] **Step 1: Failing tests.** Add to `tests/core/test_tree.py`:
+- [x] **Step 1: Failing tests.** Add to `tests/core/test_tree.py`:
   ```python
   from biotapy._core import relabel_tips
 
@@ -2214,8 +2214,8 @@ expanded.
       phylo = bt.io.read_dada2(seqtab, tree=path).vart["phylo"]
       assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"ASV1", "ASV2", "ASV3", "ASV4"}
   ```
-- [ ] **Step 2: Run, expect failure** -> ImportError for `relabel_tips`; `AttributeError` for `read_dada2`.
-- [ ] **Step 3: Implement.** In `_core/_tree.py` (add `from collections.abc import Mapping`):
+- [x] **Step 2: Run, expect failure** -> ImportError for `relabel_tips`; `AttributeError` for `read_dada2`.
+- [x] **Step 3: Implement.** In `_core/_tree.py` (add `from collections.abc import Mapping`):
   ```python
   def relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]:
       """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs."""
@@ -2302,10 +2302,10 @@ expanded.
   - Export `relabel_tips` from `_core` and `read_dada2` from `io`.
   - The ASV naming and the sequence column follow
     [data-model-slots](/contracts/data-model-slots.md) (`var["sequence"]`).
-- [ ] **Step 4: Docs** - add a "DADA2" section to `docs/guide/reading_data.md`
+- [x] **Step 4: Docs** - add a "DADA2" section to `docs/guide/reading_data.md`
   (the expected orientation, ASV naming, tree tips by sequence), and add
   `io.read_dada2` to `docs/api.md`.
-- [ ] **Step 5: Run, expect pass**; gate; commit `feat(io): read DADA2 sequence tables`.
+- [x] **Step 5: Run, expect pass**; gate; commit `feat(io): read DADA2 sequence tables`.
 
 ### Checkpoint B1 - stage 1 review
 - [ ] Whole-branch review of stage 1 against every contract and the stage-1

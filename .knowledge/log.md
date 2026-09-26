@@ -1,5 +1,21 @@
 # Knowledge bundle log
 
+## 2026-09-27
+* **Update**: Task 1.9 done: added `bt.io.read_dada2(seqtab, taxa=None, *,
+  tree=None) -> TreeData`, the last reader in slice 1B stage 1, reading a
+  DADA2 sequence table (CSV or TSV, samples x sequences) as R's `write.csv`
+  writes it, with optional `assignTaxonomy`/`addSpecies` taxonomy and an
+  optional Newick tree. A transposed table (columns not DNA sequences) raises
+  `ValueError` naming the argument. Sequences become `ASV1..n` ids with the
+  original sequence kept in `var["sequence"]`; taxonomy reuses
+  `normalize_ranks`; a tree's sequence-named tips are relabeled to the
+  matching ASV ids by the new `_core.relabel_tips(tree, names)` (thin wrapper
+  over `nx.relabel_nodes`) before `make_treedata` attaches it. `_core.relabel_tips`
+  is exported and added to
+  [tree-access](contracts/tree-access.md) statement 2. Updated
+  `docs/guide/reading_data.md` (new "DADA2" section) and `docs/api.md`;
+  ticked Task 1.9's steps in [phase-1-core](roadmap/phase-1-core.md).
+
 ## 2026-09-26
 * **Update**: Task 1.8 done: added `bt.io.read_qiime2(table, *, taxonomy=None,
   tree=None, metadata=None) -> TreeData`, reading QIIME 2 `.qza` artifacts

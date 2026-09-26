@@ -22,8 +22,8 @@ sources:
    `networkx`. Everything else imports the `TreeData` type and tree helpers
    from `biotapy._core`.
 2. It owns: constructing a TreeData (`make_treedata`), building a tree from an
-   edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), and
-   Newick parsing (`tree_from_newick`).
+   edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), Newick
+   parsing (`tree_from_newick`), and relabeling tips (`relabel_tips`).
 3. Newick parsing reuses scikit-bio (`TreeNode.read([text], convert_underscores=False)`);
    biotapy never writes its own parser.
 4. `treedata` is pinned to `>=0.3.1,<0.4` in `pyproject.toml`.

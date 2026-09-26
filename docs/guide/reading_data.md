@@ -117,3 +117,40 @@ the wrong artifact - for example a taxonomy artifact as `table` - raises a
   ID header.
 - Samples in the metadata that are not in the table are ignored; `obs` is
   aligned to the table's sample order.
+
+## DADA2
+
+`bt.io.read_dada2` reads a DADA2 sequence table (CSV or TSV) as written by R's
+`write.csv`/`write.table`, with optional taxonomy and a tree:
+
+```python
+tdata = bt.io.read_dada2("seqtab.csv", "taxa.csv", tree="tree.nwk")
+```
+
+Only `seqtab` is required.
+
+### Expected orientation
+
+`seqtab` (DADA2's `seqtab`/`seqtab.nochim`) is already samples (rows) x
+sequences (columns), so `read_dada2` reads it as-is, with no transpose.
+Its column names must be DNA sequences (`A`, `C`, `G`, `T`, `N`); a table
+whose columns are sample ids instead - the transposed orientation - raises a
+`ValueError` naming the argument.
+
+### ASV naming
+
+Sequences become the feature ids `ASV1..ASVn`, in column order, with the
+original sequence kept in `var["sequence"]`. `taxa` (`assignTaxonomy`/
+`addSpecies` output: sequences x `Kingdom..Species`) is matched to `seqtab`'s
+sequences and its rank columns are normalized exactly like every other
+biotapy reader (lowercase names, `NA` becomes `NaN`); a sequence missing from
+`taxa` gets `NaN` in every rank column.
+
+### Attaching a tree
+
+Pass a Newick file's path as `tree=` to attach a phylogeny in
+`vart["phylo"]`. A DADA2 tree's tips are sequences (e.g. from `AlignSeqs`/
+`fasttree` on `seqtab`'s column names), so `read_dada2` relabels them to the
+matching `ASV1..ASVn` ids before attaching the tree - the tree's tips and the
+table's `var_names` must agree for every other biotapy function to see them
+as the same features.
