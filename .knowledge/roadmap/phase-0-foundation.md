@@ -5,11 +5,11 @@ description: Repo skeleton from cookiecutter-scverse, tooling that mechanically 
 tags: [roadmap, tooling, ci, release]
 status: stable
 release: "0.0.1"
-phase_state: in-progress
+phase_state: done
 effort: ~1 week part-time
 depends_on: []
 paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T11:12:51Z }
 commit: b77a226
 sources:
   - id: spec
@@ -457,7 +457,7 @@ create `.github/pull_request_template.md`.
   [add-a-function playbook](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/playbooks/add-a-function.md)."
 - [x] **Step 6: Verify locally** - `uvx prek run --all-files` (zizmor and biome included) passes.
 - [x] **Step 7: Commit** - `git add -A && git commit -m "ci: OS matrix, no-extras import check, PR template"`
-- [ ] **Step 8: Push and open a PR** - only after the user approves the push (R13.3).
+- [x] **Step 8: Push and open a PR** - only after the user approves the push (R13.3).
   Expected: 12 test cells (3 pre-release cells may fail), `lint`, `import-without-extras`
   and the build check green. Merge with a merge commit, not a squash, so the
   `commit` SHAs in `.knowledge/` stay reachable from `master`.
@@ -473,7 +473,7 @@ create `.github/pull_request_template.md`.
 - [x] **Step 2: Build with warnings as errors**
   `uv run --group doc sphinx-build -W -b html docs docs/_build/html` -> `build succeeded`.
 - [x] **Step 3: Commit** - `git add -A && git commit -m "docs: add design page pointing to the knowledge bundle"`
-- [ ] **Step 4: Read the Docs** - the user imports the GitHub repo on
+- [x] **Step 4: Read the Docs** - the user imports the GitHub repo on
   readthedocs.org (outward action). Expected: first build green.
 
 ### Task 0.8: Placeholder release 0.0.1
@@ -481,21 +481,21 @@ create `.github/pull_request_template.md`.
 **Files:** create `.knowledge/playbooks/cut-a-release.md`; modify
 `.knowledge/playbooks/index.md`, `.knowledge/log.md`.
 
-- [ ] **Step 1: Trusted publisher (user action).** On PyPI -> Publishing ->
+- [x] **Step 1: Trusted publisher (user action).** On PyPI -> Publishing ->
   "Add a new pending publisher": project `biotapy`, owner `pedrocr83`, repo
   `biotapy`, workflow `release.yaml`, environment as named in the generated
   `.github/workflows/release.yaml` (read it first).
 - [x] **Step 2: Write the playbook** `.knowledge/playbooks/cut-a-release.md`
   (`type: Playbook`): update the changelog, tag `vX.Y.Z`, publish a GitHub
   release, watch `release.yaml`, verify on PyPI. List it in the playbooks index; log it.
-- [ ] **Step 3: Release (each command needs user approval)**
+- [x] **Step 3: Release (each command needs user approval)**
   ```bash
   git switch master && git pull --ff-only
   git tag v0.0.1
   git push origin v0.0.1
   gh release create v0.0.1 --title "0.0.1" --notes "Name reservation; no functionality yet."
   ```
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   ```bash
   curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
   uv run --no-project --with biotapy==0.0.1 python -c "import biotapy; print(biotapy.__version__)"
@@ -515,16 +515,22 @@ Recorded here because the execution ledger is not committed.
 - `knowledge_stale.sh --touched` exits 2 when it cannot diff; the CI report goes to the job summary and fails only on that error.
 - `uv.lock` is not committed (`/uv.lock` in `.gitignore`).
 - Outward actions (push, PR, Codecov, Read the Docs, PyPI) batched into one approval request.
+- Codecov needed no manual setup: the first OIDC upload registered the repo.
+- First release attempt failed before upload: the pinned `pypa/gh-action-pypi-publish` v1.14.0 bundled a twine that rejects
+  Metadata-Version 2.5, which hatchling 1.32 writes. Fixed by merging Dependabot PR #2 (publish action v1.14.2 with twine 7,
+  plus checkout, setup-uv v10, codecov and alls-green bumps; user-approved). Tag `v0.0.1` was moved to the fixed commit
+  `68d8b15` (nothing had been published).
+- Results: PR #1 merged as `d361ebe`, docs live at https://biotapy.readthedocs.io, `biotapy 0.0.1` on PyPI from `68d8b15`.
 
 # Exit gate
-- [ ] `uvx prek run --all-files` and `uv run --group test pytest` green locally; output read.
-- [ ] CI green: 12 test cells (pre-release cells may fail), `lint`, `import-without-extras`, build; docs.
-- [ ] Docs live on Read the Docs.
-- [ ] `biotapy 0.0.1` on PyPI.
-- [ ] rules.md R14 commands match the generated template.
-- [ ] This concept: `phase_state: done`; Phase 1 set to `in-progress` and moved
+- [x] `uvx prek run --all-files` and `uv run --group test pytest` green locally; output read.
+- [x] CI green: 12 test cells (pre-release cells may fail), `lint`, `import-without-extras`, build; docs.
+- [x] Docs live on Read the Docs.
+- [x] `biotapy 0.0.1` on PyPI.
+- [x] rules.md R14 commands match the generated template.
+- [x] This concept: `phase_state: done`; Phase 1 set to `in-progress` and moved
   under "Active phase" in the roadmap index; log entry written.
-- [ ] **Execution method for Phase 1.** Phase 0 runs Native (user's choice,
+- [x] **Execution method for Phase 1.** Phase 0 runs Native (user's choice,
   2026-09-26). Before Phase 1 starts, remind the user and ask again:
   subagent-driven is recommended from Phase 1 because interfaces are fixed and
   a flawed `_core` helper spreads into every later task.
