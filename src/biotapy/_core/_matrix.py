@@ -7,12 +7,16 @@ import numpy.typing as npt
 import scipy.sparse as sp
 
 
-def as_csr(X: sp.spmatrix | sp.sparray | npt.ArrayLike) -> sp.csr_matrix:
-    """Return ``X`` as a CSR matrix, without copying one that already is."""
+def as_csr(X: object) -> sp.csr_matrix:
+    """Return ``X`` as a CSR matrix, without copying one that already is.
+
+    ``X`` may be anything ``scipy.sparse.csr_matrix`` accepts, including
+    ``AnnData.X`` (typed by anndata as a private union of array/sparse types).
+    """
     if isinstance(X, sp.csr_matrix):
         return X
-    # scipy-stubs' csr_matrix overloads cannot resolve this union of inputs (spmatrix |
-    # sparray | ArrayLike); the cast is annotation-only, the runtime call is unchanged.
+    # scipy-stubs' csr_matrix overloads cannot resolve an arbitrary object argument;
+    # the cast is annotation-only, the runtime call is unchanged.
     return sp.csr_matrix(cast(Any, X))
 
 

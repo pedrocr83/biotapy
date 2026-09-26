@@ -1,9 +1,6 @@
 """Per-sample transforms: add one layer, keep everything else."""
 
-from typing import cast
-
 import numpy as np
-import numpy.typing as npt
 import scipy.sparse as sp
 from anndata import AnnData
 
@@ -38,9 +35,7 @@ def relative(adata: AnnData) -> AnnData:
     >>> round(float(out.layers["relative"][0].sum()), 6)
     1.0
     """
-    # anndata's stub types X as _XDataType | None (backed datasets, missing X); biotapy's
-    # contract (data-model-slots) guarantees X is populated and array-like here.
-    X = as_csr(cast("sp.spmatrix | sp.sparray | npt.ArrayLike", adata.X))
+    X = as_csr(adata.X)
     sums = np.asarray(X.sum(axis=1), dtype=np.float64).ravel()
     scale = np.divide(1.0, sums, out=np.zeros_like(sums), where=sums > 0)
     out = adata.copy()
