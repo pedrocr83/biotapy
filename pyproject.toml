@@ -145,8 +145,10 @@ python_version = "3.12"
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
-  # treedata 0.3.1 ships no py.typed marker (contracts/tree-access)
-  { module = "treedata", ignore_missing_imports = true },
+  # treedata 0.3.1 ships no py.typed marker (contracts/tree-access); type-check it anyway
+  # instead of ignoring it, so `TreeData` stays a real type under strict mode.
+  { module = "treedata", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "treedata.*", follow_untyped_imports = true, implicit_reexport = true },
 ]
 
 [tool.pytest]
