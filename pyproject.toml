@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
   "anndata",
+  "numpy",
   # for debug logging (referenced from the issue template)
   "session-info2",
 ]

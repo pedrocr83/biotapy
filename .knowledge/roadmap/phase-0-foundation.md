@@ -99,7 +99,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
 **Files:** create everything the template generates; delete its example code.
 **Interfaces:** produces `src/biotapy/__init__.py` exposing only `__version__`.
 
-- [ ] **Step 1: Generate outside the repo** (cruft creates a new directory):
+- [x] **Step 1: Generate outside the repo** (cruft creates a new directory):
   ```bash
   cd "$(mktemp -d)"
   uvx --with prek cruft create https://github.com/scverse/cookiecutter-scverse --checkout v0.8.0
@@ -108,14 +108,14 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   microbiome toolkit for Python on AnnData/TreeData"; author "Pedro Ribeiro";
   email from task 0.1; GitHub user `pedrocr83`; repo `biotapy`; license
   BSD 3-Clause. Keep the prompt names and answers for the commit body.
-- [ ] **Step 2: Copy into the repo**, keeping this repo's own files:
+- [x] **Step 2: Copy into the repo**, keeping this repo's own files:
   ```bash
   rsync -a --exclude .git --exclude CLAUDE.md --exclude rules.md \
         --exclude plan.md --exclude .knowledge \
         ./biotapy/ /home/pedro/Desktop/Business/AI/biotapy/
   cd /home/pedro/Desktop/Business/AI/biotapy && git status
   ```
-- [ ] **Step 3: Delete the template's example code** (R4.8, no placeholders):
+- [x] **Step 3: Delete the template's example code** (R4.8, no placeholders):
   ```bash
   rm -r src/biotapy/pp src/biotapy/tl src/biotapy/pl tests/test_basic.py \
         docs/notebooks/example.ipynb docs/template_usage.md
@@ -129,19 +129,19 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
 
   __version__ = version("biotapy")
   ```
-- [ ] **Step 4: Python matrix.** In `pyproject.toml` confirm
+- [x] **Step 4: Python matrix.** In `pyproject.toml` confirm
   `requires-python = ">=3.12"` and set the hatch-test matrix Python list to
   `["3.12", "3.13", "3.14"]`.
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
   ```bash
   uv sync --all-groups
   uv run python -c "import biotapy; print(biotapy.__version__)"
   ```
   Expected: a version string, no traceback.
-- [ ] **Step 6: Record real commands.** Read the generated `pyproject.toml`,
+- [x] **Step 6: Record real commands.** Read the generated `pyproject.toml`,
   `.pre-commit-config.yaml` and `.github/workflows/*.yaml`. If group or env
   names differ from rules.md R14 (`test`, `doc`, `prek`), fix R14 now.
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
   ```bash
   git add -A
   git commit -m "build: generate skeleton from cookiecutter-scverse v0.8.0"
@@ -156,7 +156,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
 - `as_generator(seed: int | np.random.Generator | None) -> np.random.Generator`
 - `import_optional(name: str, *, extra: str) -> types.ModuleType`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_rng.py
   import numpy as np
@@ -197,9 +197,9 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
       with pytest.raises(ImportError, match=r"pip install 'biotapy\[torch\]'"):
           import_optional("biotapy_no_such_module", extra="torch")
   ```
-- [ ] **Step 2: Run, expect failure**
+- [x] **Step 2: Run, expect failure**
   `uv run --group test pytest tests/core -q` -> `ModuleNotFoundError: No module named 'biotapy._core'`.
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/_core/_rng.py
   """Single entry point for randomness (rules.md R3.4)."""
@@ -242,8 +242,8 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   __all__ = ["as_generator", "import_optional"]
   ```
   Add `"numpy"` to `[project] dependencies`.
-- [ ] **Step 4: Run, expect pass** - `uv run --group test pytest tests/core -q` -> 6 passed.
-- [ ] **Step 5: Commit** - `git add -A && git commit -m "feat(core): add seeded generator and optional-import helpers"`
+- [x] **Step 4: Run, expect pass** - `uv run --group test pytest tests/core -q` -> 6 passed.
+- [x] **Step 5: Commit** - `git add -A && git commit -m "feat(core): add seeded generator and optional-import helpers"`
 
 ### Task 0.4: Tooling that enforces rules.md
 
