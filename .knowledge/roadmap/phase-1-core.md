@@ -28,8 +28,8 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Tasks 1.1-1.5 have full TDD
-> steps. Every later task lists files, interface, tests and done-when; expand
+> (recommended) or superpowers:executing-plans. Tasks 1.1-1.5 and slice 1B stage 1
+> (1.6-1.9) have full TDD steps. Every later task lists files, interface, tests and done-when; expand
 > it with superpowers:writing-plans and get approval before starting (rules.md R1.2a).
 
 **Goal:** 0.1 is a credible phyloseq replacement on TreeData.[^spec]
@@ -64,9 +64,9 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.1 | dev | pandas-stubs, scipy-stubs | `mypy --strict` cannot type untyped scipy/pandas - approved 2026-09-26 |
 | 1.3 | runtime | treedata `>=0.3.1,<0.4`, networkx | container and tree |
 | 1.3 | dev | types-networkx | networkx ships no type information - approved 2026-09-26 |
-| 1.6 | runtime | rdata | read phyloseq `.rds`/`.RData` |
-| 1.7 | runtime | biom-format | BIOM 1.0 JSON and 2.1 HDF5 |
-| 1.7 | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination |
+| 1.6 | spike only | rdata (+ xarray), throwaway `uv run --with` env | a runtime dependency only if the 1.6 decision picks the native route |
+| 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source |
+| 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination |
 | 1.11 | runtime | pooch | cached dataset downloads |
 | 1.12 | test | pyarrow | read parquet golden files |
 | 1.17 | runtime | scikit-learn | non-metric MDS (scikit-bio has none) |
@@ -74,8 +74,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.21 | dev | asv | benchmarks |
 
 # Review focus
-1. **Non-string or duplicated sample/feature ids** from readers (BIOM ids can be ints) -> readers cast to `str` and fail on duplicates naming them. Tests in 1.7-1.9.
-2. **Tree tips and table features disagree** -> readers keep the intersection and warn with both counts, never error deep inside TreeData. Tests in 1.7, 1.8.
+1. **Non-string or duplicated sample/feature ids** from readers (BIOM ids can be ints) -> readers cast to `str` and fail on duplicates naming them. Tests in 1.7a, 1.7c-1.9.
+2. **Tree tips and table features disagree** -> readers keep the intersection and warn with both counts, never error deep inside TreeData. Tests in 1.7a, 1.7c, 1.9.
 3. **Same genus name in different lineages** ("uncultured") -> `tax_glom` groups by lineage. Test in 1.5.
 4. **All-zero samples** after filtering -> `relative` keeps zeros; `rarefy` drops them; `alpha` returns NaN, never raises. Tests in 1.4, 1.14, 1.15.
 5. **Memory on realistic data** (5,000 x 50,000) -> `alpha` densifies in bounded row chunks; `beta` documents its one dense copy. Tests in 1.15-1.16 assert chunking; asv in 1.21 measures it.
@@ -880,47 +880,1444 @@ on ties), ranks below `rank` set to `NaN`.
 
 ## Slice 1B - Readers, datasets, golden infrastructure
 
+Slice 1B is planned in two stages, because the 1.6 spike decides how phyloseq
+objects are read:
+
+- **Stage 1 (tasks 1.6-1.9)** has full TDD steps below. It covers the spike,
+  the shared `_core` support for readers, and the BIOM, QIIME 2 and DADA2
+  readers plus the BIOM writer.
+- **Stage 2 (tasks 1.10-1.12)** is expanded with superpowers:writing-plans once
+  the 1.6 decision is approved (rules.md R1.2a).
+
+### Stage 1 design
+- **One constructor.** `_core.make_treedata` is the only way readers build a
+  TreeData. It casts ids to `str` and raises on duplicates, naming them. It
+  also aligns the tree with the table: features that are not tips are dropped,
+  tips that are not features are pruned, and one `UserWarning` gives both
+  counts. So every reader and `datasets.toy()` get the same rules from one place.
+- **One taxonomy normalizer.** `_core/_taxonomy.py` sits next to `RANKS`, so
+  the rank vocabulary and its aliases have one home and unit tests.
+  - `split_lineage` parses lineage strings: Greengenes `k__`, RESCRIPT/SILVA
+    `d__`, SILVA `D_0__`, Greengenes2 truncated, or unprefixed.
+  - `normalize_ranks` cleans rank columns (DADA2 `Kingdom`, `NA`).
+- **Test fixtures are built at test time** in `tests/io/conftest.py`, with
+  biom-format and `zipfile`. No binary fixture is committed, and fixtures never
+  use biotapy's own writer, so tests never check biotapy against itself.
+- **Not in stage 1:**
+  - `.rds` input for `read_dada2`. `rdata` needs `xarray`, and it flattens
+    character matrices, dropping `dim` and `dimnames`, so `.rds` support waits
+    for the 1.6 decision on `rdata`.
+  - Validating QIIME 2 `metadata.yaml` types. That would need a YAML runtime
+    dependency; readers check the payload file name instead.
+
+### Stage 1 global constraints (in addition to the Phase 1 list)
+- `scikit-bio>=0.7.4,<0.8` (added in 1.7a) and `biom-format>=2.1.16` (added in
+  1.7c; scikit-bio requires it anyway, and `io` imports it directly).
+- biom-format 2.1.17 has no CPython 3.14 wheels (upstream fix merged, not yet
+  released: biocore/biom-format#1004). On 3.14 it builds from the sdist
+  (`setuptools`, `numpy`, `cython`). The stage-1 PR's CI must show the 3.14 jobs
+  green on Linux, macOS and Windows before merge.
+- Newick parsing always passes `convert_underscores=False`. skbio's default
+  turns `ASV_1` into `ASV 1`.
+- mypy: a library without `py.typed` gets `follow_untyped_imports = true`,
+  never `ignore_missing_imports` (Checkpoint A finding F2).
+- Readers transpose at most once, keep `X` CSR, set `x_kind="counts"`, and
+  record provenance `io.<reader>`.
+- Commits stage explicit paths only. Never commit `.claude/` or `.superpowers/`.
+
+### Stage 1 review focus
+1. **Integer or duplicated ids.** BIOM JSON can hold unquoted integer ids. Ids
+   become `str`, and duplicates raise naming them: `make_treedata` does this, and
+   for BIOM input biom-format itself raises `Duplicate sample IDs!` first. Tests
+   in 1.7a and 1.7c.
+2. **Tree and table disagree.** Keep the intersection and give one warning with
+   both counts; if nothing is shared, raise. Tests in 1.7a, 1.7c and 1.9.
+3. **Taxonomy dialects** (Greengenes, RESCRIPT, SILVA `D_n__`, Greengenes2,
+   unprefixed, DADA2 capitalised columns with `NA`, QIIME `Unassigned`)
+   become canonical columns with NaN for missing values. Tests in 1.7b, 1.8
+   and 1.9.
+4. **Newick quirks.** Underscores and support values such as `0.95` on
+   internal nodes: tip names stay intact and internal nodes get unique names.
+   Tests in 1.7a.
+5. **Missing ranks surviving a round trip.** BIOM HDF5 drops empty taxonomy
+   entries on read, so `write_biom` writes prefixed values (`g__`) and
+   positions survive. Tests in 1.7d.
+
 ### Task 1.6: Spike - phyloseq objects through `rdata` (timebox: 1 day)
-- **Question:** can `rdata.read_rda`/`read_rds` with `constructor_dict` turn
-  phyloseq's `GlobalPatterns.RData` (S4 `phyloseq` with `otu_table`,
-  `sample_data`, `taxonomyTable`, ape `phylo`) into arrays and a Newick-able tree?
-  `rdata` 1.1.0 supports S4 as `SimpleNamespace`; a real phyloseq object is untested.
-- **Output:** a `Decision` concept `decisions/phyloseq-import-route.md`: native
-  `rdata` route, or an R export script shipped in the docs (write BIOM + Newick + TSV).
-- **Done when:** the decision is written and approved; throwaway spike code is deleted.
 
-### Task 1.7: `io.read_biom`
-- **Interface:** `read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData`.
-- **Files:** `src/biotapy/io/_biom.py`, `src/biotapy/io/_taxonomy.py` (normalizer
-  shared by all readers), `_core/_tree.py` gains `tree_from_newick(text: str) -> nx.DiGraph`
-  via `skbio.TreeNode.read([text])`, unnamed internal nodes get unique names; tests under `tests/io/`, fixtures `tests/data/` (< 1 MB, generated by a committed script).
-- **Tests:** JSON and HDF5 BIOM; samples become rows; observation `taxonomy`
-  metadata -> normalized rank columns ([data-model-slots](/contracts/data-model-slots.md) convention 1);
-  integer ids cast to `str`; duplicate ids raise naming them; tree tips not in the table and features not in the tree -> intersection plus one warning with both counts.
-- **Done when:** tests pass; `x_kind="counts"`; provenance `io.read_biom`.
+**Question:** can `rdata.read_rda` with a `constructor_dict` turn phyloseq's
+`GlobalPatterns.RData` into counts, taxonomy, sample data and a tree?
+GlobalPatterns is an S4 `phyloseq` object with slots `otu_table`, `tax_table`,
+`sam_data`, `phy_tree` and `refseq`.
 
-### Task 1.7b: `io.write_biom`
-Added 2026-09-26 at the user's request.
-- **Interface:** `write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None`,
-  through `biom-format` (approved with 1.7).
-- **Files:** `src/biotapy/io/_biom.py` (next to `read_biom`); tests in `tests/io/test_biom.py`.
-- **Tests:** `read_biom(write_biom(x))` round-trips `X`, `obs` and the rank columns for both
-  formats; the writer transposes back to features x samples exactly once; rank columns go
-  to observation `taxonomy` metadata in canonical order; input unchanged.
-- **Done when:** tests pass; the docstring says a TreeData's tree is not written (BIOM has
-  no tree slot) and has `R equivalent: ``biomformat::write_biom``.
+**Output:** the Decision concept `.knowledge/decisions/phyloseq-import-route.md`.
+It chooses between the native `rdata` route and an R export script shipped in
+the docs (write BIOM + Newick + TSV).
+
+**Files:**
+- Create `.knowledge/decisions/phyloseq-import-route.md`.
+- Modify `.knowledge/decisions/index.md` and `.knowledge/log.md`.
+- Spike code lives only in the scratchpad and is never committed.
+
+**Known facts** (research 2026-09-26; re-check each in the spike):
+- `rdata` 1.1.0 needs `numpy`, `xarray`, `pandas` and `typing_extensions`.
+- `read_rda` returns a dict of the objects in the file. S4 objects become a
+  `SimpleNamespace` with one attribute per slot plus `class`, and emit a
+  "Missing constructor" `UserWarning` unless `constructor_dict` maps the class.
+- Numeric matrices with dimnames become `xarray.DataArray`.
+- **Character matrices come back flat** (1-D, column-major, `dim`/`dimnames`
+  dropped). phyloseq's `taxonomyTable` is a character matrix, so a
+  constructor must reshape it from `attrs["dim"]` and `attrs["dimnames"]`.
+- ape `phylo` is an S3 list with `edge` (Nedge x 2, 1-based node ids;
+  tips `1..Ntip`, internal nodes after), `edge.length`, `tip.label`, `Nnode`
+  and an optional `node.label`.
+- Files (raw GitHub, `joey711/phyloseq/master/data/`):
+  - `GlobalPatterns.RData` (435,652 B)
+  - `enterotype.RData` (195,260 B)
+  - `esophagus.RData` (1,840 B)
+
+- [ ] **Step 1: Fetch.** Download the three files into the scratchpad (never into the repo).
+- [ ] **Step 2: Raw read.** Run
+  `uv run --no-project --with rdata python spike.py` from the scratchpad. It
+  uses a throwaway environment, not a project dependency; the user approved it
+  with the stage-1 plan. `spike.py` calls `rdata.read_rda(path)` and prints, for
+  each object and slot: its type, shape, the `class` attr and any warnings.
+- [ ] **Step 3: Constructors.** Add `constructor_dict` entries for:
+  - `otu_table`: numeric matrix plus `taxa_are_rows`;
+  - `taxonomyTable`: reshape the character matrix with `order="F"`;
+  - `sample_data`;
+  - `phylo`: build `(parent, child, length)` triples, naming tips from
+    `tip.label` and internal nodes `n<i>`;
+  - `phyloseq`.
+  Record lines of code, run time and remaining warnings.
+- [ ] **Step 4: Check against known shapes.**
+  - GlobalPatterns: 26 samples x 19,216 taxa, 7 rank columns, a tree with
+    19,216 tips.
+  - enterotype: holds relative abundances.
+  - esophagus: 3 samples, with a tree.
+  Note every mismatch.
+- [ ] **Step 5: Decide.** Write `decisions/phyloseq-import-route.md`
+  (`type: Decision`, `status: draft`) with:
+  - Context;
+  - Options: native `rdata` route (new runtime deps `rdata` + `xarray`, the
+    constructor code, fragility if phyloseq's S4 layout changes), or the R
+    export script (no deps, needs an R install);
+  - Evidence (numbers from Steps 2-4);
+  - Recommendation;
+  - Consequences for 1.9 `.rds`, 1.10, 1.11 and 1.12.
+  Add its line to `decisions/index.md` and a `log.md` entry. Commit
+  `docs(knowledge): record phyloseq import route spike`.
+- [ ] **Step 6: Done when** the user approves the decision (status -> `stable`)
+  and the scratchpad spike files are deleted.
+
+### Task 1.7a: `_core` support for readers - Newick parsing and id/tree rules in `make_treedata`
+
+**Files:**
+- Modify:
+  - `src/biotapy/_core/_tree.py`
+  - `src/biotapy/_core/__init__.py`
+  - `tests/core/test_tree.py`
+  - `pyproject.toml`: runtime `scikit-bio>=0.7.4,<0.8`, plus a mypy override
+    if needed
+  - `.knowledge/contracts/tree-access.md`: Newick parsing now exists; gotchas
+    `convert_underscores=False`, dropped internal labels, NaN lengths,
+    alignment warning
+  - `.knowledge/contracts/data-model-slots.md`: new convention 5, ids are
+    unique `str`, enforced by `make_treedata`
+  - `.knowledge/decisions/optional-heavy-dependencies.md`: one sentence
+  - `.knowledge/log.md`
+**Interfaces (produces):**
+- `tree_from_newick(text: str) -> nx.DiGraph[str]`: tips keep their names. Internal nodes are named
+  `n0, n1, ...` in preorder, skipping any name that is a tip. A missing
+  branch length becomes `nan`. Unnamed or repeated tips raise `ValueError`,
+  naming them.
+- `make_treedata(X, *, obs, var, tree, x_kind, source) -> TreeData`: the
+  signature is unchanged. New behaviour:
+  - obs/var ids are cast to `str`; duplicates raise `ValueError("duplicate <axis> ids: [...]")`;
+  - with a tree, only features that are tips are kept, and tips outside the
+    table are pruned (ancestors kept, as TreeData subsetting does);
+  - any mismatch gives one `UserWarning` naming both counts, attributed to the
+    first frame outside biotapy (`skip_file_prefixes`, Python 3.12+);
+  - no shared feature raises `ValueError`;
+  - the input frames are never mutated.
+
+- [ ] **Step 1: Dependency.** Add `"scikit-bio>=0.7.4,<0.8"` to `[project] dependencies`, then run
+  `uv sync --group dev --group test --group doc`. On Python 3.14 this builds
+  biom-format from source (see stage-1 constraints).
+- [ ] **Step 2: Failing tests** - append to `tests/core/test_tree.py`:
+  ```python
+  import math
+
+  from biotapy._core import tree_from_newick
+
+
+  def _leaves(tree) -> set[str]:
+      return {n for n in tree.nodes if tree.out_degree(n) == 0}
+
+
+  def _frames(samples, features):
+      return pd.DataFrame(index=samples), pd.DataFrame(index=features)
+
+
+  def test_tree_from_newick_keeps_underscores_in_tip_names():
+      assert _leaves(tree_from_newick("((ASV_1:0.1,ASV_2:0.2):0.05,ASV_3:0.3);")) == {"ASV_1", "ASV_2", "ASV_3"}
+
+
+  def test_tree_from_newick_stores_branch_lengths():
+      tree = tree_from_newick("((a:0.1,b:0.2):0.05,c:0.3);")
+      parent = next(iter(tree.predecessors("a")))
+      assert tree.edges[parent, "a"]["length"] == 0.1
+
+
+  def test_tree_from_newick_gives_internal_nodes_unique_names():
+      tree = tree_from_newick("((a:1,b:1)0.95:1,(c:1,d:1)0.95:1);")
+      internal = set(tree.nodes) - {"a", "b", "c", "d"}
+      assert len(internal) == 3 and "0.95" not in internal
+
+
+  def test_tree_from_newick_internal_names_skip_tip_names():
+      tree = tree_from_newick("((n0:1,n1:1):1,n2:1);")
+      assert tree.number_of_nodes() == 5 and _leaves(tree) == {"n0", "n1", "n2"}
+
+
+  def test_tree_from_newick_missing_length_is_nan():
+      tree = tree_from_newick("(a,b:2);")
+      assert math.isnan(tree.edges[next(iter(tree.predecessors("a"))), "a"]["length"])
+
+
+  def test_tree_from_newick_repeated_tip_names_raise():
+      with pytest.raises(ValueError, match="'a'"):
+          tree_from_newick("(a:1,a:1);")
+
+
+  def test_make_treedata_casts_ids_to_str():
+      obs, var = _frames([1, 2], [10, 20])
+      tdata = make_treedata(np.ones((2, 2)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
+      assert list(tdata.obs_names) == ["1", "2"] and list(tdata.var_names) == ["10", "20"]
+
+
+  def test_make_treedata_names_duplicate_ids():
+      obs, var = _frames(["s1", "s1"], ["a", "b"])
+      with pytest.raises(ValueError, match="duplicate obs ids.*s1"):
+          make_treedata(np.ones((2, 2)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
+
+
+  def test_make_treedata_keeps_shared_features_and_warns_once():
+      obs, var = _frames(["s1"], ["a", "b", "c"])
+      tree = tree_from_edges([("r", "a", 1.0), ("r", "b", 1.0), ("r", "d", 1.0)])
+      with pytest.warns(UserWarning, match=r"1 feature\(s\) not in the tree and 1 tree tip\(s\)") as record:
+          tdata = make_treedata(np.array([[1, 2, 3]]), obs=obs, var=var, tree=tree, x_kind="counts", source="test")
+      assert len(record) == 1
+      assert list(tdata.var_names) == ["a", "b"]
+      assert tdata.X.toarray().tolist() == [[1, 2]]
+      assert _leaves(get_tree(tdata)) == {"a", "b"}
+
+
+  def test_make_treedata_without_shared_features_raises():
+      obs, var = _frames(["s1"], ["a"])
+      with pytest.raises(ValueError, match="no feature"):
+          make_treedata(np.ones((1, 1)), obs=obs, var=var, tree=tree_from_edges([("r", "z", 1.0)]), x_kind="counts", source="test")
+
+
+  def test_make_treedata_leaves_input_frames_alone():
+      obs, var = _frames([1], ["a"])
+      make_treedata(np.ones((1, 1)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
+      assert list(obs.index) == [1]
+  ```
+- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py -q` -> `ImportError: cannot import name 'tree_from_newick'`.
+- [ ] **Step 4: Implement.** In `src/biotapy/_core/_tree.py`:
+  - add imports `import itertools`, `import math`, `import warnings`,
+    `from collections import Counter`, `from pathlib import Path`,
+    `import numpy as np` and `from skbio import TreeNode`;
+  - add the constant and the functions below;
+  - replace `make_treedata`'s body.
+  ```python
+  # Warnings point at the first frame outside biotapy, however deep the call.
+  _PACKAGE_DIR = str(Path(__file__).resolve().parents[1])
+
+
+  def tree_from_newick(text: str) -> nx.DiGraph[str]:
+      """Parse one Newick tree; tips keep their names, internal nodes get unique ones.
+
+      Internal labels (often support values such as ``0.95``) repeat, so they
+      cannot name graph nodes and are dropped. A missing branch length is NaN.
+      """
+      # skbio turns "_" into " " in unquoted names by default; ASV ids need them intact.
+      root = TreeNode.read([text], convert_underscores=False)
+      tips = [tip.name for tip in root.tips()]
+      _require_unique_names(tips)
+      names = _node_names(root, set(tips))
+      return tree_from_edges(
+          (names[id(node.parent)], names[id(node)], math.nan if node.length is None else float(node.length))
+          for node in root.preorder(include_self=False)
+      )
+
+
+  def _require_unique_names(tips: list[str | None]) -> None:
+      bad = [name for name, count in Counter(tips).items() if name is None or count > 1]
+      if bad:
+          msg = f"Newick tips need unique names; unnamed or repeated: {bad[:5]}"
+          raise ValueError(msg)
+
+
+  def _node_names(root: TreeNode, tips: set[str]) -> dict[int, str]:
+      fresh = (name for name in (f"n{i}" for i in itertools.count()) if name not in tips)
+      return {id(node): node.name if node.is_tip() else next(fresh) for node in root.preorder()}
+
+
+  def make_treedata(
+      X: object,
+      *,
+      obs: pd.DataFrame,
+      var: pd.DataFrame,
+      tree: nx.DiGraph[str] | None,
+      x_kind: XKind,
+      source: str,
+  ) -> TreeData:
+      """Construct a TreeData that follows contracts/data-model-slots.
+
+      Ids become unique strings. With a tree, only features that are its tips
+      are kept and tips outside the table are pruned; a mismatch warns once.
+      """
+      obs, var = _with_str_ids(obs, "obs"), _with_str_ids(var, "var")
+      matrix = as_csr(X)
+      if tree is not None:
+          matrix, var, tree = _align_tree(matrix, var, tree)
+      vart = None if tree is None else {PHYLO_KEY: tree}
+      tdata = TreeData(X=matrix, obs=obs, var=var, vart=vart, label=None)
+      tdata.uns["biotapy"] = {"x_kind": x_kind}
+      add_provenance(tdata, source)
+      return tdata
+
+
+  def _with_str_ids(frame: pd.DataFrame, axis: str) -> pd.DataFrame:
+      out = frame.copy()
+      out.index = out.index.astype(str)
+      duplicated = out.index[out.index.duplicated()].unique().tolist()
+      if duplicated:
+          msg = f"duplicate {axis} ids: {duplicated[:5]}"
+          raise ValueError(msg)
+      return out
+
+
+  def _align_tree(
+      X: sp.csr_matrix, var: pd.DataFrame, tree: nx.DiGraph[str]
+  ) -> tuple[sp.csr_matrix, pd.DataFrame, nx.DiGraph[str]]:
+      tips = {node for node in tree.nodes if tree.out_degree(node) == 0}
+      shared = var.index.isin(tips)
+      n_extra = len(tips - set(var.index))
+      if shared.all() and n_extra == 0:
+          return X, var, tree
+      if not shared.any():
+          msg = "no feature of the table is a tip of the tree"
+          raise ValueError(msg)
+      msg = (
+          f"tree and table disagree: {int((~shared).sum())} feature(s) not in the tree and "
+          f"{n_extra} tree tip(s) not in the table; keeping the {int(shared.sum())} shared features"
+      )
+      warnings.warn(msg, UserWarning, skip_file_prefixes=(_PACKAGE_DIR,))
+      kept = var.index[shared]
+      keep_nodes = set(kept).union(*(nx.ancestors(tree, tip) for tip in kept))
+      return X[:, np.flatnonzero(shared)], var.loc[kept], tree.subgraph(keep_nodes).copy()
+  ```
+  Export `tree_from_newick` from `_core/__init__.py`. The `X` annotation widens to
+  `object`, matching `as_csr` since fc26baa; `numpy.typing` may become unused, so
+  drop it if ruff says so.
+  - **mypy:** if it reports `import-untyped` for `skbio`, add
+    `{ module = "skbio", follow_untyped_imports = true, implicit_reexport = true }` and the
+    same for `"skbio.*"` next to the treedata overrides, with a one-line comment.
+  - **Annotation-only fixes** follow ruling P1.
+- [ ] **Step 5: Run, expect pass** - `uv run --group test pytest tests/core -q`. The existing `toy()`
+  tests still pass with no warning, because toy's tree tips equal its features.
+  Also record `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1` in
+  the report: rules.md R10.1 wants a measurement before anyone makes skbio
+  import lazily.
+- [ ] **Step 6: Knowledge and gate.**
+  - Update the two contracts, the dependency decision and the log as listed
+    under Files.
+  - Run `uvx prek run --all-files` and `uv run --group test pytest`.
+  - Commit `feat(core): parse Newick and align trees with tables in make_treedata`.
+
+### Task 1.7b: `_core` taxonomy normalization
+
+**Files:** modify `src/biotapy/_core/_taxonomy.py`, `src/biotapy/_core/__init__.py`,
+`tests/core/test_taxonomy.py`.
+**Interfaces (produces):**
+- `normalize_ranks(frame: pd.DataFrame) -> pd.DataFrame`:
+  - rank-like columns are renamed to canonical lowercase (case-insensitive;
+    `domain` -> `kingdom`);
+  - in rank columns, `k__`/`D_0__` prefixes are stripped, and `""`,
+    whitespace, `"NA"` and bare prefixes become NaN;
+  - other columns are untouched, and a new frame is returned.
+- `split_lineage(lineage: pd.Series) -> pd.DataFrame`:
+  - splits `;`-separated lineages;
+  - a prefixed part (`k__`, `d__`, `p__` ... `s__`, `D_<n>__`) goes to its
+    rank; an unprefixed part goes by position;
+  - columns run from kingdom down to the deepest rank seen;
+  - the index is kept; a NaN lineage gives an all-NaN row.
+
+- [ ] **Step 1: Failing tests** - append to `tests/core/test_taxonomy.py`:
+  ```python
+  from biotapy._core import normalize_ranks, split_lineage
+
+  LINEAGES = pd.Series(
+      [
+          "k__Bacteria; p__Firmicutes; c__; o__; f__; g__; s__",
+          "d__Bacteria; p__Proteobacteria",
+          "D_0__Archaea;D_1__Euryarchaeota",
+          "Bacteria;Firmicutes",
+          "p__Firmicutes_A;c__Clostridia_258483",
+          np.nan,
+          "Unassigned",
+      ],
+      index=[f"f{i}" for i in range(7)],
+  )
+
+
+  def test_split_lineage_reads_greengenes_prefixes():
+      out = split_lineage(LINEAGES)
+      assert list(out.columns) == ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
+      assert out.loc["f0", ["kingdom", "phylum"]].tolist() == ["Bacteria", "Firmicutes"]
+      assert out.loc["f0", "class":].isna().all()
+
+
+  @pytest.mark.parametrize(
+      ("feature", "expected"),
+      [("f1", ["Bacteria", "Proteobacteria"]), ("f2", ["Archaea", "Euryarchaeota"]), ("f3", ["Bacteria", "Firmicutes"])],
+  )
+  def test_split_lineage_reads_silva_and_unprefixed(feature, expected):
+      assert split_lineage(LINEAGES).loc[feature, ["kingdom", "phylum"]].tolist() == expected
+
+
+  def test_split_lineage_places_truncated_lineage_by_prefix():
+      row = split_lineage(LINEAGES).loc["f4"]
+      assert pd.isna(row["kingdom"]) and row["phylum"] == "Firmicutes_A" and row["class"] == "Clostridia_258483"
+
+
+  def test_split_lineage_missing_lineage_is_all_nan():
+      assert split_lineage(LINEAGES).loc["f5"].isna().all()
+
+
+  def test_split_lineage_keeps_unassigned_as_kingdom():
+      assert split_lineage(LINEAGES).loc["f6", "kingdom"] == "Unassigned"
+
+
+  def test_split_lineage_columns_stop_at_deepest_rank():
+      assert list(split_lineage(pd.Series(["k__A; p__B"], index=["x"])).columns) == ["kingdom", "phylum"]
+
+
+  def test_normalize_ranks_canonicalizes_names_and_missing_values():
+      frame = pd.DataFrame(
+          {"Domain": ["Bacteria", "NA", " "], "Genus": ["g__", None, "g__Blautia"], "sequence": ["AC", "GT", "TT"]},
+          index=["a", "b", "c"],
+      )
+      out = normalize_ranks(frame)
+      assert list(out.columns) == ["kingdom", "genus", "sequence"]
+      assert out.loc["a", "kingdom"] == "Bacteria" and out["kingdom"].iloc[1:].isna().all()
+      assert out["genus"].iloc[:2].isna().all() and out.loc["c", "genus"] == "Blautia"
+      assert out["sequence"].tolist() == ["AC", "GT", "TT"]
+
+
+  def test_normalize_ranks_leaves_input_alone():
+      frame = pd.DataFrame({"Genus": ["g__Blautia"]})
+      normalize_ranks(frame)
+      assert list(frame.columns) == ["Genus"] and frame.iloc[0, 0] == "g__Blautia"
+  ```
+- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_taxonomy.py -q` -> ImportError.
+- [ ] **Step 3: Implement** in `src/biotapy/_core/_taxonomy.py`. Add imports `re`,
+  `numpy as np` and `pandas as pd`; change the module docstring to
+  "Canonical taxonomic ranks and their normalization (contracts/data-model-slots).";
+  then add:
+  ```python
+  RANK_ALIASES = {"domain": "kingdom"}
+  # Greengenes/RESCRIPT "k__"-style or SILVA "D_0__"-style rank prefixes.
+  _PREFIX = re.compile(r"^(?:(?P<letter>[kdpcofgs])__|D_(?P<level>\d+)__)")
+  _PREFIX_RANK = {
+      "k": "kingdom", "d": "kingdom", "p": "phylum", "c": "class",
+      "o": "order", "f": "family", "g": "genus", "s": "species",
+  }
+  _MISSING = ("", "NA")
+
+
+  def _canonical(column: object) -> object:
+      name = RANK_ALIASES.get(str(column).strip().lower(), str(column).strip().lower())
+      return name if name in RANKS else column
+
+
+  def normalize_ranks(frame: pd.DataFrame) -> pd.DataFrame:
+      """Canonical lowercase rank columns with missing values as NaN (contracts/data-model-slots)."""
+      out = frame.rename(columns=_canonical)
+      for rank in [column for column in out.columns if column in RANKS]:
+          values = out[rank].astype("string").str.strip().str.replace(_PREFIX, "", regex=True)
+          out[rank] = values.astype(object).mask(values.isna() | values.isin(_MISSING), np.nan)
+      return out
+
+
+  def _rank_and_value(part: str, position: int) -> tuple[str | None, str]:
+      match = _PREFIX.match(part)
+      if match is None:
+          return (RANKS[position] if position < len(RANKS) else None), part
+      if match["letter"] is not None:
+          return _PREFIX_RANK[match["letter"]], part[match.end() :]
+      level = int(match["level"])
+      return (RANKS[level] if level < len(RANKS) else None), part[match.end() :]
+
+
+  def _parse_lineage(text: str) -> dict[str, str]:
+      ranks: dict[str, str] = {}
+      for position, part in enumerate(text.split(";")):
+          rank, value = _rank_and_value(part.strip(), position)
+          if rank is not None:
+              ranks[rank] = value
+      return ranks
+
+
+  def split_lineage(lineage: pd.Series) -> pd.DataFrame:
+      """Split ``;``-separated lineages (``k__Bacteria; p__Firmicutes``) into rank columns."""
+      frame = pd.DataFrame([_parse_lineage(t) if isinstance(t, str) else {} for t in lineage], index=lineage.index)
+      depth = max((RANKS.index(column) + 1 for column in frame.columns), default=0)
+      return normalize_ranks(frame.reindex(columns=list(RANKS[:depth])))
+  ```
+  Export `normalize_ranks` and `split_lineage` from `_core/__init__.py`. The
+  controller prototyped this code on pandas 3.0.6 on 2026-09-26; mypy fixes
+  follow ruling P1.
+- [ ] **Step 4: Run, expect pass** -> 10 new tests pass.
+- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; commit `feat(core): normalize taxonomy ranks and split lineage strings`.
+
+### Task 1.7c: `io.read_biom`
+
+**Files:**
+- Create:
+  - `src/biotapy/io/__init__.py`
+  - `src/biotapy/io/_biom.py`
+  - `tests/io/conftest.py`
+  - `tests/io/test_biom.py`
+  - `docs/guide/reading_data.md`
+- Modify:
+  - `src/biotapy/__init__.py` (add `io`)
+  - `pyproject.toml` (runtime `biom-format>=2.1.16`, plus a mypy override if needed)
+  - `docs/api.md`, `docs/guide/index.md`
+  - `.knowledge/decisions/optional-heavy-dependencies.md`, `.knowledge/log.md`
+**Interfaces:**
+- **Consumes:** `make_treedata`, `split_lineage`, `tree_from_newick`, `as_csr`.
+- **Produces:**
+  - `bt.io.read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData`;
+  - the private `_biom_parts(table: biom.Table) -> tuple[sp.csr_matrix, pd.DataFrame, pd.DataFrame]`
+    (X as samples x features, obs, var), reused by 1.8.
+
+- [ ] **Step 1: Dependency.** Add `"biom-format>=2.1.16"` to `[project] dependencies`, then run `uv sync`.
+- [ ] **Step 2: Fixtures** - `tests/io/conftest.py`:
+  ```python
+  import json
+
+  import biom
+  import numpy as np
+  import pytest
+  import scipy.sparse as sp
+  from biom.util import biom_open
+
+  NEWICK = "((OTU_1:0.1,OTU_2:0.2):0.05,(OTU_3:0.3,OTU_4:0.4):0.1);"
+  TAXONOMY = [
+      ["k__Bacteria", "p__Firmicutes", "c__Clostridia", "o__", "f__", "g__", "s__"],
+      ["k__Bacteria", "p__Firmicutes", "c__Bacilli", "o__Lactobacillales", "f__", "g__", "s__"],
+      ["k__Bacteria", "p__Bacteroidetes", "c__", "o__", "f__", "g__", "s__"],
+      ["k__Archaea", "p__Euryarchaeota", "c__", "o__", "f__", "g__", "s__"],
+  ]
+
+
+  @pytest.fixture
+  def biom_table() -> biom.Table:
+      """4 features x 3 samples, laid out as BIOM stores them."""
+      counts = sp.csr_matrix(np.array([[5, 0, 3], [1, 2, 0], [0, 4, 6], [7, 0, 0]]))
+      return biom.Table(
+          counts,
+          ["OTU_1", "OTU_2", "OTU_3", "OTU_4"],
+          ["S1", "S2", "S3"],
+          observation_metadata=[{"taxonomy": t} for t in TAXONOMY],
+          sample_metadata=[{"group": g} for g in ["A", "A", "B"]],
+      )
+
+
+  @pytest.fixture
+  def biom_hdf5(tmp_path, biom_table):
+      path = tmp_path / "table.biom"
+      with biom_open(str(path), "w") as handle:
+          biom_table.to_hdf5(handle, "biotapy tests")
+      return path
+
+
+  @pytest.fixture
+  def biom_json(tmp_path, biom_table):
+      path = tmp_path / "table.json.biom"
+      path.write_text(biom_table.to_json("biotapy tests"))
+      return path
+
+
+  @pytest.fixture
+  def newick(tmp_path):
+      path = tmp_path / "tree.nwk"
+      path.write_text(NEWICK)
+      return path
+
+
+  @pytest.fixture
+  def biom_json_ids(tmp_path):
+      """Write a minimal BIOM 1.0 JSON table with ids exactly as given (ints allowed)."""
+
+      def write(sample_ids, observation_ids):
+          path = tmp_path / "ids.biom"
+          document = {
+              "id": None, "format": "Biological Observation Matrix 1.0.0",
+              "format_url": "http://biom-format.org", "type": "OTU table",
+              "generated_by": "biotapy tests", "date": "2026-09-26T00:00:00",
+              "rows": [{"id": i, "metadata": None} for i in observation_ids],
+              "columns": [{"id": i, "metadata": None} for i in sample_ids],
+              "matrix_type": "sparse", "matrix_element_type": "int",
+              "shape": [len(observation_ids), len(sample_ids)], "data": [[0, 0, 5], [1, 1, 3]],
+          }
+          path.write_text(json.dumps(document))
+          return path
+
+      return write
+  ```
+- [ ] **Step 3: Failing tests** - `tests/io/test_biom.py`:
+  ```python
+  import biom
+  import numpy as np
+  import pandas as pd
+  import pytest
+  from biom.exception import TableException
+  from biom.util import biom_open
+
+  import biotapy as bt
+
+
+  def test_read_biom_hdf5_puts_samples_in_rows(biom_hdf5, biom_table):
+      tdata = bt.io.read_biom(biom_hdf5)
+      assert tdata.shape == (3, 4)
+      assert list(tdata.obs_names) == ["S1", "S2", "S3"]
+      assert list(tdata.var_names) == ["OTU_1", "OTU_2", "OTU_3", "OTU_4"]
+      np.testing.assert_array_equal(tdata.X.toarray(), biom_table.matrix_data.T.toarray())
+
+
+  def test_read_biom_json_matches_hdf5(biom_json, biom_hdf5):
+      from_json, from_hdf5 = bt.io.read_biom(biom_json), bt.io.read_biom(biom_hdf5)
+      assert (from_json.X != from_hdf5.X).nnz == 0
+      pd.testing.assert_frame_equal(from_json.var, from_hdf5.var)
+
+
+  def test_read_biom_taxonomy_becomes_rank_columns(biom_hdf5):
+      var = bt.io.read_biom(biom_hdf5).var
+      assert list(var.columns) == ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
+      assert var.loc["OTU_2", "order"] == "Lactobacillales"
+      assert var.loc["OTU_1", ["order", "family", "genus", "species"]].isna().all()
+
+
+  def test_read_biom_sample_metadata_goes_to_obs(biom_hdf5):
+      assert bt.io.read_biom(biom_hdf5).obs["group"].tolist() == ["A", "A", "B"]
+
+
+  def test_read_biom_integer_ids_become_strings(biom_json_ids):
+      tdata = bt.io.read_biom(biom_json_ids([1, 2], [10, 20]))
+      assert list(tdata.obs_names) == ["1", "2"] and list(tdata.var_names) == ["10", "20"]
+
+
+  def test_read_biom_duplicate_ids_are_rejected_by_biom(biom_json_ids):
+      # biom-format validates ids itself (biom/err.py SAMPDUP, default state "raise").
+      with pytest.raises(TableException, match="Duplicate sample IDs"):
+          bt.io.read_biom(biom_json_ids(["S1", "S1"], ["a", "b"]))
+
+
+  def test_read_biom_attaches_tree(biom_hdf5, newick):
+      tree = bt.io.read_biom(biom_hdf5, tree=newick).vart["phylo"]
+      assert {n for n in tree.nodes if tree.out_degree(n) == 0} == {"OTU_1", "OTU_2", "OTU_3", "OTU_4"}
+
+
+  def test_read_biom_tree_mismatch_keeps_shared_features(biom_hdf5, tmp_path):
+      path = tmp_path / "partial.nwk"
+      path.write_text("((OTU_1:1,OTU_2:1):1,OTU_9:1);")
+      with pytest.warns(UserWarning, match="2 feature"):
+          tdata = bt.io.read_biom(biom_hdf5, tree=path)
+      assert list(tdata.var_names) == ["OTU_1", "OTU_2"]
+
+
+  def test_read_biom_without_taxonomy_has_no_rank_columns(tmp_path, biom_table):
+      path = tmp_path / "bare.biom"
+      bare = biom.Table(biom_table.matrix_data, biom_table.ids("observation"), biom_table.ids())
+      with biom_open(str(path), "w") as handle:
+          bare.to_hdf5(handle, "biotapy tests")
+      assert not set(bt.io.read_biom(path).var.columns) & {"kingdom", "phylum"}
+
+
+  def test_read_biom_records_counts_and_provenance(biom_hdf5):
+      meta = bt.io.read_biom(biom_hdf5).uns["biotapy"]
+      assert meta["x_kind"] == "counts" and '"io.read_biom"' in meta["provenance"][-1]
+  ```
+- [ ] **Step 4: Run, expect failure** - `uv run --group test pytest tests/io -q` -> `AttributeError: module 'biotapy' has no attribute 'io'`.
+- [ ] **Step 5: Implement** `src/biotapy/io/_biom.py`:
+  ```python
+  """BIOM tables (JSON 1.0 and HDF5 2.1) through biom-format."""
+
+  from collections.abc import Iterable, Mapping, Sequence
+  from pathlib import Path
+
+  import biom
+  import numpy as np
+  import pandas as pd
+  import scipy.sparse as sp
+
+  from biotapy._core import TreeData, as_csr, make_treedata, split_lineage, tree_from_newick
+
+
+  def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
+      """Read a BIOM table (JSON 1.0 or HDF5 2.1) with samples as rows.
+
+      Parameters
+      ----------
+      path
+          BIOM file; JSON or HDF5 is detected from the content.
+      tree
+          Newick file whose tips are the table's observation ids.
+
+      Returns
+      -------
+      TreeData
+          Counts in ``X``; observation ``taxonomy`` metadata as rank columns in
+          ``var``; sample metadata in ``obs``; the tree in ``vart['phylo']``.
+
+      Raises
+      ------
+      biom.exception.TableException
+          The file repeats a sample or observation id (raised by biom-format).
+
+      Warns
+      -----
+      UserWarning
+          Tree tips and table features differ; only shared features are kept.
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::import_biom``
+      Guide: :doc:`/guide/reading_data`
+
+      ``X`` is read as counts; BIOM does not record whether it holds counts.
+
+      Examples
+      --------
+      >>> import tempfile
+      >>> from pathlib import Path
+      >>> import biom
+      >>> from biom.util import biom_open
+      >>> import biotapy as bt
+      >>> toy = bt.datasets.toy()
+      >>> path = Path(tempfile.mkdtemp()) / "toy.biom"
+      >>> table = biom.Table(toy.X.T, list(toy.var_names), list(toy.obs_names))
+      >>> with biom_open(str(path), "w") as handle:
+      ...     table.to_hdf5(handle, "example")
+      >>> bt.io.read_biom(path).shape
+      (6, 8)
+      """
+      X, obs, var = _biom_parts(biom.load_table(str(path)))
+      phylo = None if tree is None else tree_from_newick(Path(tree).read_text())
+      return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_biom")
+
+
+  def _biom_parts(table: biom.Table) -> tuple[sp.csr_matrix, pd.DataFrame, pd.DataFrame]:
+      """Counts as samples x features, plus obs and var frames, from a biom Table."""
+      samples = [str(i) for i in table.ids(axis="sample")]
+      features = [str(i) for i in table.ids(axis="observation")]
+      # BIOM stores features x samples; transpose once so samples are rows (R6.1).
+      X = as_csr(table.matrix_data.T)
+      obs = _metadata_frame(table.metadata(axis="sample"), samples)
+      var = _taxonomy_frame(table.metadata(axis="observation"), features)
+      return X, obs, var
+
+
+  def _metadata_frame(metadata: Sequence[Mapping[str, object]] | None, ids: list[str]) -> pd.DataFrame:
+      if metadata is None:
+          return pd.DataFrame(index=ids)
+      return pd.DataFrame([dict(entry) for entry in metadata], index=ids)
+
+
+  def _taxonomy_frame(metadata: Sequence[Mapping[str, object]] | None, ids: list[str]) -> pd.DataFrame:
+      if metadata is None:
+          return pd.DataFrame(index=ids)
+      return split_lineage(pd.Series([_lineage(entry) for entry in metadata], index=ids, dtype=object))
+
+
+  def _lineage(entry: Mapping[str, object]) -> str | float:
+      # HDF5 gives a list of ranks; JSON gives whatever the producer wrote (list or string).
+      value = entry.get("taxonomy") or entry.get("Taxonomy")
+      if isinstance(value, str):
+          return value
+      if isinstance(value, Iterable):
+          return "; ".join(str(part) for part in value)
+      return np.nan
+  ```
+  - `src/biotapy/io/__init__.py`: `from ._biom import read_biom` and `__all__ = ["read_biom"]`.
+  - `src/biotapy/__init__.py`: add `io`.
+  - **mypy:** if `biom` is untyped, add `follow_untyped_imports` overrides for
+    `biom` and `biom.*`, as in 1.7a.
+- [ ] **Step 6: Docs.**
+  - `docs/guide/reading_data.md`, titled "Reading and writing data", with a
+    "BIOM" section covering: samples become rows (one transpose); taxonomy
+    dialects become rank columns; ids are strings; how a tree/table mismatch is
+    handled; duplicate ids are rejected by biom-format.
+  - Add it to the guide toctree.
+  - `docs/api.md` gets an "Input and output" autosummary block (`.. module:: biotapy.io`) listing `io.read_biom`.
+- [ ] **Step 7: Run, expect pass** - the tests, the doctest and `sphinx-build -W`.
+- [ ] **Step 8: Knowledge and gate.**
+  - Add the dependency sentence to the dependency decision, and a log line.
+  - Run `uvx prek run --all-files` and `uv run --group test pytest`.
+  - Commit `feat(io): read BIOM tables`.
+
+### Task 1.7d: `io.write_biom`
+Added 2026-09-26 at the user's request. Renumbered from 1.7b when stage 1 was
+expanded.
+
+**Files:** modify `src/biotapy/io/_biom.py`, `src/biotapy/io/__init__.py`,
+`tests/io/test_biom.py`, `docs/guide/reading_data.md`, `docs/api.md`.
+**Interfaces:**
+- **Consumes:** `read_biom` (for the round trip), `RANKS`, `as_csr`.
+- **Produces:** `bt.io.write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None`.
+
+- [ ] **Step 1: Failing tests** - append to `tests/io/test_biom.py`:
+  ```python
+  import anndata as ad
+  import scipy.sparse as sp
+
+  RANK_COLUMNS = ["kingdom", "phylum", "class", "order", "family", "genus"]
+
+
+  @pytest.mark.parametrize("fmt", ["hdf5", "json"])
+  def test_write_biom_round_trips_toy(tmp_path, fmt):
+      toy = bt.datasets.toy()
+      path = tmp_path / "toy.biom"
+      bt.io.write_biom(toy, path, fmt=fmt)
+      back = bt.io.read_biom(path)
+      assert list(back.obs_names) == list(toy.obs_names) and list(back.var_names) == list(toy.var_names)
+      np.testing.assert_array_equal(back.X.toarray(), toy.X.toarray())
+      pd.testing.assert_frame_equal(
+          back.var[RANK_COLUMNS].fillna("-"), toy.var[RANK_COLUMNS].fillna("-"), check_dtype=False
+      )
+      assert back.obs["group"].tolist() == toy.obs["group"].astype(str).tolist()
+
+
+  def test_write_biom_stores_features_by_samples(tmp_path):
+      path = tmp_path / "toy.biom"
+      bt.io.write_biom(bt.datasets.toy(), path)
+      table = biom.load_table(str(path))
+      assert table.shape == (8, 6) and list(table.ids("observation"))[:2] == ["f1", "f2"]
+
+
+  def test_write_biom_prefixes_ranks_in_canonical_order(tmp_path):
+      path = tmp_path / "toy.biom"
+      bt.io.write_biom(bt.datasets.toy(), path)
+      table = biom.load_table(str(path))
+      assert list(table.metadata("f1", "observation")["taxonomy"]) == [
+          "k__Bacteria", "p__Firmicutes", "c__Clostridia", "o__Lachnospirales", "f__Lachnospiraceae", "g__Blautia",
+      ]
+      assert list(table.metadata("f8", "observation")["taxonomy"])[-1] == "g__"
+
+
+  def test_write_biom_without_taxonomy_writes_no_metadata(tmp_path):
+      adata = ad.AnnData(
+          X=sp.csr_matrix(np.eye(2)), obs=pd.DataFrame(index=["s1", "s2"]), var=pd.DataFrame(index=["a", "b"])
+      )
+      path = tmp_path / "bare.biom"
+      bt.io.write_biom(adata, path)
+      assert biom.load_table(str(path)).metadata(axis="observation") is None
+
+
+  def test_write_biom_leaves_input_alone(tmp_path, assert_unchanged):
+      toy = bt.datasets.toy()
+      before = toy.copy()
+      bt.io.write_biom(toy, tmp_path / "toy.biom")
+      assert_unchanged(before, toy)
+
+
+  def test_write_biom_does_not_write_the_tree(tmp_path):
+      path = tmp_path / "toy.biom"
+      bt.io.write_biom(bt.datasets.toy(), path)
+      assert "phylo" not in bt.io.read_biom(path).vart
+  ```
+- [ ] **Step 2: Run, expect failure** -> `AttributeError: ... 'write_biom'`.
+- [ ] **Step 3: Implement.** Append to `src/biotapy/io/_biom.py`. Add imports
+  `from importlib.metadata import version`, `from typing import Literal`,
+  `from anndata import AnnData`, `from biom.util import biom_open`, and `RANKS`
+  from `biotapy._core`.
+  ```python
+  def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None:
+      """Write ``X`` with taxonomy and sample metadata as a BIOM table.
+
+      Parameters
+      ----------
+      adata
+          Samples x features; rank columns in ``var`` become observation
+          ``taxonomy`` metadata, ``obs`` columns become sample metadata.
+      path
+          Output file.
+      fmt
+          ``"hdf5"`` (BIOM 2.1) or ``"json"`` (BIOM 1.0).
+
+      Notes
+      -----
+      R equivalent: ``biomformat::write_biom``
+      Guide: :doc:`/guide/reading_data`
+
+      BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
+      everything outside ``X``, rank columns and ``obs`` are not written.
+      Sample metadata is written as text. Missing ranks are written as bare
+      prefixes (``g__``) so every rank keeps its place.
+
+      Examples
+      --------
+      >>> import tempfile
+      >>> from pathlib import Path
+      >>> import biotapy as bt
+      >>> path = Path(tempfile.mkdtemp()) / "toy.biom"
+      >>> bt.io.write_biom(bt.datasets.toy(), path)
+      >>> bt.io.read_biom(path).shape
+      (6, 8)
+      """
+      table = biom.Table(
+          # biotapy keeps samples as rows; BIOM stores features x samples.
+          as_csr(adata.X).T,
+          [str(i) for i in adata.var_names],
+          [str(i) for i in adata.obs_names],
+          observation_metadata=_taxonomy_metadata(adata.var),
+          sample_metadata=_sample_metadata(adata.obs),
+      )
+      generated_by = f"biotapy {version('biotapy')}"
+      if fmt == "json":
+          Path(path).write_text(table.to_json(generated_by))
+          return
+      with biom_open(str(path), "w") as handle:
+          table.to_hdf5(handle, generated_by)
+
+
+  def _taxonomy_metadata(var: pd.DataFrame) -> list[dict[str, list[str]]] | None:
+      ranks = [rank for rank in RANKS if rank in var.columns]
+      if not ranks:
+          return None
+      # Prefixed values keep their rank: BIOM HDF5 drops empty list entries on read.
+      values = var[ranks].astype("string").fillna("")
+      return [
+          {"taxonomy": [f"{rank[0]}__{value}" for rank, value in zip(ranks, row, strict=True)]}
+          for row in values.itertuples(index=False)
+      ]
+
+
+  def _sample_metadata(obs: pd.DataFrame) -> list[dict[str, str]] | None:
+      if obs.columns.empty:
+          return None
+      values = obs.astype("string").fillna("")
+      return [dict(zip(map(str, values.columns), row, strict=True)) for row in values.itertuples(index=False)]
+  ```
+  - Export `write_biom`.
+  - The first letters of `RANKS` (`k p c o f g s`) are unique; that is what makes
+    `rank[0]` a safe prefix.
+  - If biom-format's HDF5 writer rejects the text sample metadata, confirm the
+    cause in `biom/table.py` `general_formatter` before changing anything (R2.2).
+- [ ] **Step 4: Docs.**
+  - Add a "Writing BIOM" subsection to `docs/guide/reading_data.md`: what is not
+    written, and why ranks carry prefixes.
+  - Add `io.write_biom` to `docs/api.md`.
+- [ ] **Step 5: Run, expect pass**; gate; commit `feat(io): write BIOM tables`.
 
 ### Task 1.8: `io.read_qiime2`
-- **Interface:** `read_qiime2(table: str | Path, *, taxonomy=None, tree=None, metadata=None) -> TreeData`
-  where each argument is a `.qza` (zip; payload under `<uuid>/data/`) or, for `metadata`, a QIIME 2 metadata TSV.
-- **Tests:** tiny `.qza` fixtures built with `zipfile`; `#q2:types` row skipped; confidence column kept as `var["confidence"]`.
-- **Done when:** reuses 1.7's BIOM parsing and normalizer; no QIIME 2 install needed.
+
+**Files:**
+- Create `src/biotapy/io/_qiime2.py` and `tests/io/test_qiime2.py`.
+- Modify `src/biotapy/io/__init__.py`, `tests/io/conftest.py`,
+  `docs/guide/reading_data.md` and `docs/api.md`.
+
+**Interfaces:**
+- **Consumes:** `_biom_parts` (from `io/_biom.py`), `make_treedata`,
+  `split_lineage`, `tree_from_newick`.
+- **Produces:** `bt.io.read_qiime2(table: str | Path, *, taxonomy: str | Path | None = None, tree: str | Path | None = None, metadata: str | Path | None = None) -> TreeData`.
+
+**Formats** (q2-types and qiime2/rachis sources, 2026-09-26):
+- **Artifact layout:** a `.qza` is a zip with one top-level `<uuid>/`
+  directory. Payloads:
+  - `<uuid>/data/feature-table.biom`: BIOM 2.1 HDF5, `FeatureTable[Frequency]`;
+  - `<uuid>/data/taxonomy.tsv`: header starts `Feature ID\tTaxon`, optional
+    extra columns such as `Confidence`;
+  - `<uuid>/data/tree.nwk`: `Phylogeny[Rooted|Unrooted]`.
+- **Metadata TSV:**
+  - ID headers `id, sampleid, sample id, sample-id, featureid, feature id,
+    feature-id` match case-insensitively; `#SampleID, #Sample ID, #OTUID,
+    #OTU ID, sample_name` match exactly.
+  - Leading `#` comments and blank rows are skipped.
+  - An optional `#q2:types` row gives `categorical|numeric` (case-insensitive).
+  - Encoding is `utf-8-sig`.
+
+- [ ] **Step 1: Fixture** - append to `tests/io/conftest.py`:
+  ```python
+  import uuid
+  import zipfile
+
+
+  @pytest.fixture
+  def make_qza(tmp_path):
+      """Build a minimal .qza: <uuid>/metadata.yaml, <uuid>/VERSION, <uuid>/data/<payload>."""
+
+      def make(name, payload, content, semantic_type):
+          uid = str(uuid.uuid5(uuid.NAMESPACE_URL, name))  # deterministic (R11.4)
+          path = tmp_path / f"{name}.qza"
+          with zipfile.ZipFile(path, "w") as archive:
+              archive.writestr(f"{uid}/metadata.yaml", f"uuid: {uid}\ntype: {semantic_type}\nformat: null\n")
+              archive.writestr(f"{uid}/VERSION", "QIIME 2\narchive: 5\nframework: 2024.10\n")
+              archive.writestr(f"{uid}/data/{payload}", content)
+          return path
+
+      return make
+  ```
+- [ ] **Step 2: Failing tests** - `tests/io/test_qiime2.py`:
+  ```python
+  import numpy as np
+  import pytest
+
+  import biotapy as bt
+
+  NEWICK = "((OTU_1:0.1,OTU_2:0.2):0.05,(OTU_3:0.3,OTU_4:0.4):0.1);"
+  TAXONOMY = (
+      "Feature ID\tTaxon\tConfidence\n"
+      "OTU_1\td__Bacteria; p__Firmicutes; c__Clostridia\t0.98\n"
+      "OTU_2\td__Bacteria; p__Firmicutes\t0.7\n"
+      "OTU_3\tUnassigned\t0.5\n"
+  )
+  METADATA = (
+      "# written by hand\n"
+      "sample-id\tdepth\tsite\n"
+      "#q2:types\tnumeric\tcategorical\n"
+      "S1\t1000\tgut\n"
+      "S2\t\tskin\n"
+      "\n"
+      "S3\t500\tgut\n"
+      "S9\t1\tgut\n"
+  )
+
+
+  @pytest.fixture
+  def table_qza(make_qza, biom_hdf5):
+      return make_qza("table", "feature-table.biom", biom_hdf5.read_bytes(), "FeatureTable[Frequency]")
+
+
+  def test_read_qiime2_table(table_qza):
+      tdata = bt.io.read_qiime2(table_qza)
+      assert tdata.shape == (3, 4) and list(tdata.obs_names) == ["S1", "S2", "S3"]
+      assert tdata.uns["biotapy"]["x_kind"] == "counts"
+
+
+  def test_read_qiime2_taxonomy(table_qza, make_qza):
+      taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode(), "FeatureData[Taxonomy]")
+      var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
+      assert var.loc["OTU_1", ["kingdom", "phylum", "class"]].tolist() == ["Bacteria", "Firmicutes", "Clostridia"]
+      assert var.loc["OTU_3", "kingdom"] == "Unassigned"
+      assert var.loc["OTU_4"].isna().all()
+      assert var["confidence"].tolist()[:3] == [0.98, 0.7, 0.5]
+
+
+  def test_read_qiime2_taxonomy_without_confidence(table_qza, make_qza):
+      taxonomy = make_qza("taxonomy", "taxonomy.tsv", b"Feature ID\tTaxon\nOTU_1\tk__Bacteria\n", "FeatureData[Taxonomy]")
+      var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
+      assert "confidence" not in var.columns and var.loc["OTU_1", "kingdom"] == "Bacteria"
+
+
+  def test_read_qiime2_tree(table_qza, make_qza):
+      tree = make_qza("tree", "tree.nwk", NEWICK.encode(), "Phylogeny[Rooted]")
+      phylo = bt.io.read_qiime2(table_qza, tree=tree).vart["phylo"]
+      assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"OTU_1", "OTU_2", "OTU_3", "OTU_4"}
+
+
+  def test_read_qiime2_wrong_artifact_names_the_argument(make_qza):
+      taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode(), "FeatureData[Taxonomy]")
+      with pytest.raises(ValueError, match=r"table=.*feature-table\.biom"):
+          bt.io.read_qiime2(taxonomy)
+
+
+  def test_read_qiime2_metadata(table_qza, tmp_path):
+      path = tmp_path / "metadata.tsv"
+      path.write_text(METADATA)
+      obs = bt.io.read_qiime2(table_qza, metadata=path).obs
+      assert list(obs.index) == ["S1", "S2", "S3"]
+      assert obs["site"].tolist() == ["gut", "skin", "gut"]
+      assert obs["depth"].dtype.kind == "f" and np.isnan(obs.loc["S2", "depth"])
+
+
+  @pytest.mark.parametrize("header", ["id", "SampleID", "Sample-ID", "#SampleID", "sample_name"])
+  def test_read_qiime2_metadata_id_headers(table_qza, tmp_path, header):
+      path = tmp_path / "metadata.tsv"
+      path.write_text(f"{header}\tdepth\nS1\t10\nS2\t20\nS3\t30\n")
+      assert bt.io.read_qiime2(table_qza, metadata=path).obs["depth"].tolist() == [10, 20, 30]
+
+
+  def test_read_qiime2_metadata_legacy_header_is_case_sensitive(table_qza, tmp_path):
+      path = tmp_path / "metadata.tsv"
+      path.write_text("#sampleid\tdepth\nS1\t10\n")
+      with pytest.raises(ValueError, match="metadata="):
+          bt.io.read_qiime2(table_qza, metadata=path)
+  ```
+- [ ] **Step 3: Run, expect failure** -> `AttributeError: ... 'read_qiime2'`.
+- [ ] **Step 4: Implement** `src/biotapy/io/_qiime2.py`:
+  ```python
+  """QIIME 2 artifacts (.qza) and metadata files, read without a QIIME 2 install."""
+
+  import csv
+  import tempfile
+  import zipfile
+  from pathlib import Path
+
+  import biom
+  import numpy as np
+  import pandas as pd
+
+  from biotapy._core import TreeData, make_treedata, split_lineage, tree_from_newick
+
+  from ._biom import _biom_parts
+
+  _ID_HEADERS_ANY_CASE = frozenset({"id", "sampleid", "sample id", "sample-id", "featureid", "feature id", "feature-id"})
+  _ID_HEADERS_EXACT = frozenset({"#SampleID", "#Sample ID", "#OTUID", "#OTU ID", "sample_name"})
+
+
+  def read_qiime2(
+      table: str | Path,
+      *,
+      taxonomy: str | Path | None = None,
+      tree: str | Path | None = None,
+      metadata: str | Path | None = None,
+  ) -> TreeData:
+      """Read QIIME 2 artifacts into one TreeData, without QIIME 2 installed.
+
+      Parameters
+      ----------
+      table
+          ``FeatureTable[Frequency]`` artifact (``.qza``).
+      taxonomy
+          ``FeatureData[Taxonomy]`` artifact; replaces any taxonomy in the table.
+      tree
+          ``Phylogeny[Rooted]`` or ``Phylogeny[Unrooted]`` artifact.
+      metadata
+          QIIME 2 sample metadata file (TSV); samples not in the table are ignored.
+
+      Returns
+      -------
+      TreeData
+          Counts in ``X``; rank columns and ``confidence`` in ``var``; metadata
+          in ``obs``; the tree in ``vart['phylo']``.
+
+      Raises
+      ------
+      ValueError
+          An artifact lacks the expected payload, or the metadata has no ID header.
+
+      Notes
+      -----
+      R equivalent: ``qiime2R::qza_to_phyloseq``
+      Guide: :doc:`/guide/reading_data`
+
+      Artifacts are recognized by their payload file, not by ``metadata.yaml``.
+
+      Examples
+      --------
+      >>> import tempfile
+      >>> import zipfile
+      >>> from pathlib import Path
+      >>> import biom
+      >>> from biom.util import biom_open
+      >>> import biotapy as bt
+      >>> toy = bt.datasets.toy()
+      >>> folder = Path(tempfile.mkdtemp())
+      >>> with biom_open(str(folder / "t.biom"), "w") as handle:
+      ...     biom.Table(toy.X.T, list(toy.var_names), list(toy.obs_names)).to_hdf5(handle, "example")
+      >>> with zipfile.ZipFile(folder / "table.qza", "w") as archive:
+      ...     archive.write(folder / "t.biom", "0000/data/feature-table.biom")
+      >>> bt.io.read_qiime2(folder / "table.qza").shape
+      (6, 8)
+      """
+      with tempfile.TemporaryDirectory() as directory:
+          workdir = Path(directory)
+          X, obs, var = _biom_parts(biom.load_table(str(_payload(table, "feature-table.biom", workdir, "table"))))
+          if taxonomy is not None:
+              var = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, "taxonomy")).reindex(var.index)
+          phylo = None if tree is None else tree_from_newick(_payload(tree, "tree.nwk", workdir, "tree").read_text())
+      if metadata is not None:
+          obs = _metadata(Path(metadata)).reindex(obs.index)
+      return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_qiime2")
+
+
+  def _payload(artifact: str | Path, filename: str, directory: Path, argument: str) -> Path:
+      """Extract ``<uuid>/data/<filename>`` from a .qza into ``directory``."""
+      with zipfile.ZipFile(artifact) as archive:
+          members = [name for name in archive.namelist() if Path(name).parts[1:] == ("data", filename)]
+          if len(members) != 1:
+              msg = f"{argument}={str(artifact)!r} is not a QIIME 2 artifact holding data/{filename}"
+              raise ValueError(msg)
+          return Path(archive.extract(members[0], directory))
+
+
+  def _taxonomy(path: Path) -> pd.DataFrame:
+      frame = pd.read_csv(path, sep="\t", index_col=0, dtype=str)
+      ranks = split_lineage(frame["Taxon"])
+      if "Confidence" in frame.columns:
+          ranks["confidence"] = pd.to_numeric(frame["Confidence"], errors="coerce")
+      return ranks
+
+
+  def _is_id_header(cell: str) -> bool:
+      return cell in _ID_HEADERS_EXACT or cell.lower() in _ID_HEADERS_ANY_CASE
+
+
+  def _metadata_rows(path: Path) -> tuple[list[str], list[list[str]], list[str] | None]:
+      with path.open(newline="", encoding="utf-8-sig") as handle:
+          rows = [[cell.strip() for cell in row] for row in csv.reader(handle, delimiter="\t")]
+      rows = [row for row in rows if any(row)]
+      while rows and rows[0][0].startswith("#") and not _is_id_header(rows[0][0]):
+          rows = rows[1:]
+      if not rows or not _is_id_header(rows[0][0]):
+          msg = f"metadata={str(path)!r} has no QIIME 2 ID header (e.g. 'sample-id', 'id', '#SampleID')"
+          raise ValueError(msg)
+      header, body = rows[0], rows[1:]
+      types = next((row for row in body if row[0] == "#q2:types"), None)
+      data = [row + [""] * (len(header) - len(row)) for row in body if not row[0].startswith("#")]
+      return header, data, types
+
+
+  def _typed(values: pd.Series, declared: str) -> pd.Series:
+      values = values.mask(values == "", np.nan)
+      if declared == "categorical":
+          return values
+      numeric = pd.to_numeric(values, errors="coerce")
+      # QIIME 2 infers numeric when every present value parses as a number.
+      if declared == "numeric" or numeric.notna().sum() == values.notna().sum():
+          return numeric
+      return values
+
+
+  def _metadata(path: Path) -> pd.DataFrame:
+      header, data, types = _metadata_rows(path)
+      frame = pd.DataFrame([row[1:] for row in data], index=[row[0] for row in data], columns=header[1:], dtype=object)
+      declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)
+      return pd.DataFrame({c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=False)}, index=frame.index)
+  ```
+  - The controller prototyped the metadata functions on 2026-09-26.
+  - Export `read_qiime2`.
+  - The docstring example writes a bare `0000/` artifact: the reader needs only
+    the payload path.
+- [ ] **Step 5: Docs** - add a "QIIME 2" section to `docs/guide/reading_data.md`
+  (which artifacts are read, the metadata rules, no QIIME 2 install needed), and
+  add `io.read_qiime2` to `docs/api.md`.
+- [ ] **Step 6: Run, expect pass**; gate; commit `feat(io): read QIIME 2 artifacts and metadata`.
 
 ### Task 1.9: `io.read_dada2`
-- **Interface:** `read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree=None) -> TreeData`;
-  `seqtab`/`taxa` as CSV/TSV or `.rds` matrices (via `rdata`). Sequences go to
-  `var["sequence"]`; feature names `ASV1..n`; no transpose (DADA2 is already samples x ASVs).
-- **Done when:** a fixture from the DADA2 tutorial shape round-trips.
+
+**Files:**
+- Create `src/biotapy/io/_dada2.py` and `tests/io/test_dada2.py`.
+- Modify:
+  - `src/biotapy/_core/_tree.py` (add `relabel_tips`);
+  - `src/biotapy/_core/__init__.py`;
+  - `tests/core/test_tree.py`;
+  - `src/biotapy/io/__init__.py`;
+  - `docs/guide/reading_data.md`;
+  - `docs/api.md`.
+
+**Interfaces:**
+- **Consumes:** `make_treedata`, `normalize_ranks`, `tree_from_newick`.
+- **Produces:**
+  - `relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]` in `_core`;
+  - `bt.io.read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str | Path | None = None) -> TreeData`.
+
+**Formats** (DADA2 tutorial, R `write.table` docs):
+- `seqtab` is samples x sequences, and its column names are the sequences.
+- `assignTaxonomy` gives sequences x `Kingdom..Species`, with `NA` where a
+  rank is unassigned.
+- `write.csv` leaves the first header cell empty and writes row names.
+- `.rds` input waits for the 1.6 decision (stage 2).
+
+- [ ] **Step 1: Failing tests.** Add to `tests/core/test_tree.py`:
+  ```python
+  from biotapy._core import relabel_tips
+
+
+  def test_relabel_tips_renames_listed_tips_only():
+      tree = relabel_tips(tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)]), {"a": "x"})
+      assert _leaves(tree) == {"x", "b"} and tree.edges["r", "x"]["length"] == 1.0
+  ```
+  Create `tests/io/test_dada2.py`:
+  ```python
+  import numpy as np
+  import pytest
+
+  import biotapy as bt
+
+  SEQTAB = '"","ACGTACGT","TTGACCAA","GGGCCCAA","CCCCAAAA"\n"S1",10,0,5,0\n"S2",0,0,0,0\n"S3",3,7,1,0\n'
+  TAXA = '"","Kingdom","Phylum","Genus"\n"ACGTACGT","Bacteria","Firmicutes","Blautia"\n"TTGACCAA","Bacteria","Bacteroidota",NA\n'
+
+
+  @pytest.fixture
+  def seqtab(tmp_path):
+      path = tmp_path / "seqtab.csv"
+      path.write_text(SEQTAB)
+      return path
+
+
+  @pytest.fixture
+  def taxa(tmp_path):
+      path = tmp_path / "taxa.csv"
+      path.write_text(TAXA)
+      return path
+
+
+  def test_read_dada2_names_asvs_and_keeps_sequences(seqtab):
+      tdata = bt.io.read_dada2(seqtab)
+      assert tdata.shape == (3, 4) and list(tdata.var_names) == ["ASV1", "ASV2", "ASV3", "ASV4"]
+      assert tdata.var["sequence"].tolist() == ["ACGTACGT", "TTGACCAA", "GGGCCCAA", "CCCCAAAA"]
+      np.testing.assert_array_equal(tdata.X.toarray()[0], [10, 0, 5, 0])
+
+
+  def test_read_dada2_keeps_all_zero_sample_and_feature(seqtab):
+      tdata = bt.io.read_dada2(seqtab)
+      assert tdata.X[1].nnz == 0 and tdata.X[:, 3].nnz == 0
+
+
+  def test_read_dada2_normalizes_taxa(seqtab, taxa):
+      var = bt.io.read_dada2(seqtab, taxa).var
+      assert {"kingdom", "phylum", "genus", "sequence"} <= set(var.columns)
+      assert var.loc["ASV1", "genus"] == "Blautia" and np.isnan(var.loc["ASV2", "genus"])
+      assert var.loc["ASV3", ["kingdom", "phylum", "genus"]].isna().all()
+
+
+  def test_read_dada2_reads_tsv(tmp_path):
+      path = tmp_path / "seqtab.tsv"
+      path.write_text(SEQTAB.replace(",", "\t"))
+      assert bt.io.read_dada2(path).shape == (3, 4)
+
+
+  def test_read_dada2_single_sample(tmp_path):
+      path = tmp_path / "one.csv"
+      path.write_text('"","ACGTACGT"\n"S1",4\n')
+      assert bt.io.read_dada2(path).shape == (1, 1)
+
+
+  def test_read_dada2_rejects_a_transposed_table(tmp_path):
+      path = tmp_path / "asvs_by_samples.csv"
+      path.write_text('"","S1","S2"\n"ACGTACGT",1,2\n')
+      with pytest.raises(ValueError, match="samples x sequences"):
+          bt.io.read_dada2(path)
+
+
+  def test_read_dada2_tree_tips_named_by_sequence(seqtab, tmp_path):
+      path = tmp_path / "tree.nwk"
+      path.write_text("(((ACGTACGT:1,TTGACCAA:1):1,GGGCCCAA:1):1,CCCCAAAA:1);")
+      phylo = bt.io.read_dada2(seqtab, tree=path).vart["phylo"]
+      assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"ASV1", "ASV2", "ASV3", "ASV4"}
+  ```
+- [ ] **Step 2: Run, expect failure** -> ImportError for `relabel_tips`; `AttributeError` for `read_dada2`.
+- [ ] **Step 3: Implement.** In `_core/_tree.py` (add `from collections.abc import Mapping`):
+  ```python
+  def relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]:
+      """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs."""
+      return nx.relabel_nodes(tree, dict(names), copy=True)
+  ```
+  `src/biotapy/io/_dada2.py`:
+  ```python
+  """DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table."""
+
+  import re
+  from pathlib import Path
+
+  import pandas as pd
+
+  from biotapy._core import TreeData, make_treedata, normalize_ranks, relabel_tips, tree_from_newick
+
+  _SEQUENCE = re.compile(r"^[ACGTN]+$")
+
+
+  def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str | Path | None = None) -> TreeData:
+      r"""Read a DADA2 sequence table, with optional taxonomy and tree.
+
+      Parameters
+      ----------
+      seqtab
+          CSV or TSV of ``seqtab``/``seqtab.nochim``: samples x sequences, row
+          names in the first column (``write.csv(seqtab.nochim, ...)``).
+      taxa
+          CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
+      tree
+          Newick file whose tips are sequences or ASV ids.
+
+      Returns
+      -------
+      TreeData
+          Counts in ``X``; features named ``ASV1..n`` with the sequence in
+          ``var['sequence']``; rank columns in ``var``; the tree in ``vart['phylo']``.
+
+      Raises
+      ------
+      ValueError
+          ``seqtab``'s column names are not DNA sequences (the table is transposed).
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::phyloseq``
+      Guide: :doc:`/guide/reading_data`
+
+      The text table is read densely once and stored sparse; DADA2 tables are
+      small enough for this. ``.rds`` input is not supported yet.
+
+      Examples
+      --------
+      >>> import tempfile
+      >>> from pathlib import Path
+      >>> import biotapy as bt
+      >>> path = Path(tempfile.mkdtemp()) / "seqtab.csv"
+      >>> _ = path.write_text('"","ACGT","TTGA"\n"S1",3,0\n"S2",1,4\n')
+      >>> bt.io.read_dada2(path).var_names.tolist()
+      ['ASV1', 'ASV2']
+      """
+      counts = _read_table(Path(seqtab))
+      sequences = [str(column) for column in counts.columns]
+      if not all(_SEQUENCE.match(sequence) for sequence in sequences):
+          msg = f"seqtab={str(seqtab)!r} must be samples x sequences like DADA2's seqtab; its columns are not sequences"
+          raise ValueError(msg)
+      names = [f"ASV{i}" for i in range(1, len(sequences) + 1)]
+      var = pd.DataFrame({"sequence": sequences}, index=names)
+      if taxa is not None:
+          ranks = normalize_ranks(_read_table(Path(taxa))).reindex(sequences)
+          var = ranks.set_axis(names).join(var)
+      phylo = None
+      if tree is not None:
+          phylo = relabel_tips(tree_from_newick(Path(tree).read_text()), dict(zip(sequences, names, strict=True)))
+      obs = pd.DataFrame(index=counts.index)
+      return make_treedata(counts.to_numpy(), obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_dada2")
+
+
+  def _read_table(path: Path) -> pd.DataFrame:
+      """A table whose first column holds row names, as R's write.csv writes it."""
+      # write.csv leaves the corner cell empty; pandas would name the index "Unnamed: 0".
+      return pd.read_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index_col=0).rename_axis(index=None)
+  ```
+  - Export `relabel_tips` from `_core` and `read_dada2` from `io`.
+  - The ASV naming and the sequence column follow
+    [data-model-slots](/contracts/data-model-slots.md) (`var["sequence"]`).
+- [ ] **Step 4: Docs** - add a "DADA2" section to `docs/guide/reading_data.md`
+  (the expected orientation, ASV naming, tree tips by sequence), and add
+  `io.read_dada2` to `docs/api.md`.
+- [ ] **Step 5: Run, expect pass**; gate; commit `feat(io): read DADA2 sequence tables`.
+
+### Checkpoint B1 - stage 1 review
+- [ ] Whole-branch review of stage 1 against every contract and the stage-1
+  review focus (superpowers:requesting-code-review); fix pass.
+- [ ] Knowledge:
+  - add a `Module` concept `.knowledge/modules/io.md`;
+  - update `.knowledge/modules/core.md` (Newick, alignment, taxonomy normalizer);
+  - update `modules/index.md` and the log.
+- [ ] The PR's CI is green, including the Python 3.14 jobs that build
+  biom-format from source.
+- [ ] Ask the user to review stage 1 and approve the stage-2 expansion.
+
+### Stage 2 - expanded after the 1.6 decision
 
 ### Task 1.10: `io.read_phyloseq`
 - Per the 1.6 decision. **Interface:** `read_phyloseq(path: str | Path) -> TreeData`.
