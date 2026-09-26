@@ -3,7 +3,7 @@
 [![Tests][badge-tests]][tests]
 [![Documentation][badge-docs]][documentation]
 
-[badge-tests]: https://img.shields.io/github/actions/workflow/status/pedrocr83/biotapy/test.yaml?branch=main
+[badge-tests]: https://img.shields.io/github/actions/workflow/status/pedrocr83/biotapy/test.yaml?branch=master
 [badge-docs]: https://app.readthedocs.org/projects/biotapy/badge/
 
 mia-style microbiome toolkit for Python on AnnData/TreeData

@@ -1,5 +1,11 @@
 # Contributing guide
 
+All contributions follow [rules.md](https://github.com/pedrocr83/biotapy/blob/master/rules.md).
+Design knowledge (decisions, contracts, roadmap) lives in the
+[.knowledge bundle](https://github.com/pedrocr83/biotapy/tree/master/.knowledge);
+new functions follow the
+[add-a-function playbook](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/playbooks/add-a-function.md).
+
 This document aims at summarizing the most important information for getting you started on contributing to this project.
 We assume that you are already familiar with git and with making pull requests on GitHub.
 

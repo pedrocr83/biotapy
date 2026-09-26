@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   schedule:
     - cron: "0 5 1,15 * *"
 
@@ -57,11 +57,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         env: ${{ fromJSON(needs.get-environments.outputs.envs) }}
 
-    name: ${{ matrix.env.label }}
+    name: ${{ matrix.env.label }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash  # steps use POSIX syntax; Windows defaults to PowerShell
     continue-on-error: ${{ contains(matrix.env.name, 'pre') }}  # make "all-green" pass even if pre-release job fails
 
     steps:
@@ -96,6 +99,37 @@ jobs:
           fail_ci_if_error: true
           use_oidc: true
 
+  # Optional dependencies must be imported lazily (decisions/optional-heavy-dependencies):
+  # importing with runtime dependencies only catches a module-level import of an extra.
+  import-without-extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - name: Import biotapy with runtime dependencies only
+        run: uv run --no-dev python -c "import biotapy, biotapy._core"
+
+  # Informational: lists knowledge concepts whose code changed in this PR (playbooks/maintain-knowledge).
+  knowledge-touched:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Report concepts covering changed code
+        env:
+          BASE: ${{ github.base_ref }}
+        run: bash scripts/knowledge_stale.sh --touched --against "origin/$BASE"
+
   # Check that all tests defined above pass. This makes it easy to set a single "required" test in branch
   # protection instead of having to update it frequently. See https://github.com/re-actors/alls-green#why.
   check:
@@ -104,6 +138,7 @@ jobs:
     needs:
       - get-environments
       - test
+      - import-without-extras
     runs-on: ubuntu-latest
     steps:
         - uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2

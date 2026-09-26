@@ -406,10 +406,10 @@ modify `pyproject.toml` (`hypothesis`, `pyyaml` in the `test` group).
 **Files:** modify `.github/workflows/test.yaml`, `docs/contributing.md`;
 create `.github/pull_request_template.md`.
 
-- [ ] **Step 1: OS matrix.** Read `.github/workflows/test.yaml`. In the test
+- [x] **Step 1: OS matrix.** Read `.github/workflows/test.yaml`. In the test
   job add `os: [ubuntu-latest, macos-latest, windows-latest]` to the existing
   matrix, set `runs-on: ${{ matrix.os }}` and `fail-fast: false`.
-- [ ] **Step 2: Import without extras.** Add a job to the same workflow,
+- [x] **Step 2: Import without extras.** Add a job to the same workflow,
   copying `checkout` and `setup-uv` steps verbatim from the existing job
   (the template's zizmor hook audits action pinning):
   ```yaml
@@ -420,7 +420,7 @@ create `.github/pull_request_template.md`.
         # <setup-uv step copied from the test job>
         - run: uv run --no-dev python -c "import biotapy, biotapy._core"
   ```
-- [ ] **Step 3: Knowledge freshness report** (informational, never blocks):
+- [x] **Step 3: Knowledge freshness report** (informational, never blocks):
   ```yaml
     knowledge-touched:
       if: github.event_name == 'pull_request'
@@ -432,7 +432,7 @@ create `.github/pull_request_template.md`.
             BASE: ${{ github.base_ref }}
           run: bash scripts/knowledge_stale.sh --touched --against "origin/$BASE"
   ```
-- [ ] **Step 4: PR template** `.github/pull_request_template.md`:
+- [x] **Step 4: PR template** `.github/pull_request_template.md`:
   ```markdown
   ## Task
   Phase / task id from `.knowledge/roadmap/`:
@@ -448,15 +448,15 @@ create `.github/pull_request_template.md`.
   ## Verification
   Commands run and their result (R14):
   ```
-- [ ] **Step 5: CONTRIBUTING.** At the top of `docs/contributing.md` add:
+- [x] **Step 5: CONTRIBUTING.** At the top of `docs/contributing.md` add:
   "All contributions follow
   [rules.md](https://github.com/pedrocr83/biotapy/blob/master/rules.md). Design
   knowledge lives in the
   [.knowledge bundle](https://github.com/pedrocr83/biotapy/tree/master/.knowledge);
   new functions follow the
   [add-a-function playbook](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/playbooks/add-a-function.md)."
-- [ ] **Step 6: Verify locally** - `uvx prek run --all-files` (zizmor and biome included) passes.
-- [ ] **Step 7: Commit** - `git add -A && git commit -m "ci: OS matrix, no-extras import check, PR template"`
+- [x] **Step 6: Verify locally** - `uvx prek run --all-files` (zizmor and biome included) passes.
+- [x] **Step 7: Commit** - `git add -A && git commit -m "ci: OS matrix, no-extras import check, PR template"`
 - [ ] **Step 8: Push and open a PR** - only after the user approves the push (R13.3).
   Expected: all 9 test cells, `import-without-extras` and docs build green.
 
