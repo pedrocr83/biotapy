@@ -340,7 +340,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
 **Files:** create `tests/test_knowledge_bundle.py`, `scripts/knowledge_stale.sh`;
 modify `pyproject.toml` (`hypothesis`, `pyyaml` in the `test` group).
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
   ```python
   # tests/test_knowledge_bundle.py
   """OKF v0.2 conformance for .knowledge/ (rules.md R12.2)."""
@@ -386,12 +386,12 @@ modify `pyproject.toml` (`hypothesis`, `pyyaml` in the `test` group).
       nested = [p for p in BUNDLE.rglob("index.md") if p.parent != BUNDLE]
       assert not [_rel(p) for p in nested if p.read_text(encoding="utf-8").startswith("---")]
   ```
-- [ ] **Step 2: Run, expect pass** on the current bundle:
+- [x] **Step 2: Run, expect pass** on the current bundle:
   `uv run --group test pytest tests/test_knowledge_bundle.py -q`.
-- [ ] **Step 3: Prove it fails.** Create `.knowledge/decisions/scratch.md` with
+- [x] **Step 3: Prove it fails.** Create `.knowledge/decisions/scratch.md` with
   body text only. Rerun. Expected: FAIL naming `decisions/scratch.md` in both
   parametrized tests. Delete the file.
-- [ ] **Step 4: Staleness script.** Copy the codebase-map skill's checker:
+- [x] **Step 4: Staleness script.** Copy the codebase-map skill's checker:
   ```bash
   mkdir -p scripts
   cp ~/.claude/skills/codebase-map/scripts/stale.sh scripts/knowledge_stale.sh
@@ -399,7 +399,7 @@ modify `pyproject.toml` (`hypothesis`, `pyyaml` in the `test` group).
   bash scripts/knowledge_stale.sh; echo "exit=$?"
   ```
   Expected: a summary line `N current, 0 stale, M uncheckable`, exit 0.
-- [ ] **Step 5: Commit** - `git add -A && git commit -m "test: enforce OKF conformance of the knowledge bundle"`
+- [x] **Step 5: Commit** - `git add -A && git commit -m "test: enforce OKF conformance of the knowledge bundle"`
 
 ### Task 0.6: CI matrix, no-extras import, PR template, CONTRIBUTING
 

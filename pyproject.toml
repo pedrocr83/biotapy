@@ -41,8 +41,10 @@ dev = [
 ]
 test = [
   "coverage>=7.10",
+  "hypothesis>=6.168.1",
   "pytest",
-  "pytest-cov",     # For VS Code’s coverage functionality
+  "pytest-cov",          # For VS Code’s coverage functionality
+  "pyyaml>=6.0.3",
 ]
 doc = [
   "ipykernel",
