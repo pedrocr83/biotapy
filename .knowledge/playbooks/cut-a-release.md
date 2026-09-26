@@ -5,7 +5,7 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T11:12:51Z }
 commit: b77a226
 sources:
   - id: trusted-publishing
@@ -50,5 +50,9 @@ Both print `X.Y.Z`.
 - Tagging before the version bump is merged: the wheel carries the old version.
 - A PyPI version can never be re-uploaded; a broken release needs a new patch version.
 - Pushing `master` directly: releases go through a merged PR; push only the tag.
+- A stale publish action: `pypa/gh-action-pypi-publish` bundles its own twine, which can lag the metadata version
+  hatchling writes (0.0.1 failed on Metadata-Version 2.5). Keep Dependabot's action updates merged. If a release
+  fails before upload, fix `master`, then delete the release and tag (`gh release delete vX.Y.Z --cleanup-tag`) and
+  re-tag: release workflows run the workflow file from the tagged commit.
 
 [^trusted-publishing]: PyPI trusted publishers

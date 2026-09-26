@@ -5,7 +5,7 @@ description: TreeData conventions in _core; io for phyloseq, BIOM, QIIME 2 and D
 tags: [roadmap, core, io, pp, tl, pl]
 status: stable
 release: "0.1"
-phase_state: not-started
+phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
