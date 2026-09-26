@@ -144,6 +144,9 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "src/biotapy" ]
 python_version = "3.12"
+# biom-format ships no type annotations at all; exempt only calls into it (not our own
+# code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [ "biom" ]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
@@ -157,10 +160,6 @@ overrides = [
   # biom-format 2.1.17 ships no py.typed marker either; same treatment.
   { module = "biom", follow_untyped_imports = true, implicit_reexport = true },
   { module = "biom.*", follow_untyped_imports = true, implicit_reexport = true },
-  # Unlike treedata/skbio, biom-format's plain functions (load_table, Table.ids,
-  # Table.metadata) resolve to concrete untyped defs, so strict's
-  # disallow_untyped_calls fires on every call into them from this file.
-  { module = "biotapy.io._biom", disallow_untyped_calls = false },
 ]
 
 [tool.pytest]
