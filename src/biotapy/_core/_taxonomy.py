@@ -39,8 +39,24 @@ def _canonical(column: object) -> object:
     return name if name in RANKS else column
 
 
+def _require_distinct_ranks(frame: pd.DataFrame) -> None:
+    sources: dict[object, list[object]] = {}
+    for column in frame.columns:
+        rank = _canonical(column)
+        if rank in RANKS:
+            sources.setdefault(rank, []).append(column)
+    for rank, columns in sources.items():
+        if len(columns) > 1:
+            msg = f"columns {columns} all name rank {rank!r}; keep one"
+            raise ValueError(msg)
+
+
 def normalize_ranks(frame: pd.DataFrame) -> pd.DataFrame:
-    """Canonical lowercase rank columns with missing values as NaN (contracts/data-model-slots)."""
+    """Canonical lowercase rank columns with missing values as NaN (contracts/data-model-slots).
+
+    Column order is kept.
+    """
+    _require_distinct_ranks(frame)
     out = frame.rename(columns=_canonical)
     for rank in [column for column in out.columns if column in RANKS]:
         values = out[rank].astype("string").str.strip().str.replace(_PREFIX, "", regex=True)

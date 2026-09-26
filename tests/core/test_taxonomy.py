@@ -86,3 +86,9 @@ def test_normalize_ranks_leaves_input_alone():
     frame = pd.DataFrame({"Genus": ["g__Blautia"]})
     normalize_ranks(frame)
     assert list(frame.columns) == ["Genus"] and frame.iloc[0, 0] == "g__Blautia"
+
+
+def test_normalize_ranks_rejects_two_columns_for_one_rank():
+    frame = pd.DataFrame({"Kingdom": ["Bacteria"], "domain": ["Archaea"]})
+    with pytest.raises(ValueError, match="kingdom"):
+        normalize_ranks(frame)
