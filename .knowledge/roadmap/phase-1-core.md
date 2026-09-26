@@ -977,13 +977,13 @@ the docs (write BIOM + Newick + TSV).
   - `enterotype.RData` (195,260 B)
   - `esophagus.RData` (1,840 B)
 
-- [ ] **Step 1: Fetch.** Download the three files into the scratchpad (never into the repo).
-- [ ] **Step 2: Raw read.** Run
+- [x] **Step 1: Fetch.** Download the three files into the scratchpad (never into the repo).
+- [x] **Step 2: Raw read.** Run
   `uv run --no-project --with rdata python spike.py` from the scratchpad. It
   uses a throwaway environment, not a project dependency; the user approved it
   with the stage-1 plan. `spike.py` calls `rdata.read_rda(path)` and prints, for
   each object and slot: its type, shape, the `class` attr and any warnings.
-- [ ] **Step 3: Constructors.** Add `constructor_dict` entries for:
+- [x] **Step 3: Constructors.** Add `constructor_dict` entries for:
   - `otu_table`: numeric matrix plus `taxa_are_rows`;
   - `taxonomyTable`: reshape the character matrix with `order="F"`;
   - `sample_data`;
@@ -991,13 +991,13 @@ the docs (write BIOM + Newick + TSV).
     `tip.label` and internal nodes `n<i>`;
   - `phyloseq`.
   Record lines of code, run time and remaining warnings.
-- [ ] **Step 4: Check against known shapes.**
+- [x] **Step 4: Check against known shapes.**
   - GlobalPatterns: 26 samples x 19,216 taxa, 7 rank columns, a tree with
     19,216 tips.
   - enterotype: holds relative abundances.
   - esophagus: 3 samples, with a tree.
   Note every mismatch.
-- [ ] **Step 5: Decide.** Write `decisions/phyloseq-import-route.md`
+- [x] **Step 5: Decide.** Write `decisions/phyloseq-import-route.md`
   (`type: Decision`, `status: draft`) with:
   - Context;
   - Options: native `rdata` route (new runtime deps `rdata` + `xarray`, the

@@ -1,6 +1,13 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Creation**: [phyloseq-import-route](decisions/phyloseq-import-route.md)
+  (Task 1.6 spike, draft): `rdata.read_rda` + a ~35-line `constructor_dict`
+  reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and
+  zero residual warnings; recommends the native `rdata` route over an R
+  export script, with `refseq`/`XStringSet` deferred (no example file has a
+  populated `refseq` to test against). Spike code kept in
+  `.superpowers/sdd/phase-1-core/spike/` pending user approval (Step 6).
 * **Verification**: `human:pedrocr83` approved the slice 1B stage-1 plan, runtime deps scikit-bio and biom-format, keeping Python 3.14 (biom-format built from source until wheels ship), and a throwaway `rdata` env for the 1.6 spike; recorded in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): slice 1B stage 1 (tasks 1.6-1.9) expanded into TDD steps for approval (rules.md R1.2a); `io.write_biom` renumbered 1.7b -> 1.7d; `.rds` input for DADA2 deferred to the 1.6 decision; stage 2 (1.10-1.12) expanded after it.
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): Checkpoint A closed; slice 1A merged to `master` (79d89bd, CI green); the user gave the go-ahead for slice 1B.
