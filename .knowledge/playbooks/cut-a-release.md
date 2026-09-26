@@ -6,7 +6,7 @@ tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T11:12:51Z }
-commit: b77a226
+commit: 0fdbd4d
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/

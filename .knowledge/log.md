@@ -1,6 +1,22 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Creation** (Checkpoint A): [core](modules/core.md), [pp](modules/pp.md) and
+  [datasets](modules/datasets.md) Module concepts for Slice 1A; added
+  [modules/index.md](modules/index.md) and linked it from `index.md`.
+* **Update**: [phase-1-core](roadmap/phase-1-core.md): ticked Checkpoint A's
+  review and module-concepts items; fixed Task 1.1's `as_csr` interface to
+  `as_csr(X: object)` (code moved in commit fc26baa, the doc had not).
+  Refreshed `commit` to `0fdbd4d` on it and, after re-checking each against
+  Slice 1A with no content change needed, on
+  [data-model-slots](contracts/data-model-slots.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [tree-access](contracts/tree-access.md),
+  [function-shape](contracts/function-shape.md),
+  [r-golden-parity](contracts/r-golden-parity.md),
+  [engine-parity](contracts/engine-parity.md),
+  [add-a-function](playbooks/add-a-function.md) and
+  [cut-a-release](playbooks/cut-a-release.md).
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): ticked Task 1.5 (`pp.tax_glom`) step checkboxes.
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): ticked Task 1.4 (`pp.relative`) step checkboxes.
 * **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) records treedata, networkx and types-networkx (Phase 1, task 1.3).

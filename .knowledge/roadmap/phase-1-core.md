@@ -10,7 +10,7 @@ effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: b77a226
+commit: 0fdbd4d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -90,7 +90,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (runtime scipy, pandas; dev
 pandas-stubs, scipy-stubs).
 **Interfaces (produces):**
-- `as_csr(X: sp.spmatrix | sp.sparray | npt.ArrayLike) -> sp.csr_matrix`
+- `as_csr(X: object) -> sp.csr_matrix` (widened from `sp.spmatrix | sp.sparray | npt.ArrayLike`
+  in commit fc26baa so callers pass `AnnData.X` directly without a cast)
 - `sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix`
 - `argmax_by(values: npt.NDArray[np.float64], codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]`
 
@@ -868,8 +869,8 @@ on ties), ranks below `rank` set to `NaN`.
 - [x] **Step 6: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add tax_glom with phyloseq archetype semantics"`
 
 ### Checkpoint A
-- [ ] Review slice 1A against every contract (superpowers:requesting-code-review).
-- [ ] Write `Module` concepts `.knowledge/modules/core.md` and `.knowledge/modules/pp.md`
+- [x] Review slice 1A against every contract (superpowers:requesting-code-review).
+- [x] Write `Module` concepts `.knowledge/modules/core.md` and `.knowledge/modules/pp.md`
   (codebase-map templates), replace the "modules - not yet documented" line in
   `.knowledge/index.md` with `* [modules](modules/index.md) - ...`, create `modules/index.md`, log it.
 - [ ] Ask the user to review before slice 1B.

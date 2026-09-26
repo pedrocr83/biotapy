@@ -6,7 +6,7 @@ tags: [architecture, modularization]
 status: stable
 paths: ["src/biotapy/**", "pyproject.toml"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
-commit: b77a226
+commit: 0fdbd4d
 sources:
   - id: spec
     resource: ../../plan.md
