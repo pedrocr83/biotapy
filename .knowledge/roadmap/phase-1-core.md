@@ -64,9 +64,9 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.1 | dev | pandas-stubs, scipy-stubs | `mypy --strict` cannot type untyped scipy/pandas - approved 2026-09-26 |
 | 1.3 | runtime | treedata `>=0.3.1,<0.4`, networkx | container and tree |
 | 1.3 | dev | types-networkx | networkx ships no type information - approved 2026-09-26 |
-| 1.6 | spike only | rdata (+ xarray), throwaway `uv run --with` env | a runtime dependency only if the 1.6 decision picks the native route |
-| 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source |
-| 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination |
+| 1.6 | spike only | rdata (+ xarray), throwaway `uv run --with` env | a runtime dependency only if the 1.6 decision picks the native route - spike env approved 2026-09-26 |
+| 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source - approved 2026-09-26 |
+| 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination - approved 2026-09-26 |
 | 1.11 | runtime | pooch | cached dataset downloads |
 | 1.12 | test | pyarrow | read parquet golden files |
 | 1.17 | runtime | scikit-learn | non-metric MDS (scikit-bio has none) |
@@ -915,8 +915,9 @@ objects are read:
   1.7c; scikit-bio requires it anyway, and `io` imports it directly).
 - biom-format 2.1.17 has no CPython 3.14 wheels (upstream fix merged, not yet
   released: biocore/biom-format#1004). On 3.14 it builds from the sdist
-  (`setuptools`, `numpy`, `cython`). The stage-1 PR's CI must show the 3.14 jobs
-  green on Linux, macOS and Windows before merge.
+  (`setuptools`, `numpy`, `cython`). The user chose to keep 3.14 (2026-09-26):
+  the stage-1 PR's CI must show the 3.14 jobs green on Linux, macOS and Windows
+  before merge, and the docs say 3.14 users need a C compiler until wheels ship.
 - Newick parsing always passes `convert_underscores=False`. skbio's default
   turns `ASV_1` into `ASV 1`.
 - mypy: a library without `py.typed` gets `follow_untyped_imports = true`,
