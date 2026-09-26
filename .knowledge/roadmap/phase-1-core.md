@@ -10,7 +10,7 @@ effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: b77a226
+commit: 0fdbd4d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -60,8 +60,10 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 # Dependencies to approve (ask at the start of the task named)
 | Task | Group | Package | Reason |
 |---|---|---|---|
-| 1.1 | runtime | scipy, pandas, anndata | sparse kernels, slots |
+| 1.1 | runtime | scipy, pandas (anndata already present) | sparse kernels, slots - approved 2026-09-26 |
+| 1.1 | dev | pandas-stubs, scipy-stubs | `mypy --strict` cannot type untyped scipy/pandas - approved 2026-09-26 |
 | 1.3 | runtime | treedata `>=0.3.1,<0.4`, networkx | container and tree |
+| 1.3 | dev | types-networkx | networkx ships no type information - approved 2026-09-26 |
 | 1.6 | runtime | rdata | read phyloseq `.rds`/`.RData` |
 | 1.7 | runtime | biom-format | BIOM 1.0 JSON and 2.1 HDF5 |
 | 1.7 | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination |
@@ -85,13 +87,15 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 ### Task 1.1: `_core` sparse kernels
 
 **Files:** create `src/biotapy/_core/_matrix.py`, `tests/core/test_matrix.py`;
-modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata).
+modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (runtime scipy, pandas; dev
+pandas-stubs, scipy-stubs).
 **Interfaces (produces):**
-- `as_csr(X: sp.spmatrix | sp.sparray | npt.ArrayLike) -> sp.csr_matrix`
+- `as_csr(X: object) -> sp.csr_matrix` (widened from `sp.spmatrix | sp.sparray | npt.ArrayLike`
+  in commit fc26baa so callers pass `AnnData.X` directly without a cast)
 - `sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix`
 - `argmax_by(values: npt.NDArray[np.float64], codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_matrix.py
   import numpy as np
@@ -147,8 +151,8 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
       out = sum_by(sp.csr_matrix(dense), codes, 3)
       np.testing.assert_array_equal(np.asarray(out.sum(axis=1)).ravel(), dense.sum(axis=1))
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py -q` -> `ImportError: cannot import name 'argmax_by'`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py -q` -> `ImportError: cannot import name 'argmax_by'`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/_core/_matrix.py
   """Sparse kernels shared by pp, fn and tl."""
@@ -185,8 +189,8 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
       return order[first]
   ```
   Export all three from `src/biotapy/_core/__init__.py` (import + `__all__`).
-- [ ] **Step 4: Run, expect pass** - same command -> 10 passed.
-- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(core): add sparse group-sum and group-argmax kernels"`
+- [x] **Step 4: Run, expect pass** - same command -> 10 passed.
+- [x] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(core): add sparse group-sum and group-argmax kernels"`
 
 ### Task 1.2: `_core` taxonomy and slot rules
 
@@ -200,7 +204,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
 - `add_provenance(adata, step: str, **params: str | int | float | bool | None) -> None`
 - `feature_subset(adata, index: npt.NDArray[np.intp]) -> AnnData`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_taxonomy.py
   import anndata as ad
@@ -286,8 +290,8 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
       feature_subset(adata, np.array([0]))
       assert adata.n_vars == 3 and "relative" in adata.layers and "other" in adata.uns
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core -q` -> ImportError for `split_ranks`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core -q` -> ImportError for `split_ranks`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/_core/_taxonomy.py
   """Canonical taxonomic ranks (contracts/data-model-slots)."""
@@ -355,8 +359,8 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
   ```
   Export `RANKS`, `split_ranks`, `XKind`, `x_kind`, `require_counts`,
   `add_provenance`, `feature_subset` from `_core/__init__.py`.
-- [ ] **Step 4: Run, expect pass** -> 8 new tests pass.
-- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git commit -am "feat(core): add rank splitting, x_kind and provenance slot rules"`
+- [x] **Step 4: Run, expect pass** -> 8 new tests pass.
+- [x] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git commit -am "feat(core): add rank splitting, x_kind and provenance slot rules"`
 
 ### Task 1.3: `_core` tree helpers and `datasets.toy()`
 
@@ -364,7 +368,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml` (scipy, pandas, anndata
 `src/biotapy/datasets/_toy.py`, `tests/core/test_tree.py`,
 `tests/datasets/test_toy.py`, `docs/guide/index.md`, `docs/guide/data_model.md`;
 modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/api.md`,
-`pyproject.toml` (treedata, networkx).
+`pyproject.toml` (treedata, networkx; dev types-networkx).
 **Interfaces (produces):**
 - `PHYLO_KEY = "phylo"`; `TreeData` (re-exported type)
 - `tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph` (edge attribute `length`)
@@ -373,7 +377,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
 - `bt.datasets.toy() -> TreeData`: 6 samples x 8 features. `obs["group"]` A (s1-s3) / B (s4-s6);
   kingdom..genus with `f8` genus missing; phylum totals give archetypes f3, f6, f7.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_tree.py
   import numpy as np
@@ -430,8 +434,8 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       assert back.vart["phylo"].edges["n4", "f1"]["length"] == 0.1
       assert list(back.uns["biotapy"]["provenance"]) == list(bt.datasets.toy().uns["biotapy"]["provenance"])
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/datasets -q` -> ImportError.
-- [ ] **Step 3: Implement the tree helpers**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/datasets -q` -> ImportError.
+- [x] **Step 3: Implement the tree helpers**
   ```python
   # src/biotapy/_core/_tree.py
   """The only module that imports treedata or networkx (contracts/tree-access)."""
@@ -482,7 +486,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       return tdata
   ```
   Export `PHYLO_KEY`, `TreeData`, `tree_from_edges`, `get_tree`, `make_treedata` from `_core/__init__.py`.
-- [ ] **Step 4: Implement the toy dataset**
+- [x] **Step 4: Implement the toy dataset**
   ```python
   # src/biotapy/datasets/_toy.py
   """Tiny in-memory dataset for docstring examples and tests."""
@@ -554,13 +558,13 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
   ```
   `src/biotapy/datasets/__init__.py`: `from ._toy import toy` and `__all__ = ["toy"]`.
   `src/biotapy/__init__.py`: add `from . import datasets` and `"datasets"` to `__all__`.
-- [ ] **Step 5: Docs.** `docs/guide/index.md` (toctree of guide pages) linked
+- [x] **Step 5: Docs.** `docs/guide/index.md` (toctree of guide pages) linked
   from `docs/index.md`; `docs/guide/data_model.md`: the slot table and the
   samples-as-rows rule, written for users (from [data-model-slots](/contracts/data-model-slots.md)).
   Add `datasets.toy` to `docs/api.md`.
-- [ ] **Step 6: Run, expect pass** - `uv run --group test pytest -q` (includes the doctest) and
+- [x] **Step 6: Run, expect pass** - `uv run --group test pytest -q` (includes the doctest) and
   `uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
-- [ ] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(datasets): add in-memory toy TreeData and core tree helpers"`
+- [x] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(datasets): add in-memory toy TreeData and core tree helpers"`
 
 ### Task 1.4: `pp.relative`
 
@@ -570,7 +574,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
 **Interfaces:** consumes `as_csr`, `add_provenance`; produces
 `bt.pp.relative(adata: AnnData) -> AnnData` adding `layers["relative"]`; test fixture `assert_unchanged`.
 
-- [ ] **Step 1: Purity fixture** - append to `tests/conftest.py`:
+- [x] **Step 1: Purity fixture** - append to `tests/conftest.py`:
   ```python
   from collections.abc import Callable
 
@@ -594,7 +598,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       """Fail if a biotapy call mutated its input (rules.md R3.3)."""
       return _assert_unchanged
   ```
-- [ ] **Step 2: Failing tests**
+- [x] **Step 2: Failing tests**
   ```python
   # tests/pp/test_transform.py
   import json
@@ -649,8 +653,8 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       expected = np.where(dense.sum(axis=1) > 0, 1.0, 0.0)
       np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), expected)
   ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/pp -q` -> `AttributeError: module 'biotapy' has no attribute 'pp'`.
-- [ ] **Step 4: Implement**
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/pp -q` -> `AttributeError: module 'biotapy' has no attribute 'pp'`.
+- [x] **Step 4: Implement**
   ```python
   # src/biotapy/pp/_transform.py
   """Per-sample transforms: add one layer, keep everything else."""
@@ -700,10 +704,10 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
   ```
   `src/biotapy/pp/__init__.py`: `from ._transform import relative`, `__all__ = ["relative"]`.
   `src/biotapy/__init__.py`: add `pp`.
-- [ ] **Step 5: Docs** - `docs/guide/transforms.md` (what `relative` does, the
+- [x] **Step 5: Docs** - `docs/guide/transforms.md` (what `relative` does, the
   zero-sample difference from phyloseq); add to guide toctree and `docs/api.md`.
-- [ ] **Step 6: Run, expect pass** - tests, doctest and `sphinx-build -W`.
-- [ ] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add relative abundance transform"`
+- [x] **Step 6: Run, expect pass** - tests, doctest and `sphinx-build -W`.
+- [x] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add relative abundance transform"`
 
 ### Task 1.5: `pp.tax_glom`
 
@@ -716,7 +720,7 @@ Semantics follow phyloseq exactly:[^phyloseq-glom] group by the lineage string
 joined with `";_;"` (missing -> `"NA"`), archetype = most abundant member (first
 on ties), ranks below `rank` set to `NaN`.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/pp/test_glom.py
   import numpy as np
@@ -787,8 +791,8 @@ on ties), ranks below `rank` set to `NaN`.
       out = bt.pp.tax_glom(tdata, rank, dropna=False)
       np.testing.assert_array_equal(np.asarray(out.X.sum(axis=1)).ravel(), np.asarray(tdata.X.sum(axis=1)).ravel())
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/pp/test_glom.py -q` -> `AttributeError: ... 'tax_glom'`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/pp/test_glom.py -q` -> `AttributeError: ... 'tax_glom'`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/pp/_glom.py
   """Aggregation along the taxonomy."""
@@ -859,14 +863,14 @@ on ties), ranks below `rank` set to `NaN`.
       return out
   ```
   Add `tax_glom` to `pp/__init__.py` imports and `__all__`.
-- [ ] **Step 4: Docs** - `docs/guide/aggregation.md`: lineage grouping, the
+- [x] **Step 4: Docs** - `docs/guide/aggregation.md`: lineage grouping, the
   archetype rule, what happens to the tree and to derived slots; add to toctree and `docs/api.md`.
-- [ ] **Step 5: Run, expect pass** - tests, doctests, `sphinx-build -W`.
-- [ ] **Step 6: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add tax_glom with phyloseq archetype semantics"`
+- [x] **Step 5: Run, expect pass** - tests, doctests, `sphinx-build -W`.
+- [x] **Step 6: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add tax_glom with phyloseq archetype semantics"`
 
 ### Checkpoint A
-- [ ] Review slice 1A against every contract (superpowers:requesting-code-review).
-- [ ] Write `Module` concepts `.knowledge/modules/core.md` and `.knowledge/modules/pp.md`
+- [x] Review slice 1A against every contract (superpowers:requesting-code-review).
+- [x] Write `Module` concepts `.knowledge/modules/core.md` and `.knowledge/modules/pp.md`
   (codebase-map templates), replace the "modules - not yet documented" line in
   `.knowledge/index.md` with `* [modules](modules/index.md) - ...`, create `modules/index.md`, log it.
 - [ ] Ask the user to review before slice 1B.
@@ -893,6 +897,17 @@ on ties), ranks below `rank` set to `NaN`.
   metadata -> normalized rank columns ([data-model-slots](/contracts/data-model-slots.md) convention 1);
   integer ids cast to `str`; duplicate ids raise naming them; tree tips not in the table and features not in the tree -> intersection plus one warning with both counts.
 - **Done when:** tests pass; `x_kind="counts"`; provenance `io.read_biom`.
+
+### Task 1.7b: `io.write_biom`
+Added 2026-09-26 at the user's request.
+- **Interface:** `write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"] = "hdf5") -> None`,
+  through `biom-format` (approved with 1.7).
+- **Files:** `src/biotapy/io/_biom.py` (next to `read_biom`); tests in `tests/io/test_biom.py`.
+- **Tests:** `read_biom(write_biom(x))` round-trips `X`, `obs` and the rank columns for both
+  formats; the writer transposes back to features x samples exactly once; rank columns go
+  to observation `taxonomy` metadata in canonical order; input unchanged.
+- **Done when:** tests pass; the docstring says a TreeData's tree is not written (BIOM has
+  no tree slot) and has `R equivalent: ``biomformat::write_biom``.
 
 ### Task 1.8: `io.read_qiime2`
 - **Interface:** `read_qiime2(table: str | Path, *, taxonomy=None, tree=None, metadata=None) -> TreeData`

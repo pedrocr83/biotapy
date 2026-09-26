@@ -23,6 +23,9 @@ torch or an R installation into every install is unacceptable.[^spec]
   scikit-bio (`>=0.7.4,<0.8`), matplotlib, pooch (Phase 0-1); scikit-learn
   (Phase 1, NMDS - pending approval); mudata (Phase 2). Phase 0 added numpy; the
   template adds `session-info2` (debug report referenced by the issue template).
+  Phase 1 task 1.1 added scipy and pandas, plus the dev-only stubs
+  `pandas-stubs` and `scipy-stubs` so `mypy --strict` can check them.
+  Task 1.3 added treedata and networkx, plus the dev-only `types-networkx`.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

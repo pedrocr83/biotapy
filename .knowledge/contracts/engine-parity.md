@@ -6,7 +6,7 @@ tags: [performance, testing]
 status: stable
 paths: ["src/biotapy/**/*.py", "rust/**", "benchmarks/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: b77a226
+commit: 0fdbd4d
 sources:
   - id: spec
     resource: ../../plan.md

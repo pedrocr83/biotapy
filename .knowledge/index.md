@@ -20,4 +20,4 @@ okf_version: "0.2"
 
 # Modules
 
-* modules - not yet documented. A Module concept is written when a subpackage gets its first public function (Phase 1 onward).
+* [modules](modules/index.md) - Code areas with a public function: the private `_core` kernel, `pp` preprocessing, and `datasets` example data.

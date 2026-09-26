@@ -1,15 +1,30 @@
-# Temp files
-.DS_Store
+# Secrets and local environment (rules.md R13.2)
+.env
+.env.*
+*.pem
+*.key
+
+# Agent, editor and OS state
+/.claude/
+/.superpowers/
+/.vscode/
+/.idea/
+*.swp
 *~
+.DS_Store
 buck-out/
 
-# Compiled files
+# Compiled files and caches
 .venv/
 __pycache__/
+*.py[cod]
 .*cache/
+/.hypothesis/
 
 # Distribution / packaging
+/build/
 /dist/
+*.egg-info/
 # Library: resolve fresh in CI and for users; no committed lockfile
 /uv.lock
 
@@ -17,7 +32,13 @@ __pycache__/
 /data/
 /node_modules/
 /.coverage*
+/coverage.xml
+/htmlcov/
 
 # docs
 /docs/generated/
 /docs/_build/
+/docs/jupyter_execute/
+
+# benchmarks
+/.asv/
