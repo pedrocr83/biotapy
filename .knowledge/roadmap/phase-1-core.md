@@ -94,7 +94,7 @@ pandas-stubs, scipy-stubs).
 - `sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix`
 - `argmax_by(values: npt.NDArray[np.float64], codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_matrix.py
   import numpy as np
@@ -150,8 +150,8 @@ pandas-stubs, scipy-stubs).
       out = sum_by(sp.csr_matrix(dense), codes, 3)
       np.testing.assert_array_equal(np.asarray(out.sum(axis=1)).ravel(), dense.sum(axis=1))
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py -q` -> `ImportError: cannot import name 'argmax_by'`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py -q` -> `ImportError: cannot import name 'argmax_by'`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/_core/_matrix.py
   """Sparse kernels shared by pp, fn and tl."""
@@ -188,8 +188,8 @@ pandas-stubs, scipy-stubs).
       return order[first]
   ```
   Export all three from `src/biotapy/_core/__init__.py` (import + `__all__`).
-- [ ] **Step 4: Run, expect pass** - same command -> 10 passed.
-- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(core): add sparse group-sum and group-argmax kernels"`
+- [x] **Step 4: Run, expect pass** - same command -> 10 passed.
+- [x] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(core): add sparse group-sum and group-argmax kernels"`
 
 ### Task 1.2: `_core` taxonomy and slot rules
 
