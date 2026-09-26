@@ -1,0 +1,73 @@
+---
+type: Contract
+title: Public function shape
+description: One task = one public function `verb(data, required, *, options) -> result`, fully typed, keyword-only options, seeded randomness, NumPy docstring with a parseable R-equivalent line.
+tags: [api, conventions, docs]
+status: stable
+paths: ["src/biotapy/**/*.py"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+commit: 3b29ffe
+sources:
+  - id: spec
+    resource: ../../plan.md
+    title: Python Microbiome Toolkit development report
+    author: human:pedrocr83
+---
+
+# Statement
+
+Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
+
+1. **Signature**: `verb(data, <required args>, *, <options>) -> <result>`.
+   - `data` is annotated with the widest type that works: `AnnData` when no tree
+     is needed, `TreeData` when `vart` is read, `MuData` for multi-modal.
+   - Everything after the required arguments is keyword-only (`*`).
+   - No `**kwargs` pass-through, except a documented `plot_kwargs` in `pl`.
+2. **Return and mutation**: per [pure-by-default](/decisions/pure-by-default.md).
+3. **Randomness**: any stochastic function takes
+   `seed: int | np.random.Generator | None = None`, converted once with
+   `biotapy._core.as_generator(seed)`. No global RNG state is read or set.
+4. **Types**: full hints on parameters and return; no `Any`, no untyped
+   `dict`/`list` in public signatures; `Literal[...]` for string options.
+5. **Validation**: inputs are checked at the public boundary with
+   `biotapy._core` validators; errors are `ValueError`/`KeyError`/`TypeError`
+   naming the offending argument. Private helpers do not re-validate.
+6. **Docstring** (NumPy style, enforced by ruff `D` rules):
+
+   ```text
+   One-line summary ending with a period.
+
+   Parameters / Returns sections.
+
+   Notes
+   -----
+   R equivalent: ``phyloseq::tax_glom``, ``mia::agglomerateByRank``
+   Guide: :doc:`/guide/aggregation`
+
+   Examples
+   --------
+   >>> import biotapy as bt
+   >>> tdata = bt.datasets.toy()
+   >>> bt.pp.tax_glom(tdata, "phylum").n_vars
+   3
+   ```
+
+   - Exactly one line starting `R equivalent:`; comma-separated
+     ``pkg::fn`` items, or `none`. The "Coming from R" page is generated from it.
+   - Examples use `bt.datasets.toy()` (built in memory, no download) and run
+     under doctest in CI.
+
+# Why
+- Keyword-only options let parameters be added without breaking callers.
+- A seeded generator is the only way stochastic results are reproducible and testable.
+- A parseable `R equivalent:` line keeps the migration table generated, never hand-written.
+
+# Enforced by
+- ruff `D`, `PLR0913`, `PLR0917` and mypy strict (Phase 0, task 0.4).
+- `tests/test_docstrings.py` (Phase 1, task 1.19) parses every public function's `R equivalent:` line.
+- Doctests in CI (`--doctest-modules` in pytest config, Phase 0 task 0.4).
+- Purity: every `pp`/`tl` test asserts the input is unchanged.
+
+# Binds
+- [module-boundaries](/contracts/module-boundaries.md)
+- [data-model-slots](/contracts/data-model-slots.md)

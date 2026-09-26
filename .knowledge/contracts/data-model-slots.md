@@ -1,0 +1,82 @@
+---
+type: Contract
+title: Data-model slots
+description: Which AnnData/TreeData slot holds what, the exact result keys, the x_kind and provenance conventions, and which slots feature-changing operations drop.
+tags: [data-model, api]
+status: stable
+paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+commit: 3b29ffe
+sources:
+  - id: spec
+    resource: ../../plan.md
+    title: Python Microbiome Toolkit development report
+    author: human:pedrocr83
+  - id: treedata
+    resource: https://github.com/YosefLab/treedata
+    title: treedata source (0.3.1)
+  - id: phyloseq-glom
+    resource: https://github.com/joey711/phyloseq/blob/master/R/transform_filter-methods.R
+    title: phyloseq tax_glom source
+---
+
+# Statement
+
+## Slots
+Extends the spec's data-model table with exact keys.[^spec]
+
+| Slot | Holds | Keys |
+|---|---|---|
+| `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
+| `layers` | same-shape transforms of `X` | `relative`, `clr` |
+| `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
+| `var` | taxonomy, one lowercase column per rank; sequences | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence` |
+| `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
+| `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
+| `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
+| `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (eigenvalues, proportion explained) |
+
+## Conventions
+1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
+   bare prefixes (`"g__"`) to `NaN`, strip `k__`-style prefixes, and map rank
+   aliases (`domain` -> `kingdom`) to the canonical lowercase names.
+2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
+   Readers always set it. Missing key means `counts`. Functions that need raw
+   counts (rarefy, chao1) call `_core.require_counts` and raise otherwise.
+3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
+   `{"step", "version", "params"}`, appended by `_core.add_provenance`.
+   JSON strings, not dicts, because h5ad cannot store a list of dicts.
+4. **Trees** are created only by `_core` ([tree-access](/contracts/tree-access.md))
+   with `label=None`, so TreeData adds no `tree` column to `var`.
+
+## Propagation
+| Operation | Keeps | Drops |
+|---|---|---|
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, other `uns` keys |
+| Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing | nothing |
+| Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
+
+Feature-changing operations go through `_core.feature_subset`, the single place
+that implements the "Drops" column.
+
+## Aggregation semantics (`tax_glom`)
+Matches phyloseq:[^phyloseq-glom] features are grouped by the full lineage up
+to the rank (not the rank value alone, so `uncultured` genera in different
+families stay separate); the representative ("archetype") is the most abundant
+feature, first on ties; ranks below the target become `NaN`. The kept tree is
+the archetypes' subtree; TreeData keeps unary nodes, which leaves root-to-tip
+path lengths, and therefore Faith PD and UniFrac, unchanged.[^treedata]
+
+# Why
+A slot whose meaning depends on which function wrote it cannot be trusted by
+the next function. Dropping derived slots on feature changes prevents stale
+distances or ordinations from being plotted against new data.
+
+# Enforced by
+- `tests/core/test_slots.py` (Phase 1, task 1.2) for `feature_subset` and provenance.
+- `tests/datasets/test_toy.py` (task 1.3): h5td round-trip keeps every convention.
+- Per-function tests assert the documented keys.
+
+[^spec]: Python Microbiome Toolkit development report, section Data model
+[^treedata]: treedata source (0.3.1)
+[^phyloseq-glom]: phyloseq tax_glom source
