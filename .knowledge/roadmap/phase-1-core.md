@@ -719,7 +719,7 @@ Semantics follow phyloseq exactly:[^phyloseq-glom] group by the lineage string
 joined with `";_;"` (missing -> `"NA"`), archetype = most abundant member (first
 on ties), ranks below `rank` set to `NaN`.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/pp/test_glom.py
   import numpy as np
@@ -790,8 +790,8 @@ on ties), ranks below `rank` set to `NaN`.
       out = bt.pp.tax_glom(tdata, rank, dropna=False)
       np.testing.assert_array_equal(np.asarray(out.X.sum(axis=1)).ravel(), np.asarray(tdata.X.sum(axis=1)).ravel())
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/pp/test_glom.py -q` -> `AttributeError: ... 'tax_glom'`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/pp/test_glom.py -q` -> `AttributeError: ... 'tax_glom'`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/pp/_glom.py
   """Aggregation along the taxonomy."""
@@ -862,10 +862,10 @@ on ties), ranks below `rank` set to `NaN`.
       return out
   ```
   Add `tax_glom` to `pp/__init__.py` imports and `__all__`.
-- [ ] **Step 4: Docs** - `docs/guide/aggregation.md`: lineage grouping, the
+- [x] **Step 4: Docs** - `docs/guide/aggregation.md`: lineage grouping, the
   archetype rule, what happens to the tree and to derived slots; add to toctree and `docs/api.md`.
-- [ ] **Step 5: Run, expect pass** - tests, doctests, `sphinx-build -W`.
-- [ ] **Step 6: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add tax_glom with phyloseq archetype semantics"`
+- [x] **Step 5: Run, expect pass** - tests, doctests, `sphinx-build -W`.
+- [x] **Step 6: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add tax_glom with phyloseq archetype semantics"`
 
 ### Checkpoint A
 - [ ] Review slice 1A against every contract (superpowers:requesting-code-review).

@@ -24,4 +24,5 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     pp.relative
+    pp.tax_glom
 ```
