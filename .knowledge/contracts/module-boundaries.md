@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public 
 tags: [architecture, modularization]
 status: stable
 paths: ["src/biotapy/**", "pyproject.toml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+commit: b77a226
 sources:
   - id: spec
     resource: ../../plan.md
@@ -56,7 +56,7 @@ reviewable in one file per module.
 
 # Enforced by
 - import-linter `layers` contract in `pyproject.toml` (Phase 0, task 0.4),
-  run in CI as `lint-imports`.
+  run in CI through the prek `lint` job.
 - ruff `C901`, `PLR0915`, `TID252` (no relative imports beyond siblings).
 - Not automated: file-length limit, checked in review.
 

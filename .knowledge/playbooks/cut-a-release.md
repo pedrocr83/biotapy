@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T09:40:17Z }
-commit: 53fede4
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+commit: b77a226
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/
@@ -26,11 +26,14 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
 1. Set `version = "X.Y.Z"` in `pyproject.toml` (static; no VCS versioning).
 2. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
    and open a new empty `## [Unreleased]` above it (Keep a Changelog).
-3. Commit `chore: release X.Y.Z` and merge it to `master`.
-4. With explicit user approval for each (rules.md R13.3):
+3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
+   (merge commit, not squash).
+4. With explicit user approval for each (rules.md R13.3), tag the merged commit
+   and push only the tag:
    ```bash
+   git switch master && git pull --ff-only
    git tag vX.Y.Z
-   git push origin master vX.Y.Z
+   git push origin vX.Y.Z
    gh release create vX.Y.Z --title "X.Y.Z" --notes-file <changelog excerpt>
    ```
    Publishing the GitHub release triggers `.github/workflows/release.yaml`
@@ -46,5 +49,6 @@ Both print `X.Y.Z`.
 # Common mistakes
 - Tagging before the version bump is merged: the wheel carries the old version.
 - A PyPI version can never be re-uploaded; a broken release needs a new patch version.
+- Pushing `master` directly: releases go through a merged PR; push only the tag.
 
 [^trusted-publishing]: PyPI trusted publishers

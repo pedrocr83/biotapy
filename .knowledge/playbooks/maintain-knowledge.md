@@ -4,9 +4,9 @@ title: Maintain the knowledge bundle
 description: When and how to write or update an OKF concept in .knowledge/, in the same commit as the code change, with frontmatter provenance and a log entry.
 tags: [okf, docs, workflow]
 status: stable
-paths: [".knowledge/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+paths: ["tests/test_knowledge_bundle.py", "scripts/knowledge_stale.sh"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+commit: b77a226
 sources:
   - id: okf-spec
     resource: https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md
@@ -58,5 +58,7 @@ bash scripts/knowledge_stale.sh --touched         # code changed under untouched
 - Restating code (signatures, line numbers) - it rots on the next commit.
 - Leaving `commit` at an old SHA after re-checking a concept.
 - Writing `verified` for agent-written content; only a human review earns it.
+- Squash-merging a branch whose concepts cite branch SHAs in `commit`: the SHAs
+  leave `master` and the staleness check turns them uncheckable. Use a merge commit.
 
 [^okf-spec]: Open Knowledge Format v0.2 specification

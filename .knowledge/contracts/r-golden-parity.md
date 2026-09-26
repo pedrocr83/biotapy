@@ -6,7 +6,7 @@ tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+commit: b77a226
 sources:
   - id: spec
     resource: ../../plan.md

@@ -4,7 +4,7 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
 commit: 3b29ffe
 sources:
   - id: spec
@@ -21,7 +21,8 @@ torch or an R installation into every install is unacceptable.[^spec]
 - Core runtime deps, each added in the phase that first imports it:
   anndata, treedata (`>=0.3.1,<0.4`), networkx, numpy, scipy, pandas,
   scikit-bio (`>=0.7.4,<0.8`), matplotlib, pooch (Phase 0-1); scikit-learn
-  (Phase 1, NMDS - pending approval); mudata (Phase 2).
+  (Phase 1, NMDS - pending approval); mudata (Phase 2). Phase 0 added numpy; the
+  template adds `session-info2` (debug report referenced by the issue template).
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

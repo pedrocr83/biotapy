@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~1 week part-time
 depends_on: []
 paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+commit: b77a226
 sources:
   - id: spec
     resource: ../../plan.md
@@ -458,7 +458,9 @@ create `.github/pull_request_template.md`.
 - [x] **Step 6: Verify locally** - `uvx prek run --all-files` (zizmor and biome included) passes.
 - [x] **Step 7: Commit** - `git add -A && git commit -m "ci: OS matrix, no-extras import check, PR template"`
 - [ ] **Step 8: Push and open a PR** - only after the user approves the push (R13.3).
-  Expected: all 9 test cells, `import-without-extras` and docs build green.
+  Expected: 12 test cells (3 pre-release cells may fail), `lint`, `import-without-extras`
+  and the build check green. Merge with a merge commit, not a squash, so the
+  `commit` SHAs in `.knowledge/` stay reachable from `master`.
 
 ### Task 0.7: Docs site
 
@@ -488,8 +490,9 @@ create `.github/pull_request_template.md`.
   release, watch `release.yaml`, verify on PyPI. List it in the playbooks index; log it.
 - [ ] **Step 3: Release (each command needs user approval)**
   ```bash
+  git switch master && git pull --ff-only
   git tag v0.0.1
-  git push origin master v0.0.1
+  git push origin v0.0.1
   gh release create v0.0.1 --title "0.0.1" --notes "Name reservation; no functionality yet."
   ```
 - [ ] **Step 4: Verify**
@@ -499,9 +502,23 @@ create `.github/pull_request_template.md`.
   ```
   Expected: `0.0.1` twice.
 
+# Deviations (rulings made during execution)
+Recorded here because the execution ledger is not committed.
+- Skeleton generated non-interactively (`cruft create --no-input --extra-context`), keys from the template's `cookiecutter.json`.
+- The template (v0.8.0) ships no `docs/template_usage.md`, no mypy and no `autofix.yaml`; its `conftest.py` only served the deleted example test and was removed.
+- ruff pre-commit hook bumped v0.15.21 -> v0.16.9: `PLR0917` is preview-only in 0.15.
+- `mypy` added as a dev dependency with a local prek hook; `[tool.mypy]` strict on `src/biotapy`, Python 3.12. User confirmed.
+- pytest options live in the template's native `[tool.pytest]` table (pytest 9, `strict = true` implies strict markers), not `[tool.pytest.ini_options]`.
+- Workflows, README badge and `docs/conf.py` target `master`, not the template's `main`.
+- The test job runs `bash` on every OS (template steps use POSIX syntax) and includes the OS in its name.
+- CI gained a `lint` job running every prek hook, required by the `check` job (final review finding: rules were only enforced locally).
+- `knowledge_stale.sh --touched` exits 2 when it cannot diff; the CI report goes to the job summary and fails only on that error.
+- `uv.lock` is not committed (`/uv.lock` in `.gitignore`).
+- Outward actions (push, PR, Codecov, Read the Docs, PyPI) batched into one approval request.
+
 # Exit gate
 - [ ] `uvx prek run --all-files` and `uv run --group test pytest` green locally; output read.
-- [ ] CI green: 9 test cells, `import-without-extras`, docs.
+- [ ] CI green: 12 test cells (pre-release cells may fail), `lint`, `import-without-extras`, build; docs.
 - [ ] Docs live on Read the Docs.
 - [ ] `biotapy 0.0.1` on PyPI.
 - [ ] rules.md R14 commands match the generated template.
