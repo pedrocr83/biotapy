@@ -13,3 +13,15 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     datasets.toy
 ```
+
+## Preprocessing
+
+```{eval-rst}
+.. module:: biotapy.pp
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    pp.relative
+```

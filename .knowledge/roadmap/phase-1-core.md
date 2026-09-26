@@ -573,7 +573,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
 **Interfaces:** consumes `as_csr`, `add_provenance`; produces
 `bt.pp.relative(adata: AnnData) -> AnnData` adding `layers["relative"]`; test fixture `assert_unchanged`.
 
-- [ ] **Step 1: Purity fixture** - append to `tests/conftest.py`:
+- [x] **Step 1: Purity fixture** - append to `tests/conftest.py`:
   ```python
   from collections.abc import Callable
 
@@ -597,7 +597,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       """Fail if a biotapy call mutated its input (rules.md R3.3)."""
       return _assert_unchanged
   ```
-- [ ] **Step 2: Failing tests**
+- [x] **Step 2: Failing tests**
   ```python
   # tests/pp/test_transform.py
   import json
@@ -652,8 +652,8 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       expected = np.where(dense.sum(axis=1) > 0, 1.0, 0.0)
       np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), expected)
   ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/pp -q` -> `AttributeError: module 'biotapy' has no attribute 'pp'`.
-- [ ] **Step 4: Implement**
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/pp -q` -> `AttributeError: module 'biotapy' has no attribute 'pp'`.
+- [x] **Step 4: Implement**
   ```python
   # src/biotapy/pp/_transform.py
   """Per-sample transforms: add one layer, keep everything else."""
@@ -703,10 +703,10 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
   ```
   `src/biotapy/pp/__init__.py`: `from ._transform import relative`, `__all__ = ["relative"]`.
   `src/biotapy/__init__.py`: add `pp`.
-- [ ] **Step 5: Docs** - `docs/guide/transforms.md` (what `relative` does, the
+- [x] **Step 5: Docs** - `docs/guide/transforms.md` (what `relative` does, the
   zero-sample difference from phyloseq); add to guide toctree and `docs/api.md`.
-- [ ] **Step 6: Run, expect pass** - tests, doctest and `sphinx-build -W`.
-- [ ] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add relative abundance transform"`
+- [x] **Step 6: Run, expect pass** - tests, doctest and `sphinx-build -W`.
+- [x] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(pp): add relative abundance transform"`
 
 ### Task 1.5: `pp.tax_glom`
 
