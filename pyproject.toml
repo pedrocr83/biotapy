@@ -26,6 +26,7 @@ dependencies = [
   "networkx",
   "numpy",
   "pandas",
+  "scikit-bio>=0.7.4,<0.8",
   "scipy",
   # for debug logging (referenced from the issue template)
   "session-info2",
@@ -149,6 +150,9 @@ overrides = [
   # instead of ignoring it, so `TreeData` stays a real type under strict mode.
   { module = "treedata", follow_untyped_imports = true, implicit_reexport = true },
   { module = "treedata.*", follow_untyped_imports = true, implicit_reexport = true },
+  # scikit-bio 0.7.4 ships no py.typed marker either; same treatment.
+  { module = "skbio", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "skbio.*", follow_untyped_imports = true, implicit_reexport = true },
 ]
 
 [tool.pytest]

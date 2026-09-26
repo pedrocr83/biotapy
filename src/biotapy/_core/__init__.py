@@ -5,7 +5,7 @@ from ._optional import import_optional
 from ._rng import as_generator
 from ._slots import XKind, add_provenance, feature_subset, require_counts, x_kind
 from ._taxonomy import RANKS, split_ranks
-from ._tree import PHYLO_KEY, TreeData, get_tree, make_treedata, tree_from_edges
+from ._tree import PHYLO_KEY, TreeData, get_tree, make_treedata, tree_from_edges, tree_from_newick
 
 __all__ = [
     "PHYLO_KEY",
@@ -24,5 +24,6 @@ __all__ = [
     "split_ranks",
     "sum_by",
     "tree_from_edges",
+    "tree_from_newick",
     "x_kind",
 ]

@@ -6,7 +6,7 @@ tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 0fdbd4d
+commit: 2df26cb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -48,6 +48,10 @@ Extends the spec's data-model table with exact keys.[^spec]
    JSON strings, not dicts, because h5ad cannot store a list of dicts.
 4. **Trees** are created only by `_core` ([tree-access](/contracts/tree-access.md))
    with `label=None`, so TreeData adds no `tree` column to `var`.
+5. **Ids are unique strings.** `_core.make_treedata` casts `obs`/`var` index
+   values to `str` and raises `ValueError` on duplicates, naming them (up to
+   5), so integer or mixed-type ids from a reader (e.g. unquoted BIOM JSON
+   ids) never collide silently.
 
 ## Propagation
 | Operation | Keeps | Drops |

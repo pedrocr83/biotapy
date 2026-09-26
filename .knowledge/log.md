@@ -1,6 +1,16 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: Task 1.7a done: `_core._tree.tree_from_newick` parses Newick via
+  scikit-bio (`convert_underscores=False`, unique internal names, NaN for
+  missing lengths); `make_treedata` now casts obs/var ids to `str`, raises on
+  duplicates, and aligns a tree with the table (keep the shared features, one
+  `UserWarning` naming both counts, `ValueError` if nothing is shared). Added
+  runtime dependency scikit-bio (`>=0.7.4,<0.8`) and a mypy override for it.
+  Updated [tree-access](contracts/tree-access.md),
+  [data-model-slots](contracts/data-model-slots.md) (new convention 5) and
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md);
+  ticked Task 1.7a's steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Creation**: [phyloseq-import-route](decisions/phyloseq-import-route.md)
   (Task 1.6 spike, draft): `rdata.read_rda` + a ~35-line `constructor_dict`
   reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and

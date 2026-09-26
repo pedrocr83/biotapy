@@ -10,7 +10,7 @@ effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 0fdbd4d
+commit: 2df26cb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -1042,10 +1042,10 @@ the docs (write BIOM + Newick + TSV).
   - no shared feature raises `ValueError`;
   - the input frames are never mutated.
 
-- [ ] **Step 1: Dependency.** Add `"scikit-bio>=0.7.4,<0.8"` to `[project] dependencies`, then run
+- [x] **Step 1: Dependency.** Add `"scikit-bio>=0.7.4,<0.8"` to `[project] dependencies`, then run
   `uv sync --group dev --group test --group doc`. On Python 3.14 this builds
   biom-format from source (see stage-1 constraints).
-- [ ] **Step 2: Failing tests** - append to `tests/core/test_tree.py`:
+- [x] **Step 2: Failing tests** - append to `tests/core/test_tree.py`:
   ```python
   import math
 
@@ -1125,8 +1125,8 @@ the docs (write BIOM + Newick + TSV).
       make_treedata(np.ones((1, 1)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
       assert list(obs.index) == [1]
   ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py -q` -> `ImportError: cannot import name 'tree_from_newick'`.
-- [ ] **Step 4: Implement.** In `src/biotapy/_core/_tree.py`:
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py -q` -> `ImportError: cannot import name 'tree_from_newick'`.
+- [x] **Step 4: Implement.** In `src/biotapy/_core/_tree.py`:
   - add imports `import itertools`, `import math`, `import warnings`,
     `from collections import Counter`, `from pathlib import Path`,
     `import numpy as np` and `from skbio import TreeNode`;
@@ -1228,12 +1228,12 @@ the docs (write BIOM + Newick + TSV).
     `{ module = "skbio", follow_untyped_imports = true, implicit_reexport = true }` and the
     same for `"skbio.*"` next to the treedata overrides, with a one-line comment.
   - **Annotation-only fixes** follow ruling P1.
-- [ ] **Step 5: Run, expect pass** - `uv run --group test pytest tests/core -q`. The existing `toy()`
+- [x] **Step 5: Run, expect pass** - `uv run --group test pytest tests/core -q`. The existing `toy()`
   tests still pass with no warning, because toy's tree tips equal its features.
   Also record `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1` in
   the report: rules.md R10.1 wants a measurement before anyone makes skbio
   import lazily.
-- [ ] **Step 6: Knowledge and gate.**
+- [x] **Step 6: Knowledge and gate.**
   - Update the two contracts, the dependency decision and the log as listed
     under Files.
   - Run `uvx prek run --all-files` and `uv run --group test pytest`.
