@@ -203,7 +203,7 @@ pandas-stubs, scipy-stubs).
 - `add_provenance(adata, step: str, **params: str | int | float | bool | None) -> None`
 - `feature_subset(adata, index: npt.NDArray[np.intp]) -> AnnData`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_taxonomy.py
   import anndata as ad
@@ -289,8 +289,8 @@ pandas-stubs, scipy-stubs).
       feature_subset(adata, np.array([0]))
       assert adata.n_vars == 3 and "relative" in adata.layers and "other" in adata.uns
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core -q` -> ImportError for `split_ranks`.
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core -q` -> ImportError for `split_ranks`.
+- [x] **Step 3: Implement**
   ```python
   # src/biotapy/_core/_taxonomy.py
   """Canonical taxonomic ranks (contracts/data-model-slots)."""
@@ -358,8 +358,8 @@ pandas-stubs, scipy-stubs).
   ```
   Export `RANKS`, `split_ranks`, `XKind`, `x_kind`, `require_counts`,
   `add_provenance`, `feature_subset` from `_core/__init__.py`.
-- [ ] **Step 4: Run, expect pass** -> 8 new tests pass.
-- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git commit -am "feat(core): add rank splitting, x_kind and provenance slot rules"`
+- [x] **Step 4: Run, expect pass** -> 8 new tests pass.
+- [x] **Step 5: Gate and commit** - `uvx prek run --all-files`; `git commit -am "feat(core): add rank splitting, x_kind and provenance slot rules"`
 
 ### Task 1.3: `_core` tree helpers and `datasets.toy()`
 
