@@ -1031,7 +1031,7 @@ the docs (write BIOM + Newick + TSV).
 - `tree_from_newick(text: str) -> nx.DiGraph[str]`: tips keep their names. Internal nodes are named
   `n0, n1, ...` in preorder, skipping any name that is a tip. A missing
   branch length becomes `nan`. Unnamed or repeated tips raise `ValueError`,
-  naming them.
+  naming them. A single-tip tree becomes a one-node graph (fix round 1).
 - `make_treedata(X, *, obs, var, tree, x_kind, source) -> TreeData`: the
   signature is unchanged. New behaviour:
   - obs/var ids are cast to `str`; duplicates raise `ValueError("duplicate <axis> ids: [...]")`;

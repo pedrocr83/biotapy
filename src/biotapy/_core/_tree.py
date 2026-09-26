@@ -55,10 +55,13 @@ def tree_from_newick(text: str) -> nx.DiGraph[str]:
     tips = [tip.name for tip in root.tips()]
     _require_unique_names(tips)
     names = _node_names(root, set(tips))
-    return tree_from_edges(
+    tree = tree_from_edges(
         (names[id(node.parent)], names[id(node)], math.nan if node.length is None else float(node.length))
         for node in root.preorder(include_self=False)
     )
+    # A lone root that is also a tip has no edges; add it explicitly so it still becomes a node.
+    tree.add_nodes_from(names.values())
+    return tree
 
 
 def _require_unique_names(tips: list[str | None]) -> None:

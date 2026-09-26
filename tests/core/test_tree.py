@@ -70,6 +70,12 @@ def test_tree_from_newick_repeated_tip_names_raise():
         tree_from_newick("(a:1,a:1);")
 
 
+def test_tree_from_newick_single_tip_is_a_one_node_tree():
+    tree = tree_from_newick("a;")
+    assert set(tree.nodes) == {"a"}
+    assert tree.number_of_edges() == 0
+
+
 def test_make_treedata_casts_ids_to_str():
     obs, var = _frames([1, 2], [10, 20])
     tdata = make_treedata(np.ones((2, 2)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
