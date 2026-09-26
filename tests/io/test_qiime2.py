@@ -24,7 +24,7 @@ METADATA = (
 
 @pytest.fixture
 def table_qza(make_qza, biom_hdf5):
-    return make_qza("table", "feature-table.biom", biom_hdf5.read_bytes(), "FeatureTable[Frequency]")
+    return make_qza("table", "feature-table.biom", biom_hdf5.read_bytes())
 
 
 def test_read_qiime2_table(table_qza):
@@ -34,7 +34,7 @@ def test_read_qiime2_table(table_qza):
 
 
 def test_read_qiime2_taxonomy(table_qza, make_qza):
-    taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode(), "FeatureData[Taxonomy]")
+    taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode())
     var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
     assert var.loc["OTU_1", ["kingdom", "phylum", "class"]].tolist() == ["Bacteria", "Firmicutes", "Clostridia"]
     assert var.loc["OTU_3", "kingdom"] == "Unassigned"
@@ -43,19 +43,19 @@ def test_read_qiime2_taxonomy(table_qza, make_qza):
 
 
 def test_read_qiime2_taxonomy_without_confidence(table_qza, make_qza):
-    taxonomy = make_qza("taxonomy", "taxonomy.tsv", b"Feature ID\tTaxon\nOTU_1\tk__Bacteria\n", "FeatureData[Taxonomy]")
+    taxonomy = make_qza("taxonomy", "taxonomy.tsv", b"Feature ID\tTaxon\nOTU_1\tk__Bacteria\n")
     var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
     assert "confidence" not in var.columns and var.loc["OTU_1", "kingdom"] == "Bacteria"
 
 
 def test_read_qiime2_tree(table_qza, make_qza):
-    tree = make_qza("tree", "tree.nwk", NEWICK.encode(), "Phylogeny[Rooted]")
+    tree = make_qza("tree", "tree.nwk", NEWICK.encode())
     phylo = bt.io.read_qiime2(table_qza, tree=tree).vart["phylo"]
     assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"OTU_1", "OTU_2", "OTU_3", "OTU_4"}
 
 
 def test_read_qiime2_wrong_artifact_names_the_argument(make_qza):
-    taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode(), "FeatureData[Taxonomy]")
+    taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode())
     with pytest.raises(ValueError, match=r"table=.*feature-table\.biom"):
         bt.io.read_qiime2(taxonomy)
 
@@ -80,4 +80,18 @@ def test_read_qiime2_metadata_legacy_header_is_case_sensitive(table_qza, tmp_pat
     path = tmp_path / "metadata.tsv"
     path.write_text("#sampleid\tdepth\nS1\t10\n")
     with pytest.raises(ValueError, match="metadata="):
+        bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_metadata_row_longer_than_header_is_named(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\nS1\t10\textra\n")
+    with pytest.raises(ValueError, match="metadata="):
+        bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_metadata_duplicate_ids_are_named(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\nS1\t10\nS1\t20\n")
+    with pytest.raises(ValueError, match="S1"):
         bt.io.read_qiime2(table_qza, metadata=path)

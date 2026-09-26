@@ -3,6 +3,7 @@
 import csv
 import tempfile
 import zipfile
+from collections import Counter
 from pathlib import Path
 
 import biom
@@ -74,16 +75,20 @@ def read_qiime2(
     """
     with tempfile.TemporaryDirectory() as directory:
         workdir = Path(directory)
-        X, obs, var = _biom_parts(biom.load_table(str(_payload(table, "feature-table.biom", workdir, "table"))))
+        X, obs, var = _biom_parts(
+            biom.load_table(str(_payload(table, "feature-table.biom", workdir, argument="table")))
+        )
         if taxonomy is not None:
-            var = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, "taxonomy")).reindex(var.index)
-        phylo = None if tree is None else tree_from_newick(_payload(tree, "tree.nwk", workdir, "tree").read_text())
+            var = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, argument="taxonomy")).reindex(var.index)
+        phylo = (
+            None if tree is None else tree_from_newick(_payload(tree, "tree.nwk", workdir, argument="tree").read_text())
+        )
     if metadata is not None:
         obs = _metadata(Path(metadata)).reindex(obs.index)
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_qiime2")
 
 
-def _payload(artifact: str | Path, filename: str, directory: Path, argument: str) -> Path:
+def _payload(artifact: str | Path, filename: str, directory: Path, *, argument: str) -> Path:
     """Extract ``<uuid>/data/<filename>`` from a .qza into ``directory``."""
     with zipfile.ZipFile(artifact) as archive:
         members = [name for name in archive.namelist() if Path(name).parts[1:] == ("data", filename)]
@@ -116,8 +121,15 @@ def _metadata_rows(path: Path) -> tuple[list[str], list[list[str]], list[str] | 
         raise ValueError(msg)
     header, body = rows[0], rows[1:]
     types = next((row for row in body if row[0] == "#q2:types"), None)
-    data = [row + [""] * (len(header) - len(row)) for row in body if not row[0].startswith("#")]
+    data = [_padded_row(row, header, path) for row in body if not row[0].startswith("#")]
     return header, data, types
+
+
+def _padded_row(row: list[str], header: list[str], path: Path) -> list[str]:
+    if len(row) > len(header):
+        msg = f"metadata={str(path)!r} row {row[0]!r} has {len(row)} cells but the header has {len(header)}"
+        raise ValueError(msg)
+    return row + [""] * (len(header) - len(row))
 
 
 def _typed(values: pd.Series, declared: str) -> pd.Series:
@@ -133,6 +145,17 @@ def _typed(values: pd.Series, declared: str) -> pd.Series:
 
 def _metadata(path: Path) -> pd.DataFrame:
     header, data, types = _metadata_rows(path)
-    frame = pd.DataFrame([row[1:] for row in data], index=[row[0] for row in data], columns=header[1:], dtype=object)
+    ids = [row[0] for row in data]
+    _require_unique_ids(ids, path)
+    frame = pd.DataFrame([row[1:] for row in data], index=ids, columns=header[1:], dtype=object)
     declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)
-    return pd.DataFrame({c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=False)}, index=frame.index)
+    return pd.DataFrame(
+        {c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=False)}, index=frame.index
+    )
+
+
+def _require_unique_ids(ids: list[str], path: Path) -> None:
+    duplicated = [i for i, count in Counter(ids).items() if count > 1]
+    if duplicated:
+        msg = f"metadata={str(path)!r} repeats sample ids: {duplicated}"
+        raise ValueError(msg)
