@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: [phase-1-core](roadmap/phase-1-core.md): Checkpoint A closed; slice 1A merged to `master` (79d89bd, CI green); the user gave the go-ahead for slice 1B.
 * **Creation** (Checkpoint A): [core](modules/core.md), [pp](modules/pp.md) and
   [datasets](modules/datasets.md) Module concepts for Slice 1A; added
   [modules/index.md](modules/index.md) and linked it from `index.md`.

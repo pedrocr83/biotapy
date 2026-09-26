@@ -873,7 +873,8 @@ on ties), ranks below `rank` set to `NaN`.
 - [x] Write `Module` concepts `.knowledge/modules/core.md` and `.knowledge/modules/pp.md`
   (codebase-map templates), replace the "modules - not yet documented" line in
   `.knowledge/index.md` with `* [modules](modules/index.md) - ...`, create `modules/index.md`, log it.
-- [ ] Ask the user to review before slice 1B.
+- [x] Ask the user to review before slice 1B. (2026-09-26: the user told us to proceed to
+  slice 1B; recorded as a go-ahead, not a line-by-line review, so no `verified` was added.)
 
 ---
 
