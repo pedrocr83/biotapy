@@ -4,7 +4,7 @@ from ._matrix import argmax_by, as_csr, sum_by
 from ._optional import import_optional
 from ._rng import as_generator
 from ._slots import XKind, add_provenance, feature_subset, require_counts, x_kind
-from ._taxonomy import RANKS, split_ranks
+from ._taxonomy import RANKS, normalize_ranks, split_lineage, split_ranks
 from ._tree import PHYLO_KEY, TreeData, get_tree, make_treedata, tree_from_edges, tree_from_newick
 
 __all__ = [
@@ -20,7 +20,9 @@ __all__ = [
     "get_tree",
     "import_optional",
     "make_treedata",
+    "normalize_ranks",
     "require_counts",
+    "split_lineage",
     "split_ranks",
     "sum_by",
     "tree_from_edges",

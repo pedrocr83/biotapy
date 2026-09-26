@@ -1,6 +1,15 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Update**: Task 1.7b done: `_core._taxonomy` gained `normalize_ranks`
+  (canonical lowercase rank columns, `domain` -> `kingdom`, `k__`/`D_0__`
+  prefixes stripped, `""`/whitespace/`"NA"`/bare-prefix values -> NaN) and
+  `split_lineage` (splits `;`-separated Greengenes/RESCRIPT/SILVA/`D_n__`/
+  unprefixed lineages into rank columns by prefix or position, columns run to
+  the deepest rank seen). Both exported from `_core`. No contract edit:
+  [data-model-slots](contracts/data-model-slots.md) convention 1 already
+  described this behaviour. Ticked Task 1.7b's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Verification**: `human:pedrocr83` approved [phyloseq-import-route](decisions/phyloseq-import-route.md) (native `rdata` route, `refseq` warned and skipped) and the runtime deps `rdata` + `xarray` for stage 2; decision now `stable`, index line synced, spike files deleted.
 * **Update**: Task 1.7a done: `_core._tree.tree_from_newick` parses Newick via
   scikit-bio (`convert_underscores=False`, unique internal names, NaN for

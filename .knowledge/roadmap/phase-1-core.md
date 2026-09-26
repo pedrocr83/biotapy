@@ -1257,7 +1257,7 @@ the docs (write BIOM + Newick + TSV).
   - columns run from kingdom down to the deepest rank seen;
   - the index is kept; a NaN lineage gives an all-NaN row.
 
-- [ ] **Step 1: Failing tests** - append to `tests/core/test_taxonomy.py`:
+- [x] **Step 1: Failing tests** - append to `tests/core/test_taxonomy.py`:
   ```python
   from biotapy._core import normalize_ranks, split_lineage
 
@@ -1324,8 +1324,8 @@ the docs (write BIOM + Newick + TSV).
       normalize_ranks(frame)
       assert list(frame.columns) == ["Genus"] and frame.iloc[0, 0] == "g__Blautia"
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_taxonomy.py -q` -> ImportError.
-- [ ] **Step 3: Implement** in `src/biotapy/_core/_taxonomy.py`. Add imports `re`,
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_taxonomy.py -q` -> ImportError.
+- [x] **Step 3: Implement** in `src/biotapy/_core/_taxonomy.py`. Add imports `re`,
   `numpy as np` and `pandas as pd`; change the module docstring to
   "Canonical taxonomic ranks and their normalization (contracts/data-model-slots).";
   then add:
@@ -1382,8 +1382,8 @@ the docs (write BIOM + Newick + TSV).
   Export `normalize_ranks` and `split_lineage` from `_core/__init__.py`. The
   controller prototyped this code on pandas 3.0.6 on 2026-09-26; mypy fixes
   follow ruling P1.
-- [ ] **Step 4: Run, expect pass** -> 10 new tests pass.
-- [ ] **Step 5: Gate and commit** - `uvx prek run --all-files`; commit `feat(core): normalize taxonomy ranks and split lineage strings`.
+- [x] **Step 4: Run, expect pass** -> 10 new tests pass.
+- [x] **Step 5: Gate and commit** - `uvx prek run --all-files`; commit `feat(core): normalize taxonomy ranks and split lineage strings`.
 
 ### Task 1.7c: `io.read_biom`
 
