@@ -12,4 +12,4 @@ and this project adheres to [Semantic Versioning][].
 
 ### Added
 
-- Basic tool, preprocessing and plotting functions
+- Package skeleton, CI, documentation site and development rules. No public functions yet; this release reserves the name.

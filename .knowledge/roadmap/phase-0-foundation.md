@@ -483,7 +483,7 @@ create `.github/pull_request_template.md`.
   "Add a new pending publisher": project `biotapy`, owner `pedrocr83`, repo
   `biotapy`, workflow `release.yaml`, environment as named in the generated
   `.github/workflows/release.yaml` (read it first).
-- [ ] **Step 2: Write the playbook** `.knowledge/playbooks/cut-a-release.md`
+- [x] **Step 2: Write the playbook** `.knowledge/playbooks/cut-a-release.md`
   (`type: Playbook`): update the changelog, tag `vX.Y.Z`, publish a GitHub
   release, watch `release.yaml`, verify on PyPI. List it in the playbooks index; log it.
 - [ ] **Step 3: Release (each command needs user approval)**
