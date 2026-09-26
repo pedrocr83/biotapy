@@ -16,7 +16,7 @@ repos:
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: v0.16.9
     hooks:
       - id: ruff-check
         types_or: [python, pyi, jupyter]
@@ -42,3 +42,18 @@ repos:
     hooks:
       - id: zizmor
         args: [--no-progress, --fix]
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy --strict (rules.md R7.2)
+        entry: uv run --group dev mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: import-linter
+        name: import-linter (contracts/module-boundaries)
+        entry: uv run --group dev lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]

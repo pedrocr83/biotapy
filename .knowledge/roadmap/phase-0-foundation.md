@@ -249,7 +249,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
 
 **Files:** modify `pyproject.toml`, `.pre-commit-config.yaml`.
 
-- [ ] **Step 1: ruff limits (R5) and banned imports (R4.5).** Merge into the
+- [x] **Step 1: ruff limits (R5) and banned imports (R4.5).** Merge into the
   existing `[tool.ruff.lint]` tables (keep the template's `select`):[^ruff]
   ```toml
   [tool.ruff.lint]
@@ -271,11 +271,11 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   ```
   Add to the existing per-file ignores: `"src/biotapy/_core/_tree.py" = ["TID251"]`
   and `TID251` to the `tests/**` entry.
-- [ ] **Step 2: Prove the ban works.** Create `src/biotapy/_core/_scratch.py`
+- [x] **Step 2: Prove the ban works.** Create `src/biotapy/_core/_scratch.py`
   containing `import treedata` and `from networkx import DiGraph`; run
   `uvx prek run ruff-check --all-files` (use the hook id the generated config shows).
   Expected: two `TID251` errors. Delete the file.
-- [ ] **Step 3: mypy strict.** In the existing mypy configuration set
+- [x] **Step 3: mypy strict.** In the existing mypy configuration set
   `strict = true`, scoped to `src/biotapy` (R7.2; tests stay unannotated): if
   the hook also checks `tests/`, add an override `module = ["tests.*"]` with
   `disallow_untyped_defs = false`. Run `uvx prek run mypy --all-files`. For each third-party
@@ -285,7 +285,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   module = ["<reported modules>"]
   ignore_missing_imports = true
   ```
-- [ ] **Step 4: import-linter.** Add `import-linter` to the `dev` group, then:[^import-linter]
+- [x] **Step 4: import-linter.** Add `import-linter` to the `dev` group, then:[^import-linter]
   ```toml
   [tool.importlinter]
   root_package = "biotapy"
@@ -314,12 +314,12 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
           pass_filenames: false
           types: [python]
   ```
-- [ ] **Step 5: Prove the layers bind.** Temporarily create
+- [x] **Step 5: Prove the layers bind.** Temporarily create
   `src/biotapy/pp/__init__.py` (empty) and add `import biotapy.pp` to
   `src/biotapy/_core/_rng.py`. Run `uv run --group dev lint-imports`.
   Expected: contract BROKEN, naming `biotapy._core._rng -> biotapy.pp`.
   Revert both changes and rerun: contract KEPT.
-- [ ] **Step 6: pytest configuration.** Merge into the existing
+- [x] **Step 6: pytest configuration.** Merge into the existing
   `[tool.pytest.ini_options]`:
   ```toml
   addopts = ["--import-mode=importlib", "--doctest-modules", "--strict-markers", "-m", "not network and not r"]
@@ -332,8 +332,8 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   ```
   Run `uv run --group test pytest -q` -> the 6 `_core` tests pass and doctest
   collection of `src/biotapy` reports no errors.
-- [ ] **Step 7: Full gate** - `uvx prek run --all-files` -> all hooks pass.
-- [ ] **Step 8: Commit** - `git commit -am "build: enforce size limits, strict typing, layer contracts and test config"`
+- [x] **Step 7: Full gate** - `uvx prek run --all-files` -> all hooks pass.
+- [x] **Step 8: Commit** - `git commit -am "build: enforce size limits, strict typing, layer contracts and test config"`
 
 ### Task 0.5: OKF conformance test and staleness script
 

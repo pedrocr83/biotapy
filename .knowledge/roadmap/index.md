@@ -13,4 +13,3 @@
 # Review
 
 * [Spec review](spec-review.md) - Gaps and contradictions found in plan.md and where each is resolved.
-

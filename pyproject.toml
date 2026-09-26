@@ -34,6 +34,8 @@ urls.Source = "https://github.com/pedrocr83/biotapy"
 
 [dependency-groups]
 dev = [
+  "import-linter>=2.15",
+  "mypy>=2.3.1",
   "prek",
   "twine>=4.0.2",
 ]
@@ -96,6 +98,8 @@ lint.select = [
   "UP",     # pyupgrade
   "W",      # Warning detected by Pycodestyle
 ]
+# Size and complexity limits (rules.md R5)
+lint.extend-select = [ "C90", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "T20" ]
 lint.ignore = [
   "B008", # Errors from function calls in argument defaults. These are fine when the result is immutable.
   "D100", # Missing docstring in public module
@@ -113,15 +117,38 @@ lint.ignore = [
 ]
 lint.per-file-ignores."*/__init__.py" = [ "F401" ]
 lint.per-file-ignores."docs/*" = [ "I" ]
-lint.per-file-ignores."tests/*" = [ "D" ]
+lint.per-file-ignores."src/biotapy/_core/_tree.py" = [ "TID251" ]
+lint.per-file-ignores."tests/*" = [ "D", "TID251" ]
+# Tree access only through biotapy._core (contracts/tree-access)
+lint.flake8-tidy-imports.banned-api.networkx.msg = "Tree operations live in biotapy/_core/_tree.py (contracts/tree-access)."
+lint.flake8-tidy-imports.banned-api.treedata.msg = "Use the TreeData helpers in biotapy._core (contracts/tree-access)."
+lint.mccabe.max-complexity = 8
 lint.pydocstyle.convention = "numpy"
+lint.pylint.max-args = 6
+lint.pylint.max-branches = 8
+lint.pylint.max-positional-args = 3
+lint.pylint.max-returns = 4
+lint.pylint.max-statements = 30
+
+[tool.mypy]
+files = [ "src/biotapy" ]
+# rules.md R7.2: strict on the package; tests stay unannotated
+strict = true
 
 [tool.pytest]
 addopts = [
   "--import-mode=importlib", # allow using test files with same name
+  "--doctest-modules",
+  "-m",
+  "not network and not r",
+]
+markers = [
+  "golden: compares against R golden files (contracts/r-golden-parity)",
+  "network: downloads data; runs only in the dedicated CI job",
+  "r: needs R and rpy2 (extra `r`)",
 ]
 strict = true
-testpaths = [ "tests" ]
+testpaths = [ "tests", "src/biotapy" ]
 
 [tool.coverage]
 run.omit = [
@@ -141,4 +168,20 @@ skip = [
   "docs/references.bib",
   "docs/references.md",
   "docs/notebooks/example.ipynb",
+]
+
+[tool.importlinter]
+root_package = "biotapy"
+
+[[tool.importlinter.contracts]]
+name = "Layers (contracts/module-boundaries)"
+type = "layers"
+containers = [ "biotapy" ]
+layers = [
+  "(pl) | (ml) | (da)",
+  "(tl) | (fn)",
+  "(pp)",
+  "(datasets)",
+  "(io)",
+  "_core",
 ]
