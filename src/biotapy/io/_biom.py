@@ -121,7 +121,8 @@ def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"]
 
     BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
     everything outside ``X``, rank columns and ``obs`` are not written.
-    Sample metadata is written as text. Missing ranks are written as bare
+    Sample metadata is written as text; missing values become empty strings
+    and read back as ``""``, not NaN. Missing ranks are written as bare
     prefixes (``g__``) so every rank keeps its place.
 
     Examples

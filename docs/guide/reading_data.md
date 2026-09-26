@@ -63,7 +63,8 @@ bt.io.write_biom(tdata, "table.biom")
 
 BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
 everything outside `X`, rank columns and `obs` are not written. Sample
-metadata is written as text.
+metadata is written as text; missing values become empty strings and read
+back as `""`, not NaN.
 
 Rank columns are written as prefixed values (`k__`, `p__`, ..., `g__`) rather
 than bare strings, even where a rank is missing. BIOM's HDF5 reader drops
