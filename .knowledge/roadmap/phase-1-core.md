@@ -64,7 +64,7 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.1 | dev | pandas-stubs, scipy-stubs | `mypy --strict` cannot type untyped scipy/pandas - approved 2026-09-26 |
 | 1.3 | runtime | treedata `>=0.3.1,<0.4`, networkx | container and tree |
 | 1.3 | dev | types-networkx | networkx ships no type information - approved 2026-09-26 |
-| 1.6 | spike only | rdata (+ xarray), throwaway `uv run --with` env | a runtime dependency only if the 1.6 decision picks the native route - spike env approved 2026-09-26 |
+| 1.10 | runtime | rdata, xarray | read phyloseq `.RData`/`.rds` natively ([phyloseq-import-route](/decisions/phyloseq-import-route.md)) - approved 2026-09-26, added when stage 2 first imports them |
 | 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source - approved 2026-09-26 |
 | 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination - approved 2026-09-26 |
 | 1.11 | runtime | pooch | cached dataset downloads |
@@ -1008,8 +1008,8 @@ the docs (write BIOM + Newick + TSV).
   - Consequences for 1.9 `.rds`, 1.10, 1.11 and 1.12.
   Add its line to `decisions/index.md` and a `log.md` entry. Commit
   `docs(knowledge): record phyloseq import route spike`.
-- [ ] **Step 6: Done when** the user approves the decision (status -> `stable`)
-  and the scratchpad spike files are deleted.
+- [x] **Step 6: Done when** the user approves the decision (status -> `stable`)
+  and the scratchpad spike files are deleted. (approved 2026-09-26; spike files deleted)
 
 ### Task 1.7a: `_core` support for readers - Newick parsing and id/tree rules in `make_treedata`
 

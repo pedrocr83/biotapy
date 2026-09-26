@@ -1,11 +1,12 @@
 ---
 type: Decision
-title: Read phyloseq via rdata, refseq deferred
+title: Read phyloseq via rdata, refseq warned and skipped
 description: A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and a populated refseq is warned-and-skipped rather than guessed at (no test fixture has one).
 tags: [io, dependencies, phyloseq, spike]
-status: draft
+status: stable
+verified: { by: human:pedrocr83, at: 2026-09-26T21:33:16Z }
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T20:17:19Z }
-commit: 9872d9a
+commit: 2df26cb
 sources:
   - id: phyloseq-classes
     resource: https://github.com/joey711/phyloseq/blob/master/R/allClasses.R
@@ -27,8 +28,9 @@ data and a tree, well enough to base a native reader (Tasks 1.9 `.rds`, 1.10
 script (docs-only) that exports BIOM + Newick + TSV for users to read with
 biotapy's existing importers.[^phyloseq-classes]
 
-Spike code and raw output live in `.superpowers/sdd/phase-1-core/spike/`
-(git-ignored, kept until the user approves this decision, per Step 6).
+Spike code and raw output were kept in `.superpowers/sdd/phase-1-core/spike/`
+(git-ignored) until the user approved this decision on 2026-09-26, then deleted
+(Step 6); the numbers below are the record.
 
 # Options
 

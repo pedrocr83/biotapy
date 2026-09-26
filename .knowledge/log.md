@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-09-26
+* **Verification**: `human:pedrocr83` approved [phyloseq-import-route](decisions/phyloseq-import-route.md) (native `rdata` route, `refseq` warned and skipped) and the runtime deps `rdata` + `xarray` for stage 2; decision now `stable`, index line synced, spike files deleted.
 * **Update**: Task 1.7a done: `_core._tree.tree_from_newick` parses Newick via
   scikit-bio (`convert_underscores=False`, unique internal names, NaN for
   missing lengths); `make_treedata` now casts obs/var ids to `str`, raises on
