@@ -134,4 +134,7 @@ nitpick_ignore = [
     # If building the documentation fails because of a missing link that is outside your control,
     # you can add an exception to this list.
     #     ("py:class", "igraph.Graph"),
+    # treedata ships no py.typed marker and its own docs key TreeData under a different
+    # path, so intersphinx cannot resolve the internal module path autodoc emits.
+    ("py:class", "treedata._core.treedata.TreeData"),
 ]

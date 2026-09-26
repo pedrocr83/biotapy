@@ -7,6 +7,7 @@
 :maxdepth: 1
 
 api.md
+guide/index.md
 design.md
 changelog.md
 contributing.md

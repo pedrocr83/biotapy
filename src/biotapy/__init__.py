@@ -1,5 +1,7 @@
 from importlib.metadata import version
 
-__all__ = ["__version__"]
+from . import datasets
+
+__all__ = ["__version__", "datasets"]
 
 __version__ = version("biotapy")

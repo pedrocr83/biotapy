@@ -376,7 +376,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
 - `bt.datasets.toy() -> TreeData`: 6 samples x 8 features. `obs["group"]` A (s1-s3) / B (s4-s6);
   kingdom..genus with `f8` genus missing; phylum totals give archetypes f3, f6, f7.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
   ```python
   # tests/core/test_tree.py
   import numpy as np
@@ -433,8 +433,8 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       assert back.vart["phylo"].edges["n4", "f1"]["length"] == 0.1
       assert list(back.uns["biotapy"]["provenance"]) == list(bt.datasets.toy().uns["biotapy"]["provenance"])
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/datasets -q` -> ImportError.
-- [ ] **Step 3: Implement the tree helpers**
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/datasets -q` -> ImportError.
+- [x] **Step 3: Implement the tree helpers**
   ```python
   # src/biotapy/_core/_tree.py
   """The only module that imports treedata or networkx (contracts/tree-access)."""
@@ -485,7 +485,7 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
       return tdata
   ```
   Export `PHYLO_KEY`, `TreeData`, `tree_from_edges`, `get_tree`, `make_treedata` from `_core/__init__.py`.
-- [ ] **Step 4: Implement the toy dataset**
+- [x] **Step 4: Implement the toy dataset**
   ```python
   # src/biotapy/datasets/_toy.py
   """Tiny in-memory dataset for docstring examples and tests."""
@@ -557,13 +557,13 @@ modify `src/biotapy/__init__.py`, `_core/__init__.py`, `docs/index.md`, `docs/ap
   ```
   `src/biotapy/datasets/__init__.py`: `from ._toy import toy` and `__all__ = ["toy"]`.
   `src/biotapy/__init__.py`: add `from . import datasets` and `"datasets"` to `__all__`.
-- [ ] **Step 5: Docs.** `docs/guide/index.md` (toctree of guide pages) linked
+- [x] **Step 5: Docs.** `docs/guide/index.md` (toctree of guide pages) linked
   from `docs/index.md`; `docs/guide/data_model.md`: the slot table and the
   samples-as-rows rule, written for users (from [data-model-slots](/contracts/data-model-slots.md)).
   Add `datasets.toy` to `docs/api.md`.
-- [ ] **Step 6: Run, expect pass** - `uv run --group test pytest -q` (includes the doctest) and
+- [x] **Step 6: Run, expect pass** - `uv run --group test pytest -q` (includes the doctest) and
   `uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
-- [ ] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(datasets): add in-memory toy TreeData and core tree helpers"`
+- [x] **Step 7: Gate and commit** - `uvx prek run --all-files`; `git add -A && git commit -m "feat(datasets): add in-memory toy TreeData and core tree helpers"`
 
 ### Task 1.4: `pp.relative`
 
