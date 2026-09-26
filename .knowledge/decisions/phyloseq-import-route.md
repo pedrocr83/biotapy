@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Read phyloseq via rdata, refseq deferred
-description: A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and refseq/XStringSet is deferred (no test fixture has one).
+description: A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and a populated refseq is warned-and-skipped rather than guessed at (no test fixture has one).
 tags: [io, dependencies, phyloseq, spike]
 status: draft
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T20:17:19Z }
@@ -48,16 +48,28 @@ to have R, phyloseq and biomformat installed just to get their data into
 biotapy - a heavy ask for a Python-only toolkit's target user, and it forces
 `.rds`/`.RData` input (Task 1.9) onto the same script.
 
-**C. Hybrid - native for 4 slots, refseq deferred (recommended).** Option A
-for `otu_table`, `tax_table`, `sam_data` and `phy_tree`, all verified below.
-`refseq` raises a clear, named error ("`refseq` slot is populated; XStringSet
-import is not yet supported, export sequences separately") instead of
-guessing at a Biostrings `XStringSet` constructor, because no phyloseq
-example object has a populated `refseq` to test against (rule R2.2: never
-implement against an unverified API). A user who needs sequences can still
-run a one-line R export (`Biostrings::writeXStringSet`) and hand biotapy the
-resulting FASTA, which needs no new dependency and no new code path beyond
-whatever FASTA reader other tasks already require.
+**C. Hybrid - native for 4 slots, refseq warned-and-skipped (recommended).**
+Option A for `otu_table`, `tax_table`, `sam_data` and `phy_tree`, all
+verified below. A populated `refseq` is **not** built into a Biostrings
+`XStringSet` (no phyloseq example object has one to test against - rule
+R2.2: never implement against an unverified API), but it is also not a hard
+failure: `read_phyloseq` reads the four other slots and emits one
+`UserWarning` naming the `refseq` slot and the one-line R export
+(`Biostrings::writeXStringSet`) a user can run to get the sequences
+separately. This is a warned skip, not a silent fallback (rules.md R7.4 bars
+silent fallbacks, not warned ones) - the four readable slots parse
+correctly regardless of whether `refseq` happens to be populated.
+
+# Rejected
+- **Hard error (`NotImplementedError`) on a populated `refseq`.** Considered
+  as part of Option C, rejected: the standard DADA2-to-phyloseq handoff in
+  the DADA2 tutorial, `merge_phyloseq(ps, DNAStringSet(taxa_names(ps)))`,
+  populates `refseq` on a large share of real-world objects. Hard-failing
+  the whole read would block every user whose other four slots parse fine
+  just because `refseq` happens to be set - the spec's and a reasonable
+  user's expectation is that `read_phyloseq` succeeds on the majority of
+  real DADA2/phyloseq objects, not only on the three slot-sparse example
+  files this spike used.
 
 # Evidence
 
@@ -140,8 +152,11 @@ depends on - `xarray` is not on the R9.3 heavy-dependency list, so nothing
 here forces it into an extra. Option B trades that for requiring a working R
 + phyloseq + biomformat install from every user, which is a heavier and
 less biotapy-native ask, and still would not avoid Task 1.9's `.rds`
-requirement. `refseq` is left unimplemented rather than guessed at (R2.2),
-with a documented one-line R fallback for the rare user who needs it.
+requirement. `refseq` is left unimplemented rather than guessed at (R2.2):
+a populated `refseq` is warned-and-skipped, not hard-failed, because it is
+common enough in real DADA2/phyloseq objects (see Rejected) that failing
+the whole read on it would be worse than skipping it with a named warning
+and a documented R fallback.
 
 New dependencies `rdata` and `xarray` still need the user's explicit
 approval (rules.md R9.1) before Task 1.9/1.10 add them to `pyproject.toml`.
@@ -152,16 +167,19 @@ approval (rules.md R9.1) before Task 1.9/1.10 add them to `pyproject.toml`.
   (`read_rda` and `read_rds` share the same conversion machinery per the
   Task 1.6 research notes).
 - **Task 1.10 (`read_phyloseq`).** Build on the 4 verified constructors.
-  `refseq` populated and non-NULL raises a named `NotImplementedError`
-  rather than silently dropping data (R7.4) until a real example exists to
-  test against.
+  `refseq` populated and non-NULL emits one named `UserWarning` (naming the
+  slot and the `Biostrings::writeXStringSet` export) and is skipped, rather
+  than either guessing a constructor (R2.2) or hard-failing the whole read
+  on a slot that a large share of real DADA2/phyloseq objects populate (see
+  Rejected). A warned skip is not a silent fallback under R7.4.
 - **Task 1.11 (datasets).** pooch can point directly at phyloseq's own
   `data/*.RData` URLs (sizes reproduced exactly in this spike) - no need to
-  host pre-converted files on a biotapy release. `GlobalPatterns.RData`
-  (426 KiB) and `enterotype.RData` (191 KiB) exceed the R6.6 1 MB
-  commit limit regardless and must be pooch-fetched;
-  `esophagus.RData` (1.8 KB) is fetched the same way for one consistent
-  code path rather than committed as an exception.
+  host pre-converted files on a biotapy release. All three files are
+  fetched with pooch rather than committed, for one consistent code path
+  and so every file is always sourced from upstream phyloseq with a
+  pooch SHA-256 pin, not for size: at 435,652 B and 195,260 B,
+  `GlobalPatterns.RData` and `enterotype.RData` are both under the R6.6
+  1 MB commit limit, same as `esophagus.RData` (1,840 B).
 - **Task 1.12 (golden files).** The shapes and values confirmed here
   (26x19,216 with 7 ranks and a 19,216-tip tree; enterotype's
   column-sum-to-1 relative abundances; esophagus's 58x3 with a 58-tip tree)
