@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-09-26
+
 ### Added
 
 - Package skeleton, CI, documentation site and development rules. No public functions yet; this release reserves the name.
