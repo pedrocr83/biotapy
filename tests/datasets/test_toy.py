@@ -1,14 +1,13 @@
 import treedata as td
 
 import biotapy as bt
-from biotapy._core import get_tree
 
 
 def test_toy_shape_taxonomy_and_tree():
     tdata = bt.datasets.toy()
     assert tdata.shape == (6, 8)
     assert tdata.var["genus"].isna().tolist() == [False] * 7 + [True]
-    assert set(get_tree(tdata).successors("n5")) == {"f4", "f5"}
+    assert set(tdata.vart["phylo"].successors("n5")) == {"f4", "f5"}
 
 
 def test_toy_is_counts_with_one_provenance_entry():

@@ -7,7 +7,6 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 import biotapy as bt
-from biotapy._core import get_tree
 
 RANKS = ["kingdom", "phylum", "class", "order", "family", "genus"]
 # Small taxonomy used only by test_matches_naive_phyloseq_reference (F1); kept separate
@@ -17,7 +16,7 @@ _TAXA_VALUES = st.sampled_from(["x", "y", None])
 
 
 def _leaves(tdata) -> set[str]:
-    tree = get_tree(tdata)
+    tree = tdata.vart["phylo"]
     return {n for n in tree.nodes if tree.out_degree(n) == 0}
 
 
