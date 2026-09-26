@@ -38,9 +38,10 @@ its current state.
 ## What survives a filter or an aggregation
 
 Functions that change which features exist (dropping rare taxa, aggregating to a rank) drop
-`layers`, `obsm` and `obsp`, because a transform or a distance computed on the old features
-would silently misdescribe the new ones. Functions that only add a layer, or that subset
-samples, leave everything else in place.
+`layers`, `obsm`, `obsp`, `varm`, `varp`, and every `uns` key other than `uns["biotapy"]` -
+for example a plotted `uns["group_colors"]` disappears along with them - because a transform,
+distance or annotation computed on the old features would silently misdescribe the new ones.
+Functions that only add a layer, or that subset samples, leave everything else in place.
 
 See the [data-model-slots contract](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/contracts/data-model-slots.md)
 for the exact rules every biotapy function follows.

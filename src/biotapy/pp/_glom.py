@@ -28,8 +28,9 @@ def tax_glom(adata: AnnData, rank: str, *, dropna: bool = True) -> AnnData:
     -------
     AnnData
         Same type as ``adata``; a TreeData keeps the representatives' subtree.
-        Ranks below ``rank`` are ``NaN``. ``layers``, ``obsm`` and ``obsp`` are
-        dropped because they described the old features.
+        Ranks below ``rank`` are ``NaN``. ``layers``, ``obsm``, ``obsp``,
+        ``varm``, ``varp`` and every non-``biotapy`` ``uns`` key are dropped
+        because they described the old features.
 
     Raises
     ------
