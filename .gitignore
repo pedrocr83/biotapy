@@ -10,6 +10,8 @@ __pycache__/
 
 # Distribution / packaging
 /dist/
+# Library: resolve fresh in CI and for users; no committed lockfile
+/uv.lock
 
 # Tests and coverage
 /data/

@@ -15,7 +15,8 @@ def _frontmatter(path: Path) -> dict[str, object]:
     if not text.startswith("---\n"):
         return {}
     block, found, _ = text[4:].partition("\n---\n")
-    return yaml.safe_load(block) or {} if found else {}
+    data = yaml.safe_load(block) if found else None
+    return data if isinstance(data, dict) else {}
 
 
 def _rel(path: Path) -> str:
@@ -34,6 +35,7 @@ def test_concept_has_a_type(path: Path):
 @pytest.mark.parametrize("path", CONCEPTS, ids=_rel)
 def test_concept_is_listed_in_its_index(path: Path):
     index = path.parent / "index.md"
+    assert index.is_file(), f"{_rel(path.parent)}/ has no index.md"
     assert f"({path.name})" in index.read_text(encoding="utf-8"), f"{_rel(path)} missing from {_rel(index)}"
 
 

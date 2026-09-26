@@ -134,6 +134,7 @@ lint.pylint.max-statements = 30
 
 [tool.mypy]
 files = [ "src/biotapy" ]
+python_version = "3.12"
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 
