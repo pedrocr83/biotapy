@@ -3253,7 +3253,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 - [x] **Step 3: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
 
 ### Checkpoint B - review slice 1B stage 2
-- [ ] Whole-branch review of stage 2 against every contract and the stage-2
+- [x] Whole-branch review of stage 2 against every contract and the stage-2
   review focus; fix pass.
 - [x] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
   and `modules/core.md` (`tree_from_phylo`), plus the log.
