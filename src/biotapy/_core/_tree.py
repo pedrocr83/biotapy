@@ -95,7 +95,7 @@ def tree_from_newick(text: str, *, argument: str = "text") -> nx.DiGraph[str]:
 def _require_unique_names(tips: list[str | None], argument: str) -> None:
     bad = [name for name, count in Counter(tips).items() if name is None or count > 1]
     if bad:
-        msg = f"{argument} needs unique Newick tip names; unnamed or repeated: {bad[:5]}"
+        msg = f"{argument} needs unique tip names; unnamed or repeated: {bad[:5]}"
         raise ValueError(msg)
 
 

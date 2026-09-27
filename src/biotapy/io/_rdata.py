@@ -59,14 +59,15 @@ def _is_phyloseq(value: object) -> bool:
     return isinstance(value, dict) and tuple(value) == PHYLOSEQ_SLOTS
 
 
-def _refseq_error(path: Path, error: Exception) -> ValueError:
+def _refseq_error(path: str | Path) -> ValueError:
     # rdata 1.1.0's parser has no RAW branch, so a populated refseq (a Biostrings
     # DNAStringSet) fails the whole read; nothing can be skipped (ruling 2026-09-27).
+    # The one wording shared by both raise sites: a caught parse failure here, and
+    # read_phyloseq's own guard for a future rdata that parses refseq but still shouldn't.
     msg = (
-        f"path={str(path)!r}: rdata cannot parse part of this file ({error}); a populated "
-        "refseq slot (Biostrings sequences) is the usual cause. In R: "
-        'Biostrings::writeXStringSet(refseq(ps), "refseq.fasta"); ps@refseq <- NULL; '
-        'saveRDS(ps, "ps.rds")'
+        f"path={str(path)!r}: the refseq slot holds sequences, which rdata cannot parse; "
+        'export them first: Biostrings::writeXStringSet(refseq(ps), "refseq.fasta"); '
+        'ps@refseq <- NULL; saveRDS(ps, "ps.rds")'
     )
     return ValueError(msg)
 
@@ -79,7 +80,7 @@ def load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]:
         else:
             objects = rdata.read_rda(path, constructor_dict=_PHYLOSEQ)
     except NotImplementedError as error:
-        raise _refseq_error(path, error) from error
+        raise _refseq_error(path) from error
     found = {key: value for key, value in objects.items() if _is_phyloseq(value)}
     if name is not None:
         if name not in found:

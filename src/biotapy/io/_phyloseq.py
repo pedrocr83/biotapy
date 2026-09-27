@@ -11,7 +11,7 @@ from biotapy._core import TreeData, as_csr, infer_x_kind, make_treedata, normali
 
 from ._join import _join_to
 from ._qiime2 import _TEXT
-from ._rdata import load_phyloseq
+from ._rdata import _refseq_error, load_phyloseq
 
 
 def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
@@ -57,12 +57,7 @@ def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
         # A later rdata release might parse Biostrings sequences; until then they must
         # not be dropped silently (R7.4), so a populated refseq is a hard error, not a
         # warned skip (ruling 2026-09-27).
-        msg = (
-            f"path={str(path)!r}: the refseq slot holds sequences, which rdata cannot parse; "
-            'export them first: Biostrings::writeXStringSet(refseq(ps), "refseq.fasta"); '
-            'ps@refseq <- NULL; saveRDS(ps, "ps.rds")'
-        )
-        raise ValueError(msg)
+        raise _refseq_error(path)
     X, samples, features = _counts(slots["otu_table"], path)
     var = pd.DataFrame(index=features)
     if slots["tax_table"] is not None:
