@@ -13,6 +13,7 @@ from ._tree import (
     relabel_tips,
     tree_from_edges,
     tree_from_newick,
+    tree_from_phylo,
     tree_tips,
 )
 from ._warnings import warn_user
@@ -39,6 +40,7 @@ __all__ = [
     "sum_by",
     "tree_from_edges",
     "tree_from_newick",
+    "tree_from_phylo",
     "tree_tips",
     "warn_user",
     "x_kind",

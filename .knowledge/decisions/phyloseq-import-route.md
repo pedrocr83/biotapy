@@ -1,11 +1,11 @@
 ---
 type: Decision
-title: Read phyloseq via rdata, refseq warned and skipped
-description: A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and a populated refseq is warned-and-skipped rather than guessed at (no test fixture has one).
+title: Read phyloseq via rdata, a populated refseq raises a clear error
+description: A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and a populated refseq raises a ValueError naming the R fix, because rdata 1.1.0 cannot parse the file at all when refseq holds Biostrings sequences (amended 2026-09-27, see Amendment).
 tags: [io, dependencies, phyloseq, spike]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-26T21:33:16Z }
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T20:17:19Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
 commit: 2df26cb
 sources:
   - id: phyloseq-classes
@@ -50,28 +50,30 @@ to have R, phyloseq and biomformat installed just to get their data into
 biotapy - a heavy ask for a Python-only toolkit's target user, and it forces
 `.rds`/`.RData` input (Task 1.9) onto the same script.
 
-**C. Hybrid - native for 4 slots, refseq warned-and-skipped (recommended).**
-Option A for `otu_table`, `tax_table`, `sam_data` and `phy_tree`, all
-verified below. A populated `refseq` is **not** built into a Biostrings
-`XStringSet` (no phyloseq example object has one to test against - rule
-R2.2: never implement against an unverified API), but it is also not a hard
-failure: `read_phyloseq` reads the four other slots and emits one
-`UserWarning` naming the `refseq` slot and the one-line R export
-(`Biostrings::writeXStringSet`) a user can run to get the sequences
-separately. This is a warned skip, not a silent fallback (rules.md R7.4 bars
-silent fallbacks, not warned ones) - the four readable slots parse
-correctly regardless of whether `refseq` happens to be populated.
+**C. Hybrid - native for 4 slots, refseq raises a clear error (recommended;
+amended 2026-09-27).** Option A for `otu_table`, `tax_table`, `sam_data` and
+`phy_tree`, all verified below. At spike time, no phyloseq example object had
+a populated `refseq` to test a Biostrings `XStringSet` constructor against
+(rule R2.2: never implement against an unverified API), so this decision
+originally planned a warned skip. Task 1.12a later wrote a fixture with a
+populated `refseq` and Task 1.10's implementer found that rdata 1.1.0 cannot
+parse the file at all in that case (`NotImplementedError`, no `RAW` branch in
+its parser) - there is no partial result to warn-and-skip around, so
+`read_phyloseq` raises a `ValueError` naming the `refseq` slot and the
+one-line R export (`Biostrings::writeXStringSet`) a user can run to drop the
+sequences and re-save. See Amendment below for the full evidence.
 
 # Rejected
 - **Hard error (`NotImplementedError`) on a populated `refseq`.** Considered
-  as part of Option C, rejected: the standard DADA2-to-phyloseq handoff in
-  the DADA2 tutorial, `merge_phyloseq(ps, DNAStringSet(taxa_names(ps)))`,
-  populates `refseq` on a large share of real-world objects. Hard-failing
-  the whole read would block every user whose other four slots parse fine
-  just because `refseq` happens to be set - the spec's and a reasonable
-  user's expectation is that `read_phyloseq` succeeds on the majority of
-  real DADA2/phyloseq objects, not only on the three slot-sparse example
-  files this spike used.
+  as part of Option C at spike time and rejected then: the standard
+  DADA2-to-phyloseq handoff in the DADA2 tutorial,
+  `merge_phyloseq(ps, DNAStringSet(taxa_names(ps)))`, populates `refseq` on a
+  large share of real-world objects, and hard-failing the whole read would
+  block every user whose other four slots parse fine just because `refseq`
+  happens to be set. **Superseded 2026-09-27** (see Amendment): rdata 1.1.0
+  cannot parse a populated `refseq` at all, so "hard-fail on `refseq`" and
+  "hard-fail on rdata's own parse error" turned out to be the same outcome -
+  there was no warn-and-skip alternative to choose instead.
 
 # Evidence
 
@@ -155,10 +157,10 @@ here forces it into an extra. Option B trades that for requiring a working R
 + phyloseq + biomformat install from every user, which is a heavier and
 less biotapy-native ask, and still would not avoid Task 1.9's `.rds`
 requirement. `refseq` is left unimplemented rather than guessed at (R2.2):
-a populated `refseq` is warned-and-skipped, not hard-failed, because it is
-common enough in real DADA2/phyloseq objects (see Rejected) that failing
-the whole read on it would be worse than skipping it with a named warning
-and a documented R fallback.
+a populated `refseq` raises a `ValueError` naming the R fix (Amendment
+2026-09-27) rather than being read or silently skipped, because rdata 1.1.0
+cannot parse the file at all once `refseq` is populated - there is no
+four-slots-good, one-slot-skipped result to return.
 
 New dependencies `rdata` and `xarray` still need the user's explicit
 approval (rules.md R9.1) before Task 1.9/1.10 add them to `pyproject.toml`.
@@ -169,11 +171,11 @@ approval (rules.md R9.1) before Task 1.9/1.10 add them to `pyproject.toml`.
   (`read_rda` and `read_rds` share the same conversion machinery per the
   Task 1.6 research notes).
 - **Task 1.10 (`read_phyloseq`).** Build on the 4 verified constructors.
-  `refseq` populated and non-NULL emits one named `UserWarning` (naming the
-  slot and the `Biostrings::writeXStringSet` export) and is skipped, rather
-  than either guessing a constructor (R2.2) or hard-failing the whole read
-  on a slot that a large share of real DADA2/phyloseq objects populate (see
-  Rejected). A warned skip is not a silent fallback under R7.4.
+  `refseq` populated and non-NULL raises a `ValueError` naming the slot and
+  the `Biostrings::writeXStringSet` export (Amendment 2026-09-27), rather
+  than either guessing a constructor (R2.2) or silently dropping sequences
+  real DADA2/phyloseq objects commonly populate. Not a silent fallback under
+  R7.4: the message names the argument and gives the R fix.
 - **Task 1.11 (datasets).** pooch can point directly at phyloseq's own
   `data/*.RData` URLs (sizes reproduced exactly in this spike) - no need to
   host pre-converted files on a biotapy release. All three files are
@@ -186,6 +188,37 @@ approval (rules.md R9.1) before Task 1.9/1.10 add them to `pyproject.toml`.
   (26x19,216 with 7 ranks and a 19,216-tip tree; enterotype's
   column-sum-to-1 relative abundances; esophagus's 58x3 with a 58-tip tree)
   become the golden assertions for `read_phyloseq` once it exists.
+
+# Amendment 2026-09-27
+
+Task 1.12a's R container wrote `tests/data/phyloseq/with_refseq.rds` - the
+first populated-`refseq` fixture this decision ever had access to (the
+spike's three example objects, `refseq` was always the NULL sentinel).
+Reading it during Task 1.10 gave new evidence this decision did not have:
+
+- `rdata.parser.parse_file("tests/data/phyloseq/with_refseq.rds")` raises
+  `NotImplementedError: Type RObjectType.RAW not implemented`. A Biostrings
+  `DNAStringSet` serializes as a `RAW` R type, and rdata 1.1.0 - the latest
+  release - has no branch for `RObjectType.RAW` in its parser at all.
+- The failure happens while parsing the file's object graph, before any
+  constructor runs, so there is no way to catch it per-slot and return the
+  other four slots with `refseq` skipped: the whole read fails, not just the
+  `refseq` node. The originally planned "read four slots, warn and skip the
+  fifth" outcome is not achievable with rdata 1.1.0, regardless of how
+  `read_phyloseq` is written.
+- Given that a populated `refseq` already fails the whole file, the user
+  decided (2026-09-27) that `read_phyloseq` should turn rdata's
+  `NotImplementedError` into a `ValueError` that names `path=` and gives the
+  R fix (export the sequences with `Biostrings::writeXStringSet`, clear the
+  slot, re-save), rather than surface rdata's own low-level error message.
+  This supersedes Option C's original "warned-and-skipped" framing and the
+  "Rejected: hard error" entry above; both assumed a partial read was
+  possible, which this evidence rules out.
+- **Revisit when rdata parses `RAW` vectors** (or ships an `XStringSet`-aware
+  constructor): a real Biostrings-to-Python conversion would let
+  `read_phyloseq` read `refseq` instead of rejecting the file, restoring the
+  "read four slots always, refseq when possible" behavior this decision
+  originally wanted.
 
 [^phyloseq-classes]: phyloseq S4 class definitions (phyloseq, otu_table, taxonomyTable, sample_data)
 [^rdata]: rdata 1.1.0 - Python reader for R .RData/.rds files

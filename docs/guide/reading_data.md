@@ -9,6 +9,26 @@ are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
 (within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
 that need raw counts check this and refuse proportions.
 
+## Example datasets
+
+`bt.datasets.global_patterns()` and `bt.datasets.enterotype()` return two
+well-known phyloseq example datasets - GlobalPatterns (26 samples, 19,216
+OTUs, with taxonomy and a tree) and enterotype (280 samples, 553 genera, as
+relative abundances) - read through `bt.io.read_phyloseq`:
+
+```python
+import biotapy as bt
+
+tdata = bt.datasets.global_patterns()
+```
+
+Each is downloaded once from phyloseq's repository and cached on disk with
+[pooch](https://www.fatiando.org/pooch/); a later call re-hashes the cached
+file and, as long as the hash still matches, reads it straight from disk with
+no network access at all. Set `BIOTAPY_DATA_DIR` to change the cache
+directory (the default is a per-user cache directory). The data stays
+licensed to phyloseq's authors; biotapy ships none of it.
+
 ## BIOM
 
 `bt.io.read_biom` reads both BIOM dialects - JSON 1.0 and HDF5 2.1 - through
@@ -150,9 +170,10 @@ checks for both:
 
 ## DADA2
 
-`bt.io.read_dada2` reads a DADA2 sequence table (CSV or TSV) as written by R's
-`write.csv`/`write.table`, with optional taxonomy and a tree. Any `.csv`
-suffix means CSV, so a compressed `seqtab.csv.gz` works too:
+`bt.io.read_dada2` reads a DADA2 sequence table (CSV, TSV or `.rds`) as
+written by R's `write.csv`/`write.table`/`saveRDS`, with optional taxonomy
+and a tree. Any `.csv` suffix means CSV, so a compressed `seqtab.csv.gz`
+works too; `.rds` reads the R matrix directly, with no R install:
 
 ```python
 tdata = bt.io.read_dada2("seqtab.csv", taxa="taxa.csv", tree="tree.nwk")
@@ -196,3 +217,51 @@ Every tip must be a DNA sequence. A tip named by an ASV id raises a
 which need not match the numbering behind your tree, so matching by id could
 attach branches to the wrong features. Sequence tips that are not in
 `seqtab` are pruned, with the usual tree/table warning.
+
+## phyloseq
+
+`bt.io.read_phyloseq` reads a phyloseq object saved from R with `saveRDS()`
+or `save()`, directly - no R, no rpy2, and phyloseq itself never has to be
+installed:
+
+```python
+tdata = bt.io.read_phyloseq("ps.rds")
+```
+
+### `.rds` vs `.RData`, and `name=`
+
+An `.rds` file (`saveRDS(ps, "ps.rds")`) holds exactly one object, so
+`read_phyloseq` reads it directly. An `.RData`/`.rda` file (`save(ps, ...)`)
+can hold several objects; `read_phyloseq` reads the one phyloseq object it
+finds automatically. If it holds more than one phyloseq object, pass `name=`
+with the R variable name to select one - without it, a `ValueError` lists the
+names it found. A file with no phyloseq object at all also raises a
+`ValueError`.
+
+### What is read
+
+- `otu_table` becomes `X`, transposed exactly once so samples are always rows
+  regardless of whether the R object stored `taxa_are_rows=TRUE` or `FALSE`.
+- `tax_table` becomes rank columns in `var`, normalized like every other
+  biotapy reader.
+- `sample_data` becomes columns of `obs`.
+- `phy_tree` becomes the phylogeny in `vart["phylo"]`; ape's internal node
+  numbering is replaced with the same collision-free `n0, n1, ...` names
+  `read_qiime2`/`read_biom` use for Newick trees.
+
+Any of `tax_table`, `sample_data` or `phy_tree` being absent (`NULL` in R)
+gives an empty `var`/`obs` or no tree, never an error.
+
+### What is not read
+
+`refseq` (a `Biostrings` `DNAStringSet` of representative sequences) cannot
+be parsed by the underlying `rdata` reader yet. If it is populated,
+`read_phyloseq` raises a `ValueError` rather than guessing at or silently
+dropping the sequences; the message gives the R fix - export the sequences
+separately and re-save the object without the slot:
+
+```r
+Biostrings::writeXStringSet(refseq(ps), "refseq.fasta")
+ps@refseq <- NULL
+saveRDS(ps, "ps.rds")
+```

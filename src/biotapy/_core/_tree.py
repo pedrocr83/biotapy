@@ -8,11 +8,12 @@ from __future__ import annotations
 import itertools
 import math
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import cast
 
 import networkx as nx
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import scipy.sparse as sp
 from skbio import TreeNode
@@ -94,7 +95,7 @@ def tree_from_newick(text: str, *, argument: str = "text") -> nx.DiGraph[str]:
 def _require_unique_names(tips: list[str | None], argument: str) -> None:
     bad = [name for name, count in Counter(tips).items() if name is None or count > 1]
     if bad:
-        msg = f"{argument} needs unique Newick tip names; unnamed or repeated: {bad[:5]}"
+        msg = f"{argument} needs unique tip names; unnamed or repeated: {bad[:5]}"
         raise ValueError(msg)
 
 
@@ -102,6 +103,31 @@ def _node_names(root: TreeNode, tips: set[str]) -> dict[int, str]:
     fresh = (name for name in (f"n{i}" for i in itertools.count()) if name not in tips)
     # _require_unique_names already rejected None/duplicate tip names before this runs.
     return {id(node): cast(str, node.name) if node.is_tip() else next(fresh) for node in root.preorder()}
+
+
+def tree_from_phylo(
+    edge: npt.ArrayLike, lengths: npt.ArrayLike | None, tips: Sequence[str], *, argument: str = "tips"
+) -> nx.DiGraph[str]:
+    """Build a tree from an ape ``phylo`` edge matrix (1-based; tips are ``1..len(tips)``).
+
+    Internal nodes get the same collision-free ``n<i>`` names as ``tree_from_newick``;
+    missing branch lengths are NaN.
+    """
+    edges = np.asarray(edge, dtype=np.int64).reshape(-1, 2)
+    names = [str(tip) for tip in tips]
+    # list[str] is a Sequence[str | None] at runtime; invariant List typing just can't see it.
+    _require_unique_names(cast("list[str | None]", names), argument)
+    taken = set(names)
+    fresh = (name for name in (f"n{i}" for i in itertools.count()) if name not in taken)
+    internal = {int(node): next(fresh) for node in np.unique(edges) if node > len(names)}
+    label = {**{i + 1: tip for i, tip in enumerate(names)}, **internal}
+    length = np.full(len(edges), np.nan) if lengths is None else np.asarray(lengths, dtype=np.float64)
+    tree = tree_from_edges(
+        (label[int(parent)], label[int(child)], float(value))
+        for (parent, child), value in zip(edges, length, strict=True)
+    )
+    tree.add_nodes_from(names)
+    return tree
 
 
 def make_treedata(

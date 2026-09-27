@@ -1,23 +1,23 @@
 ---
 type: Module
 title: io
-description: File readers and writer for BIOM, QIIME 2 artifacts and DADA2 sequence tables, building every TreeData through _core.make_treedata.
+description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables and phyloseq objects, building every TreeData through _core.make_treedata.
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
+commit: 6fd5344
 status: stable
 ---
 
 # Responsibility
 
 Owns the `bt.io.*` verbs that move data between files and a TreeData:
-`read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`) and
-`read_dada2` (`_dada2.py`), plus the private checked-join helper shared by the
-last two (`_join.py`). Does NOT own phyloseq `.rds`/`.RData` reading
-(`read_phyloseq`, Task 1.10, stage 2, not yet written) or downloaded example
-datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
+`read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`),
+`read_dada2` (`_dada2.py`) and `read_phyloseq` (`_phyloseq.py`, `_rdata.py`),
+plus the private checked-join helper shared across readers (`_join.py`). Does
+NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
+[datasets](/modules/datasets.md), Task 1.11): those call `read_phyloseq`.
 
 # Entry points
 
@@ -27,18 +27,26 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
   var)`. Used by `read_biom` and reused by `read_qiime2` (see Gotchas).
 - `_qiime2.py:read_qiime2` - a `.qza` feature table plus optional taxonomy,
   tree and QIIME 2 metadata TSV, with no QIIME 2 install.
-- `_dada2.py:read_dada2` - a DADA2 `seqtab`/`seqtab.nochim` CSV or TSV, plus
-  optional `assignTaxonomy`/`addSpecies` taxonomy and a Newick tree.
+- `_dada2.py:read_dada2` - a DADA2 `seqtab`/`seqtab.nochim` CSV, TSV or
+  `.rds` (`saveRDS`), plus optional `assignTaxonomy`/`addSpecies` taxonomy
+  (same three formats) and a Newick tree.
+- `_phyloseq.py:read_phyloseq` - a phyloseq object saved from R
+  (`.rds`/`.RData`), read natively through `rdata` (no R, no rpy2); `name=`
+  selects one object from an `.RData` holding several.
+- `_rdata.py:load_phyloseq` / `_rdata.py:read_matrix_rds` - private; the
+  `rdata` `constructor_dict` for phyloseq's five S4 slots, and a plain R
+  matrix reader (numeric or character) shared with `read_dada2`'s `.rds`
+  input (Task 1.9b).
 - `_join.py:_join_to` - private; the one checked reindex-join for a side file
-  (taxonomy, metadata, taxa) onto a table's ids, used by `read_qiime2`
-  (taxonomy, metadata) and `read_dada2` (taxa).
+  (taxonomy, metadata, taxa) onto a table's ids, used by every reader above
+  that joins a side file.
 
 # Invariants
 
-- Every reader builds its result only through `_core.make_treedata` and sets
-  `x_kind` by calling `_core.infer_x_kind` on the freshly parsed matrix,
-  never a literal. `_biom.py:read_biom`, `_qiime2.py:read_qiime2`,
-  `_dada2.py:read_dada2`.
+- Every reader builds its result only through `_core.make_treedata`.
+  `_biom.py:read_biom`, `_qiime2.py:read_qiime2` and `_dada2.py:read_dada2`
+  set `x_kind` by calling `_core.infer_x_kind` on the freshly parsed matrix,
+  never a literal; `_phyloseq.py:read_phyloseq` does the same.
 - biom-format stores observations (features) x samples; `_biom_parts`
   transposes exactly once so biotapy's samples-as-rows convention holds from
   there on. `_biom.py:_biom_parts`.
@@ -79,11 +87,14 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
 # Dependencies
 
 - [core](/modules/core.md): `make_treedata`, `infer_x_kind`, `split_lineage`,
-  `normalize_ranks`, `tree_from_newick`, `tree_tips`, `relabel_tips`,
-  `warn_user`, `TreeData`, `RANKS`, `as_csr`.
+  `normalize_ranks`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
+  `relabel_tips`, `warn_user`, `TreeData`, `RANKS`, `as_csr`.
 - Third-party: `biom-format` (`_biom.py`, and `_qiime2.py` via
   `_biom_parts`). No CPython 3.14 wheels yet (biocore/biom-format#1004): on
   3.14 it builds from source and needs a C compiler, noted in `README.md`.
+- Third-party: `rdata` (`>=1.1,<2`) and `xarray` (`_rdata.py`), read via a
+  custom `constructor_dict` - see
+  [phyloseq-import-route](/decisions/phyloseq-import-route.md).
 
 # Verification
 
@@ -112,3 +123,64 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
   `disallow_untyped_calls = false`, mypy strict mode is narrowed with
   `untyped_calls_exclude = ["biom"]` (`[tool.mypy]` in `pyproject.toml`), so
   only calls into biom-format itself are exempt, not the rest of `io`.
+- A populated phyloseq `refseq` slot (Biostrings sequences) raises
+  `ValueError` naming the R fix, rather than being read or skipped: rdata
+  1.1.0's parser has no `RAW` branch, so the whole file fails to parse
+  (`NotImplementedError`) and nothing can be read around it.
+  `_rdata.py:_refseq_error`, `_phyloseq.py:read_phyloseq`. See
+  [phyloseq-import-route](/decisions/phyloseq-import-route.md).
+- `_rdata.py:_refseq_error` takes an optional `cause`: `load_phyloseq` passes
+  rdata's own text for *any* caught `NotImplementedError` (unknown file
+  format, an unsupported version, RAW/WEAKREF/DOT, an unknown ALTREP class),
+  so a file that fails to parse for a reason unrelated to `refseq` (a CSV
+  renamed `.RData`, say) is told so rather than being blamed on a populated
+  refseq slot it may not even have (Checkpoint B fix F1).
+- `_rdata.py:load_phyloseq` tells an `.rds` file from an `.RData`/`.rda` one
+  by content, not by suffix: `save()` writes a tagged pairlist
+  (`RObjectType.LIST`) of name -> object at the top level, `saveRDS()` never
+  does. This makes the reader immune to a mismatched or wrong-case suffix
+  (`ps.RData` holding what `saveRDS()` wrote reads fine, no warning); `name=`
+  on a file that content-detects as single-object raises `ValueError` naming
+  `name=`, and the "holds no phyloseq object" message lists the Python types
+  found (Checkpoint B fix F4).
+- An absent phyloseq slot (`tax_table`, `sam_data`, `phy_tree`, `refseq`)
+  deserializes as the literal string `"\x01NULL\x01"` with no R class, so it
+  never reaches a constructor - the NULL check lives in the `phyloseq`
+  constructor itself (`_rdata.py:_or_none`), not in each slot's constructor.
+- `_rdata.py:read_matrix_rds` takes a keyword-only `argument` and raises
+  `ValueError` naming it when the file's converted object is not a 2-D
+  `xr.DataArray` (an `.rds` that holds something other than a plain matrix,
+  e.g. a phyloseq object passed as `read_dada2`'s `seqtab=`). It converts
+  with `_rdata.py:_PHYLOSEQ` (reused, not duplicated) rather than rdata's
+  default `constructor_dict`, so a phyloseq-shaped `.rds` converts quietly to
+  a `dict` instead of rdata warning once per missing S4-slot constructor
+  before the `ValueError` fires (Task 1.9b fix round 1). Its STR branch (a
+  character-typed `.rds`) raises the same argument-naming `ValueError`,
+  instead of a raw `KeyError: 'dimnames'`, when the object has no `dim` or no
+  `dimnames` attribute - a plain character vector (DADA2's `taxa=` given the
+  wrong file) has neither (Checkpoint B fix F3). A `NotImplementedError` rdata
+  raises while parsing or converting (e.g. a DNAStringSet `.rds`) is wrapped
+  into a `ValueError` naming `argument`, with rdata's own text and no mention
+  of refseq (Checkpoint B fix F3).
+- `rdata.parser.parse_file` infers a file's format from `path.suffix`
+  case-sensitively when no `extension=` is passed, so an upper-case `.RDS`
+  path made it warn twice ("Unknown file type", "Wrong extension"). Fixed by
+  passing `extension=path.suffix.lower()` in `_rdata.py:read_matrix_rds`,
+  which still branches on the file's suffix (it only ever reads a `.rds`, for
+  DADA2). `_rdata.py:load_phyloseq` no longer branches on suffix at all
+  (previous paragraph): it parses once and suppresses every
+  suffix-consistency `UserWarning` `parse_file` could raise, since none of
+  them are meaningful once format comes from content (Task 1.9b fix round 1;
+  superseded for `load_phyloseq` by Checkpoint B fix F4).
+- `read_dada2` casts `X` to `np.int64` when it holds integers, so counts are
+  the same dtype whether they came from a CSV (pandas' default `int64`) or an
+  `.rds` matrix (R's 32-bit integer, `int32`) (Task 1.9b fix round 1).
+  `_phyloseq.py:_counts` does the same for `read_phyloseq`, whose `otu_table`
+  can arrive as R's `int32` when the R object's storage mode is integer
+  (Checkpoint B fix F5).
+- `_phyloseq.py:_text_columns` casts only `pd.StringDtype`/`object` columns of
+  `sam_data` to biotapy's NaN-backed text dtype, not every column
+  `pd.api.types.is_string_dtype` accepts - that predicate is also true for a
+  Categorical of strings on pandas 3.0.6, which used to silently flatten an R
+  factor (order, `ordered`, unused levels all lost) into plain text
+  (Checkpoint B fix F2).

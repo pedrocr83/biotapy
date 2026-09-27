@@ -1,9 +1,10 @@
-"""DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table."""
+"""DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table / saveRDS."""
 
 import re
 from collections.abc import Iterable
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from biotapy._core import (
@@ -17,6 +18,7 @@ from biotapy._core import (
 )
 
 from ._join import _join_to
+from ._rdata import read_matrix_rds
 
 _SEQUENCE = re.compile(r"^[ACGTN]+$")
 
@@ -27,13 +29,16 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     Parameters
     ----------
     seqtab
-        CSV or TSV of ``seqtab``/``seqtab.nochim``: samples x sequences, row
-        names in the first column (``write.csv(seqtab.nochim, ...)``). Sample
-        names are kept verbatim as text (``001`` stays ``001``, ``NA`` is a name).
-        Any ``.csv`` suffix means CSV (``seqtab.csv.gz`` works); otherwise TSV.
+        CSV, TSV or ``.rds`` of ``seqtab``/``seqtab.nochim``: samples x
+        sequences, row names in the first column (``write.csv(seqtab.nochim,
+        ...)`` or ``saveRDS(seqtab.nochim, ...)``). Sample names are kept
+        verbatim as text (``001`` stays ``001``, ``NA`` is a name). Any
+        ``.csv`` suffix means CSV (``seqtab.csv.gz`` works); ``.rds`` means an
+        R matrix; otherwise TSV.
     taxa
-        CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
-        Sequences it lists that are not in ``seqtab`` are ignored.
+        CSV, TSV or ``.rds`` of ``assignTaxonomy``/``addSpecies`` output:
+        sequences x ranks. Sequences it lists that are not in ``seqtab`` are
+        ignored.
     tree
         Newick file whose tips are DNA sequences, as DADA2 workflows produce
         (e.g. a tree built from ``seqtab``'s column names). Tips are relabeled
@@ -71,7 +76,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
 
     The text table is read densely once and stored sparse: while reading, it
     takes about 8 bytes x samples x ASVs (80 MB for 1,000 samples x 10,000
-    ASVs). ``.rds`` input is not supported yet.
+    ASVs).
 
     Examples
     --------
@@ -83,7 +88,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     >>> bt.io.read_dada2(path).var_names.tolist()
     ['ASV1', 'ASV2']
     """
-    counts = _read_table(Path(seqtab))
+    counts = _read_table(Path(seqtab), argument=f"seqtab={str(seqtab)!r}")
     sequences = [str(column) for column in counts.columns]
     if not sequences or not all(_SEQUENCE.match(sequence) for sequence in sequences):
         msg = (
@@ -94,7 +99,9 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     names = [f"ASV{i}" for i in range(1, len(sequences) + 1)]
     var = pd.DataFrame({"sequence": sequences}, index=names)
     if taxa is not None:
-        ranks = _join_to(normalize_ranks(_read_table(Path(taxa))), pd.Index(sequences), argument=f"taxa={str(taxa)!r}")
+        taxa_argument = f"taxa={str(taxa)!r}"
+        taxa_table = _read_table(Path(taxa), argument=taxa_argument)
+        ranks = _join_to(normalize_ranks(taxa_table), pd.Index(sequences), argument=taxa_argument)
         var = ranks.set_axis(names).join(var)
     phylo = None
     if tree is not None:
@@ -102,11 +109,19 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
         _require_sequence_tips(tree_tips(phylo), tree)
         phylo = relabel_tips(phylo, dict(zip(sequences, names, strict=True)))
     obs, X = pd.DataFrame(index=counts.index), counts.to_numpy()
+    # Independent of the input format (CSV gives int64; a .rds matrix keeps R's int32).
+    if np.issubdtype(X.dtype, np.integer):
+        X = X.astype(np.int64)
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_dada2")
 
 
-def _read_table(path: Path) -> pd.DataFrame:
-    """A table whose first column holds row names, as R's write.csv writes it."""
+def _read_table(path: Path, *, argument: str) -> pd.DataFrame:
+    """A table whose first column holds row names, as R's write.csv writes it, or a plain .rds matrix.
+
+    ``argument`` names the input in error messages, e.g. ``"seqtab='seqtab.rds'"``.
+    """
+    if path.suffix.lower() == ".rds":
+        return read_matrix_rds(path, argument=argument)
     # Row names are ids: read them as text ("001" stays "001", a sample named "NA" is not
     # missing). Rank cells saying "NA" stay text here; normalize_ranks maps them to NaN.
     frame = pd.read_csv(

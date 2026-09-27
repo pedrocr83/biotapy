@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
+commit: 6fd5344
 status: stable
 ---
 
@@ -56,6 +56,12 @@ none of them back.
 - `_tree.py:tree_from_newick` - parse one Newick string via scikit-bio into
   the same tip-named, uniquely-labelled-internal-node graph shape as
   `tree_from_edges`.
+- `_tree.py:tree_from_phylo` - build a tree from an ape `phylo` edge matrix
+  (R's `phy_tree` slot: 1-based, tips numbered `1..len(tips)`), naming
+  internal nodes with the same collision-free `n<i>` scheme as
+  `tree_from_newick`; used by `io.read_phyloseq`. Takes the same keyword-only
+  `argument: str = "tips"` as `tree_from_newick` and raises `ValueError`
+  naming it on an unnamed or repeated tip.
 - `_tree.py:tree_tips` - the tree's leaf names (nodes with no children).
 - `_tree.py:relabel_tips` - rename a subset of a tree's nodes (e.g. sequence
   -> ASV id), raising rather than silently merging nodes on a name collision.

@@ -67,8 +67,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.10 | runtime | rdata, xarray | read phyloseq `.RData`/`.rds` natively ([phyloseq-import-route](/decisions/phyloseq-import-route.md)) - approved 2026-09-26, added when stage 2 first imports them |
 | 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source - approved 2026-09-26 |
 | 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination - approved 2026-09-26 |
-| 1.11 | runtime | pooch | cached dataset downloads |
-| 1.12 | test | pyarrow | read parquet golden files |
+| 1.11 | runtime | pooch | cached dataset downloads - approved 2026-09-27 |
+| 1.12b | test | pyarrow | declined 2026-09-27 - golden files are gzip CSV read by pandas |
 | 1.17 | runtime | scikit-learn | non-metric MDS (scikit-bio has none) |
 | 1.18 | runtime | matplotlib | `pl` |
 | 1.21 | dev | asv | benchmarks |
@@ -2317,38 +2317,948 @@ expanded.
   - add a `Module` concept `.knowledge/modules/io.md`;
   - update `.knowledge/modules/core.md` (Newick, alignment, taxonomy normalizer);
   - update `modules/index.md` and the log.
-- [ ] The PR's CI is green, including the Python 3.14 jobs that build
+- [x] The PR's CI is green, including the Python 3.14 jobs that build
   biom-format from source.
-- [ ] Ask the user to review stage 1 and approve the stage-2 expansion.
+- [x] Ask the user to review stage 1 and approve the stage-2 expansion.
 
 ### Stage 2 - expanded after the 1.6 decision
 
-`.rds` input for `read_dada2` (deferred from 1.9) is planned with stage 2.
+Expanded 2026-09-27 from three research passes run in the scratchpad against
+rdata 1.1.0, pooch and the rocker images, with a prototype run on
+GlobalPatterns, enterotype and esophagus. Execution order:
+**1.12a -> 1.10 -> 1.9b -> 1.11 -> 1.12b**. The R container comes first
+because it writes the `.RData`/`.rds` test fixtures the readers need.
+
+#### Stage 2 design
+- **No third-party data files are committed.** phyloseq is AGPL-3 and
+  biotapy is BSD-3.
+  - Reader tests use a synthetic phyloseq object: biotapy's own `toy()`
+    numbers, written by the R script in the container.
+  - GlobalPatterns and enterotype are downloaded at run time by pooch from
+    phyloseq's repository, pinned to a commit and a SHA-256.
+  - Golden files hold only derived numbers.
+- **Where the code goes.**
+  - `io/_rdata.py` holds everything `rdata`-specific: the phyloseq
+    `constructor_dict`, and reading a plain R matrix (DADA2's `.rds`).
+    Both `read_phyloseq` and `read_dada2` use it.
+  - Tree building from ape's `phylo` edge matrix goes in
+    `_core.tree_from_phylo`, which keeps networkx inside `_core/_tree.py`
+    (tree-access). Internal nodes are named with the same collision-free
+    scheme as `tree_from_newick`.
+- **Golden tests need GlobalPatterns, which is a download**, so they carry
+  both the `golden` and `network` markers. One CI job runs
+  `pytest -m "network or golden"` with a cached pooch directory.
+- **Research facts the tasks rely on** (every one re-checked by the
+  implementer, R2.2):
+  - **Missing slots.** An unset phyloseq slot comes back as the string
+    `"\x01NULL\x01"` with no class, so it never reaches a constructor. The
+    `phyloseq` constructor maps it to `None`.
+  - **What each slot arrives as.**
+    - `otu_table` arrives already shaped as an `xarray.DataArray`; the
+      constructor adds `taxa_are_rows`.
+    - `taxonomyTable` arrives as a flat, column-major object array; the
+      constructor reshapes it from `attrs["dim"]`/`attrs["dimnames"]`.
+    - `sample_data` works with `rdata.conversion.dataframe_constructor`
+      unchanged.
+    - `phylo` arrives as a dict with keys `edge` (1-based, tips `1..Ntip`),
+      `edge.length`, `tip.label`, `Nnode`.
+  - **Plain `.rds` matrices.**
+    - A plain numeric matrix (`seqtab`) reads straight into a `DataArray`.
+    - A plain character matrix (`taxa`) has no class. `read_rds` flattens it
+      silently, so it is read with `rdata.parser.parse_file` plus
+      `convert_attrs`/`convert_char`.
+  - **Typing.** mypy `--strict` needs every constructor typed
+    `(obj: Any, attrs: Mapping[str, Any])`, narrowed with `cast`, because
+    callable parameters are contravariant. `ConstructorDict` is not exported
+    by rdata, so a local alias is used. rdata and xarray ship `py.typed`.
+  - **Measurements.** GlobalPatterns reads in about 2.5 s; its OTU table has
+    104,578 nonzeros out of 499,616 cells (20.9%).
+
+#### Stage 2 global constraints (in addition to stage 1)
+- **Runtime deps.**
+  - `rdata>=1.1,<2` and `xarray`: approved 2026-09-26, added in 1.10.
+  - `pooch`: added in 1.11, pending approval.
+- **Golden format:** gzip CSV (`.csv.gz`), not parquet. The user declined
+  `pyarrow` (2026-09-27), so tests read the files with plain pandas and the
+  R image needs no `arrow`. zlib writes no timestamp in the gzip header, so
+  reruns stay byte-identical.
+- **Datasets.** Base URL
+  `https://raw.githubusercontent.com/joey711/phyloseq/8a6c2350b985afb909428d396081605e9b3e2f0b/data/`,
+  with these SHA-256 hashes:
+  - `GlobalPatterns.RData`:
+    `bea90c3c48275ea874e0c9400b133da1647e4cddd11b39f89a3d8ffd78512d2d`
+    (435,652 B)
+  - `enterotype.RData`:
+    `0701dd010023344a917bd31680f78580c076bf039befe829830dc43bfc56b8db`
+    (195,260 B)
+- **The R image.**
+  - `rocker/r-ver:4.5.3` (Ubuntu noble; CRAN pinned by rocker to the P3M
+    snapshot of 2026-04-23) plus Bioconductor 3.22.
+  - Only `phyloseq` (which brings Biostrings) is installed now; there is no
+    `arrow` (golden files are CSV).
+    vegan and mia are added in slice 1C with their golden files (R2.3).
+  - Building and running it needs the user's approval, requested with this
+    plan.
+- **Size cap.** Every file under `tests/data/` and `tests/golden/` stays under
+  1 MB (R6.6). A test enforces this.
+- **Dataset loader examples**, and `read_phyloseq`'s example, which loads
+  GlobalPatterns, are `# doctest: +SKIP` because they download (R11.4). The
+  network CI job runs the same calls for real. This is an accepted exception
+  to R8.2's "runnable example": the only phyloseq files biotapy may ship are
+  test fixtures, and docstrings cannot reach those.
+
+#### Stage 2 review focus
+1. **Absent phyloseq slots**, which appear as the NULL sentinel: no taxonomy,
+   no sample data, no tree, no refseq. The reader returns empty frames or no
+   tree, never crashes. Tests in 1.10.
+2. **`taxa_are_rows` either way.** Samples always become rows, with exactly
+   one transpose. Tests in 1.10.
+3. **Populated `refseq`.** One warning naming `Biostrings::writeXStringSet`;
+   the counts, taxonomy and tree still load. Tests in 1.10.
+   > Amended 2026-09-27: shipped as a `ValueError` naming the R fix, not a
+   > warning - rdata 1.1.0 cannot parse a populated `refseq` at all. See
+   > [phyloseq-import-route](/decisions/phyloseq-import-route.md) Amendment.
+4. **`.RData` holding several objects.** `name=` selects one; without it,
+   several phyloseq objects raise an error that lists their names; none
+   raises. Tests in 1.10.
+5. **A DADA2 `taxa.rds` character matrix.** Its shape and dimnames are
+   recovered, never silently flat; R's `NA` becomes NaN. Tests in 1.9b.
+
+### Task 1.12a: R container, golden files and R-written fixtures
+
+**Files:**
+- Create:
+  - `tests/r/Dockerfile`
+  - `tests/r/export_golden.R`
+  - `tests/test_data_files.py`
+  - `.knowledge/playbooks/regenerate-golden-files.md`
+- Generate with the container:
+  - `tests/golden/global_patterns/{relative,tax_glom_phylum,tax_glom_genus}.csv.gz`
+  - `tests/golden/VERSIONS.txt`
+  - `tests/data/phyloseq/{toy.rds,toy.RData,two_objects.RData,samples_as_rows.rds,with_refseq.rds}`
+  - `tests/data/dada2/{seqtab.rds,taxa.rds}`
+- Modify:
+  - `.knowledge/contracts/r-golden-parity.md`: golden tests also carry
+    `network`; they run in the network CI job
+  - `.knowledge/playbooks/index.md`
+  - `.knowledge/log.md`
+
+**Interfaces (produces):** the files above, with the layouts below.
+- `relative.csv.gz` is long format: `sample_id`, `taxon_id`, `value`
+  (float64), nonzeros only, sorted by taxon then sample.
+- `tax_glom_{phylum,genus}.csv.gz` is dense: a `sample_id` column, then one
+  column per kept taxon, in phyloseq's order.
+- The fixtures hold biotapy's `toy()` numbers:
+  - `toy`: taxa as rows, taxonomy Kingdom..Genus with `f8`'s Genus `NA`,
+    sample data `group`, and the toy tree.
+  - `toy_b`: `toy` pruned to s1 and s2.
+  - `samples_as_rows.rds`: taxa as columns, with sample data only (no
+    taxonomy, no tree).
+  - `with_refseq.rds`: `toy` plus a `DNAStringSet`.
+  - The DADA2 `.rds` files hold the same values as the CSV strings in
+    `tests/io/test_dada2.py`.
+
+- [x] **Step 1: Dockerfile** - `tests/r/Dockerfile`:
+  ```dockerfile
+  # syntax=docker/dockerfile:1
+  # biotapy's R golden-file image (contracts/r-golden-parity). Bumping a pin here is its own commit,
+  # followed by regenerating every file (playbooks/regenerate-golden-files).
+  FROM rocker/r-ver:4.5.3
+  # rocker pins CRAN to a dated Posit Package Manager snapshot, so install.packages() is reproducible
+  # and installs Ubuntu binaries.
+  ENV DEBIAN_FRONTEND=noninteractive
+  RUN Rscript -e 'install.packages("BiocManager")' \
+      && Rscript -e 'BiocManager::install(version = "3.22", ask = FALSE, update = FALSE)'
+  RUN Rscript -e 'BiocManager::install("phyloseq", version = "3.22", ask = FALSE, update = FALSE)'
+  WORKDIR /work
+  CMD ["Rscript", "tests/r/export_golden.R"]
+  ```
+- [x] **Step 2: Export script** - `tests/r/export_golden.R`:
+  ```r
+  # Writes biotapy's R golden files and R-only test fixtures. Run only in tests/r/Dockerfile's image, from the
+  # repo root: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
+  suppressPackageStartupMessages({
+    library(phyloseq)
+    library(Biostrings)
+  })
+
+  write_golden <- function(df, path) {
+    # write.csv keeps 15 significant digits; zlib's gzip header has no timestamp, so reruns are identical.
+    con <- gzfile(path, "w")
+    write.csv(df, con, row.names = FALSE)
+    close(con)
+    if (file.size(path) >= 1e6) stop(path, " is ", file.size(path), " bytes; rules.md R6.6 caps data files at 1 MB")
+  }
+
+  samples_as_rows <- function(physeq) {
+    m <- as(otu_table(physeq), "matrix")
+    if (taxa_are_rows(physeq)) t(m) else m
+  }
+
+  dense_frame <- function(physeq) {
+    m <- samples_as_rows(physeq)
+    data.frame(sample_id = rownames(m), m, check.names = FALSE, row.names = NULL)
+  }
+
+  for (dir in c("tests/golden/global_patterns", "tests/data/phyloseq", "tests/data/dada2")) {
+    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  ## GlobalPatterns golden files (derived numbers only)
+  data(GlobalPatterns)
+  rel <- samples_as_rows(transform_sample_counts(GlobalPatterns, function(x) x / sum(x)))
+  nz <- which(rel != 0, arr.ind = TRUE)
+  nz <- nz[order(nz[, "col"], nz[, "row"]), , drop = FALSE]
+  write_golden(
+    data.frame(sample_id = rownames(rel)[nz[, "row"]], taxon_id = colnames(rel)[nz[, "col"]], value = rel[nz]),
+    "tests/golden/global_patterns/relative.csv.gz"
+  )
+  write_golden(dense_frame(tax_glom(GlobalPatterns, "Phylum")), "tests/golden/global_patterns/tax_glom_phylum.csv.gz")
+  write_golden(dense_frame(tax_glom(GlobalPatterns, "Genus")), "tests/golden/global_patterns/tax_glom_genus.csv.gz")
+
+  ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
+  counts <- rbind(
+    c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
+    c(2, 1, 5, 10, 0, 40, 15, 3), c(0, 2, 3, 12, 2, 38, 20, 5), c(1, 0, 4, 8, 1, 45, 12, 2)
+  )
+  dimnames(counts) <- list(paste0("s", 1:6), paste0("f", 1:8))
+  firm <- c("Bacteria", "Firmicutes", "Clostridia")
+  bact <- c("Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales")
+  prot <- c("Bacteria", "Proteobacteria", "Gammaproteobacteria", "Enterobacterales", "Enterobacteriaceae")
+  taxonomy <- rbind(
+    c(firm, "Lachnospirales", "Lachnospiraceae", "Blautia"), c(firm, "Lachnospirales", "Lachnospiraceae", "Roseburia"),
+    c(firm, "Oscillospirales", "Ruminococcaceae", "Faecalibacterium"), c(bact, "Bacteroidaceae", "Bacteroides"),
+    c(bact, "Bacteroidaceae", "Bacteroides"), c(bact, "Prevotellaceae", "Prevotella"),
+    c(prot, "Escherichia"), c(prot, NA)
+  )
+  dimnames(taxonomy) <- list(paste0("f", 1:8), c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"))
+  newick <- "(((f1:0.1,f2:0.12)n4:0.05,f3:0.2)n1:0.1,((f4:0.02,f5:0.03)n5:0.05,f6:0.15)n2:0.1,(f7:0.1,f8:0.12)n3:0.2)root;"
+  groups <- sample_data(data.frame(group = rep(c("A", "B"), each = 3), row.names = paste0("s", 1:6)))
+
+  toy <- phyloseq(otu_table(t(counts), taxa_are_rows = TRUE), tax_table(taxonomy), groups, phy_tree(ape::read.tree(text = newick)))
+  toy_b <- prune_samples(c("s1", "s2"), toy)
+  saveRDS(toy, "tests/data/phyloseq/toy.rds")
+  save(toy, file = "tests/data/phyloseq/toy.RData")
+  save(toy, toy_b, file = "tests/data/phyloseq/two_objects.RData")
+  saveRDS(phyloseq(otu_table(counts, taxa_are_rows = FALSE), groups), "tests/data/phyloseq/samples_as_rows.rds")
+  sequences <- DNAStringSet(setNames(c("ACGT", "ACGA", "ACGC", "ACGG", "TCGT", "TCGA", "TCGC", "TCGG"), paste0("f", 1:8)))
+  saveRDS(merge_phyloseq(toy, sequences), "tests/data/phyloseq/with_refseq.rds")
+
+  ## DADA2 .rds fixtures: the same values as the CSV strings in tests/io/test_dada2.py
+  seqtab <- rbind(S1 = c(10L, 0L, 5L, 0L), S2 = c(0L, 0L, 0L, 0L), S3 = c(3L, 7L, 1L, 0L))
+  colnames(seqtab) <- c("ACGTACGT", "TTGACCAA", "GGGCCCAA", "CCCCAAAA")
+  saveRDS(seqtab, "tests/data/dada2/seqtab.rds")
+  taxa <- rbind(ACGTACGT = c("Bacteria", "Firmicutes", "Blautia"), TTGACCAA = c("Bacteria", "Bacteroidota", NA))
+  colnames(taxa) <- c("Kingdom", "Phylum", "Genus")
+  saveRDS(taxa, "tests/data/dada2/taxa.rds")
+
+  writeLines(c(
+    R.version.string,
+    paste("Bioconductor", as.character(BiocManager::version())),
+    paste0("phyloseq ", packageVersion("phyloseq"))
+  ), "tests/golden/VERSIONS.txt")
+  ```
+- [x] **Step 3: Build and run** (the user approved the Docker build with this plan). From the repo root:
+  ```bash
+  docker build -t biotapy-golden tests/r
+  docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
+  sha256sum tests/golden/global_patterns/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > /tmp/claude-1000/golden-run1.sha
+  docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
+  sha256sum -c /tmp/claude-1000/golden-run1.sha
+  ```
+  Expected:
+  - The build takes about 10-20 minutes. If a step starts compiling large
+    packages from source for much longer than that, stop and report (R14.2).
+  - Both runs finish, and the second run's output files hash the same as the
+    first run's (bit-identical, contract rule 3).
+  - If `relative.csv.gz` hits the 1 MB `stop()`, report the size and stop.
+    The controller then rules on a documented subset.
+  - Record in the report the file sizes, the build time, and
+    `docker image inspect biotapy-golden --format '{{.Size}}'`.
+- [x] **Step 4: Size guard test** - `tests/test_data_files.py`:
+  ```python
+  from pathlib import Path
+
+  import pytest
+
+  TESTS = Path(__file__).parent
+  DATA_FILES = sorted(p for d in ("data", "golden") for p in (TESTS / d).rglob("*") if p.is_file())
+
+
+  @pytest.mark.parametrize("path", DATA_FILES, ids=lambda p: str(p.relative_to(TESTS)))
+  def test_data_files_stay_under_one_megabyte(path):
+      # rules.md R6.6
+      assert path.stat().st_size < 1_000_000
+
+
+  def test_versions_file_names_r_and_bioconductor():
+      text = (TESTS / "golden" / "VERSIONS.txt").read_text()
+      assert "R version 4.5.3" in text and "Bioconductor 3.22" in text
+  ```
+  Run `uv run --group test pytest tests/test_data_files.py -q`. Expect every
+  test to pass. The test runs after the files exist; its job is to keep
+  catching growth later.
+- [x] **Step 5: Knowledge.**
+  - Write `.knowledge/playbooks/regenerate-golden-files.md` (`type: Playbook`):
+    - when to regenerate: a pin bump, or new golden functions, each in its own
+      commit;
+    - the build and run commands from Step 3, plus the bit-identical check;
+    - the 1 MB rule;
+    - never edit golden files by hand.
+
+    Add its line to `playbooks/index.md`.
+  - `contracts/r-golden-parity.md`:
+    - Enforced-by: golden tests carry `golden` and `network`, because the
+      input is downloaded by pooch, and they run in the network CI job;
+    - Statement 1: the image installs only what current golden files need.
+    - Statement 2: golden files are gzip CSV (`<function>.csv.gz`), not
+      parquet; the user declined `pyarrow` on 2026-09-27.
+  - Add a log line.
+- [x] **Step 6: Gate and commit.**
+  - Run `uvx prek run --all-files` and `uv run --group test pytest`.
+  - Commit `test(r): add the R golden container, golden files and R-written fixtures`.
+  - Stage the generated binaries by explicit path.
 
 ### Task 1.10: `io.read_phyloseq`
-- Per the 1.6 decision. **Interface:** `read_phyloseq(path: str | Path) -> TreeData`.
-  Transposes when `taxa_are_rows`; a populated `refseq` is warned and skipped
-  (not written to `var["sequence"]`) - see
-  [phyloseq-import-route](/decisions/phyloseq-import-route.md), Option C.
-- **Done when:** GlobalPatterns loads with 26 samples x 19,216 features and a tree.
+
+> **Amended 2026-09-27 (Checkpoint B):** the `refseq` handling below (Steps 2,
+> 5, 6) plans a warned skip. The shipped behaviour is a `ValueError` naming
+> the R fix instead: rdata 1.1.0 cannot parse a populated `refseq` at all, so
+> there is no four-slots-good, one-slot-skipped result to warn and return.
+> See [phyloseq-import-route](/decisions/phyloseq-import-route.md) Amendment
+> 2026-09-27 and rules.md R7.4. The steps below are the historical plan and
+> are not rewritten.
+
+**Files:**
+- Create:
+  - `src/biotapy/io/_rdata.py`
+  - `src/biotapy/io/_phyloseq.py`
+  - `tests/io/test_phyloseq.py`
+- Modify:
+  - `src/biotapy/_core/_tree.py` (add `tree_from_phylo`)
+  - `src/biotapy/_core/__init__.py`
+  - `tests/core/test_tree.py`
+  - `src/biotapy/io/__init__.py`
+  - `pyproject.toml`: add `rdata>=1.1,<2` and `xarray`
+  - `docs/guide/reading_data.md`, `docs/api.md`
+  - `.knowledge/decisions/optional-heavy-dependencies.md`
+  - `.knowledge/contracts/tree-access.md` (it gains `tree_from_phylo`)
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `make_treedata`, `normalize_ranks`, `infer_x_kind`, `warn_user`,
+    `as_csr`;
+  - `io._join._join_to`;
+  - the fixtures from 1.12a.
+- **Produces:**
+  - `_core.tree_from_phylo(edge: npt.ArrayLike, lengths: npt.ArrayLike | None, tips: Sequence[str]) -> nx.DiGraph[str]`.
+  - `io._rdata`:
+    - `PHYLOSEQ_SLOTS`;
+    - `load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]`,
+      where each slot is the converted value or `None`;
+    - `read_matrix_rds(path: Path) -> pd.DataFrame`, used by 1.9b.
+  - `bt.io.read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData`.
+
+- [x] **Step 1: Dependency.**
+  - Add `"rdata>=1.1,<2"` and `"xarray"` to `[project] dependencies`, then run
+    `uv sync --group dev --group test --group doc`.
+  - Both ship `py.typed`. If mypy disagrees, handle it per P8.
+- [x] **Step 2: Failing tests.**
+  - Append to `tests/core/test_tree.py`, with imports in the top block (P7):
+    ```python
+    from biotapy._core import tree_from_phylo
+
+
+    def test_tree_from_phylo_names_tips_and_internal_nodes():
+        tree = tree_from_phylo([[3, 1], [3, 2]], [0.5, 1.0], ["a", "b"])
+        assert _leaves(tree) == {"a", "b"} and tree.number_of_nodes() == 3
+        root = next(n for n in tree.nodes if tree.in_degree(n) == 0)
+        assert tree.edges[root, "a"]["length"] == 0.5
+
+
+    def test_tree_from_phylo_internal_names_skip_tip_names():
+        tree = tree_from_phylo([[3, 1], [3, 2]], None, ["n0", "b"])
+        assert tree.number_of_nodes() == 3 and _leaves(tree) == {"n0", "b"}
+
+
+    def test_tree_from_phylo_without_lengths_uses_nan():
+        tree = tree_from_phylo([[3, 1], [3, 2]], None, ["a", "b"])
+        assert all(math.isnan(d["length"]) for *_, d in tree.edges(data=True))
+    ```
+  - `tests/io/test_phyloseq.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pytest
+
+    import biotapy as bt
+
+    PHYLOSEQ = Path(__file__).parents[1] / "data" / "phyloseq"
+
+
+    def test_read_phyloseq_rds_matches_toy():
+        tdata, toy = bt.io.read_phyloseq(PHYLOSEQ / "toy.rds"), bt.datasets.toy()
+        assert list(tdata.obs_names) == list(toy.obs_names) and list(tdata.var_names) == list(toy.var_names)
+        np.testing.assert_array_equal(tdata.X.toarray(), toy.X.toarray())
+        assert tdata.obs["group"].astype(str).tolist() == toy.obs["group"].astype(str).tolist()
+        assert tdata.var.loc["f1", "genus"] == "Blautia" and np.isnan(tdata.var.loc["f8", "genus"])
+        tree = tdata.vart["phylo"]
+        assert {n for n in tree.nodes if tree.out_degree(n) == 0} == {f"f{i}" for i in range(1, 9)}
+        assert tdata.uns["biotapy"]["x_kind"] == "counts"
+
+
+    def test_read_phyloseq_single_object_rdata():
+        assert bt.io.read_phyloseq(PHYLOSEQ / "toy.RData").shape == (6, 8)
+
+
+    def test_read_phyloseq_samples_as_rows_and_null_slots():
+        tdata = bt.io.read_phyloseq(PHYLOSEQ / "samples_as_rows.rds")
+        np.testing.assert_array_equal(tdata.X.toarray(), bt.datasets.toy().X.toarray())
+        assert "phylo" not in tdata.vart and not set(tdata.var.columns) & {"kingdom", "genus"}
+        assert "group" in tdata.obs.columns
+
+
+    def test_read_phyloseq_skips_refseq_with_one_warning():
+        with pytest.warns(UserWarning, match="writeXStringSet") as record:
+            tdata = bt.io.read_phyloseq(PHYLOSEQ / "with_refseq.rds")
+        assert len(record) == 1 and tdata.shape == (6, 8) and "sequence" not in tdata.var.columns
+
+
+    def test_read_phyloseq_two_objects_need_a_name():
+        with pytest.raises(ValueError, match=r"name=.*toy.*toy_b"):
+            bt.io.read_phyloseq(PHYLOSEQ / "two_objects.RData")
+        assert bt.io.read_phyloseq(PHYLOSEQ / "two_objects.RData", name="toy_b").shape == (2, 8)
+
+
+    def test_read_phyloseq_unknown_name_is_named():
+        with pytest.raises(KeyError, match="nope"):
+            bt.io.read_phyloseq(PHYLOSEQ / "two_objects.RData", name="nope")
+
+
+    def test_read_phyloseq_rejects_a_non_phyloseq_file():
+        with pytest.raises(ValueError, match="path=.*phyloseq"):
+            bt.io.read_phyloseq(Path(__file__).parents[1] / "data" / "dada2" / "seqtab.rds")
+    ```
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/io/test_phyloseq.py -q` -> ImportError for `tree_from_phylo`; `AttributeError` for `read_phyloseq`.
+- [x] **Step 4: Implement `_core.tree_from_phylo`** in `_core/_tree.py` (add `from collections.abc import Sequence`):
+  ```python
+  def tree_from_phylo(edge: npt.ArrayLike, lengths: npt.ArrayLike | None, tips: Sequence[str]) -> nx.DiGraph[str]:
+      """Build a tree from an ape ``phylo`` edge matrix (1-based; tips are ``1..len(tips)``).
+
+      Internal nodes get the same collision-free ``n<i>`` names as ``tree_from_newick``;
+      missing branch lengths are NaN.
+      """
+      edges = np.asarray(edge, dtype=np.int64).reshape(-1, 2)
+      names = [str(tip) for tip in tips]
+      _require_unique_names(list(names))
+      taken = set(names)
+      fresh = (name for name in (f"n{i}" for i in itertools.count()) if name not in taken)
+      internal = {int(node): next(fresh) for node in np.unique(edges) if node > len(names)}
+      label = {**{i + 1: tip for i, tip in enumerate(names)}, **internal}
+      length = np.full(len(edges), np.nan) if lengths is None else np.asarray(lengths, dtype=np.float64)
+      tree = tree_from_edges(
+          (label[int(parent)], label[int(child)], float(value))
+          for (parent, child), value in zip(edges, length, strict=True)
+      )
+      tree.add_nodes_from(names)
+      return tree
+  ```
+  Export it from `_core/__init__.py`. `numpy.typing` is already available as `npt`; import it if it was dropped.
+- [x] **Step 5: Implement `io/_rdata.py`.**
+  ```python
+  """R data files through rdata: phyloseq objects and plain matrices (.RData/.rda/.rds)."""
+
+  from collections.abc import Callable, Mapping
+  from pathlib import Path
+  from types import SimpleNamespace
+  from typing import Any, cast
+
+  import numpy as np
+  import pandas as pd
+  import rdata
+  import xarray as xr
+  from rdata.conversion import DEFAULT_CLASS_MAP, convert_attrs, convert_char, dataframe_constructor
+  from rdata.parser import RObjectType
+
+  # An unset "...OrNULL" S4 slot is serialised as this marker string without a class,
+  # so no constructor sees it; the phyloseq constructor maps it to None.
+  _R_NULL = "\x01NULL\x01"
+  PHYLOSEQ_SLOTS = ("otu_table", "tax_table", "sam_data", "phy_tree", "refseq")
+  # rdata does not export its ConstructorDict alias; constructors take Any because callable
+  # parameters are contravariant, and narrow with cast.
+  _Constructors = Mapping[str | bytes, Callable[[Any, Mapping[str, Any]], Any]]
+
+
+  def _otu_table(obj: Any, attrs: Mapping[str, Any]) -> tuple[xr.DataArray, bool]:
+      return cast(xr.DataArray, obj), bool(attrs["taxa_are_rows"][0])
+
+
+  def _char_matrix(obj: Any, attrs: Mapping[str, Any]) -> pd.DataFrame:
+      # rdata leaves character matrices flat (column-major) and drops dim/dimnames.
+      rows, columns = attrs["dimnames"]
+      values = np.reshape(np.asarray(obj, dtype=object), attrs["dim"], order="F")
+      return pd.DataFrame(values, index=rows, columns=columns)
+
+
+  def _passthrough(obj: Any, attrs: Mapping[str, Any]) -> Any:
+      return obj
+
+
+  def _or_none(value: Any) -> Any:
+      return None if isinstance(value, str) and value == _R_NULL else value
+
+
+  def _phyloseq(obj: Any, attrs: Mapping[str, Any]) -> dict[str, Any]:
+      slots = cast(SimpleNamespace, obj)
+      return {name: _or_none(getattr(slots, name)) for name in PHYLOSEQ_SLOTS}
+
+
+  _PHYLOSEQ: _Constructors = {
+      **DEFAULT_CLASS_MAP,
+      "otu_table": _otu_table,
+      "taxonomyTable": _char_matrix,
+      "sample_data": dataframe_constructor,
+      "phylo": _passthrough,
+      "phyloseq": _phyloseq,
+  }
+
+
+  def _is_phyloseq(value: object) -> bool:
+      return isinstance(value, dict) and tuple(value) == PHYLOSEQ_SLOTS
+
+
+  def load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]:
+      """The phyloseq object in ``path``: an ``.rds`` file, or ``name`` (or the only one) in an ``.RData``."""
+      if path.suffix.lower() == ".rds":
+          objects = {"": rdata.read_rds(path, constructor_dict=_PHYLOSEQ)}
+      else:
+          objects = rdata.read_rda(path, constructor_dict=_PHYLOSEQ)
+      found = {key: value for key, value in objects.items() if _is_phyloseq(value)}
+      if name is not None:
+          if name not in found:
+              msg = f"name={name!r} is not a phyloseq object in path={str(path)!r}; found {sorted(found)}"
+              raise KeyError(msg)
+          return cast(dict[str, Any], found[name])
+      if len(found) != 1:
+          msg = f"path={str(path)!r} holds {len(found)} phyloseq objects; pass name= with one of {sorted(found)}"
+          raise ValueError(msg)
+      return cast(dict[str, Any], next(iter(found.values())))
+
+
+  def read_matrix_rds(path: Path) -> pd.DataFrame:
+      """A plain R matrix saved with saveRDS, rows and columns named from its dimnames."""
+      parsed = rdata.parser.parse_file(path)
+      if parsed.object.info.type is RObjectType.STR:
+          attrs = convert_attrs(parsed.object, lambda node: rdata.conversion.convert(node))
+          flat = [convert_char(cell, default_encoding=None, force_default_encoding=False) for cell in parsed.object.value]
+          return _char_matrix(flat, attrs)
+      return cast(xr.DataArray, rdata.conversion.convert(parsed)).to_pandas()
+  ```
+  - The rdata calls come from the research prototypes (`phyloseq_constructors.py`,
+    `plain_matrix.py`). Confirm each signature in the installed rdata (R2.2),
+    especially `convert_char`'s keyword names and whether `convert_attrs` wants
+    the `RData` wrapper or the node.
+  - `load_phyloseq`'s "none found" error must say "phyloseq". The test matches
+    `path=.*phyloseq`, and the `len(found) != 1` message already contains it.
+  - Stay within R5 limits: split `load_phyloseq`'s name handling into a helper
+    if ruff asks.
+- [x] **Step 6: Implement `io/_phyloseq.py`.**
+  ```python
+  """phyloseq objects saved from R (.RData/.rda/.rds), read natively (decisions/phyloseq-import-route)."""
+
+  from pathlib import Path
+  from typing import Any
+
+  import numpy as np
+  import pandas as pd
+  import scipy.sparse as sp
+
+  from biotapy._core import TreeData, as_csr, infer_x_kind, make_treedata, normalize_ranks, tree_from_phylo, warn_user
+
+  from ._join import _join_to
+  from ._rdata import load_phyloseq
+
+
+  def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
+      """Read a phyloseq object saved from R, without R.
+
+      Parameters
+      ----------
+      path
+          ``.rds`` file (``saveRDS``) or ``.RData``/``.rda`` file (``save``).
+      name
+          Object to read from an ``.RData`` file holding several phyloseq objects.
+
+      Returns
+      -------
+      TreeData
+          ``otu_table`` in ``X`` (samples are rows); ``tax_table`` as rank columns in
+          ``var``; ``sample_data`` in ``obs``; ``phy_tree`` in ``vart['phylo']``.
+
+      Raises
+      ------
+      ValueError
+          The file holds no phyloseq object, or several and ``name`` is not given.
+      KeyError
+          ``name`` is not a phyloseq object in the file.
+
+      Warns
+      -----
+      UserWarning
+          The ``refseq`` slot holds sequences; they are skipped (export them with
+          ``Biostrings::writeXStringSet``).
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::phyloseq``
+      Guide: :doc:`/guide/reading_data`
+
+      The OTU table is read densely once (8 bytes x samples x taxa) and stored sparse.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> tdata = bt.datasets.global_patterns()  # doctest: +SKIP
+      >>> tdata.shape  # doctest: +SKIP
+      (26, 19216)
+      """
+      slots = load_phyloseq(Path(path), name=name)
+      X, samples, features = _counts(slots["otu_table"], path)
+      var = pd.DataFrame(index=features)
+      if slots["tax_table"] is not None:
+          var = _join_to(normalize_ranks(slots["tax_table"]), features, argument=f"path={str(path)!r} tax_table")
+      obs = pd.DataFrame(index=samples)
+      if slots["sam_data"] is not None:
+          obs = _join_to(slots["sam_data"], samples, argument=f"path={str(path)!r} sam_data")
+      if slots["refseq"] is not None:
+          warn_user(f"path={str(path)!r}: the refseq slot (sequences) is skipped; export it with Biostrings::writeXStringSet")
+      return make_treedata(X, obs=obs, var=var, tree=_tree(slots["phy_tree"]), x_kind=infer_x_kind(X), source="io.read_phyloseq")
+
+
+  def _counts(otu: Any, path: str | Path) -> tuple[sp.csr_matrix, list[str], list[str]]:
+      if otu is None:
+          msg = f"path={str(path)!r}: the phyloseq object has no otu_table"
+          raise ValueError(msg)
+      array, taxa_are_rows = otu
+      rows, columns = ([str(v) for v in array.coords[dim].values] for dim in array.dims)
+      values = np.asarray(array.values)
+      # Samples are rows (R6.1): transpose once when phyloseq stored taxa as rows.
+      return (as_csr(values.T), columns, rows) if taxa_are_rows else (as_csr(values), rows, columns)
+
+
+  def _tree(phylo: Any) -> Any:
+      if phylo is None:
+          return None
+      return tree_from_phylo(phylo["edge"], phylo.get("edge.length"), [str(t) for t in phylo["tip.label"]])
+  ```
+  - Check `_join_to`'s real signature and argument wording in `io/_join.py`
+    (fix pass I2) and adapt the `argument=` text to it.
+  - `_tree` returns `nx.DiGraph[str] | None`, but `io` may not import networkx
+    (R4.5). Annotate it via `TYPE_CHECKING` only if ruff TID251 allows that in
+    `io`. Otherwise add a `_core` type alias such as `Tree = nx.DiGraph[str]`,
+    exported from `_core`.
+  - Export `read_phyloseq` from `io/__init__.py`.
+- [x] **Step 7: Docs.**
+  - Add a "phyloseq" section to `docs/guide/reading_data.md`:
+    - `.rds` vs `.RData`, and `name=`;
+    - what is read and what is skipped (`refseq`);
+    - no R needed.
+  - Add `io.read_phyloseq` to `docs/api.md`.
+- [x] **Step 8: Knowledge.**
+  - Dependency decision: one sentence, "Task 1.10 added rdata (`>=1.1,<2`) and xarray".
+  - `tree-access` statement 2 gains `tree_from_phylo`.
+  - One log line.
+  - Record in the report `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1`,
+    because xarray adds import time (R10.1).
+- [x] **Step 9: Run, expect pass; gate; commit** `feat(io): read phyloseq objects saved from R`.
+
+### Task 1.9b: `.rds` input for `io.read_dada2`
+Deferred from 1.9 until the rdata route was approved (1.6) and R-written fixtures existed (1.12a).
+
+**Files:** modify `src/biotapy/io/_dada2.py`, `tests/io/test_dada2.py`,
+`docs/guide/reading_data.md`.
+**Interfaces:** consumes `io._rdata.read_matrix_rds`. `read_dada2`'s signature
+does not change; `seqtab` and `taxa` may each be a `.rds` file.
+
+- [x] **Step 1: Failing tests** - append to `tests/io/test_dada2.py`, with imports at the top:
+  ```python
+  from pathlib import Path
+
+  DADA2 = Path(__file__).parents[1] / "data" / "dada2"
+
+
+  def test_read_dada2_rds_matches_csv(seqtab, taxa):
+      # Both taxa tables cover 2 of the 4 sequences, so both reads warn (checked join).
+      with pytest.warns(UserWarning, match="taxa="):
+          from_rds = bt.io.read_dada2(DADA2 / "seqtab.rds", taxa=DADA2 / "taxa.rds")
+      with pytest.warns(UserWarning, match="taxa="):
+          from_csv = bt.io.read_dada2(seqtab, taxa=taxa)
+      np.testing.assert_array_equal(from_rds.X.toarray(), from_csv.X.toarray())
+      assert list(from_rds.obs_names) == list(from_csv.obs_names)
+      assert from_rds.var["sequence"].tolist() == from_csv.var["sequence"].tolist()
+
+
+  def test_read_dada2_rds_taxa_keeps_matrix_shape():
+      with pytest.warns(UserWarning, match="taxa="):
+          var = bt.io.read_dada2(DADA2 / "seqtab.rds", taxa=DADA2 / "taxa.rds").var
+      assert var.loc["ASV1", ["kingdom", "phylum", "genus"]].tolist() == ["Bacteria", "Firmicutes", "Blautia"]
+      assert np.isnan(var.loc["ASV2", "genus"])
+  ```
+  - Confirm that the warning text in `io/_join.py` matches `taxa=`, and adapt
+    the pattern if it does not.
+  - Never leave a warning unasserted: the suite must pass under `-W error::UserWarning`.
+- [x] **Step 2: Run, expect failure** (the `.rds` file is parsed as text).
+- [x] **Step 3: Implement.** In `_dada2.py`'s `_read_table`, dispatch `.rds` to
+  `read_matrix_rds`. The `.rds` values come back typed; confirm that the counts
+  are integers or whole floats (`infer_x_kind` handles both) and that `NA`
+  becomes None/NaN before `normalize_ranks`. Update the docstring: "CSV, TSV
+  or `.rds`".
+- [x] **Step 4: Docs** - the DADA2 guide section mentions `.rds`.
+- [x] **Step 5: Run, expect pass; gate; commit** `feat(io): read DADA2 .rds tables`.
 
 ### Task 1.11: `datasets.global_patterns()`, `datasets.enterotype()`
-- pooch with SHA-256 hashes; source per 1.6 (phyloseq's `data/*.RData`, or
-  converted files attached to a biotapy GitHub release).
-- **Tests:** marker `network`; one dedicated CI job runs them with a cached pooch dir.
-- **Done when:** both load; `x_kind` set (enterotype holds relative abundances).
 
-### Task 1.12: R golden infrastructure
-- **Files:** `tests/r/Dockerfile` (pinned `rocker/r-ver` tag + Bioconductor
-  phyloseq, mia, vegan, arrow), `tests/r/export_golden.R`,
-  `tests/golden/<dataset>/<function>.parquet`, `tests/golden/VERSIONS.txt`,
-  `tests/data/esophagus/*` (tiny fixture exported by the same script),
-  `.knowledge/playbooks/regenerate-golden-files.md`.
-- **Tests:** golden tests for `relative` and `tax_glom` (phylum, genus) on
-  GlobalPatterns, marker `golden`, per [r-golden-parity](/contracts/r-golden-parity.md).
-- **Done when:** golden tests pass; the playbook regenerates files bit-identically.
+**Files:**
+- Create `src/biotapy/datasets/_remote.py`, `tests/datasets/test_remote.py`.
+- Modify:
+  - `src/biotapy/datasets/__init__.py`
+  - `pyproject.toml` (`pooch`)
+  - `.github/workflows/test.yaml` (network job)
+  - `docs/api.md`, `docs/guide/data_model.md` or a datasets section
+  - `.knowledge/modules/datasets.md`
+  - `.knowledge/decisions/optional-heavy-dependencies.md`
+  - `.knowledge/log.md`
 
-### Checkpoint B - review slice 1B; `Module` concepts for `io` and `datasets`.
+**Interfaces:**
+- **Consumes:** `bt.io.read_phyloseq`.
+- **Produces:** `bt.datasets.global_patterns() -> TreeData` and
+  `bt.datasets.enterotype() -> TreeData`.
+
+- [x] **Step 1: Dependency.** Add `"pooch"` to `[project] dependencies`, pending user approval, then run `uv sync`.
+- [x] **Step 2: Failing tests** - `tests/datasets/test_remote.py`:
+  ```python
+  from pathlib import Path
+
+  import pytest
+
+  import biotapy as bt
+  from biotapy.datasets import _remote
+
+  TOY_RDS = Path(__file__).parents[1] / "data" / "phyloseq" / "toy.rds"
+
+
+  def test_loaders_read_the_fetched_file(monkeypatch):
+      fetched = []
+      monkeypatch.setattr(_remote, "_fetch", lambda name: fetched.append(name) or str(TOY_RDS))
+      assert bt.datasets.global_patterns().shape == (6, 8)
+      assert bt.datasets.enterotype().shape == (6, 8)
+      assert fetched == ["GlobalPatterns.RData", "enterotype.RData"]
+
+
+  @pytest.mark.network
+  def test_global_patterns_downloads_and_loads():
+      tdata = bt.datasets.global_patterns()
+      tree = tdata.vart["phylo"]
+      assert tdata.shape == (26, 19216) and sum(1 for n in tree.nodes if tree.out_degree(n) == 0) == 19216
+      assert tdata.uns["biotapy"]["x_kind"] == "counts" and "phylum" in tdata.var.columns
+
+
+  @pytest.mark.network
+  def test_enterotype_downloads_as_relative_abundance():
+      tdata = bt.datasets.enterotype()
+      assert tdata.shape == (280, 553) and tdata.uns["biotapy"]["x_kind"] == "relative"
+      assert "phylo" not in tdata.vart
+  ```
+  The first test touches a private helper, which R4.9 allows only for `_core`.
+  That is a deliberate exception for network isolation (R11.4): it is the
+  only way to test the loaders offline without committing third-party data.
+  Say so in a one-line comment in the test.
+- [x] **Step 3: Run, expect failure** (`ImportError` for `_remote`).
+- [x] **Step 4: Implement** `src/biotapy/datasets/_remote.py`:
+  ```python
+  """Example datasets from phyloseq's repository, downloaded once and cached with pooch."""
+
+  from functools import cache
+
+  import pooch
+
+  from biotapy._core import TreeData
+  from biotapy.io import read_phyloseq
+
+  # Pinned to one phyloseq commit so the SHA-256 hashes stay valid.
+  _BASE_URL = "https://raw.githubusercontent.com/joey711/phyloseq/8a6c2350b985afb909428d396081605e9b3e2f0b/data/"
+  _REGISTRY = {
+      "GlobalPatterns.RData": "sha256:bea90c3c48275ea874e0c9400b133da1647e4cddd11b39f89a3d8ffd78512d2d",
+      "enterotype.RData": "sha256:0701dd010023344a917bd31680f78580c076bf039befe829830dc43bfc56b8db",
+  }
+
+
+  @cache
+  def _pooch() -> pooch.Pooch:
+      # BIOTAPY_DATA_DIR overrides the per-user cache directory.
+      return pooch.create(path=pooch.os_cache("biotapy"), base_url=_BASE_URL, registry=_REGISTRY, env="BIOTAPY_DATA_DIR")
+
+
+  def _fetch(name: str) -> str:
+      return str(_pooch().fetch(name))
+
+
+  def global_patterns() -> TreeData:
+      """GlobalPatterns: 26 samples from 9 environments, 19,216 OTUs, with taxonomy and a tree.
+
+      Downloaded once (435 kB) from phyloseq's repository and cached.
+
+      Returns
+      -------
+      TreeData
+          Counts in ``X``; sample types in ``obs``; kingdom to species in ``var``;
+          the tree in ``vart['phylo']``.
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::data(GlobalPatterns)``
+      Guide: :doc:`/guide/reading_data`
+
+      References
+      ----------
+      Caporaso JG et al. (2011) Global patterns of 16S rRNA diversity at a depth of millions
+      of sequences per sample. PNAS 108:4516-4522.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> bt.datasets.global_patterns().shape  # doctest: +SKIP
+      (26, 19216)
+      """
+      return read_phyloseq(_fetch("GlobalPatterns.RData"))
+
+
+  def enterotype() -> TreeData:
+      """enterotype: 280 gut samples, 553 genera, relative abundances; no tree.
+
+      Returns
+      -------
+      TreeData
+          Relative abundances in ``X`` (``x_kind == 'relative'``); sample metadata in ``obs``.
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::data(enterotype)``
+      Guide: :doc:`/guide/reading_data`
+
+      References
+      ----------
+      Arumugam M et al. (2011) Enterotypes of the human gut microbiome. Nature 473:174-180.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> bt.datasets.enterotype().shape  # doctest: +SKIP
+      (280, 553)
+      """
+      return read_phyloseq(_fetch("enterotype.RData"))
+  ```
+  - Export both from `datasets/__init__.py`.
+  - Confirm the `pooch.create`/`fetch` signatures in the installed pooch (R2.2).
+  - `@cache` keeps construction lazy, so importing does no work (R4.7).
+- [x] **Step 5: CI job.** Add a `network` job to `.github/workflows/test.yaml`, matching the file's style: pinned action SHAs, `uv`, `shell: bash`.
+  - It runs on `ubuntu-latest` with Python 3.13.
+  - It caches `BIOTAPY_DATA_DIR=${{ github.workspace }}/.pooch` with
+    `actions/cache` pinned to `55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0`
+    (research), keyed on `hashFiles('src/biotapy/datasets/_remote.py')`.
+  - It runs `uv run --group test pytest -m "network or golden"`. The CLI `-m`
+    replaces `addopts`' `-m "not network and not r"`; the research confirmed
+    this in pytest's source.
+  - Add the job to `check.needs`.
+  - Extend `tests/test_ci.py` with one test that the workflow has a job running
+    `-m "network or golden"` and that it is in `check.needs`, in the existing
+    style.
+- [x] **Step 6: Docs and knowledge.**
+  - Add both loaders to `docs/api.md` (Datasets block).
+  - Add a short "Example datasets" section to the reading guide:
+    - they are downloaded and cached;
+    - `BIOTAPY_DATA_DIR`;
+    - their licences stay with phyloseq's authors.
+  - `modules/datasets.md` gains the remote loaders, and the gotcha that
+    examples are `+SKIP` because they download.
+  - Add the dependency sentence, and a log line.
+- [x] **Step 7: Run** `uv run --group test pytest -m network tests/datasets -q` once locally. It downloads about 630 kB. Expect 2 passed; record it in the report.
+- [x] **Step 8: Gate** (the normal suite excludes network); commit `feat(datasets): add GlobalPatterns and enterotype via pooch`.
+
+### Task 1.12b: golden tests for `relative` and `tax_glom`
+
+**Files:**
+- Create `tests/pp/test_transform_golden.py` and `tests/pp/test_glom_golden.py`.
+- No new dependency: pandas reads `.csv.gz` itself (the user declined `pyarrow`).
+
+**Interfaces:** consumes the golden files from 1.12a and `bt.datasets.global_patterns()` from 1.11.
+
+- [x] **Step 1: Tests.**
+  - `tests/pp/test_transform_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def test_relative_matches_phyloseq_transform_sample_counts():
+        # OTU ids look numeric; read them as text so they match var_names.
+        golden = pd.read_csv(GOLDEN / "relative.csv.gz", dtype={"sample_id": str, "taxon_id": str})
+        out = bt.pp.relative(bt.datasets.global_patterns())
+        rel = out.layers["relative"].tocoo()
+        ours = pd.DataFrame(
+            {"sample_id": out.obs_names[rel.row], "taxon_id": out.var_names[rel.col], "value": rel.data}
+        )
+        merged = golden.merge(ours, on=["sample_id", "taxon_id"], how="outer", suffixes=("_r", "_py"), indicator=True)
+        assert (merged["_merge"] == "both").all()
+        np.testing.assert_allclose(merged["value_py"], merged["value_r"], rtol=1e-7)
+    ```
+  - `tests/pp/test_glom_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    @pytest.mark.parametrize("rank", ["phylum", "genus"])
+    def test_tax_glom_matches_phyloseq(rank):
+        golden = pd.read_csv(GOLDEN / f"tax_glom_{rank}.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
+        out = bt.pp.tax_glom(bt.datasets.global_patterns(), rank)
+        assert list(out.obs_names) == list(golden.index)
+        assert list(out.var_names) == list(golden.columns)
+        np.testing.assert_allclose(out.X.toarray(), golden.to_numpy(), rtol=1e-7)
+    ```
+- [x] **Step 2: Run** `uv run --group test pytest -m "golden" tests/pp -q`.
+  - These tests check against R output that already exists, so they may pass
+    first time. Say that in the report and do not fake a RED.
+  - If a comparison fails, investigate the semantics before touching code:
+    NArm, lineage keys, archetype order. Report findings; never loosen a
+    tolerance without a one-line reason (R11.3).
+- [x] **Step 3: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
+
+### Checkpoint B - review slice 1B stage 2
+- [x] Whole-branch review of stage 2 against every contract and the stage-2
+  review focus; fix pass.
+- [x] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
+  and `modules/core.md` (`tree_from_phylo`), plus the log.
+- [x] The PR's CI is green, including the new network/golden job.
+- [ ] Ask the user to review slice 1B before slice 1C.
 
 ---
 

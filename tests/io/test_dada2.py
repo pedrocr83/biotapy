@@ -1,4 +1,6 @@
 import gzip
+import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -6,6 +8,9 @@ import pytest
 import treedata
 
 import biotapy as bt
+
+DADA2 = Path(__file__).parents[1] / "data" / "dada2"
+PHYLOSEQ = Path(__file__).parents[1] / "data" / "phyloseq"
 
 SEQTAB = '"","ACGTACGT","TTGACCAA","GGGCCCAA","CCCCAAAA"\n"S1",10,0,5,0\n"S2",0,0,0,0\n"S3",3,7,1,0\n'
 SPECIES_UNKNOWN = (
@@ -153,3 +158,48 @@ def test_read_dada2_without_sequence_columns_names_seqtab(tmp_path):
     path.write_text('""\n"S1"\n"S2"\n')
     with pytest.raises(ValueError, match="seqtab="):
         bt.io.read_dada2(path)
+
+
+def test_read_dada2_rds_matches_csv(seqtab, taxa):
+    # Both taxa tables cover 2 of the 4 sequences, so both reads warn (checked join).
+    with pytest.warns(UserWarning, match="taxa="):
+        from_rds = bt.io.read_dada2(DADA2 / "seqtab.rds", taxa=DADA2 / "taxa.rds")
+    with pytest.warns(UserWarning, match="taxa="):
+        from_csv = bt.io.read_dada2(seqtab, taxa=taxa)
+    np.testing.assert_array_equal(from_rds.X.toarray(), from_csv.X.toarray())
+    assert list(from_rds.obs_names) == list(from_csv.obs_names)
+    assert from_rds.var["sequence"].tolist() == from_csv.var["sequence"].tolist()
+    assert from_rds.obs.index.name == from_csv.obs.index.name
+    assert from_rds.var.index.name == from_csv.var.index.name
+    assert from_rds.X.dtype == from_csv.X.dtype
+
+
+def test_read_dada2_rds_taxa_keeps_matrix_shape():
+    with pytest.warns(UserWarning, match="taxa="):
+        var = bt.io.read_dada2(DADA2 / "seqtab.rds", taxa=DADA2 / "taxa.rds").var
+    assert var.loc["ASV1", ["kingdom", "phylum", "genus"]].tolist() == ["Bacteria", "Firmicutes", "Blautia"]
+    assert np.isnan(var.loc["ASV2", "genus"])
+
+
+def test_read_dada2_rejects_a_non_matrix_rds(seqtab):
+    with pytest.raises(ValueError, match="seqtab="):
+        bt.io.read_dada2(PHYLOSEQ / "toy.rds")
+    with pytest.raises(ValueError, match="taxa="):
+        bt.io.read_dada2(seqtab, taxa=PHYLOSEQ / "toy.rds")
+
+
+def test_read_dada2_rejects_a_character_vector_rds(seqtab):
+    with pytest.raises(ValueError, match="taxa="):
+        bt.io.read_dada2(seqtab, taxa=DADA2 / "char_vector.rds")
+    with pytest.raises(ValueError, match="seqtab="):
+        bt.io.read_dada2(DADA2 / "char_vector.rds")
+
+
+def test_read_dada2_reads_uppercase_rds_extension(tmp_path):
+    path = tmp_path / "seqtab.RDS"
+    path.write_bytes((DADA2 / "seqtab.rds").read_bytes())
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        tdata = bt.io.read_dada2(path)
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+    assert tdata.shape == (3, 4)
