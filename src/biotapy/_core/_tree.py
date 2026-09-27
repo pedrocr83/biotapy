@@ -16,6 +16,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import scipy.sparse as sp
+from anndata import AnnData
 from skbio import TreeNode
 from skbio.io import NewickFormatError, UnrecognizedFormatError
 from treedata import TreeData as TreeData
@@ -62,6 +63,33 @@ def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
         raise KeyError(msg)
     # treedata ships no py.typed marker, so tdata.vart[...] types as Any.
     return cast("nx.DiGraph[str]", tdata.vart[PHYLO_KEY])
+
+
+def get_skbio_tree(adata: AnnData) -> TreeNode:
+    """The phylogeny in ``vart['phylo']`` as a scikit-bio ``TreeNode``, rooted where it is drawn.
+
+    scikit-bio's Faith PD and UniFrac accept a root with at most two children. A
+    root with more (an unrooted Newick tree, or the toy tree) keeps its first child
+    and gets the others under one new zero-length node, which changes no
+    root-to-tip path length. Missing (NaN) branch lengths stay NaN; scikit-bio
+    counts them as zero. A plain AnnData raises ``TypeError``; a TreeData without
+    ``vart['phylo']`` raises ``KeyError``.
+    """
+    if not isinstance(adata, TreeData):
+        msg = f"needs a TreeData with a tree in vart[{PHYLO_KEY!r}], got {type(adata).__name__}"
+        raise TypeError(msg)
+    tree = get_tree(adata)
+    root = next(node for node in tree if tree.in_degree(node) == 0)
+    nodes = {root: TreeNode(name=root)}
+    for parent, child in nx.bfs_edges(tree, root):
+        nodes[child] = TreeNode(name=child, length=tree.edges[parent, child]["length"])
+        nodes[parent].append(nodes[child])
+    top = nodes[root]
+    if len(top.children) > 2:
+        split = TreeNode(length=0.0)
+        split.extend(top.children[1:])
+        top.append(split)
+    return top
 
 
 def tree_from_newick(text: str, *, argument: str = "text") -> nx.DiGraph[str]:

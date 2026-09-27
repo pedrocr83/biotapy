@@ -4620,7 +4620,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - Used by `tl.alpha` (faith_pd) and `tl.unifrac`. Only `_tree.py` may import
     networkx (R4.5), so this lives in `_core` whatever the caller count.
 
-- [ ] **Step 1: Failing tests.** In `tests/core/test_tree.py`:
+- [x] **Step 1: Failing tests.** In `tests/core/test_tree.py`:
   - Add `import networkx as nx`, `from skbio import TreeNode` and `import biotapy as bt`
     to the import block.
   - Add `get_skbio_tree` to the `from biotapy._core import (...)` list.
@@ -4652,9 +4652,9 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         with pytest.raises(TypeError, match="needs a TreeData"):
             get_skbio_tree(bt.datasets.toy().to_adata())
     ```
-- [ ] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/core/test_tree.py -q`.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/core/test_tree.py -q`.
   It fails with `ImportError: cannot import name 'get_skbio_tree' from 'biotapy._core'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - In `_core/_tree.py`, add `from anndata import AnnData` next to the other
     third-party imports, and this function before `tree_from_newick`:
     ```python
@@ -4689,7 +4689,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     - toy's tip distances to the root are unchanged;
     - GlobalPatterns (19,216 tips) converts in 0.1 s;
     - `TreeNode.append` and `extend` do not copy.
-- [ ] **Step 4: Knowledge.**
+- [x] **Step 4: Knowledge.**
   - `contracts/tree-access.md` statement 2 gains "converting the phylogeny to
     a scikit-bio `TreeNode` (`get_skbio_tree`)". Add a Gotcha: scikit-bio's
     Faith PD and UniFrac need a root with at most two children, so
@@ -4701,7 +4701,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - Add a log line. Tick 1.15c here.
   - There is no docs step: `_core` is private and not in `docs/api.md`. Users
     meet the behaviour through the `tl.alpha` and `tl.unifrac` docstrings.
-- [ ] **Step 5: Run, gate and commit.**
+- [x] **Step 5: Run, gate and commit.**
   - Run `uv run --group test pytest tests/core -q`, then `uvx prek run --all-files`
     and `uv run --group test pytest`.
   - Commit `feat(core): convert the phylogeny to a scikit-bio TreeNode`.

@@ -1,6 +1,22 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.15c done: `_core.get_skbio_tree(adata: AnnData) ->
+  skbio.TreeNode` converts the phylogeny in `vart["phylo"]` to a scikit-bio
+  `TreeNode` via `nx.bfs_edges`, rooted where the networkx tree is drawn. A
+  root with more than two children (the toy tree's has three) keeps its first
+  child and moves the rest under one new zero-length node, which changes no
+  root-to-tip path length; NaN branch lengths pass through unchanged. A plain
+  `AnnData` raises `TypeError` naming what it needs; a `TreeData` without
+  `vart["phylo"]` raises `KeyError` from `get_tree`. Exported from `_core`;
+  used by the upcoming `tl.alpha` (faith_pd) and `tl.unifrac`, kept in
+  `_tree.py` because only that module may import networkx (R4.5). New tests
+  in `tests/core/test_tree.py`. Confirmed against the installed scikit-bio
+  0.7.4 (`TreeNode.__init__`, `append`, `extend`, `tips`, `find`, `distance`)
+  that `append`/`extend` reparent nodes rather than copying them. Updated
+  [tree-access](contracts/tree-access.md) (statement 2, a Gotcha) and
+  [core](modules/core.md) (entry point, dependencies); ticked Task 1.15c's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.15b fix round 1: named `esophagus()` alongside
   `global_patterns()`/`enterotype()` in two places the esophagus change had
   left stale - [datasets](modules/datasets.md)'s Gotchas doctest-`+SKIP`

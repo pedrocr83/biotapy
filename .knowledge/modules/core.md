@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:58:07Z }
-commit: e401f91
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:33:04Z }
+commit: 6f3d626
 status: stable
 ---
 
@@ -65,6 +65,13 @@ none of them back.
 - `_tree.py:tree_tips` - the tree's leaf names (nodes with no children).
 - `_tree.py:relabel_tips` - rename a subset of a tree's nodes (e.g. sequence
   -> ASV id), raising rather than silently merging nodes on a name collision.
+- `_tree.py:get_skbio_tree` - convert `vart['phylo']` into a scikit-bio
+  `TreeNode`, rooted where the networkx tree is drawn; a root with more than
+  two children keeps its first child and moves the rest under one new
+  zero-length node (scikit-bio's Faith PD and UniFrac reject a root with more
+  than two children). Used by `tl.alpha` (faith_pd) and `tl.unifrac`. Takes a
+  plain `AnnData`, raising `TypeError` when it is not a `TreeData` and
+  `KeyError` (from `get_tree`) when it has no `vart['phylo']`.
 - `_warnings.py:warn_user` - the single `UserWarning` entry point, attributed
   to the first stack frame outside biotapy; shared by `_tree.py` (tree/table
   mismatch) and `io/_join.py` (partial join).
@@ -112,7 +119,8 @@ none of them back.
 
 None inside biotapy. Imports only third-party packages: `numpy`, `scipy`,
 `pandas`, `anndata`, and, in `_tree.py` only, `treedata`/`networkx` and
-scikit-bio (Newick parsing, `_tree.py:tree_from_newick`). scikit-bio is a
+scikit-bio (Newick parsing, `_tree.py:tree_from_newick`; also used for
+`TreeNode` conversion, `_tree.py:get_skbio_tree`). scikit-bio is a
 real cost at import time: measured at commit 43d6efb, `import biotapy` takes
 ~1.0-1.1s, of which roughly half (~0.5s) is scikit-bio, found by diffing
 against importing biotapy's other runtime dependencies alone. A lazy
