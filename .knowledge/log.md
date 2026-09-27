@@ -1,6 +1,12 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Creation**: Task 1.12b done: `tests/pp/test_transform_golden.py` and
+  `tests/pp/test_glom_golden.py` compare `bt.pp.relative` and
+  `bt.pp.tax_glom` (phylum, genus) against the phyloseq golden files from
+  Task 1.12a, on `bt.datasets.global_patterns()`. All 3 passed first time
+  against the existing golden files, no source change. Ticked Task 1.12b's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Creation**: Task 1.11 done: `bt.datasets.global_patterns()` and
   `bt.datasets.enterotype()` (`src/biotapy/datasets/_remote.py`) download
   GlobalPatterns/enterotype from phyloseq's repository through `pooch`,

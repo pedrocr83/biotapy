@@ -3184,7 +3184,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 
 **Interfaces:** consumes the golden files from 1.12a and `bt.datasets.global_patterns()` from 1.11.
 
-- [ ] **Step 1: Tests.**
+- [x] **Step 1: Tests.**
   - `tests/pp/test_transform_golden.py`:
     ```python
     from pathlib import Path
@@ -3233,13 +3233,13 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
         assert list(out.var_names) == list(golden.columns)
         np.testing.assert_allclose(out.X.toarray(), golden.to_numpy(), rtol=1e-7)
     ```
-- [ ] **Step 2: Run** `uv run --group test pytest -m "golden" tests/pp -q`.
+- [x] **Step 2: Run** `uv run --group test pytest -m "golden" tests/pp -q`.
   - These tests check against R output that already exists, so they may pass
     first time. Say that in the report and do not fake a RED.
   - If a comparison fails, investigate the semantics before touching code:
     NArm, lineage keys, archetype order. Report findings; never loosen a
     tolerance without a one-line reason (R11.3).
-- [ ] **Step 3: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
+- [x] **Step 3: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
 
 ### Checkpoint B - review slice 1B stage 2
 - [ ] Whole-branch review of stage 2 against every contract and the stage-2
