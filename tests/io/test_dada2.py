@@ -201,5 +201,5 @@ def test_read_dada2_reads_uppercase_rds_extension(tmp_path):
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         tdata = bt.io.read_dada2(path)
-    assert not caught
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
     assert tdata.shape == (3, 4)

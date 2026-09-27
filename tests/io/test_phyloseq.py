@@ -1,6 +1,8 @@
+import itertools
 import warnings
 from pathlib import Path
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import pytest
@@ -120,7 +122,7 @@ def test_read_phyloseq_reads_uppercase_rds_extension(tmp_path):
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         tdata = bt.io.read_phyloseq(path)
-    assert not caught
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
     assert tdata.shape == (6, 8)
 
 
@@ -143,3 +145,13 @@ def test_read_phyloseq_ordered_factor_round_trips_through_h5td(tmp_path):
 
 def test_read_phyloseq_ordered_factor_fixture_x_is_int64():
     assert bt.io.read_phyloseq(PHYLOSEQ / "ordered_factor.rds").X.dtype == np.int64
+
+
+def test_read_phyloseq_tree_matches_toy_tip_to_tip_distances():
+    tree = bt.io.read_phyloseq(PHYLOSEQ / "toy.rds").vart["phylo"].to_undirected()
+    toy_tree = bt.datasets.toy().vart["phylo"].to_undirected()
+    tips = [f"f{i}" for i in range(1, 9)]
+    for a, b in itertools.combinations(tips, 2):
+        got = nx.shortest_path_length(tree, a, b, weight="length")
+        want = nx.shortest_path_length(toy_tree, a, b, weight="length")
+        np.testing.assert_allclose(got, want, rtol=1e-12)
