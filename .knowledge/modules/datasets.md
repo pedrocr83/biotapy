@@ -5,8 +5,8 @@ description: In-memory and pooch-cached example TreeData objects for docs, docte
 resource: /src/biotapy/datasets/
 paths: ["src/biotapy/datasets/**"]
 tags: [datasets]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:17:24Z }
-commit: c38b950
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:28:27Z }
+commit: 54b8ef2
 status: stable
 ---
 
@@ -72,8 +72,8 @@ to actually exercise the three downloads (CI's dedicated `network` job runs
   `pl`. Changing its numbers silently breaks those pinned expectations
   without touching `toy()`'s own tests - check `tests/pp/test_glom.py` and
   every doctest calling `bt.datasets.toy()` before changing it.
-- `global_patterns()`/`enterotype()`'s doctest examples are `# doctest:
-  +SKIP`: running them for real would download phyloseq's (AGPL-3) data
+- `global_patterns()`/`enterotype()`/`esophagus()`'s doctest examples are
+  `# doctest: +SKIP`: running them for real would download phyloseq's (AGPL-3) data
   during `pytest --doctest-modules`, which R11.4 and stage2-constraints both
   forbid outside the dedicated network job. `tests/datasets/test_remote.py`
   covers the loaders offline instead, by monkeypatching the private

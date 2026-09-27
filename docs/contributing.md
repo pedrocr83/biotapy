@@ -53,9 +53,9 @@ Network and golden tests are excluded by default (`[tool.pytest]` in
 uv run --group test pytest -m "network or golden"
 ```
 
-These tests download `bt.datasets.global_patterns()` and `bt.datasets.enterotype()`
-through [pooch](https://www.fatiando.org/pooch/) and compare `pp.relative`
-and `pp.tax_glom` against phyloseq's output on that data. Set
+These tests download `bt.datasets.global_patterns()`, `bt.datasets.enterotype()`
+and `bt.datasets.esophagus()` through [pooch](https://www.fatiando.org/pooch/)
+and compare `pp.relative` and `pp.tax_glom` against phyloseq's output on that data. Set
 `BIOTAPY_DATA_DIR` to point the pooch cache somewhere other than the default
 per-user cache directory - CI caches it across runs the same way:
 

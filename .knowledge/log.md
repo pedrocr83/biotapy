@@ -1,6 +1,11 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.15b fix round 1: named `esophagus()` alongside
+  `global_patterns()`/`enterotype()` in two places the esophagus change had
+  left stale - [datasets](modules/datasets.md)'s Gotchas doctest-`+SKIP`
+  bullet and `docs/contributing.md`'s network-test paragraph. No behavior
+  change.
 * **Update**: Task 1.15b done: `bt.datasets.esophagus() -> TreeData` - 3
   esophageal biopsies (samples `B`, `C`, `D`) x 58 OTUs, with a tree in
   `vart["phylo"]` and no taxonomy or sample data, read through
