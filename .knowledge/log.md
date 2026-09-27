@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint B1 fix I4): [data-model-slots](contracts/data-model-slots.md)
+  convention 2 now states that readers infer `x_kind` with
+  `_core.infer_x_kind` (counts, relative within `1e-3`, else abundance)
+  instead of always writing `counts`.
 * **Update** (Checkpoint B1 fix C1): [data-model-slots](contracts/data-model-slots.md)
   convention 1 now states that rank columns use the pandas `str` dtype, so
   reader output with an all-missing rank saves to h5td/h5ad.

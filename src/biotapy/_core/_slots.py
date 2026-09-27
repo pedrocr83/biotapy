@@ -8,14 +8,35 @@ import numpy as np
 import numpy.typing as npt
 from anndata import AnnData
 
+from ._matrix import as_csr
+
 XKind = Literal["counts", "relative", "rpk", "cpm", "abundance"]
 ParamValue = str | int | float | bool | None
 DERIVED_SLOTS = ("layers", "obsm", "obsp", "varm", "varp")
+# Stored proportions are rounded: enterotype's sample sums run 0.99986-1.00000
+# (decisions/phyloseq-import-route), so an exact test for 1 would call them abundances.
+RELATIVE_TOLERANCE = 1e-3
 
 
 def x_kind(adata: AnnData) -> XKind:
     """What ``X`` holds; a missing key means raw counts."""
     return cast(XKind, adata.uns.get("biotapy", {}).get("x_kind", "counts"))
+
+
+def infer_x_kind(X: object) -> XKind:
+    """What a freshly read ``X`` holds, judged from its values.
+
+    Whole numbers are ``"counts"``; otherwise, rows that each sum to 1 within
+    ``RELATIVE_TOLERANCE`` (all-zero rows ignored) are ``"relative"``;
+    anything else is ``"abundance"``.
+    """
+    matrix = as_csr(X)
+    if np.all(matrix.data == np.round(matrix.data)):
+        return "counts"
+    sums = np.asarray(matrix.sum(axis=1)).ravel()
+    if np.all(np.abs(sums[sums != 0] - 1) <= RELATIVE_TOLERANCE):
+        return "relative"
+    return "abundance"
 
 
 def require_counts(adata: AnnData, *, func: str) -> None:

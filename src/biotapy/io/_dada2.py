@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from biotapy._core import TreeData, make_treedata, normalize_ranks, relabel_tips, tree_from_newick
+from biotapy._core import TreeData, infer_x_kind, make_treedata, normalize_ranks, relabel_tips, tree_from_newick
 
 from ._join import _join_to
 
@@ -30,7 +30,7 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     Returns
     -------
     TreeData
-        Counts in ``X``; features named ``ASV1..n`` with the sequence in
+        The table in ``X``; features named ``ASV1..n`` with the sequence in
         ``var['sequence']``; rank columns in ``var``; the tree in ``vart['phylo']``.
 
     Raises
@@ -42,6 +42,10 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     -----
     R equivalent: ``phyloseq::phyloseq``
     Guide: :doc:`/guide/reading_data`
+
+    ``uns['biotapy']['x_kind']`` is inferred from the values: whole numbers
+    are ``"counts"`` (as DADA2 writes them), rows that each sum to 1 are
+    ``"relative"``, anything else is ``"abundance"``.
 
     The text table is read densely once and stored sparse; DADA2 tables are
     small enough for this. ``.rds`` input is not supported yet.
@@ -69,8 +73,8 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     phylo = None
     if tree is not None:
         phylo = relabel_tips(tree_from_newick(Path(tree).read_text()), dict(zip(sequences, names, strict=True)))
-    obs = pd.DataFrame(index=counts.index)
-    return make_treedata(counts.to_numpy(), obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_dada2")
+    obs, X = pd.DataFrame(index=counts.index), counts.to_numpy()
+    return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_dada2")
 
 
 def _read_table(path: Path) -> pd.DataFrame:

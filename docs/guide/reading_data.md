@@ -3,6 +3,12 @@
 Readers turn a file format into a `TreeData` that follows the one
 [data model](data_model.md) every biotapy function relies on.
 
+No format below records whether its table holds counts or proportions, so
+every reader infers `uns["biotapy"]["x_kind"]` from the values: whole numbers
+are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
+(within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
+that need raw counts check this and refuse proportions.
+
 ## BIOM
 
 `bt.io.read_biom` reads both BIOM dialects - JSON 1.0 and HDF5 2.1 - through

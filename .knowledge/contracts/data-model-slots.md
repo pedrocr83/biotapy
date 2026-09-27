@@ -45,8 +45,13 @@ Extends the spec's data-model table with exact keys.[^spec]
    so a reader whose `species` rank is entirely missing could not be saved
    (`_core/_taxonomy.py:normalize_ranks`).
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
-   Readers always set it. Missing key means `counts`. Functions that need raw
-   counts (rarefy, chao1) call `_core.require_counts` and raise otherwise.
+   Readers always set it, inferred from the values by `_core.infer_x_kind`
+   (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
+   nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
+   No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+   text table), and labeling proportions `counts` would let rarefy and chao1
+   run on them. Missing key means `counts`. Functions that need raw counts
+   (rarefy, chao1) call `_core.require_counts` and raise otherwise.
 3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
    `{"step", "version", "params"}`, appended by `_core.add_provenance`.
    JSON strings, not dicts, because h5ad cannot store a list of dicts.

@@ -84,6 +84,14 @@ def test_read_biom_records_counts_and_provenance(biom_hdf5):
     assert meta["x_kind"] == "counts" and '"io.read_biom"' in meta["provenance"][-1]
 
 
+def test_read_biom_infers_relative_abundance(tmp_path):
+    path = tmp_path / "relative.biom"
+    table = biom.Table(np.array([[0.25, 0.5], [0.75, 0.5]]), ["OTU_1", "OTU_2"], ["S1", "S2"])
+    with biom_open(str(path), "w") as handle:
+        table.to_hdf5(handle, "biotapy tests")
+    assert bt.io.read_biom(path).uns["biotapy"]["x_kind"] == "relative"
+
+
 @pytest.mark.parametrize("fmt", ["hdf5", "json"])
 def test_write_biom_round_trips_toy(tmp_path, fmt):
     toy = bt.datasets.toy()

@@ -9,7 +9,7 @@ import biom
 import numpy as np
 import pandas as pd
 
-from biotapy._core import TreeData, make_treedata, split_lineage, tree_from_newick
+from biotapy._core import TreeData, infer_x_kind, make_treedata, split_lineage, tree_from_newick
 
 from ._biom import _biom_parts
 from ._join import _join_to
@@ -30,7 +30,8 @@ def read_qiime2(
     Parameters
     ----------
     table
-        ``FeatureTable[Frequency]`` artifact (``.qza``).
+        ``FeatureTable[Frequency]`` or ``FeatureTable[RelativeFrequency]``
+        artifact (``.qza``).
     taxonomy
         ``FeatureData[Taxonomy]`` artifact; replaces any taxonomy in the table.
         Features it lists that are not in the table are ignored.
@@ -43,7 +44,7 @@ def read_qiime2(
     Returns
     -------
     TreeData
-        Counts in ``X``; rank columns and ``confidence`` in ``var``; metadata
+        The table in ``X``; rank columns and ``confidence`` in ``var``; metadata
         in ``obs``; the tree in ``vart['phylo']``.
 
     Raises
@@ -57,7 +58,10 @@ def read_qiime2(
     R equivalent: ``qiime2R::qza_to_phyloseq``
     Guide: :doc:`/guide/reading_data`
 
-    Artifacts are recognized by their payload file, not by ``metadata.yaml``.
+    Artifacts are recognized by their payload file, not by ``metadata.yaml``,
+    so ``uns['biotapy']['x_kind']`` is inferred from the values: whole numbers
+    are ``"counts"``, rows that each sum to 1 are ``"relative"``, anything
+    else is ``"abundance"``.
 
     Examples
     --------
@@ -89,7 +93,7 @@ def read_qiime2(
         )
     if metadata is not None:
         obs = _join_to(_metadata(Path(metadata)), obs.index, argument=f"metadata={str(metadata)!r}")
-    return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_qiime2")
+    return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_qiime2")
 
 
 def _payload(artifact: str | Path, filename: str, directory: Path, *, argument: str) -> Path:
