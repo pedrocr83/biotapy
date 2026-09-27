@@ -99,7 +99,7 @@ def test_rejects_fractional_values_labelled_counts():
     # subsample_counts would truncate them: [1.5, 2.5, 3.0] rarefied to 3 gives [0, 0, 3].
     tdata = bt.datasets.toy()
     tdata.X = sp.csr_matrix(tdata.X.toarray() + 0.5)
-    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer values"):
+    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer or missing"):
         bt.pp.rarefy(tdata, seed=0)
 
 

@@ -83,7 +83,7 @@ def permanova(
     if pd.api.types.is_numeric_dtype(groups) and not pd.api.types.is_bool_dtype(groups):
         msg = (
             f"grouping={grouping!r} is a numeric column ({groups.dtype}); tl.permanova compares groups, "
-            f'so convert it with .astype("category") for one group per value'
+            'so convert it with .astype("category") for one group per value'
         )
         raise TypeError(msg)
     if groups.isna().any():

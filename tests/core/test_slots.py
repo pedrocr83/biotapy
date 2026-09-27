@@ -38,7 +38,14 @@ def test_require_counts_rejects_non_integer_values():
     adata.X = sp.csr_matrix(np.array([[0.0, 2.0, 1.0], [3.0, 4.0, 5.0]]))
     require_counts(adata, func="pp.rarefy")  # whole numbers stored as float pass
     adata.X = sp.csr_matrix(np.array([[0.0, 0.5, 1.0], [3.0, 4.0, 5.0]]))
-    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer values"):
+    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer or missing"):
+        require_counts(adata, func="pp.rarefy")
+
+
+def test_require_counts_rejects_nan_values():
+    adata = _adata()
+    adata.X = sp.csr_matrix(np.array([[0.0, np.nan, 1.0], [3.0, 4.0, 5.0]]))
+    with pytest.raises(ValueError, match=r"missing \(NaN\)"):
         require_counts(adata, func="pp.rarefy")
 
 

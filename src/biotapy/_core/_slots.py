@@ -49,7 +49,7 @@ def require_counts(adata: AnnData, *, func: str) -> None:
         raise ValueError(msg)
     # One definition of counts: infer_x_kind's whole-number rule, which reads only X.data (O(nnz)).
     if infer_x_kind(adata.X) != "counts":
-        msg = f"{func} needs raw counts in X, but X holds non-integer values"
+        msg = f"{func} needs raw counts in X, but X holds non-integer or missing (NaN) values"
         raise ValueError(msg)
 
 

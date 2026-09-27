@@ -60,7 +60,8 @@ def alpha(
     Guide: :doc:`/guide/diversity`
 
     scikit-bio needs dense input, so rows are densified in chunks of at most 2**20
-    values (8 MiB of float64). Faith PD includes the root, as
+    values (8 MiB of float64), plus an 8 MiB int64 presence copy per chunk when
+    ``faith_pd`` is asked. Faith PD includes the root, as
     ``picante::pd(include.root = TRUE)``; a root with more than two children first
     gets a zero-length split, which changes no root-to-tip distance. Faith PD
     depends on presence only, so it is computed on presence/absence and runs on

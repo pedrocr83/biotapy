@@ -27,7 +27,8 @@ bt.tl.alpha(tdata, metrics=["shannon", "faith_pd"], inplace=True)  # obs["alpha_
 - `faith_pd` needs a TreeData with a tree. A root with three or more children, common in a
   tree read from unrooted Newick, gets a zero-length split, which changes no root-to-tip
   distance.
-- scikit-bio needs dense input, so biotapy densifies at most 2**20 values (8 MiB) at a time.
+- scikit-bio needs dense input, so biotapy densifies at most 2**20 values (8 MiB) at a
+  time, plus an 8 MiB int64 presence copy per chunk when `faith_pd` is asked.
 
 ## Beta diversity: `tl.beta` and `tl.unifrac`
 
