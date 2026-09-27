@@ -99,8 +99,12 @@ source_suffix = {
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "anndata": ("https://anndata.scverse.org/en/stable/", None),
-    "scanpy": ("https://scanpy.scverse.org/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "treedata": ("https://treedata.readthedocs.io/en/stable/", None),
+    "skbio": ("https://scikit.bio/docs/latest/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
@@ -122,8 +126,11 @@ html_title = project
 
 html_theme_options = {
     "repository_url": repository_url,
+    "repository_branch": "master",
+    "path_to_docs": "docs",
     "use_repository_button": True,
-    "path_to_docs": "docs/",
+    "use_edit_page_button": True,
+    "use_issues_button": True,
     "navigation_with_keys": False,
 }
 
