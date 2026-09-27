@@ -26,7 +26,7 @@ def permanova(
         Samples x features with ``obsp[distance]``, written by :func:`biotapy.tl.beta`
         or :func:`biotapy.tl.unifrac` with ``inplace=True``.
     grouping
-        The ``obs`` column holding each sample's group.
+        The ``obs`` column holding each sample's group: categorical, string or bool.
     distance
         The ``obsp`` key to test.
     permutations
@@ -45,6 +45,8 @@ def permanova(
     ------
     KeyError
         ``grouping`` is not an ``obs`` column, or ``obsp[distance]`` is missing.
+    TypeError
+        ``obs[grouping]`` is numeric (and not bool); convert it with ``.astype("category")`` for groups.
     ValueError
         ``grouping`` has missing values, or the distances hold NaN.
 
@@ -55,7 +57,10 @@ def permanova(
 
     Matches ``adonis2(distance ~ grouping, data, permutations)`` with one term,
     whose ``F`` is the test statistic. P-values agree only up to permutation noise:
-    R and NumPy random generators differ.
+    R and NumPy random generators differ. ``grouping`` is categorical, one group
+    per distinct value, like an R factor. adonis2 fits a numeric column as one
+    continuous term instead, so a numeric column raises rather than silently
+    becoming one group per value.
 
     Examples
     --------
@@ -70,6 +75,12 @@ def permanova(
         msg = f"grouping={grouping!r} is not a column of obs"
         raise KeyError(msg)
     groups = adata.obs[grouping]
+    if pd.api.types.is_numeric_dtype(groups) and not pd.api.types.is_bool_dtype(groups):
+        msg = (
+            f"grouping={grouping!r} is a numeric column ({groups.dtype}); tl.permanova compares groups, "
+            f'so convert it with .astype("category") for one group per value'
+        )
+        raise TypeError(msg)
     if groups.isna().any():
         msg = f"grouping={grouping!r} is missing for {int(groups.isna().sum())} sample(s); drop them first"
         raise ValueError(msg)

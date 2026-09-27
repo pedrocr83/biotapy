@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 import biotapy as bt
@@ -37,6 +38,23 @@ def test_permanova_input_unchanged(assert_unchanged):
 def test_permanova_unknown_grouping_is_named():
     with pytest.raises(KeyError, match="grouping='site'"):
         bt.tl.permanova(_toy_with(), "site")
+
+
+def test_permanova_numeric_grouping_raises():
+    # adonis2 would fit a numeric column as one continuous term, not one group per value.
+    tdata = _toy_with()
+    tdata.obs["dose"] = [1, 1, 2, 2, 3, 3]
+    with pytest.raises(TypeError, match=r"grouping='dose' is a numeric column.*\.astype\(\"category\"\)"):
+        bt.tl.permanova(tdata, "dose", seed=0)
+
+
+@pytest.mark.parametrize(
+    ("values", "n_groups"), [(pd.Categorical([1, 1, 2, 2, 3, 3]), 3), ([True, True, True, False, False, False], 2)]
+)
+def test_permanova_category_or_bool_grouping_works(values, n_groups):
+    tdata = _toy_with()
+    tdata.obs["dose"] = values
+    assert bt.tl.permanova(tdata, "dose", seed=0)["number of groups"] == n_groups
 
 
 def test_permanova_missing_group_raises():
