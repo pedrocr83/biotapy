@@ -1,18 +1,27 @@
 """DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table."""
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 import pandas as pd
 
-from biotapy._core import TreeData, infer_x_kind, make_treedata, normalize_ranks, relabel_tips, tree_from_newick
+from biotapy._core import (
+    TreeData,
+    infer_x_kind,
+    make_treedata,
+    normalize_ranks,
+    relabel_tips,
+    tree_from_newick,
+    tree_tips,
+)
 
 from ._join import _join_to
 
 _SEQUENCE = re.compile(r"^[ACGTN]+$")
 
 
-def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str | Path | None = None) -> TreeData:
+def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str | Path | None = None) -> TreeData:
     r"""Read a DADA2 sequence table, with optional taxonomy and tree.
 
     Parameters
@@ -25,7 +34,9 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
         CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
         Sequences it lists that are not in ``seqtab`` are ignored.
     tree
-        Newick file whose tips are sequences or ASV ids.
+        Newick file whose tips are DNA sequences, as DADA2 workflows produce
+        (e.g. a tree built from ``seqtab``'s column names). Tips are relabeled
+        to the matching ASV ids; sequence tips not in ``seqtab`` are pruned.
 
     Returns
     -------
@@ -36,7 +47,9 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     Raises
     ------
     ValueError
-        ``seqtab``'s column names are not DNA sequences (the table is transposed).
+        ``seqtab``'s column names are not DNA sequences (the table is
+        transposed), or a ``tree`` tip is not a DNA sequence (an ASV id, say:
+        biotapy numbers ASVs by column order, which need not match yours).
 
     Notes
     -----
@@ -72,7 +85,9 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
         var = ranks.set_axis(names).join(var)
     phylo = None
     if tree is not None:
-        phylo = relabel_tips(tree_from_newick(Path(tree).read_text()), dict(zip(sequences, names, strict=True)))
+        phylo = tree_from_newick(Path(tree).read_text())
+        _require_sequence_tips(tree_tips(phylo), tree)
+        phylo = relabel_tips(phylo, dict(zip(sequences, names, strict=True)))
     obs, X = pd.DataFrame(index=counts.index), counts.to_numpy()
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_dada2")
 
@@ -91,3 +106,10 @@ def _read_table(path: Path) -> pd.DataFrame:
     )
     # write.csv leaves the corner cell empty; pandas would name the index "Unnamed: 0".
     return frame.rename_axis(index=None)
+
+
+def _require_sequence_tips(tips: Iterable[str], tree: str | Path) -> None:
+    others = [tip for tip in tips if not _SEQUENCE.match(tip)]
+    if others:
+        msg = f"tree={str(tree)!r} tips must be DNA sequences, as DADA2 workflows write them; found {others[:3]}"
+        raise ValueError(msg)

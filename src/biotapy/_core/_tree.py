@@ -32,11 +32,25 @@ def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
     return tree
 
 
+def tree_tips(tree: nx.DiGraph[str]) -> list[str]:
+    """Names of the tree's tips (nodes without children)."""
+    return [node for node in tree.nodes if tree.out_degree(node) == 0]
+
+
 def relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]:
-    """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs."""
+    """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs.
+
+    A new name that already names a node which is not itself renamed raises
+    ``ValueError``: networkx would silently merge the two nodes.
+    """
+    renamed = {old: new for old, new in names.items() if old in tree}
+    clashes = [new for new in renamed.values() if new in tree and new not in renamed]
+    if clashes:
+        msg = f"names= would merge nodes: {clashes[:3]} already name other nodes of the tree"
+        raise ValueError(msg)
     # types-networkx's overloads for relabel_nodes resolve to Any here (PEP 696 default type
     # params on a generic base class), even though the runtime call is exactly this typed.
-    return cast("nx.DiGraph[str]", nx.relabel_nodes(tree, dict(names), copy=True))
+    return cast("nx.DiGraph[str]", nx.relabel_nodes(tree, renamed, copy=True))
 
 
 def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
@@ -123,7 +137,7 @@ def _with_str_ids(frame: pd.DataFrame, axis: str) -> pd.DataFrame:
 def _align_tree(
     X: sp.csr_matrix, var: pd.DataFrame, tree: nx.DiGraph[str]
 ) -> tuple[sp.csr_matrix, pd.DataFrame, nx.DiGraph[str]]:
-    tips = {node for node in tree.nodes if tree.out_degree(node) == 0}
+    tips = set(tree_tips(tree))
     shared = var.index.isin(tips)
     n_extra = len(tips - set(var.index))
     if shared.all() and n_extra == 0:

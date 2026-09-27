@@ -23,7 +23,8 @@ sources:
    from `biotapy._core`.
 2. It owns: constructing a TreeData (`make_treedata`), building a tree from an
    edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), Newick
-   parsing (`tree_from_newick`), and relabeling tips (`relabel_tips`).
+   parsing (`tree_from_newick`), listing tips (`tree_tips`), and relabeling
+   tips (`relabel_tips`).
 3. Newick parsing reuses scikit-bio (`TreeNode.read([text], convert_underscores=False)`);
    biotapy never writes its own parser.
 4. `treedata` is pinned to `>=0.3.1,<0.4` in `pyproject.toml`.
@@ -53,6 +54,10 @@ reaches past the helpers.[^spec]
   used as a tip name.
 - A missing branch length (no `:length` in the Newick text) becomes `nan`, not
   `0.0` or `None`, so downstream sum-of-branch-length code must handle NaN.
+- `relabel_tips` raises `ValueError` when a new name already names a node
+  that is not itself renamed: `nx.relabel_nodes` would silently merge the two
+  nodes (a mixed `ASV1`/sequence DADA2 tree lost an edge this way). Swaps are
+  allowed. `read_dada2` also requires every tip to be a DNA sequence.
 - `make_treedata`'s tree/table alignment issues at most one `UserWarning` per
   call, even when both extra features and extra tips exist; it names both
   counts and keeps only the shared features, pruning the tree to kept tips

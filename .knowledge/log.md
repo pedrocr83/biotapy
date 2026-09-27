@@ -1,6 +1,11 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint B1 fixes I5, I6): [tree-access](contracts/tree-access.md)
+  statement 2 adds `tree_tips`; a new gotcha records that `relabel_tips`
+  raises instead of merging nodes when a new name already exists, and that
+  `read_dada2` tree tips must be sequences. `read_dada2` is now
+  `read_dada2(seqtab, *, taxa=None, tree=None)`.
 * **Update** (Checkpoint B1 fix I4): [data-model-slots](contracts/data-model-slots.md)
   convention 2 now states that readers infer `x_kind` with
   `_core.infer_x_kind` (counts, relative within `1e-3`, else abundance)

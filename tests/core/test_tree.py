@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from biotapy._core import get_tree, make_treedata, relabel_tips, tree_from_edges, tree_from_newick
+from biotapy._core import get_tree, make_treedata, relabel_tips, tree_from_edges, tree_from_newick, tree_tips
 
 
 def _make(tree):
@@ -25,6 +25,21 @@ def test_tree_from_edges_stores_branch_length():
 def test_relabel_tips_renames_listed_tips_only():
     tree = relabel_tips(tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)]), {"a": "x"})
     assert _leaves(tree) == {"x", "b"} and tree.edges["r", "x"]["length"] == 1.0
+
+
+def test_relabel_tips_rejects_a_name_already_in_the_tree():
+    tree = tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)])
+    with pytest.raises(ValueError, match="names=.*'b'"):
+        relabel_tips(tree, {"a": "b"})
+
+
+def test_relabel_tips_allows_swapping_names():
+    tree = relabel_tips(tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)]), {"a": "b", "b": "a"})
+    assert tree.edges["r", "b"]["length"] == 1.0 and tree.edges["r", "a"]["length"] == 2.0
+
+
+def test_tree_tips_lists_nodes_without_children():
+    assert sorted(tree_tips(tree_from_edges([("r", "a", 1.0), ("r", "n", 1.0), ("n", "b", 1.0)]))) == ["a", "b"]
 
 
 def test_make_treedata_adds_no_label_column():

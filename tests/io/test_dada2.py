@@ -41,7 +41,7 @@ def test_read_dada2_keeps_all_zero_sample_and_feature(seqtab):
 
 def test_read_dada2_normalizes_taxa(seqtab, taxa):
     with pytest.warns(UserWarning, match=r"taxa=.*2 of 4"):
-        var = bt.io.read_dada2(seqtab, taxa).var
+        var = bt.io.read_dada2(seqtab, taxa=taxa).var
     assert {"kingdom", "phylum", "genus", "sequence"} <= set(var.columns)
     assert var.loc["ASV1", "genus"] == "Blautia" and np.isnan(var.loc["ASV2", "genus"])
     assert var.loc["ASV3", ["kingdom", "phylum", "genus"]].isna().all()
@@ -97,3 +97,19 @@ def test_read_dada2_tree_tips_named_by_sequence(seqtab, tmp_path):
     path.write_text("(((ACGTACGT:1,TTGACCAA:1):1,GGGCCCAA:1):1,CCCCAAAA:1);")
     phylo = bt.io.read_dada2(seqtab, tree=path).vart["phylo"]
     assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"ASV1", "ASV2", "ASV3", "ASV4"}
+
+
+def test_read_dada2_options_are_keyword_only(seqtab, taxa):
+    with pytest.raises(TypeError):
+        bt.io.read_dada2(seqtab, taxa)
+
+
+@pytest.mark.parametrize(
+    "newick",
+    ["(((ASV1:1,ASV2:1):1,ASV3:1):1,ASV4:1);", "(((ASV1:1,TTGACCAA:1):1,GGGCCCAA:1):1,CCCCAAAA:1);"],
+)
+def test_read_dada2_tree_tips_must_be_sequences(seqtab, tmp_path, newick):
+    path = tmp_path / "tree.nwk"
+    path.write_text(newick)
+    with pytest.raises(ValueError, match=r"tree=.*ASV1"):
+        bt.io.read_dada2(seqtab, tree=path)

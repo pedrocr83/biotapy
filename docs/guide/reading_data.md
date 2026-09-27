@@ -144,7 +144,7 @@ checks for both:
 `write.csv`/`write.table`, with optional taxonomy and a tree:
 
 ```python
-tdata = bt.io.read_dada2("seqtab.csv", "taxa.csv", tree="tree.nwk")
+tdata = bt.io.read_dada2("seqtab.csv", taxa="taxa.csv", tree="tree.nwk")
 ```
 
 Only `seqtab` is required.
@@ -179,3 +179,9 @@ Pass a Newick file's path as `tree=` to attach a phylogeny in
 matching `ASV1..ASVn` ids before attaching the tree - the tree's tips and the
 table's `var_names` must agree for every other biotapy function to see them
 as the same features.
+
+Every tip must be a DNA sequence. A tip named by an ASV id raises a
+`ValueError` naming `tree=`: biotapy numbers ASVs by `seqtab`'s column order,
+which need not match the numbering behind your tree, so matching by id could
+attach branches to the wrong features. Sequence tips that are not in
+`seqtab` are pruned, with the usual tree/table warning.
