@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint B1 residual N1): [data-model-slots](contracts/data-model-slots.md)
+  convention 1 names the rank dtype as `pd.StringDtype(na_value=np.nan)`:
+  `astype("str")` means that dtype only on pandas 3, and on pandas 2.3 it
+  turned missing ranks into the text `"<NA>"`.
 * **Creation** (Checkpoint B1 knowledge step): [io](modules/io.md) Module
   concept for `src/biotapy/io/`; added its line to
   [modules/index.md](modules/index.md).

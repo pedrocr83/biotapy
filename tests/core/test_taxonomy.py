@@ -88,6 +88,13 @@ def test_normalize_ranks_stores_ranks_as_str_even_when_all_missing():
     assert out[["genus", "species"]].isna().all().all()
 
 
+def test_normalize_ranks_missing_ranks_are_nan_backed_strings():
+    # pandas 2.3's astype("str") would give the text "<NA>"; this dtype gives NaN on 2.3 and 3.
+    out = normalize_ranks(pd.DataFrame({"Genus": ["g__Blautia", "g__", "NA", None]}))
+    assert out["genus"].isna().tolist() == [False, True, True, True]
+    assert out["genus"].dtype == pd.StringDtype(na_value=np.nan)
+
+
 def test_normalize_ranks_leaves_input_alone():
     frame = pd.DataFrame({"Genus": ["g__Blautia"]})
     normalize_ranks(frame)

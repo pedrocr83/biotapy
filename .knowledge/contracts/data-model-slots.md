@@ -40,7 +40,9 @@ Extends the spec's data-model table with exact keys.[^spec]
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
    bare prefixes (`"g__"`) to `NaN`, strip `k__`-style prefixes, and map rank
    aliases (`domain` -> `kingdom`) to the canonical lowercase names.
-   Rank columns use the pandas `str` dtype (missing value `NaN`), never
+   Rank columns use `pd.StringDtype(na_value=np.nan)` - pandas 3's `str`
+   dtype, spelled out because `astype("str")` on pandas 2.3 gives `object`
+   with every missing value turned into the text `"<NA>"` - never
    `object`: anndata's h5ad/h5td writer rejects an all-`NaN` `object` column,
    so a reader whose `species` rank is entirely missing could not be saved
    (`_core/_taxonomy.py:normalize_ranks`). This holds for every reader's
