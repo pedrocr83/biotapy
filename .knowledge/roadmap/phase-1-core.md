@@ -10,7 +10,7 @@ effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 2df26cb
+commit: 43d6efb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2128,6 +2128,9 @@ expanded.
 - **Produces:**
   - `relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]` in `_core`;
   - `bt.io.read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str | Path | None = None) -> TreeData`.
+    (changed at Checkpoint B1: options keyword-only, R3.1; tree tips must be
+    sequences. The code block below is left as the historical plan, not the
+    current signature - see `bt.io._dada2.read_dada2`.)
 
 **Formats** (DADA2 tutorial, R `write.table` docs):
 - `seqtab` is samples x sequences, and its column names are the sequences.
@@ -2308,9 +2311,9 @@ expanded.
 - [x] **Step 5: Run, expect pass**; gate; commit `feat(io): read DADA2 sequence tables`.
 
 ### Checkpoint B1 - stage 1 review
-- [ ] Whole-branch review of stage 1 against every contract and the stage-1
+- [x] Whole-branch review of stage 1 against every contract and the stage-1
   review focus (superpowers:requesting-code-review); fix pass.
-- [ ] Knowledge:
+- [x] Knowledge:
   - add a `Module` concept `.knowledge/modules/io.md`;
   - update `.knowledge/modules/core.md` (Newick, alignment, taxonomy normalizer);
   - update `modules/index.md` and the log.
@@ -2320,9 +2323,13 @@ expanded.
 
 ### Stage 2 - expanded after the 1.6 decision
 
+`.rds` input for `read_dada2` (deferred from 1.9) is planned with stage 2.
+
 ### Task 1.10: `io.read_phyloseq`
 - Per the 1.6 decision. **Interface:** `read_phyloseq(path: str | Path) -> TreeData`.
-  Transposes when `taxa_are_rows`; `refseq` -> `var["sequence"]`.
+  Transposes when `taxa_are_rows`; a populated `refseq` is warned and skipped
+  (not written to `var["sequence"]`) - see
+  [phyloseq-import-route](/decisions/phyloseq-import-route.md), Option C.
 - **Done when:** GlobalPatterns loads with 26 samples x 19,216 features and a tree.
 
 ### Task 1.11: `datasets.global_patterns()`, `datasets.enterotype()`

@@ -6,7 +6,7 @@ tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 0fdbd4d
+commit: 43d6efb
 sources:
   - id: spec
     resource: ../../plan.md

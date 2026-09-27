@@ -6,7 +6,7 @@ tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 2df26cb
+commit: 43d6efb
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json

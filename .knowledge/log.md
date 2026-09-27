@@ -1,6 +1,41 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Creation** (Checkpoint B1 knowledge step): [io](modules/io.md) Module
+  concept for `src/biotapy/io/`; added its line to
+  [modules/index.md](modules/index.md).
+* **Update** (Checkpoint B1 knowledge step): [core](modules/core.md) gains
+  entries for `tree_from_newick`, `tree_tips`, `relabel_tips`,
+  `split_lineage`, `normalize_ranks`, `infer_x_kind` and `warn_user`,
+  `make_treedata`'s id/alignment invariants, the rank-column `str` dtype, and
+  scikit-bio as a `_tree.py` dependency with its measured import cost
+  (~0.5s of `import biotapy`'s ~1.0-1.1s; a lazy import waits for Task
+  1.21's asv measurement, R10.1).
+* **Update** (Checkpoint B1 knowledge step, reviewer M4):
+  [data-model-slots](contracts/data-model-slots.md) adds `confidence`
+  (float, from QIIME 2 taxonomy) to the `var` keys, and states honestly that
+  `pp.tax_glom`'s emptied lower ranks are float64 NaN, not the `str` dtype
+  readers emit - a deferred inconsistency, not a second convention.
+* **Update** (Checkpoint B1 knowledge step, reviewer M5):
+  [module-boundaries](contracts/module-boundaries.md) rule 1 now allows a
+  private import between topic files of the *same* subpackage (`io/_qiime2.py`
+  importing `_biom_parts` from `io/_biom.py`), never across subpackages.
+* **Update**: refreshed `commit` to 43d6efb on
+  [tree-access](contracts/tree-access.md) and
+  [function-shape](contracts/function-shape.md) after re-checking both
+  against the `io` code with no content change needed.
+* **Update**: [phase-1-core](roadmap/phase-1-core.md): Task 1.9's Interfaces
+  line notes the Checkpoint B1 signature change (keyword-only options,
+  sequence-only tree tips) over its historical plan code block; Task 1.10's
+  `refseq` bullet now matches the approved
+  [phyloseq-import-route](decisions/phyloseq-import-route.md) decision
+  (warned and skipped, not written to `var["sequence"]`); Stage 2's heading
+  gains a one-line note that `.rds` input for `read_dada2` is planned there;
+  ticked Checkpoint B1 items 1-2 (review/fix pass and knowledge done).
+* **Correction**: the `disallow_untyped_calls = false` entry below (reviewer
+  M8) is superseded: Task 1.7c's fix round replaced it with
+  `untyped_calls_exclude = ["biom"]`, scoping the strict-mode exemption to
+  calls into biom-format itself rather than every call in `biotapy.io._biom`.
 * **Update** (Checkpoint B1 fix M2): [tree-access](contracts/tree-access.md)
   gains a gotcha: malformed Newick raises `UnrecognizedFormatError` or
   `NewickFormatError` from scikit-bio, and `tree_from_newick` turns exactly

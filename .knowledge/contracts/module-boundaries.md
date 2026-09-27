@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public 
 tags: [architecture, modularization]
 status: stable
 paths: ["src/biotapy/**", "pyproject.toml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
-commit: 0fdbd4d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
+commit: 43d6efb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -39,8 +39,11 @@ _core               (imports only third-party)
 
 ## Rules
 1. Users and tests reach functions only through `bt.<module>.<fn>`; private
-   `_topic.py` files are imported only by their own subpackage `__init__.py`
-   and by `_core` unit tests.
+   `_topic.py` files are imported only by their own subpackage `__init__.py`,
+   by `_core` unit tests, and by another topic file of the *same* subpackage
+   (e.g. `io/_qiime2.py` importing `_biom_parts` from `io/_biom.py`, so the
+   BIOM-parsing logic is not duplicated - rules.md R4.3). Never import a
+   private name across subpackages.
 2. A private helper lives in the topic file if one public function uses it;
    in `_core` if two or more subpackages use it. Never copy-paste between modules.
 3. Topic file: <= 300 lines, <= 6 public functions. Over that, split by topic.
