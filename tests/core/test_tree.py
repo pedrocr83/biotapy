@@ -93,6 +93,16 @@ def test_make_treedata_names_duplicate_ids():
         make_treedata(np.ones((2, 2)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
 
 
+@pytest.mark.parametrize("missing", [np.nan, None])
+@pytest.mark.parametrize("axis", ["obs", "var"])
+def test_make_treedata_rejects_missing_ids(axis, missing):
+    obs, var = _frames(["s1", "s2"], ["a", "b"])
+    frames = {"obs": obs, "var": var}
+    frames[axis] = pd.DataFrame(index=pd.Index(["x", missing], dtype=object))
+    with pytest.raises(ValueError, match=f"{axis} ids"):
+        make_treedata(np.ones((2, 2)), **frames, tree=None, x_kind="counts", source="test")
+
+
 def test_make_treedata_keeps_shared_features_and_warns_once():
     obs, var = _frames(["s1"], ["a", "b", "c"])
     tree = tree_from_edges([("r", "a", 1.0), ("r", "b", 1.0), ("r", "d", 1.0)])

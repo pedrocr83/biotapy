@@ -110,6 +110,10 @@ def make_treedata(
 
 
 def _with_str_ids(frame: pd.DataFrame, axis: str) -> pd.DataFrame:
+    n_missing = int(np.count_nonzero(frame.index.isna()))
+    if n_missing:
+        msg = f"{axis} ids must not be missing; {n_missing} id(s) are NaN or None"
+        raise ValueError(msg)
     out = frame.copy()
     out.index = out.index.astype(str)
     duplicated = out.index[out.index.duplicated()].unique().tolist()

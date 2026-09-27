@@ -57,6 +57,14 @@ def test_read_dada2_output_saves_to_h5td(seqtab, tmp_path):
     pd.testing.assert_frame_equal(back.var.astype("str"), expected)
 
 
+def test_read_dada2_keeps_sample_ids_verbatim(tmp_path):
+    path = tmp_path / "seqtab.csv"
+    path.write_text('"","ACGT","TTGA"\n"001",1,2\n"002",3,4\n"NA",5,6\n"1e3",7,8\n')
+    tdata = bt.io.read_dada2(path)
+    assert list(tdata.obs_names) == ["001", "002", "NA", "1e3"]
+    assert tdata.X.dtype.kind == "i" and tdata.X.toarray()[2].tolist() == [5, 6]
+
+
 def test_read_dada2_reads_tsv(tmp_path):
     path = tmp_path / "seqtab.tsv"
     path.write_text(SEQTAB.replace(",", "\t"))

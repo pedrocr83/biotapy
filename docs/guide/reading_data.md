@@ -136,7 +136,9 @@ Only `seqtab` is required.
 sequences (columns), so `read_dada2` reads it as-is, with no transpose.
 Its column names must be DNA sequences (`A`, `C`, `G`, `T`, `N`); a table
 whose columns are sample ids instead - the transposed orientation - raises a
-`ValueError` naming the argument.
+`ValueError` naming the argument. Sample names are read as text exactly as
+written: `001` stays `001`, `1e3` stays `1e3`, and a sample named `NA` is a
+name, not a missing value.
 
 ### ASV naming
 

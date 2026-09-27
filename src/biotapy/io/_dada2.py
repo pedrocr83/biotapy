@@ -17,7 +17,8 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     ----------
     seqtab
         CSV or TSV of ``seqtab``/``seqtab.nochim``: samples x sequences, row
-        names in the first column (``write.csv(seqtab.nochim, ...)``).
+        names in the first column (``write.csv(seqtab.nochim, ...)``). Sample
+        names are kept verbatim as text (``001`` stays ``001``, ``NA`` is a name).
     taxa
         CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
     tree
@@ -71,5 +72,15 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
 
 def _read_table(path: Path) -> pd.DataFrame:
     """A table whose first column holds row names, as R's write.csv writes it."""
+    # Row names are ids: read them as text ("001" stays "001", a sample named "NA" is not
+    # missing). Rank cells saying "NA" stay text here; normalize_ranks maps them to NaN.
+    frame = pd.read_csv(
+        path,
+        sep="," if path.suffix.lower() == ".csv" else "\t",
+        index_col=0,
+        dtype={0: str},
+        keep_default_na=False,
+        na_values=[""],
+    )
     # write.csv leaves the corner cell empty; pandas would name the index "Unnamed: 0".
-    return pd.read_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index_col=0).rename_axis(index=None)
+    return frame.rename_axis(index=None)
