@@ -1,6 +1,17 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.15a done: added CRAN `picante` to the `biotapy-golden`
+  image (own commit); `export_golden.R` gains the slice 1C block (filtering,
+  rarefaction, alpha/Faith PD, Bray-Curtis/Jaccard, UniFrac on GlobalPatterns
+  and esophagus, PCoA, NMDS, PERMANOVA); 15 new golden `.csv.gz` files under
+  `tests/golden/global_patterns/` and `tests/golden/esophagus/`,
+  `tests/golden/VERSIONS.txt` gains `vegan`, `ape` and `picante` lines. Two
+  container runs are bit-identical and the 14 pre-existing golden/fixture
+  files are unchanged. [r-golden-parity](contracts/r-golden-parity.md)
+  statement 1 and [regenerate-golden-files](playbooks/regenerate-golden-files.md)
+  (glob and two Common mistakes) updated to match; ticked in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Checkpoint B closed: the user reviewed slice 1B (PR #6 merged at their request) and approved the slice 1C plan as written; last box ticked in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Expanded slice 1C of [phase-1-core](roadmap/phase-1-core.md) into TDD steps (rules.md R1.2a): tasks 1.15a, 1.13, 1.14, 1.15b, 1.15c, 1.15, 1.16, 1.17 and Checkpoint C, prototyped against R goldens; scikit-learn>=1.8 (runtime) and picante (R image) approved. Awaiting user approval.
 * **Update**: PR #6 CI green on all 19 checks, including the first GitHub run of the `network` job (6 passed); Checkpoint B CI box ticked in [phase-1-core](roadmap/phase-1-core.md).

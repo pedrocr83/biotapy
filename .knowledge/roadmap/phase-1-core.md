@@ -3522,12 +3522,12 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   | `global_patterns/nmds_braycurtis_stress.csv.gz` | `stress` (one row) | `$stress` |
   | `global_patterns/permanova_sampletype.csv.gz` | `df`, `sum_of_sqs`, `r2`, `f`, `p` (the `Model` row) | `vegan::adonis2(bray ~ SampleType, data, permutations = 9999)` after `set.seed(20260927)` |
 
-- [ ] **Step 1: Record today's hashes.** Before changing anything, from the repo root:
+- [x] **Step 1: Record today's hashes.** Before changing anything, from the repo root:
   ```bash
   git ls-files tests/golden tests/data | grep -v VERSIONS.txt | xargs sha256sum > /tmp/claude-1000/golden-before.sha
   ```
   `VERSIONS.txt` is the only existing file this task changes: Step 3 appends three lines.
-- [ ] **Step 2: Dockerfile, in its own commit** (r-golden-parity statement 1).
+- [x] **Step 2: Dockerfile, in its own commit** (r-golden-parity statement 1).
   - In `tests/r/Dockerfile`, replace the last `RUN Rscript -e 'stopifnot(...)'` line with:
     ```dockerfile
     # picante (CRAN, same P3M snapshot): the Faith PD golden file. vegan and ape come with phyloseq.
@@ -3545,7 +3545,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - Check that `docker run --rm biotapy-golden Rscript -e 'cat(format(packageVersion("picante")))'`
     prints `1.8.2`.
   - Commit: `git add tests/r/Dockerfile && git commit -m "build(r): add picante to the golden image"`.
-- [ ] **Step 3: Export script.** In `tests/r/export_golden.R`:
+- [x] **Step 3: Export script.** In `tests/r/export_golden.R`:
   - The directory loop gains the esophagus directory:
     ```r
     for (dir in c("tests/golden/global_patterns", "tests/golden/esophagus", "tests/data/phyloseq", "tests/data/dada2")) {
@@ -3637,7 +3637,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       object, so no autotransform happens. It prints all 20 random starts, which
       `capture.output` swallows.
     - `adonis2`'s default `by = NULL` gives one overall test; row 1 is `Model`.
-- [ ] **Step 4: Run twice and check bit-identical.** From the repo root:
+- [x] **Step 4: Run twice and check bit-identical.** From the repo root:
   ```bash
   docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
   sha256sum tests/golden/*/*.csv.gz tests/golden/VERSIONS.txt tests/data/phyloseq/* tests/data/dada2/* > /tmp/claude-1000/golden-run1.sha
@@ -3675,11 +3675,11 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       `8,7.77436045388947,0.675619248642622,4.42594357821139,1e-04`;
     - the NMDS stress is `0.171061337156148`;
     - `rarefy.csv.gz` has 25 rows, with no `TRRsed1`.
-- [ ] **Step 5: Size guard.** Run `uv run --group test pytest tests/test_data_files.py -q`.
+- [x] **Step 5: Size guard.** Run `uv run --group test pytest tests/test_data_files.py -q`.
   Every file stays under 1 MB; the largest new one is 78,594 B. There is no
   docs step: the files are test data, and the playbook covers how to
   regenerate them.
-- [ ] **Step 6: Knowledge.**
+- [x] **Step 6: Knowledge.**
   - `contracts/r-golden-parity.md` statement 1: replace "(`phyloseq`, which
     brings `Biostrings`)" with "(`phyloseq`, which brings `Biostrings`,
     `vegan` and `ape`, plus CRAN `picante` for Faith PD)".
@@ -3691,7 +3691,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       - every random call needs its own preceding `set.seed(20260927)`, or
         reruns stop being bit-identical.
   - Add a log line. Tick 1.15a here.
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   - Run `uvx prek run --all-files` and `uv run --group test pytest`.
   - Commit `test(r): export slice 1C golden files for filtering, diversity and ordination`,
     staging `tests/r/export_golden.R`, the 15 new `.csv.gz` files,

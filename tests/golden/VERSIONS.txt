@@ -1,3 +1,6 @@
 R version 4.5.3 (2026-03-11)
 Bioconductor 3.22
 phyloseq 1.54.2
+vegan 2.7.3
+ape 5.8.1
+picante 1.8.2
