@@ -28,6 +28,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     datasets.enterotype
+    datasets.esophagus
     datasets.global_patterns
     datasets.toy
 ```

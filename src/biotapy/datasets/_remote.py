@@ -13,6 +13,7 @@ _BASE_URL = "https://raw.githubusercontent.com/joey711/phyloseq/8a6c2350b985afb9
 _REGISTRY = {
     "GlobalPatterns.RData": "sha256:bea90c3c48275ea874e0c9400b133da1647e4cddd11b39f89a3d8ffd78512d2d",
     "enterotype.RData": "sha256:0701dd010023344a917bd31680f78580c076bf039befe829830dc43bfc56b8db",
+    "esophagus.RData": "sha256:0b06d9c35f2e694c34461308af149eb54419453fcb98763de20ab61980b87e46",
 }
 
 
@@ -88,3 +89,34 @@ def enterotype() -> TreeData:
     (280, 553)
     """
     return read_phyloseq(_fetch("enterotype.RData"))
+
+
+def esophagus() -> TreeData:
+    """esophagus: 3 esophageal biopsies, 58 OTUs, with a tree; no taxonomy or sample data.
+
+    Downloaded once (2 kB) from phyloseq's repository and cached.
+
+    Returns
+    -------
+    TreeData
+        Counts in ``X`` (samples ``B``, ``C``, ``D``) and the tree in ``vart['phylo']``;
+        ``obs`` and ``var`` have no columns.
+
+    Notes
+    -----
+    R equivalent: ``utils::data``
+    Guide: :doc:`/guide/datasets`
+
+    In R: ``data(esophagus, package = "phyloseq")``.
+
+    References
+    ----------
+    Pei Z et al. (2004) Bacterial biota in the human distal esophagus. PNAS 101:4250-4255.
+
+    Examples
+    --------
+    >>> import biotapy as bt
+    >>> bt.datasets.esophagus().shape  # doctest: +SKIP
+    (3, 58)
+    """
+    return read_phyloseq(_fetch("esophagus.RData"))

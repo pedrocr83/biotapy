@@ -1,6 +1,15 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.15b done: `bt.datasets.esophagus() -> TreeData` - 3
+  esophageal biopsies (samples `B`, `C`, `D`) x 58 OTUs, with a tree in
+  `vart["phylo"]` and no taxonomy or sample data, read through
+  `bt.io.read_phyloseq`. `_remote.py:_REGISTRY` gains `esophagus.RData`
+  (sha256 `0b06d9c3...`, 1,840 B) at the same pinned phyloseq commit;
+  `datasets/__init__.py` exports it. `docs/api.md`, `docs/guide/datasets.md`
+  and `docs/guide/reading_data.md` updated for the third loader. 1.16's
+  UniFrac golden test will use it. [datasets](modules/datasets.md) updated;
+  ticked in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.14 done: `pp.rarefy(adata, *, depth=, seed=)` subsamples
   every sample to `depth` reads without replacement, via
   `skbio.stats.subsample_counts`. `depth` defaults to the smallest non-zero

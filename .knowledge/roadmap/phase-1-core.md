@@ -4511,7 +4511,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   58 OTUs, with a tree and no taxonomy or sample data. 1.16's UniFrac golden
   test uses it.
 
-- [ ] **Step 1: Failing tests.** In `tests/datasets/test_remote.py`:
+- [x] **Step 1: Failing tests.** In `tests/datasets/test_remote.py`:
   - Extend `test_loaders_read_the_fetched_file`: after the enterotype
     assertion, add `assert bt.datasets.esophagus().shape == (6, 8)`. The
     `fetched` expectation becomes
@@ -4526,9 +4526,9 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         assert sum(1 for n in tree.nodes if tree.out_degree(n) == 0) == 58
         assert tdata.obs.columns.empty and tdata.var.columns.empty and tdata.uns["biotapy"]["x_kind"] == "counts"
     ```
-- [ ] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/datasets -q`.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/datasets -q`.
   It fails with `AttributeError: module 'biotapy.datasets' has no attribute 'esophagus'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - In `_remote.py`, `_REGISTRY` gains
     `"esophagus.RData": "sha256:0b06d9c35f2e694c34461308af149eb54419453fcb98763de20ab61980b87e46",`.
     It is at the same pinned commit; the file is 1,840 B.
@@ -4566,7 +4566,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     ```
   - `datasets/__init__.py`: `from ._remote import enterotype, esophagus, global_patterns`
     and `__all__ = ["enterotype", "esophagus", "global_patterns", "toy"]`.
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - In `docs/api.md`'s Datasets block, add `datasets.esophagus` after `datasets.enterotype`.
   - `docs/guide/datasets.md`, the example-datasets page since PR #7:
     - The intro "ships three example datasets" becomes "ships four example datasets".
@@ -4589,13 +4589,13 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     well-known phyloseq example datasets" becomes
     "`bt.datasets.global_patterns()`, `bt.datasets.enterotype()` and
     `bt.datasets.esophagus()`, three well-known phyloseq example datasets".
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - `.knowledge/modules/datasets.md`:
     - the Responsibility and Entry points gain `_remote.py:esophagus`;
     - the Invariants' "both are downloaded" becomes "all three are downloaded";
     - the Dependencies' pooch line names `esophagus.RData`.
   - Add a log line. Tick 1.15b here.
-- [ ] **Step 6: Run, gate and commit.**
+- [x] **Step 6: Run, gate and commit.**
   - Run `uv run --group test pytest tests/datasets -q`.
   - Run once `BIOTAPY_DATA_DIR=/tmp/claude-1000/pooch uv run --group test pytest -m network tests/datasets -q`
     and expect 4 passed.
