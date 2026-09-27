@@ -6,6 +6,7 @@
 :hidden: true
 :maxdepth: 1
 
+tutorials/index.md
 api.md
 guide/index.md
 design.md
