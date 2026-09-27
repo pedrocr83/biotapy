@@ -198,3 +198,23 @@ def test_read_qiime2_metadata_declared_numeric_rejects_text(table_qza, tmp_path)
     path.write_text("sample-id\tdepth\n#q2:types\tnumeric\nS1\t1,000\nS2\t20\nS3\tthirty\n")
     with pytest.raises(ValueError, match=r"metadata=.*'depth'.*'thirty'"):
         bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_non_zip_artifact_names_the_argument(tmp_path):
+    path = tmp_path / "table.qza"
+    path.write_text("not a zip archive")
+    with pytest.raises(ValueError, match=r"table=.*table\.qza"):
+        bt.io.read_qiime2(path)
+
+
+def test_read_qiime2_invalid_newick_names_tree(table_qza, make_qza):
+    tree = make_qza("tree", "tree.nwk", b"((OTU_1:x,OTU_2:1),OTU_3:1);")
+    with pytest.raises(ValueError, match=r"tree=.*tree\.qza.*Newick"):
+        bt.io.read_qiime2(table_qza, tree=tree)
+
+
+def test_read_qiime2_metadata_duplicate_columns_are_named(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\tsite\tdepth\nS1\t1\tgut\t2\n")
+    with pytest.raises(ValueError, match=r"metadata=.*'depth'"):
+        bt.io.read_qiime2(table_qza, metadata=path)

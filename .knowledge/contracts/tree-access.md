@@ -48,6 +48,14 @@ reaches past the helpers.[^spec]
   `write_h5td` (matters from Phase 2).
 - `tree_from_newick` always passes `convert_underscores=False`: scikit-bio's
   default turns unescaped `ASV_1` into `ASV 1`, corrupting ids.
+- Malformed Newick surfaces as two scikit-bio exceptions, not one: with the
+  default format sniffing, `TreeNode.read` raises `UnrecognizedFormatError`
+  for most malformed text (the sniffer rejects it) and `NewickFormatError`
+  only for text that sniffs as Newick but fails to parse (e.g. `(a:x,b:1);`).
+  `tree_from_newick` catches exactly those two and raises `ValueError` naming
+  its `argument` (readers pass `tree='<path>'`). Passing `format="newick"` to
+  skip the sniffer is worse: some malformed text then leaks a bare
+  `IndexError`, and a `FormatIdentificationWarning` is emitted.
 - Internal-node labels (support values such as `0.95`) cannot survive as graph
   node names because they repeat across the tree; `tree_from_newick` drops them
   and assigns fresh `n0, n1, ...` names in preorder, skipping any value already

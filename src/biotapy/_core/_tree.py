@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from skbio import TreeNode
+from skbio.io import NewickFormatError, UnrecognizedFormatError
 from treedata import TreeData as TreeData
 
 from ._matrix import as_csr
@@ -62,16 +63,24 @@ def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
     return cast("nx.DiGraph[str]", tdata.vart[PHYLO_KEY])
 
 
-def tree_from_newick(text: str) -> nx.DiGraph[str]:
+def tree_from_newick(text: str, *, argument: str = "text") -> nx.DiGraph[str]:
     """Parse one Newick tree; tips keep their names, internal nodes get unique ones.
 
     Internal labels (often support values such as ``0.95``) repeat, so they
     cannot name graph nodes and are dropped. A missing branch length is NaN.
+    Malformed text, or a tip without a unique name, raises ``ValueError``
+    naming ``argument`` (a reader passes e.g. ``"tree='tree.nwk'"``).
     """
-    # skbio turns "_" into " " in unquoted names by default; ASV ids need them intact.
-    root = TreeNode.read([text], convert_underscores=False)
+    try:
+        # skbio turns "_" into " " in unquoted names by default; ASV ids need them intact.
+        root = TreeNode.read([text], convert_underscores=False)
+    except (NewickFormatError, UnrecognizedFormatError) as error:
+        # skbio's format sniffer rejects most malformed text (UnrecognizedFormatError)
+        # before its Newick parser can raise NewickFormatError.
+        msg = f"{argument} is not a valid Newick tree"
+        raise ValueError(msg) from error
     tips = [tip.name for tip in root.tips()]
-    _require_unique_names(tips)
+    _require_unique_names(tips, argument)
     names = _node_names(root, set(tips))
     tree = tree_from_edges(
         (names[id(node.parent)], names[id(node)], math.nan if node.length is None else float(node.length))
@@ -82,10 +91,10 @@ def tree_from_newick(text: str) -> nx.DiGraph[str]:
     return tree
 
 
-def _require_unique_names(tips: list[str | None]) -> None:
+def _require_unique_names(tips: list[str | None], argument: str) -> None:
     bad = [name for name, count in Counter(tips).items() if name is None or count > 1]
     if bad:
-        msg = f"Newick tips need unique names; unnamed or repeated: {bad[:5]}"
+        msg = f"{argument} needs unique Newick tip names; unnamed or repeated: {bad[:5]}"
         raise ValueError(msg)
 
 
@@ -143,7 +152,10 @@ def _align_tree(
     if shared.all() and n_extra == 0:
         return X, var, tree
     if not shared.any():
-        msg = "no feature of the table is a tip of the tree"
+        msg = (
+            "no feature of the table is a tip of the tree; "
+            f"features: {var.index[:3].tolist()}, tips: {sorted(tips)[:3]}"
+        )
         raise ValueError(msg)
     msg = (
         f"tree and table disagree: {int((~shared).sum())} feature(s) not in the tree and "

@@ -36,6 +36,8 @@ def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
     ------
     biom.exception.TableException
         The file repeats a sample or observation id (raised by biom-format).
+    ValueError
+        ``tree`` is not a valid Newick tree, or shares no tip with the table.
 
     Warns
     -----
@@ -50,6 +52,9 @@ def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
     BIOM does not record what ``X`` holds, so ``uns['biotapy']['x_kind']`` is
     inferred from the values: whole numbers are ``"counts"``, rows that each
     sum to 1 are ``"relative"``, anything else is ``"abundance"``.
+
+    Only the ``taxonomy`` (or ``Taxonomy``) observation metadata key is read;
+    other observation keys, such as ``confidence``, are not.
 
     Examples
     --------
@@ -67,7 +72,7 @@ def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
     (6, 8)
     """
     X, obs, var = _biom_parts(biom.load_table(str(path)))
-    phylo = None if tree is None else tree_from_newick(Path(tree).read_text())
+    phylo = None if tree is None else tree_from_newick(Path(tree).read_text(), argument=f"tree={str(tree)!r}")
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_biom")
 
 
@@ -118,6 +123,11 @@ def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"]
     fmt
         ``"hdf5"`` (BIOM 2.1) or ``"json"`` (BIOM 1.0).
 
+    Raises
+    ------
+    ValueError
+        ``fmt`` is neither ``"hdf5"`` nor ``"json"``.
+
     Notes
     -----
     R equivalent: ``biomformat::write_biom``
@@ -139,6 +149,9 @@ def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"]
     >>> bt.io.read_biom(path).shape
     (6, 8)
     """
+    if fmt not in ("hdf5", "json"):
+        msg = f"fmt={fmt!r} must be 'hdf5' or 'json'"
+        raise ValueError(msg)
     table = biom.Table(
         # biotapy keeps samples as rows; BIOM stores features x samples.
         as_csr(adata.X).T,

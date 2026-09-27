@@ -50,8 +50,18 @@ def read_qiime2(
     Raises
     ------
     ValueError
-        An artifact lacks the expected payload, the metadata has no ID header,
-        or a metadata column declared ``numeric`` holds a non-numeric value.
+        An artifact is not a zip archive or lacks the expected payload; the
+        tree is not valid Newick or shares no tip with the table; the
+        taxonomy or metadata shares no id with the table or repeats one; the
+        metadata has no ID header, repeats a column name, or declares a
+        column ``numeric`` that holds a non-numeric value.
+
+    Warns
+    -----
+    UserWarning
+        Table features missing from ``taxonomy`` or table samples missing
+        from ``metadata`` (they get NaN); tree tips and table features differ
+        (only shared features are kept).
 
     Notes
     -----
@@ -88,9 +98,10 @@ def read_qiime2(
         if taxonomy is not None:
             ranks = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, argument="taxonomy"))
             var = _join_to(ranks, var.index, argument=f"taxonomy={str(taxonomy)!r}")
-        phylo = (
-            None if tree is None else tree_from_newick(_payload(tree, "tree.nwk", workdir, argument="tree").read_text())
-        )
+        phylo = None
+        if tree is not None:
+            newick = _payload(tree, "tree.nwk", workdir, argument="tree").read_text()
+            phylo = tree_from_newick(newick, argument=f"tree={str(tree)!r}")
     if metadata is not None:
         obs = _join_to(_metadata(Path(metadata)), obs.index, argument=f"metadata={str(metadata)!r}")
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_qiime2")
@@ -98,10 +109,16 @@ def read_qiime2(
 
 def _payload(artifact: str | Path, filename: str, directory: Path, *, argument: str) -> Path:
     """Extract ``<uuid>/data/<filename>`` from a .qza into ``directory``."""
-    with zipfile.ZipFile(artifact) as archive:
+    label = f"{argument}={str(artifact)!r}"
+    try:
+        archive = zipfile.ZipFile(artifact)
+    except zipfile.BadZipFile as error:
+        msg = f"{label} is not a QIIME 2 artifact (not a zip archive)"
+        raise ValueError(msg) from error
+    with archive:
         members = [name for name in archive.namelist() if Path(name).parts[1:] == ("data", filename)]
         if len(members) != 1:
-            msg = f"{argument}={str(artifact)!r} is not a QIIME 2 artifact holding data/{filename}"
+            msg = f"{label} is not a QIIME 2 artifact holding data/{filename}"
             raise ValueError(msg)
         return Path(archive.extract(members[0], directory))
 
@@ -159,6 +176,11 @@ def _typed(values: pd.Series, declared: str, path: Path) -> pd.Series:
 
 def _metadata(path: Path) -> pd.DataFrame:
     header, data, types = _metadata_rows(path)
+    columns = pd.Index(header[1:])
+    repeated = columns[columns.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"metadata={str(path)!r} repeats column names: {repeated}"
+        raise ValueError(msg)
     ids = [row[0] for row in data]
     frame = pd.DataFrame([row[1:] for row in data], index=ids, columns=header[1:], dtype=object)
     declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)

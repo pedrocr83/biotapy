@@ -96,5 +96,5 @@ def test_normalize_ranks_leaves_input_alone():
 
 def test_normalize_ranks_rejects_two_columns_for_one_rank():
     frame = pd.DataFrame({"Kingdom": ["Bacteria"], "domain": ["Archaea"]})
-    with pytest.raises(ValueError, match="kingdom"):
+    with pytest.raises(ValueError, match=r"\['Kingdom', 'domain'\].*'kingdom'"):
         normalize_ranks(frame)

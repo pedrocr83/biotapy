@@ -1,3 +1,5 @@
+import gzip
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -130,3 +132,24 @@ def test_read_dada2_tree_sharing_no_feature_raises(seqtab, tmp_path):
     path.write_text("((GGGGTTTT:1,AAAACCCC:1):1,TTTTGGGG:1);")
     with pytest.raises(ValueError, match="no feature"):
         bt.io.read_dada2(seqtab, tree=path)
+
+
+def test_read_dada2_invalid_newick_names_tree(seqtab, tmp_path):
+    path = tmp_path / "tree.nwk"
+    path.write_text("((ACGTACGT:1,TTGACCAA:1);")
+    with pytest.raises(ValueError, match=r"tree=.*Newick"):
+        bt.io.read_dada2(seqtab, tree=path)
+
+
+def test_read_dada2_reads_gzipped_csv(tmp_path):
+    path = tmp_path / "seqtab.csv.gz"
+    path.write_bytes(gzip.compress(SEQTAB.encode()))
+    tdata = bt.io.read_dada2(path)
+    assert tdata.shape == (3, 4) and tdata.X.toarray()[0].tolist() == [10, 0, 5, 0]
+
+
+def test_read_dada2_without_sequence_columns_names_seqtab(tmp_path):
+    path = tmp_path / "empty.csv"
+    path.write_text('""\n"S1"\n"S2"\n')
+    with pytest.raises(ValueError, match="seqtab="):
+        bt.io.read_dada2(path)

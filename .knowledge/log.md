@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint B1 fix M2): [tree-access](contracts/tree-access.md)
+  gains a gotcha: malformed Newick raises `UnrecognizedFormatError` or
+  `NewickFormatError` from scikit-bio, and `tree_from_newick` turns exactly
+  those two into a `ValueError` naming its `argument`.
 * **Update** (Checkpoint B1 fixes I5, I6): [tree-access](contracts/tree-access.md)
   statement 2 adds `tree_tips`; a new gotcha records that `relabel_tips`
   raises instead of merging nodes when a new name already exists, and that

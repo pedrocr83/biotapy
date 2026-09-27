@@ -218,3 +218,17 @@ def test_write_then_read_biom_preserves_counts_ids_and_ranks(adata):
     assert list(back.obs_names) == list(adata.obs_names) and list(back.var_names) == list(adata.var_names)
     np.testing.assert_array_equal(back.X.toarray(), adata.X.toarray())
     pd.testing.assert_frame_equal(back.var, adata.var)
+
+
+def test_write_biom_rejects_unknown_fmt(tmp_path):
+    path = tmp_path / "toy.biom"
+    with pytest.raises(ValueError, match="fmt='JSON'"):
+        bt.io.write_biom(bt.datasets.toy(), path, fmt="JSON")
+    assert not path.exists()
+
+
+def test_read_biom_invalid_newick_names_tree(biom_hdf5, tmp_path):
+    path = tmp_path / "broken.nwk"
+    path.write_text("((OTU_1:1,OTU_2:1);")
+    with pytest.raises(ValueError, match=r"tree=.*broken\.nwk.*Newick"):
+        bt.io.read_biom(biom_hdf5, tree=path)

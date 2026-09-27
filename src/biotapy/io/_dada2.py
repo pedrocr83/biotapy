@@ -30,6 +30,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
         CSV or TSV of ``seqtab``/``seqtab.nochim``: samples x sequences, row
         names in the first column (``write.csv(seqtab.nochim, ...)``). Sample
         names are kept verbatim as text (``001`` stays ``001``, ``NA`` is a name).
+        Any ``.csv`` suffix means CSV (``seqtab.csv.gz`` works); otherwise TSV.
     taxa
         CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
         Sequences it lists that are not in ``seqtab`` are ignored.
@@ -47,9 +48,17 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     Raises
     ------
     ValueError
-        ``seqtab``'s column names are not DNA sequences (the table is
-        transposed), or a ``tree`` tip is not a DNA sequence (an ASV id, say:
-        biotapy numbers ASVs by column order, which need not match yours).
+        ``seqtab`` has no columns or its column names are not DNA sequences
+        (the table is transposed); ``taxa`` shares no sequence with
+        ``seqtab`` or repeats one; ``tree`` is not valid Newick, shares no tip
+        with the table, or has a tip that is not a DNA sequence (an ASV id,
+        say: biotapy numbers ASVs by column order, which need not match yours).
+
+    Warns
+    -----
+    UserWarning
+        Sequences missing from ``taxa`` (they get NaN); tree tips and table
+        features differ (only shared features are kept).
 
     Notes
     -----
@@ -60,8 +69,9 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     are ``"counts"`` (as DADA2 writes them), rows that each sum to 1 are
     ``"relative"``, anything else is ``"abundance"``.
 
-    The text table is read densely once and stored sparse; DADA2 tables are
-    small enough for this. ``.rds`` input is not supported yet.
+    The text table is read densely once and stored sparse: while reading, it
+    takes about 8 bytes x samples x ASVs (80 MB for 1,000 samples x 10,000
+    ASVs). ``.rds`` input is not supported yet.
 
     Examples
     --------
@@ -75,8 +85,11 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     """
     counts = _read_table(Path(seqtab))
     sequences = [str(column) for column in counts.columns]
-    if not all(_SEQUENCE.match(sequence) for sequence in sequences):
-        msg = f"seqtab={str(seqtab)!r} must be samples x sequences like DADA2's seqtab; its columns are not sequences"
+    if not sequences or not all(_SEQUENCE.match(sequence) for sequence in sequences):
+        msg = (
+            f"seqtab={str(seqtab)!r} must be samples x sequences like DADA2's seqtab, "
+            f"with DNA sequences as column names; found columns {sequences[:3]}"
+        )
         raise ValueError(msg)
     names = [f"ASV{i}" for i in range(1, len(sequences) + 1)]
     var = pd.DataFrame({"sequence": sequences}, index=names)
@@ -85,7 +98,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
         var = ranks.set_axis(names).join(var)
     phylo = None
     if tree is not None:
-        phylo = tree_from_newick(Path(tree).read_text())
+        phylo = tree_from_newick(Path(tree).read_text(), argument=f"tree={str(tree)!r}")
         _require_sequence_tips(tree_tips(phylo), tree)
         phylo = relabel_tips(phylo, dict(zip(sequences, names, strict=True)))
     obs, X = pd.DataFrame(index=counts.index), counts.to_numpy()
@@ -98,7 +111,7 @@ def _read_table(path: Path) -> pd.DataFrame:
     # missing). Rank cells saying "NA" stay text here; normalize_ranks maps them to NaN.
     frame = pd.read_csv(
         path,
-        sep="," if path.suffix.lower() == ".csv" else "\t",
+        sep="," if ".csv" in [suffix.lower() for suffix in path.suffixes] else "\t",
         index_col=0,
         dtype={0: str},
         keep_default_na=False,

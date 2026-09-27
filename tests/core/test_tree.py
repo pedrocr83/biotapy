@@ -90,6 +90,16 @@ def test_tree_from_newick_repeated_tip_names_raise():
         tree_from_newick("(a:1,a:1);")
 
 
+def test_tree_from_newick_unnamed_tip_raises():
+    with pytest.raises(ValueError, match="unnamed"):
+        tree_from_newick("(a:1,:1);")
+
+
+def test_tree_from_newick_invalid_text_names_the_argument():
+    with pytest.raises(ValueError, match="tree='t.nwk' is not a valid Newick tree"):
+        tree_from_newick("((a:1,b:1);", argument="tree='t.nwk'")
+
+
 def test_tree_from_newick_single_tip_is_a_one_node_tree():
     tree = tree_from_newick("a;")
     assert set(tree.nodes) == {"a"}
@@ -141,3 +151,10 @@ def test_make_treedata_leaves_input_frames_alone():
     obs, var = _frames([1], ["a"])
     make_treedata(np.ones((1, 1)), obs=obs, var=var, tree=None, x_kind="counts", source="test")
     assert list(obs.index) == [1]
+
+
+def test_make_treedata_without_shared_features_gives_examples():
+    obs, var = _frames(["s1"], ["a", "b"])
+    tree = tree_from_edges([("r", "y", 1.0), ("r", "z", 1.0)])
+    with pytest.raises(ValueError, match=r"no feature.*\['a', 'b'\].*\['y', 'z'\]"):
+        make_treedata(np.ones((1, 2)), obs=obs, var=var, tree=tree, x_kind="counts", source="test")

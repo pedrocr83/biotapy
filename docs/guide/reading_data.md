@@ -33,6 +33,8 @@ string or list a producer wrote in JSON - is parsed into the canonical
 `kingdom` .. `species` columns in `var`, the same way for every taxonomy
 dialect (Greengenes, RESCRIPT, SILVA). A table with no `taxonomy` metadata
 gets a `var` with no rank columns at all, rather than columns full of `NaN`.
+Only the `taxonomy` (or `Taxonomy`) key is read; other observation metadata,
+such as `confidence`, is not.
 
 ### Sample metadata becomes obs columns
 
@@ -57,12 +59,15 @@ sees the table.
 Pass a Newick file's path as `tree=` to attach a phylogeny in `vart["phylo"]`.
 If the tree's tips and the table's features disagree, only the shared
 features are kept and one `UserWarning` names both counts - the same
-tree/table alignment every biotapy reader uses.
+tree/table alignment every biotapy reader uses. A tree sharing no tip with
+the table, or a file that is not valid Newick, raises a `ValueError` naming
+`tree=`.
 
 ### Writing BIOM
 
 `bt.io.write_biom` writes `X`, taxonomy and sample metadata back out as a BIOM
-2.1 HDF5 table by default, or BIOM 1.0 JSON with `fmt="json"`:
+2.1 HDF5 table by default, or BIOM 1.0 JSON with `fmt="json"`; any other
+`fmt` raises a `ValueError`:
 
 ```python
 bt.io.write_biom(tdata, "table.biom")
@@ -105,7 +110,8 @@ Only `table` is required. Each argument reads one artifact:
 An artifact is recognized by the payload file it holds, not by its
 `metadata.yaml`, so any `.qza` holding the expected payload works. Passing
 the wrong artifact - for example a taxonomy artifact as `table` - raises a
-`ValueError` naming the argument and the payload it expected.
+`ValueError` naming the argument and the payload it expected, and so does a
+file that is not a zip archive at all.
 
 ### Matching taxonomy and metadata to the table
 
@@ -128,6 +134,7 @@ checks for both:
   case-insensitively; the legacy `#SampleID`, `#Sample ID`, `#OTUID`,
   `#OTU ID` and `sample_name` headers match exactly.
 - Leading `#`-comment lines and blank rows are skipped.
+- A header that repeats a column name raises a `ValueError` naming it.
 - An optional `#q2:types` row declares each column `categorical` or
   `numeric`; without it, a column becomes numeric only when every value it
   holds parses as a number, matching QIIME 2's own type inference. A types
@@ -142,7 +149,8 @@ checks for both:
 ## DADA2
 
 `bt.io.read_dada2` reads a DADA2 sequence table (CSV or TSV) as written by R's
-`write.csv`/`write.table`, with optional taxonomy and a tree:
+`write.csv`/`write.table`, with optional taxonomy and a tree. Any `.csv`
+suffix means CSV, so a compressed `seqtab.csv.gz` works too:
 
 ```python
 tdata = bt.io.read_dada2("seqtab.csv", taxa="taxa.csv", tree="tree.nwk")
