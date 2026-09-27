@@ -49,7 +49,8 @@ def read_qiime2(
     Raises
     ------
     ValueError
-        An artifact lacks the expected payload, or the metadata has no ID header.
+        An artifact lacks the expected payload, the metadata has no ID header,
+        or a metadata column declared ``numeric`` holds a non-numeric value.
 
     Notes
     -----
@@ -139,15 +140,17 @@ def _padded_row(row: list[str], header: list[str], path: Path) -> list[str]:
     return row + [""] * (len(header) - len(row))
 
 
-def _typed(values: pd.Series, declared: str) -> pd.Series:
+def _typed(values: pd.Series, declared: str, path: Path) -> pd.Series:
     values = values.mask(values == "", np.nan)
     if declared == "categorical":
         return values
     numeric = pd.to_numeric(values, errors="coerce")
+    bad = values[values.notna() & numeric.isna()].unique().tolist()
+    if declared == "numeric" and bad:
+        msg = f"metadata={str(path)!r} column {values.name!r} is declared numeric but holds {bad[:5]}"
+        raise ValueError(msg)
     # QIIME 2 infers numeric when every present value parses as a number.
-    if declared == "numeric" or numeric.notna().sum() == values.notna().sum():
-        return numeric
-    return values
+    return values if bad else numeric
 
 
 def _metadata(path: Path) -> pd.DataFrame:
@@ -156,5 +159,5 @@ def _metadata(path: Path) -> pd.DataFrame:
     frame = pd.DataFrame([row[1:] for row in data], index=ids, columns=header[1:], dtype=object)
     declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)
     return pd.DataFrame(
-        {c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=True)}, index=frame.index
+        {c: _typed(frame[c], d, path) for c, d in zip(frame.columns, declared, strict=True)}, index=frame.index
     )

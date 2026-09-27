@@ -125,7 +125,9 @@ checks for both:
   `numeric`; without it, a column becomes numeric only when every value it
   holds parses as a number, matching QIIME 2's own type inference. A types
   row shorter than the header is padded, and an empty type cell means
-  "infer". Missing values become `NaN`.
+  "infer". A column declared `numeric` that holds a non-numeric value (such
+  as `1,000` or `thirty`) raises a `ValueError` naming the column and the
+  values, as QIIME 2 itself does. Missing values become `NaN`.
 - The file is read as `utf-8-sig`, so a BOM added by Excel does not break the
   ID header.
 - `obs` is aligned to the table's sample order, as described above.

@@ -168,3 +168,10 @@ def test_read_qiime2_metadata_types_row_with_extra_type_is_named(table_qza, tmp_
     path.write_text("sample-id\tdepth\n#q2:types\tnumeric\tcategorical\nS1\t10\n")
     with pytest.raises(ValueError, match=r"metadata=.*#q2:types"):
         bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_metadata_declared_numeric_rejects_text(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\n#q2:types\tnumeric\nS1\t1,000\nS2\t20\nS3\tthirty\n")
+    with pytest.raises(ValueError, match=r"metadata=.*'depth'.*'thirty'"):
+        bt.io.read_qiime2(table_qza, metadata=path)
