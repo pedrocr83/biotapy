@@ -111,8 +111,9 @@ the wrong artifact - for example a taxonomy artifact as `table` - raises a
 - Leading `#`-comment lines and blank rows are skipped.
 - An optional `#q2:types` row declares each column `categorical` or
   `numeric`; without it, a column becomes numeric only when every value it
-  holds parses as a number, matching QIIME 2's own type inference. Missing
-  values become `NaN`.
+  holds parses as a number, matching QIIME 2's own type inference. A types
+  row shorter than the header is padded, and an empty type cell means
+  "infer". Missing values become `NaN`.
 - The file is read as `utf-8-sig`, so a BOM added by Excel does not break the
   ID header.
 - Samples in the metadata that are not in the table are ignored; `obs` is

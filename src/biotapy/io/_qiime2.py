@@ -120,7 +120,7 @@ def _metadata_rows(path: Path) -> tuple[list[str], list[list[str]], list[str] | 
         msg = f"metadata={str(path)!r} has no QIIME 2 ID header (e.g. 'sample-id', 'id', '#SampleID')"
         raise ValueError(msg)
     header, body = rows[0], rows[1:]
-    types = next((row for row in body if row[0] == "#q2:types"), None)
+    types = next((_padded_row(row, header, path) for row in body if row[0] == "#q2:types"), None)
     data = [_padded_row(row, header, path) for row in body if not row[0].startswith("#")]
     return header, data, types
 
@@ -154,7 +154,7 @@ def _metadata(path: Path) -> pd.DataFrame:
     frame = pd.DataFrame([row[1:] for row in data], index=ids, columns=header[1:], dtype=object)
     declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)
     return pd.DataFrame(
-        {c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=False)}, index=frame.index
+        {c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=True)}, index=frame.index
     )
 
 

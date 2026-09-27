@@ -120,3 +120,22 @@ def test_read_qiime2_metadata_ignores_whitespace_trailing_cells(table_qza, tmp_p
     path.write_text("sample-id\tdepth\nS1\t10\t  \nS2\t20\t \t\nS3\t30\n")
     obs = bt.io.read_qiime2(table_qza, metadata=path).obs
     assert obs["depth"].tolist() == [10, 20, 30]
+
+
+def test_read_qiime2_metadata_short_types_row_keeps_every_column(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text(
+        "sample-id\tdepth\tsite\tph\n#q2:types\tnumeric\nS1\t10\tgut\t7.1\nS2\t20\tskin\t6.5\nS3\t30\tgut\t7.0\n"
+    )
+    obs = bt.io.read_qiime2(table_qza, metadata=path).obs
+    assert list(obs.columns) == ["depth", "site", "ph"]
+    assert obs["depth"].dtype.kind in "if" and obs["depth"].tolist() == [10, 20, 30]
+    assert obs["site"].tolist() == ["gut", "skin", "gut"]
+    assert obs["ph"].dtype.kind == "f" and obs["ph"].tolist() == [7.1, 6.5, 7.0]
+
+
+def test_read_qiime2_metadata_types_row_with_extra_type_is_named(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\n#q2:types\tnumeric\tcategorical\nS1\t10\n")
+    with pytest.raises(ValueError, match=r"metadata=.*#q2:types"):
+        bt.io.read_qiime2(table_qza, metadata=path)
