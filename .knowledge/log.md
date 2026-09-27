@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Verification**: `human:pedrocr83` approved the slice 1B stage-2 plan, the runtime dependency pooch and a local Docker build/run for the R golden image; declined pyarrow, so golden files are gzip CSV ([phase-1-core](roadmap/phase-1-core.md)).
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): Checkpoint B1 closed (PR #5 merged as c64a138, CI green incl. Python 3.14; user go-ahead). Slice 1B stage 2 expanded into TDD steps for approval: 1.12a (R container, golden files, R-written fixtures), 1.10 (read_phyloseq), 1.9b (DADA2 .rds), 1.11 (datasets via pooch + network CI job), 1.12b (golden tests); no third-party data committed.
 * **Update** (Checkpoint B1 residual N1): [data-model-slots](contracts/data-model-slots.md)
   convention 1 names the rank dtype as `pd.StringDtype(na_value=np.nan)`:

@@ -67,8 +67,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.10 | runtime | rdata, xarray | read phyloseq `.RData`/`.rds` natively ([phyloseq-import-route](/decisions/phyloseq-import-route.md)) - approved 2026-09-26, added when stage 2 first imports them |
 | 1.7c | runtime | biom-format `>=2.1.16` | BIOM 1.0 JSON and 2.1 HDF5; no CPython 3.14 wheels yet, builds from source - approved 2026-09-26 |
 | 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination - approved 2026-09-26 |
-| 1.11 | runtime | pooch | cached dataset downloads - pending approval (stage-2 plan) |
-| 1.12b | test | pyarrow | read parquet golden files - pending approval (stage-2 plan) |
+| 1.11 | runtime | pooch | cached dataset downloads - approved 2026-09-27 |
+| 1.12b | test | pyarrow | declined 2026-09-27 - golden files are gzip CSV read by pandas |
 | 1.17 | runtime | scikit-learn | non-metric MDS (scikit-bio has none) |
 | 1.18 | runtime | matplotlib | `pl` |
 | 1.21 | dev | asv | benchmarks |
@@ -2378,8 +2378,10 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
 - **Runtime deps.**
   - `rdata>=1.1,<2` and `xarray`: approved 2026-09-26, added in 1.10.
   - `pooch`: added in 1.11, pending approval.
-- **Test dep:** `pyarrow`, added in 1.12b, pending approval. pyarrow 25.0.1
-  has cp312-cp314 wheels on every CI platform.
+- **Golden format:** gzip CSV (`.csv.gz`), not parquet. The user declined
+  `pyarrow` (2026-09-27), so tests read the files with plain pandas and the
+  R image needs no `arrow`. zlib writes no timestamp in the gzip header, so
+  reruns stay byte-identical.
 - **Datasets.** Base URL
   `https://raw.githubusercontent.com/joey711/phyloseq/8a6c2350b985afb909428d396081605e9b3e2f0b/data/`,
   with these SHA-256 hashes:
@@ -2392,7 +2394,8 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
 - **The R image.**
   - `rocker/r-ver:4.5.3` (Ubuntu noble; CRAN pinned by rocker to the P3M
     snapshot of 2026-04-23) plus Bioconductor 3.22.
-  - Only `phyloseq` (which brings Biostrings) and `arrow` are installed now.
+  - Only `phyloseq` (which brings Biostrings) is installed now; there is no
+    `arrow` (golden files are CSV).
     vegan and mia are added in slice 1C with their golden files (R2.3).
   - Building and running it needs the user's approval, requested with this
     plan.
@@ -2427,7 +2430,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   - `tests/test_data_files.py`
   - `.knowledge/playbooks/regenerate-golden-files.md`
 - Generate with the container:
-  - `tests/golden/global_patterns/{relative,tax_glom_phylum,tax_glom_genus}.parquet`
+  - `tests/golden/global_patterns/{relative,tax_glom_phylum,tax_glom_genus}.csv.gz`
   - `tests/golden/VERSIONS.txt`
   - `tests/data/phyloseq/{toy.rds,toy.RData,two_objects.RData,samples_as_rows.rds,with_refseq.rds}`
   - `tests/data/dada2/{seqtab.rds,taxa.rds}`
@@ -2438,9 +2441,9 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   - `.knowledge/log.md`
 
 **Interfaces (produces):** the files above, with the layouts below.
-- `relative.parquet` is long format: `sample_id`, `taxon_id`, `value`
+- `relative.csv.gz` is long format: `sample_id`, `taxon_id`, `value`
   (float64), nonzeros only, sorted by taxon then sample.
-- `tax_glom_{phylum,genus}.parquet` is dense: a `sample_id` column, then one
+- `tax_glom_{phylum,genus}.csv.gz` is dense: a `sample_id` column, then one
   column per kept taxon, in phyloseq's order.
 - The fixtures hold biotapy's `toy()` numbers:
   - `toy`: taxa as rows, taxonomy Kingdom..Genus with `f8`'s Genus `NA`,
@@ -2464,7 +2467,6 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   RUN Rscript -e 'install.packages("BiocManager")' \
       && Rscript -e 'BiocManager::install(version = "3.22", ask = FALSE, update = FALSE)'
   RUN Rscript -e 'BiocManager::install("phyloseq", version = "3.22", ask = FALSE, update = FALSE)'
-  RUN Rscript -e 'install.packages("arrow")'
   WORKDIR /work
   CMD ["Rscript", "tests/r/export_golden.R"]
   ```
@@ -2475,11 +2477,13 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   suppressPackageStartupMessages({
     library(phyloseq)
     library(Biostrings)
-    library(arrow)
   })
 
   write_golden <- function(df, path) {
-    arrow::write_parquet(df, path, compression = "zstd", use_dictionary = TRUE, write_statistics = TRUE)
+    # write.csv keeps 15 significant digits; zlib's gzip header has no timestamp, so reruns are identical.
+    con <- gzfile(path, "w")
+    write.csv(df, con, row.names = FALSE)
+    close(con)
     if (file.size(path) >= 1e6) stop(path, " is ", file.size(path), " bytes; rules.md R6.6 caps data files at 1 MB")
   }
 
@@ -2504,10 +2508,10 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   nz <- nz[order(nz[, "col"], nz[, "row"]), , drop = FALSE]
   write_golden(
     data.frame(sample_id = rownames(rel)[nz[, "row"]], taxon_id = colnames(rel)[nz[, "col"]], value = rel[nz]),
-    "tests/golden/global_patterns/relative.parquet"
+    "tests/golden/global_patterns/relative.csv.gz"
   )
-  write_golden(dense_frame(tax_glom(GlobalPatterns, "Phylum")), "tests/golden/global_patterns/tax_glom_phylum.parquet")
-  write_golden(dense_frame(tax_glom(GlobalPatterns, "Genus")), "tests/golden/global_patterns/tax_glom_genus.parquet")
+  write_golden(dense_frame(tax_glom(GlobalPatterns, "Phylum")), "tests/golden/global_patterns/tax_glom_phylum.csv.gz")
+  write_golden(dense_frame(tax_glom(GlobalPatterns, "Genus")), "tests/golden/global_patterns/tax_glom_genus.csv.gz")
 
   ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
   counts <- rbind(
@@ -2548,24 +2552,23 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   writeLines(c(
     R.version.string,
     paste("Bioconductor", as.character(BiocManager::version())),
-    paste0("phyloseq ", packageVersion("phyloseq")),
-    paste0("arrow ", packageVersion("arrow"))
+    paste0("phyloseq ", packageVersion("phyloseq"))
   ), "tests/golden/VERSIONS.txt")
   ```
 - [ ] **Step 3: Build and run** (the user approved the Docker build with this plan). From the repo root:
   ```bash
   docker build -t biotapy-golden tests/r
   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
-  sha256sum tests/golden/global_patterns/*.parquet > /tmp/claude-1000/golden-run1.sha
+  sha256sum tests/golden/global_patterns/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > /tmp/claude-1000/golden-run1.sha
   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
   sha256sum -c /tmp/claude-1000/golden-run1.sha
   ```
   Expected:
-  - The build takes about 10-20 minutes. If the `arrow` step starts compiling
-    from source, that means there is no P3M binary. Stop and report (R14.2).
-  - Both runs finish, and the second run's parquet files hash the same as the
+  - The build takes about 10-20 minutes. If a step starts compiling large
+    packages from source for much longer than that, stop and report (R14.2).
+  - Both runs finish, and the second run's output files hash the same as the
     first run's (bit-identical, contract rule 3).
-  - If `relative.parquet` hits the 1 MB `stop()`, report the size and stop.
+  - If `relative.csv.gz` hits the 1 MB `stop()`, report the size and stop.
     The controller then rules on a documented subset.
   - Record in the report the file sizes, the build time, and
     `docker image inspect biotapy-golden --format '{{.Size}}'`.
@@ -2605,6 +2608,8 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     - Enforced-by: golden tests carry `golden` and `network`, because the
       input is downloaded by pooch, and they run in the network CI job;
     - Statement 1: the image installs only what current golden files need.
+    - Statement 2: golden files are gzip CSV (`<function>.csv.gz`), not
+      parquet; the user declined `pyarrow` on 2026-09-27.
   - Add a log line.
 - [ ] **Step 6: Gate and commit.**
   - Run `uvx prek run --all-files` and `uv run --group test pytest`.
@@ -3175,12 +3180,11 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 
 **Files:**
 - Create `tests/pp/test_transform_golden.py` and `tests/pp/test_glom_golden.py`.
-- Modify `pyproject.toml` (test group: `pyarrow`, pending user approval).
+- No new dependency: pandas reads `.csv.gz` itself (the user declined `pyarrow`).
 
 **Interfaces:** consumes the golden files from 1.12a and `bt.datasets.global_patterns()` from 1.11.
 
-- [ ] **Step 1: Dependency.** Add `"pyarrow"` to `[dependency-groups] test`, then run `uv sync`.
-- [ ] **Step 2: Tests.**
+- [ ] **Step 1: Tests.**
   - `tests/pp/test_transform_golden.py`:
     ```python
     from pathlib import Path
@@ -3196,7 +3200,8 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 
 
     def test_relative_matches_phyloseq_transform_sample_counts():
-        golden = pd.read_parquet(GOLDEN / "relative.parquet")
+        # OTU ids look numeric; read them as text so they match var_names.
+        golden = pd.read_csv(GOLDEN / "relative.csv.gz", dtype={"sample_id": str, "taxon_id": str})
         out = bt.pp.relative(bt.datasets.global_patterns())
         rel = out.layers["relative"].tocoo()
         ours = pd.DataFrame(
@@ -3222,19 +3227,19 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 
     @pytest.mark.parametrize("rank", ["phylum", "genus"])
     def test_tax_glom_matches_phyloseq(rank):
-        golden = pd.read_parquet(GOLDEN / f"tax_glom_{rank}.parquet").set_index("sample_id")
+        golden = pd.read_csv(GOLDEN / f"tax_glom_{rank}.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
         out = bt.pp.tax_glom(bt.datasets.global_patterns(), rank)
         assert list(out.obs_names) == list(golden.index)
         assert list(out.var_names) == list(golden.columns)
         np.testing.assert_allclose(out.X.toarray(), golden.to_numpy(), rtol=1e-7)
     ```
-- [ ] **Step 3: Run** `uv run --group test pytest -m "golden" tests/pp -q`.
+- [ ] **Step 2: Run** `uv run --group test pytest -m "golden" tests/pp -q`.
   - These tests check against R output that already exists, so they may pass
     first time. Say that in the report and do not fake a RED.
   - If a comparison fails, investigate the semantics before touching code:
     NArm, lineage keys, archetype order. Report findings; never loosen a
     tolerance without a one-line reason (R11.3).
-- [ ] **Step 4: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
+- [ ] **Step 3: Gate; commit** `test(pp): compare relative and tax_glom with phyloseq golden files`.
 
 ### Checkpoint B - review slice 1B stage 2
 - [ ] Whole-branch review of stage 2 against every contract and the stage-2
