@@ -53,10 +53,10 @@ def test_both_thresholds_must_pass():
 
 
 def test_decimal_prevalence_boundary_is_kept():
-    # 3 / 10 == 0.3 in floating point, while 0.3 * 10 is just above 3.
-    dense = np.ones((10, 2), dtype=np.int64)
-    dense[3:, 0] = 0
-    assert list(bt.pp.filter_features(_adata(dense), min_prevalence=0.3).var_names) == ["f0", "f1"]
+    # 7 / 25 == 0.28 in floating point, while 0.28 * 25 is just above 7.
+    dense = np.ones((25, 2), dtype=np.int64)
+    dense[7:, 0] = 0
+    assert list(bt.pp.filter_features(_adata(dense), min_prevalence=0.28).var_names) == ["f0", "f1"]
 
 
 def test_explicit_zeros_do_not_count_as_present():

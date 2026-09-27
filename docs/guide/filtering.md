@@ -22,8 +22,8 @@ In phyloseq the same filters are
 `filter_taxa(physeq, function(x) sum(x) >= 20, prune = TRUE)`.
 
 Filtering changes the feature set, so everything computed from the old one is dropped: every
-entry in `layers`, `obsm` and `obsp`. A TreeData keeps the subtree of the kept features, with
-branch lengths unchanged.
+entry in `layers`, `obsm`, `obsp`, `varm` and `varp`. A TreeData keeps the subtree of the kept
+features, with branch lengths unchanged.
 
 ## Samples: `filter_samples`
 

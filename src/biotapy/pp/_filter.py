@@ -58,7 +58,7 @@ def filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_
             raise ValueError(msg)
         # Count stored non-zero values per column: a CSR matrix may also store explicit zeros.
         present = np.bincount(X.indices[X.data != 0], minlength=adata.n_vars)
-        # Divide rather than multiply: 3 / 10 >= 0.3 holds, 3 >= 0.3 * 10 does not.
+        # Divide rather than multiply: 7 / 25 >= 0.28 holds, 7 >= 0.28 * 25 does not.
         keep &= present / adata.n_obs >= min_prevalence
     if min_total is not None:
         keep &= np.asarray(X.sum(axis=0)).ravel() >= min_total
