@@ -96,16 +96,27 @@ def load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]:
     return cast(dict[str, Any], next(iter(found.values())))
 
 
-def read_matrix_rds(path: Path) -> pd.DataFrame:
-    """A plain R matrix saved with saveRDS, rows and columns named from its dimnames."""
+def read_matrix_rds(path: Path, *, argument: str) -> pd.DataFrame:
+    """A plain R matrix saved with saveRDS, rows and columns named from its dimnames.
+
+    ``argument`` names the input in the ``ValueError`` raised when the file holds
+    something other than a matrix, e.g. ``"seqtab='seqtab.rds'"``.
+    """
     parsed = rdata.parser.parse_file(path)
     if parsed.object.info.type is RObjectType.STR:
         attrs = convert_attrs(parsed.object, lambda node: rdata.conversion.convert(node))
         flat = [convert_char(cell, default_encoding=None, force_default_encoding=False) for cell in parsed.object.value]
         frame = _char_matrix(flat, attrs)
     else:
+        # _PHYLOSEQ's constructors are reused (not duplicated) so a phyloseq-shaped .rds
+        # converts quietly to a dict instead of rdata warning about missing constructors
+        # before the isinstance check below rejects it as not a matrix.
+        obj = rdata.conversion.convert(parsed, _PHYLOSEQ)
+        if not isinstance(obj, xr.DataArray) or obj.ndim != 2:
+            msg = f"{argument} must be a matrix saved with saveRDS; the file holds {type(obj).__name__}"
+            raise ValueError(msg)
         # DataArray.to_pandas() is typed to also return a Series/DataArray for other ndims;
-        # an R matrix is always 2-D, so this is a DataFrame at runtime.
-        frame = cast(pd.DataFrame, cast(xr.DataArray, rdata.conversion.convert(parsed)).to_pandas())
+        # ndim == 2 is checked above, so this is a DataFrame at runtime.
+        frame = cast(pd.DataFrame, obj.to_pandas())
     # xarray names a plain DataArray's axes dim_0/dim_1; a plain R matrix has no axis names.
     return frame.rename_axis(index=None, columns=None)

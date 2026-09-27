@@ -1,4 +1,4 @@
-"""DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table."""
+"""DADA2 sequence tables and taxonomy, as written by R's write.csv / write.table / saveRDS."""
 
 import re
 from collections.abc import Iterable
@@ -87,7 +87,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     >>> bt.io.read_dada2(path).var_names.tolist()
     ['ASV1', 'ASV2']
     """
-    counts = _read_table(Path(seqtab))
+    counts = _read_table(Path(seqtab), argument=f"seqtab={str(seqtab)!r}")
     sequences = [str(column) for column in counts.columns]
     if not sequences or not all(_SEQUENCE.match(sequence) for sequence in sequences):
         msg = (
@@ -98,7 +98,9 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     names = [f"ASV{i}" for i in range(1, len(sequences) + 1)]
     var = pd.DataFrame({"sequence": sequences}, index=names)
     if taxa is not None:
-        ranks = _join_to(normalize_ranks(_read_table(Path(taxa))), pd.Index(sequences), argument=f"taxa={str(taxa)!r}")
+        taxa_argument = f"taxa={str(taxa)!r}"
+        taxa_table = _read_table(Path(taxa), argument=taxa_argument)
+        ranks = _join_to(normalize_ranks(taxa_table), pd.Index(sequences), argument=taxa_argument)
         var = ranks.set_axis(names).join(var)
     phylo = None
     if tree is not None:
@@ -109,10 +111,13 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_dada2")
 
 
-def _read_table(path: Path) -> pd.DataFrame:
-    """A table whose first column holds row names, as R's write.csv writes it, or a plain .rds matrix."""
+def _read_table(path: Path, *, argument: str) -> pd.DataFrame:
+    """A table whose first column holds row names, as R's write.csv writes it, or a plain .rds matrix.
+
+    ``argument`` names the input in error messages, e.g. ``"seqtab='seqtab.rds'"``.
+    """
     if path.suffix.lower() == ".rds":
-        return read_matrix_rds(path)
+        return read_matrix_rds(path, argument=argument)
     # Row names are ids: read them as text ("001" stays "001", a sample named "NA" is not
     # missing). Rank cells saying "NA" stay text here; normalize_ranks maps them to NaN.
     frame = pd.read_csv(

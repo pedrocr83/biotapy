@@ -1,6 +1,14 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.9b fix round 1 (I1, R3.5): `_rdata.py:read_matrix_rds`
+  gained a keyword-only `argument` and raises `ValueError` naming it when the
+  file's converted object isn't a 2-D `xr.DataArray` - a phyloseq `.rds`
+  passed as `read_dada2`'s `seqtab=`/`taxa=` used to crash with a raw
+  `AttributeError`. Converting with the existing `_PHYLOSEQ` constructor dict
+  instead of rdata's default avoids rdata warning once per missing S4-slot
+  constructor before that check runs. Added a Gotcha to
+  [modules/io.md](modules/io.md).
 * **Update**: Task 1.9b done: `bt.io.read_dada2`'s `seqtab` and `taxa` accept
   `.rds` files, dispatched in `_dada2.py:_read_table` to `_rdata.py:read_matrix_rds`
   (Task 1.10). Controller ruling: fixed a deferred minor from Task 1.10 in the

@@ -9,6 +9,7 @@ import treedata
 import biotapy as bt
 
 DADA2 = Path(__file__).parents[1] / "data" / "dada2"
+PHYLOSEQ = Path(__file__).parents[1] / "data" / "phyloseq"
 
 SEQTAB = '"","ACGTACGT","TTGACCAA","GGGCCCAA","CCCCAAAA"\n"S1",10,0,5,0\n"S2",0,0,0,0\n"S3",3,7,1,0\n'
 SPECIES_UNKNOWN = (
@@ -176,3 +177,10 @@ def test_read_dada2_rds_taxa_keeps_matrix_shape():
         var = bt.io.read_dada2(DADA2 / "seqtab.rds", taxa=DADA2 / "taxa.rds").var
     assert var.loc["ASV1", ["kingdom", "phylum", "genus"]].tolist() == ["Bacteria", "Firmicutes", "Blautia"]
     assert np.isnan(var.loc["ASV2", "genus"])
+
+
+def test_read_dada2_rejects_a_non_matrix_rds(seqtab):
+    with pytest.raises(ValueError, match="seqtab="):
+        bt.io.read_dada2(PHYLOSEQ / "toy.rds")
+    with pytest.raises(ValueError, match="taxa="):
+        bt.io.read_dada2(seqtab, taxa=PHYLOSEQ / "toy.rds")

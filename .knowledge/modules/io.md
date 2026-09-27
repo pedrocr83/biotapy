@@ -5,7 +5,7 @@ description: File readers and writer for BIOM, QIIME 2 artifacts and DADA2 seque
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T11:17:10Z }
 commit: 43d6efb
 status: stable
 ---
@@ -132,3 +132,11 @@ Task 1.11, not yet written).
   deserializes as the literal string `"\x01NULL\x01"` with no R class, so it
   never reaches a constructor - the NULL check lives in the `phyloseq`
   constructor itself (`_rdata.py:_or_none`), not in each slot's constructor.
+- `_rdata.py:read_matrix_rds` takes a keyword-only `argument` and raises
+  `ValueError` naming it when the file's converted object is not a 2-D
+  `xr.DataArray` (an `.rds` that holds something other than a plain matrix,
+  e.g. a phyloseq object passed as `read_dada2`'s `seqtab=`). It converts
+  with `_rdata.py:_PHYLOSEQ` (reused, not duplicated) rather than rdata's
+  default `constructor_dict`, so a phyloseq-shaped `.rds` converts quietly to
+  a `dict` instead of rdata warning once per missing S4-slot constructor
+  before the `ValueError` fires (Task 1.9b fix round 1).
