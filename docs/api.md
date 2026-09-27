@@ -43,6 +43,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     pp.filter_features
     pp.filter_samples
+    pp.rarefy
     pp.relative
     pp.tax_glom
 ```

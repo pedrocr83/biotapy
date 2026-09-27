@@ -4183,7 +4183,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - Features left all-zero are dropped through `feature_subset`.
   - `X` becomes `int64` counts, and provenance records `pp.rarefy` with `depth`.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
   - `tests/pp/test_rarefy.py`:
     ```python
     import json
@@ -4334,9 +4334,9 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         np.testing.assert_array_equal(np.asarray(out.X.sum(axis=1)).ravel(), golden["sample_sum"].to_numpy())
         assert (out.X.toarray() <= tdata[out.obs_names, out.var_names].X.toarray()).all()
     ```
-- [ ] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_rarefy.py -q`.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_rarefy.py -q`.
   It fails with `AttributeError: module 'biotapy.pp' has no attribute 'rarefy'`.
-- [ ] **Step 3: Implement.** `src/biotapy/pp/_rarefy.py`:
+- [x] **Step 3: Implement.** `src/biotapy/pp/_rarefy.py`:
   ```python
   """Rarefaction: subsample every sample to the same depth."""
 
@@ -4453,7 +4453,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       # (mypy/checkexpr.py matches by callee fullname).
       untyped_calls_exclude = [ "biom", "skbio.stats._subsample" ]
       ```
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - Append to `docs/guide/filtering.md`:
     ````markdown
 
@@ -4478,7 +4478,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       counts never match phyloseq's draw for draw.
     ````
   - Add `pp.rarefy` to the Preprocessing block of `docs/api.md`.
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - `.knowledge/modules/pp.md`:
     - the Responsibility now owns rarefaction too;
     - add the `_rarefy.py:rarefy` entry point;
@@ -4488,7 +4488,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     future `pp.rarefy`" becomes "`pp.rarefy` copies `indices`/`indptr` and
     builds new `data`".
   - Add a log line. Tick 1.14 here.
-- [ ] **Step 6: Run, gate and commit.**
+- [x] **Step 6: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/pp -q`.
   - Golden: `uv run --group test pytest -m golden tests/pp/test_rarefy_golden.py -q`
     (1 passed, about 4 s).

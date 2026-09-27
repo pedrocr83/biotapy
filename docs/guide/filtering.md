@@ -31,3 +31,23 @@ features, with branch lengths unchanged.
 inclusive). It only removes rows, so every slot is kept and subset, and distances in `obsp` stay
 valid for the samples that remain. Features that become all-zero are kept; follow with
 `filter_features` to drop them.
+
+## Rarefaction: `rarefy`
+
+`bt.pp.rarefy` subsamples every sample to `depth` reads without replacement, so no count grows
+and every kept sample sums to exactly `depth`:
+
+```python
+out = bt.pp.rarefy(tdata, depth=60, seed=0)
+```
+
+- `depth` defaults to the smallest non-zero sample depth. phyloseq's `rarefy_even_depth` uses
+  the smallest depth, zero included.
+- Samples with fewer than `depth` reads are dropped, with one warning naming them; a sample with
+  exactly `depth` reads is kept.
+- Features left all-zero are dropped, as with phyloseq's `trimOTUs = TRUE`.
+- `X` must hold raw counts (`uns["biotapy"]["x_kind"] == "counts"`).
+- phyloseq samples with replacement by default (`replace = TRUE`). biotapy always samples
+  without, like `replace = FALSE`.
+- The same `seed` gives the same result. R and NumPy use different random generators, so the
+  counts never match phyloseq's draw for draw.

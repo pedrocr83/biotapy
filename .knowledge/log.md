@@ -1,6 +1,20 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.14 done: `pp.rarefy(adata, *, depth=, seed=)` subsamples
+  every sample to `depth` reads without replacement, via
+  `skbio.stats.subsample_counts`. `depth` defaults to the smallest non-zero
+  sample depth, so all-zero samples are skipped by default; samples with
+  strictly fewer than `depth` reads are dropped with one `UserWarning` naming
+  up to 5; a sample at exactly `depth` is kept. Features left all-zero after
+  subsampling are dropped through `_core.feature_subset`, and `X` becomes
+  `int64`. New `src/biotapy/pp/_rarefy.py`, `tests/pp/test_rarefy.py`,
+  `tests/pp/test_rarefy_golden.py` (matches which samples `phyloseq::
+  rarefy_even_depth` drops on GlobalPatterns; counts themselves are not
+  compared, per r-golden-parity's rarefaction row) and
+  `docs/guide/filtering.md`. `pyproject.toml`'s `untyped_calls_exclude` gains
+  `skbio.stats._subsample`. [pp](modules/pp.md) and [core](modules/core.md)
+  updated; ticked in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.13 done: `pp.filter_features(adata, *, min_prevalence=,
   min_total=)` and `pp.filter_samples(adata, min_depth)`, both inclusive
   thresholds, `ValueError` when nothing passes. `filter_features` goes

@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:36:43Z }
-commit: c0b860e
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:58:07Z }
+commit: e401f91
 status: stable
 ---
 
@@ -76,8 +76,8 @@ none of them back.
 # Invariants
 
 - `as_csr` may return an object sharing buffers with its input; a caller must
-  never mutate the result in place (rules.md R6.2/R3.3 - matters for the
-  future `pp.rarefy`). `_matrix.py:as_csr`
+  never mutate the result in place (rules.md R6.2/R3.3 - `pp.rarefy` copies
+  `indices`/`indptr` and builds new `data`). `_matrix.py:as_csr`
 - `add_provenance` mutates its `adata` argument in place by design. Call it
   on a function's output copy, never on the caller's input.
   `_slots.py:add_provenance`

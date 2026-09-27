@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:36:43Z }
-commit: 03544a6
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:58:07Z }
+commit: e401f91
 status: stable
 ---
 
@@ -15,9 +15,8 @@ status: stable
 Owns the `bt.pp.*` verbs that transform an AnnData/TreeData's abundance
 table: `relative` (adds a layer, keeps every feature), `tax_glom`
 (aggregates features to a taxonomic rank, drops derived slots). Owns
-filtering (`filter_features`, `filter_samples`); does NOT own rarefaction
-(`pp.rarefy`, Task 1.14) or any diversity/ordination computation (`tl`,
-later phases).
+filtering (`filter_features`, `filter_samples`) and rarefaction (`rarefy`);
+does NOT own any diversity/ordination computation (`tl`, later phases).
 
 # Entry points
 
@@ -30,6 +29,8 @@ later phases).
   `feature_subset`.
 - `_filter.py:filter_samples` - a depth threshold, through AnnData indexing,
   keeping every slot.
+- `_rarefy.py:rarefy` - subsample every sample to the same depth, through
+  `skbio.stats.subsample_counts`, then `feature_subset`.
 
 # Invariants
 
@@ -58,11 +59,19 @@ later phases).
   `tests/pp/test_filter.py:test_decimal_prevalence_boundary_is_kept`.
 - Nothing passing either filter raises `ValueError`; neither ever returns an
   empty object. `_filter.py:filter_features`, `_filter.py:filter_samples`
+- `rarefy` subsamples without replacement only (phyloseq defaults to
+  `replace = TRUE`); `depth` defaults to the smallest non-zero sample depth,
+  so all-zero samples are skipped rather than rarefying everything to 0.
+  Samples with strictly fewer than `depth` reads are dropped with one
+  `UserWarning` naming up to 5 of them; a sample at exactly `depth` is kept.
+  Features left all-zero after subsampling are dropped through
+  `feature_subset`, and `X` becomes `int64` counts. `_rarefy.py:rarefy`
 
 # Dependencies
 
 - [core](/modules/core.md): `as_csr`, `sum_by`, `argmax_by`, `split_ranks`,
-  `feature_subset`, `add_provenance`.
+  `feature_subset`, `add_provenance`, `as_generator`, `require_counts`,
+  `warn_user`.
 
 # Verification
 

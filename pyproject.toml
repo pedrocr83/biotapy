@@ -161,9 +161,10 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "src/biotapy" ]
 python_version = "3.12"
-# biom-format ships no type annotations at all; exempt only calls into it (not our own
-# code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
-untyped_calls_exclude = [ "biom" ]
+# biom-format ships no type annotations at all, nor does scikit-bio's subsample_counts; exempt
+# only calls into them (not our own code) from strict's disallow_untyped_calls
+# (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [ "biom", "skbio.stats._subsample" ]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
