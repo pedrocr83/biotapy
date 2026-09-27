@@ -4,7 +4,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from biotapy._core import get_tree, make_treedata, relabel_tips, tree_from_edges, tree_from_newick, tree_tips
+from biotapy._core import (
+    get_tree,
+    make_treedata,
+    relabel_tips,
+    tree_from_edges,
+    tree_from_newick,
+    tree_from_phylo,
+    tree_tips,
+)
 
 
 def _make(tree):
@@ -158,3 +166,20 @@ def test_make_treedata_without_shared_features_gives_examples():
     tree = tree_from_edges([("r", "y", 1.0), ("r", "z", 1.0)])
     with pytest.raises(ValueError, match=r"no feature.*\['a', 'b'\].*\['y', 'z'\]"):
         make_treedata(np.ones((1, 2)), obs=obs, var=var, tree=tree, x_kind="counts", source="test")
+
+
+def test_tree_from_phylo_names_tips_and_internal_nodes():
+    tree = tree_from_phylo([[3, 1], [3, 2]], [0.5, 1.0], ["a", "b"])
+    assert _leaves(tree) == {"a", "b"} and tree.number_of_nodes() == 3
+    root = next(n for n in tree.nodes if tree.in_degree(n) == 0)
+    assert tree.edges[root, "a"]["length"] == 0.5
+
+
+def test_tree_from_phylo_internal_names_skip_tip_names():
+    tree = tree_from_phylo([[3, 1], [3, 2]], None, ["n0", "b"])
+    assert tree.number_of_nodes() == 3 and _leaves(tree) == {"n0", "b"}
+
+
+def test_tree_from_phylo_without_lengths_uses_nan():
+    tree = tree_from_phylo([[3, 1], [3, 2]], None, ["a", "b"])
+    assert all(math.isnan(d["length"]) for *_, d in tree.edges(data=True))
