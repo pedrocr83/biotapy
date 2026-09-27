@@ -150,9 +150,10 @@ checks for both:
 
 ## DADA2
 
-`bt.io.read_dada2` reads a DADA2 sequence table (CSV or TSV) as written by R's
-`write.csv`/`write.table`, with optional taxonomy and a tree. Any `.csv`
-suffix means CSV, so a compressed `seqtab.csv.gz` works too:
+`bt.io.read_dada2` reads a DADA2 sequence table (CSV, TSV or `.rds`) as
+written by R's `write.csv`/`write.table`/`saveRDS`, with optional taxonomy
+and a tree. Any `.csv` suffix means CSV, so a compressed `seqtab.csv.gz`
+works too; `.rds` reads the R matrix directly, with no R install:
 
 ```python
 tdata = bt.io.read_dada2("seqtab.csv", taxa="taxa.csv", tree="tree.nwk")

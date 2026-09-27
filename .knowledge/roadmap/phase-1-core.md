@@ -2971,7 +2971,7 @@ Deferred from 1.9 until the rdata route was approved (1.6) and R-written fixture
 **Interfaces:** consumes `io._rdata.read_matrix_rds`. `read_dada2`'s signature
 does not change; `seqtab` and `taxa` may each be a `.rds` file.
 
-- [ ] **Step 1: Failing tests** - append to `tests/io/test_dada2.py`, with imports at the top:
+- [x] **Step 1: Failing tests** - append to `tests/io/test_dada2.py`, with imports at the top:
   ```python
   from pathlib import Path
 
@@ -2998,14 +2998,14 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   - Confirm that the warning text in `io/_join.py` matches `taxa=`, and adapt
     the pattern if it does not.
   - Never leave a warning unasserted: the suite must pass under `-W error::UserWarning`.
-- [ ] **Step 2: Run, expect failure** (the `.rds` file is parsed as text).
-- [ ] **Step 3: Implement.** In `_dada2.py`'s `_read_table`, dispatch `.rds` to
+- [x] **Step 2: Run, expect failure** (the `.rds` file is parsed as text).
+- [x] **Step 3: Implement.** In `_dada2.py`'s `_read_table`, dispatch `.rds` to
   `read_matrix_rds`. The `.rds` values come back typed; confirm that the counts
   are integers or whole floats (`infer_x_kind` handles both) and that `NA`
   becomes None/NaN before `normalize_ranks`. Update the docstring: "CSV, TSV
   or `.rds`".
-- [ ] **Step 4: Docs** - the DADA2 guide section mentions `.rds`.
-- [ ] **Step 5: Run, expect pass; gate; commit** `feat(io): read DADA2 .rds tables`.
+- [x] **Step 4: Docs** - the DADA2 guide section mentions `.rds`.
+- [x] **Step 5: Run, expect pass; gate; commit** `feat(io): read DADA2 .rds tables`.
 
 ### Task 1.11: `datasets.global_patterns()`, `datasets.enterotype()`
 

@@ -1,6 +1,16 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.9b done: `bt.io.read_dada2`'s `seqtab` and `taxa` accept
+  `.rds` files, dispatched in `_dada2.py:_read_table` to `_rdata.py:read_matrix_rds`
+  (Task 1.10). Controller ruling: fixed a deferred minor from Task 1.10 in the
+  same change — `read_matrix_rds` now drops xarray's anonymous `dim_0`/`dim_1`
+  axis names (`.rename_axis(index=None, columns=None)`) so a `.rds`-read
+  frame's index/columns match a CSV-read one's `None` names; no other change
+  needed (`.rds` counts already arrive as a NumPy integer dtype, and R `NA` in
+  a character matrix already arrives as NaN, both confirmed against the
+  fixtures from 1.12a). Ticked Task 1.9b step checkboxes in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.10 done: `bt.io.read_phyloseq` (`src/biotapy/io/_phyloseq.py`,
   `src/biotapy/io/_rdata.py`) reads a phyloseq object saved from R
   (`.rds`/`.RData`) natively through `rdata`, with `name=` selecting one

@@ -102,7 +102,10 @@ def read_matrix_rds(path: Path) -> pd.DataFrame:
     if parsed.object.info.type is RObjectType.STR:
         attrs = convert_attrs(parsed.object, lambda node: rdata.conversion.convert(node))
         flat = [convert_char(cell, default_encoding=None, force_default_encoding=False) for cell in parsed.object.value]
-        return _char_matrix(flat, attrs)
-    # DataArray.to_pandas() is typed to also return a Series/DataArray for other ndims;
-    # an R matrix is always 2-D, so this is a DataFrame at runtime.
-    return cast(pd.DataFrame, cast(xr.DataArray, rdata.conversion.convert(parsed)).to_pandas())
+        frame = _char_matrix(flat, attrs)
+    else:
+        # DataArray.to_pandas() is typed to also return a Series/DataArray for other ndims;
+        # an R matrix is always 2-D, so this is a DataFrame at runtime.
+        frame = cast(pd.DataFrame, cast(xr.DataArray, rdata.conversion.convert(parsed)).to_pandas())
+    # xarray names a plain DataArray's axes dim_0/dim_1; a plain R matrix has no axis names.
+    return frame.rename_axis(index=None, columns=None)
