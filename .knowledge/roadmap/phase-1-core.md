@@ -2649,11 +2649,11 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     - `read_matrix_rds(path: Path) -> pd.DataFrame`, used by 1.9b.
   - `bt.io.read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData`.
 
-- [ ] **Step 1: Dependency.**
+- [x] **Step 1: Dependency.**
   - Add `"rdata>=1.1,<2"` and `"xarray"` to `[project] dependencies`, then run
     `uv sync --group dev --group test --group doc`.
   - Both ship `py.typed`. If mypy disagrees, handle it per P8.
-- [ ] **Step 2: Failing tests.**
+- [x] **Step 2: Failing tests.**
   - Append to `tests/core/test_tree.py`, with imports in the top block (P7):
     ```python
     from biotapy._core import tree_from_phylo
@@ -2730,8 +2730,8 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
         with pytest.raises(ValueError, match="path=.*phyloseq"):
             bt.io.read_phyloseq(Path(__file__).parents[1] / "data" / "dada2" / "seqtab.rds")
     ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/io/test_phyloseq.py -q` -> ImportError for `tree_from_phylo`; `AttributeError` for `read_phyloseq`.
-- [ ] **Step 4: Implement `_core.tree_from_phylo`** in `_core/_tree.py` (add `from collections.abc import Sequence`):
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_tree.py tests/io/test_phyloseq.py -q` -> ImportError for `tree_from_phylo`; `AttributeError` for `read_phyloseq`.
+- [x] **Step 4: Implement `_core.tree_from_phylo`** in `_core/_tree.py` (add `from collections.abc import Sequence`):
   ```python
   def tree_from_phylo(edge: npt.ArrayLike, lengths: npt.ArrayLike | None, tips: Sequence[str]) -> nx.DiGraph[str]:
       """Build a tree from an ape ``phylo`` edge matrix (1-based; tips are ``1..len(tips)``).
@@ -2755,7 +2755,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
       return tree
   ```
   Export it from `_core/__init__.py`. `numpy.typing` is already available as `npt`; import it if it was dropped.
-- [ ] **Step 5: Implement `io/_rdata.py`.**
+- [x] **Step 5: Implement `io/_rdata.py`.**
   ```python
   """R data files through rdata: phyloseq objects and plain matrices (.RData/.rda/.rds)."""
 
@@ -2853,7 +2853,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     `path=.*phyloseq`, and the `len(found) != 1` message already contains it.
   - Stay within R5 limits: split `load_phyloseq`'s name handling into a helper
     if ruff asks.
-- [ ] **Step 6: Implement `io/_phyloseq.py`.**
+- [x] **Step 6: Implement `io/_phyloseq.py`.**
   ```python
   """phyloseq objects saved from R (.RData/.rda/.rds), read natively (decisions/phyloseq-import-route)."""
 
@@ -2949,19 +2949,19 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     `io`. Otherwise add a `_core` type alias such as `Tree = nx.DiGraph[str]`,
     exported from `_core`.
   - Export `read_phyloseq` from `io/__init__.py`.
-- [ ] **Step 7: Docs.**
+- [x] **Step 7: Docs.**
   - Add a "phyloseq" section to `docs/guide/reading_data.md`:
     - `.rds` vs `.RData`, and `name=`;
     - what is read and what is skipped (`refseq`);
     - no R needed.
   - Add `io.read_phyloseq` to `docs/api.md`.
-- [ ] **Step 8: Knowledge.**
+- [x] **Step 8: Knowledge.**
   - Dependency decision: one sentence, "Task 1.10 added rdata (`>=1.1,<2`) and xarray".
   - `tree-access` statement 2 gains `tree_from_phylo`.
   - One log line.
   - Record in the report `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1`,
     because xarray adds import time (R10.1).
-- [ ] **Step 9: Run, expect pass; gate; commit** `feat(io): read phyloseq objects saved from R`.
+- [x] **Step 9: Run, expect pass; gate; commit** `feat(io): read phyloseq objects saved from R`.
 
 ### Task 1.9b: `.rds` input for `io.read_dada2`
 Deferred from 1.9 until the rdata route was approved (1.6) and R-written fixtures existed (1.12a).

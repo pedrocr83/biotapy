@@ -4,7 +4,7 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
 commit: 7929bdf
 sources:
   - id: spec
@@ -28,7 +28,9 @@ torch or an R installation into every install is unacceptable.[^spec]
   Task 1.3 added treedata and networkx, plus the dev-only `types-networkx`.
   Task 1.7a added scikit-bio (`>=0.7.4,<0.8`), which brings biom-format,
   statsmodels and patsy. Task 1.7c declared biom-format (`>=2.1.16`) directly
-  because `io` imports it.
+  because `io` imports it. Task 1.10 added rdata (`>=1.1,<2`) and xarray, to
+  read phyloseq objects saved from R natively
+  ([phyloseq-import-route](phyloseq-import-route.md)).
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

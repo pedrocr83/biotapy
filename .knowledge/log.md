@@ -1,6 +1,25 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.10 done: `bt.io.read_phyloseq` (`src/biotapy/io/_phyloseq.py`,
+  `src/biotapy/io/_rdata.py`) reads a phyloseq object saved from R
+  (`.rds`/`.RData`) natively through `rdata`, with `name=` selecting one
+  object from an `.RData` holding several; `_core.tree_from_phylo`
+  (`_tree.py`) builds a tree from ape's `phylo` edge matrix, reusing
+  `tree_from_newick`'s collision-free internal-node naming. Added runtime
+  deps `rdata` (`>=1.1,<2`) and `xarray` (approved 2026-09-26; recorded in
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md)).
+  Controller ruling (2026-09-27): a populated `refseq` slot raises
+  `ValueError` naming the R fix instead of the plan's warned skip, because
+  Task 1.12a's `with_refseq.rds` fixture showed rdata 1.1.0 cannot parse the
+  file at all in that case; amended
+  [phyloseq-import-route](decisions/phyloseq-import-route.md) with a dated
+  `# Amendment 2026-09-27` section recording the evidence. Updated
+  [tree-access](contracts/tree-access.md) (statement 2 and a `tree_from_phylo`
+  gotcha), [modules/core.md](modules/core.md) and [modules/io.md](modules/io.md)
+  (entry points, dependencies, the refseq/NULL-sentinel gotchas), and
+  `docs/guide/reading_data.md`/`docs/api.md`. Ticked Task 1.10's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.12a done: added the pinned R golden-file image
   (`tests/r/Dockerfile`, `rocker/r-ver:4.5.3` + Bioconductor 3.22 +
   phyloseq/Biostrings), `tests/r/export_golden.R` writing the GlobalPatterns

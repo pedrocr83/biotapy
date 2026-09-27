@@ -5,7 +5,7 @@ description: Only biotapy/_core/_tree.py imports treedata or networkx, so a Tree
 tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
 commit: 43d6efb
 sources:
   - id: treedata
@@ -23,7 +23,8 @@ sources:
    from `biotapy._core`.
 2. It owns: constructing a TreeData (`make_treedata`), building a tree from an
    edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), Newick
-   parsing (`tree_from_newick`), listing tips (`tree_tips`), and relabeling
+   parsing (`tree_from_newick`), building a tree from an ape `phylo` edge
+   matrix (`tree_from_phylo`), listing tips (`tree_tips`), and relabeling
    tips (`relabel_tips`).
 3. Newick parsing reuses scikit-bio (`TreeNode.read([text], convert_underscores=False)`);
    biotapy never writes its own parser.
@@ -70,6 +71,13 @@ reaches past the helpers.[^spec]
   call, even when both extra features and extra tips exist; it names both
   counts and keeps only the shared features, pruning the tree to kept tips
   plus ancestors. No shared feature is a hard `ValueError`, not a warning.
+- `tree_from_phylo` reads ape's `phylo` edge-matrix convention directly:
+  1-based node ids, tips numbered `1..len(tips)`, everything above that an
+  internal node. It reuses `tree_from_newick`'s collision-free `n<i>` naming
+  for internal nodes and the same `_require_unique_names` tip check, so a
+  phyloseq-derived tree (`io.read_phyloseq`) and a Newick-derived one
+  (`io.read_biom`/`read_qiime2`/`read_dada2`) name their internal nodes the
+  same way. A missing `edge.length` becomes `nan`, same as `tree_from_newick`.
 
 [^treedata]: treedata 0.3.1 on PyPI
 [^spec]: Python Microbiome Toolkit development report, section Risks

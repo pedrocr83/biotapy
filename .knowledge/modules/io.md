@@ -5,7 +5,7 @@ description: File readers and writer for BIOM, QIIME 2 artifacts and DADA2 seque
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
 commit: 43d6efb
 status: stable
 ---
@@ -13,11 +13,11 @@ status: stable
 # Responsibility
 
 Owns the `bt.io.*` verbs that move data between files and a TreeData:
-`read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`) and
-`read_dada2` (`_dada2.py`), plus the private checked-join helper shared by the
-last two (`_join.py`). Does NOT own phyloseq `.rds`/`.RData` reading
-(`read_phyloseq`, Task 1.10, stage 2, not yet written) or downloaded example
-datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
+`read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`),
+`read_dada2` (`_dada2.py`) and `read_phyloseq` (`_phyloseq.py`, `_rdata.py`),
+plus the private checked-join helper shared across readers (`_join.py`). Does
+NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
+Task 1.11, not yet written).
 
 # Entry points
 
@@ -29,9 +29,16 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
   tree and QIIME 2 metadata TSV, with no QIIME 2 install.
 - `_dada2.py:read_dada2` - a DADA2 `seqtab`/`seqtab.nochim` CSV or TSV, plus
   optional `assignTaxonomy`/`addSpecies` taxonomy and a Newick tree.
+- `_phyloseq.py:read_phyloseq` - a phyloseq object saved from R
+  (`.rds`/`.RData`), read natively through `rdata` (no R, no rpy2); `name=`
+  selects one object from an `.RData` holding several.
+- `_rdata.py:load_phyloseq` / `_rdata.py:read_matrix_rds` - private; the
+  `rdata` `constructor_dict` for phyloseq's five S4 slots, and a plain R
+  matrix reader (numeric or character) shared with `read_dada2`'s `.rds`
+  input (Task 1.9b).
 - `_join.py:_join_to` - private; the one checked reindex-join for a side file
-  (taxonomy, metadata, taxa) onto a table's ids, used by `read_qiime2`
-  (taxonomy, metadata) and `read_dada2` (taxa).
+  (taxonomy, metadata, taxa) onto a table's ids, used by every reader above
+  that joins a side file.
 
 # Invariants
 
@@ -76,14 +83,15 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
   spelling `"NA"` are still normalized to NaN downstream by
   `_core.normalize_ranks`, not by `_read_table` itself.
 
-# Dependencies
-
 - [core](/modules/core.md): `make_treedata`, `infer_x_kind`, `split_lineage`,
-  `normalize_ranks`, `tree_from_newick`, `tree_tips`, `relabel_tips`,
-  `warn_user`, `TreeData`, `RANKS`, `as_csr`.
+  `normalize_ranks`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
+  `relabel_tips`, `warn_user`, `TreeData`, `RANKS`, `as_csr`.
 - Third-party: `biom-format` (`_biom.py`, and `_qiime2.py` via
   `_biom_parts`). No CPython 3.14 wheels yet (biocore/biom-format#1004): on
   3.14 it builds from source and needs a C compiler, noted in `README.md`.
+- Third-party: `rdata` (`>=1.1,<2`) and `xarray` (`_rdata.py`), read via a
+  custom `constructor_dict` - see
+  [phyloseq-import-route](/decisions/phyloseq-import-route.md).
 
 # Verification
 
@@ -112,3 +120,13 @@ datasets (`datasets.global_patterns`/`enterotype`, Task 1.11).
   `disallow_untyped_calls = false`, mypy strict mode is narrowed with
   `untyped_calls_exclude = ["biom"]` (`[tool.mypy]` in `pyproject.toml`), so
   only calls into biom-format itself are exempt, not the rest of `io`.
+- A populated phyloseq `refseq` slot (Biostrings sequences) raises
+  `ValueError` naming the R fix, rather than being read or skipped: rdata
+  1.1.0's parser has no `RAW` branch, so the whole file fails to parse
+  (`NotImplementedError`) and nothing can be read around it.
+  `_rdata.py:_refseq_error`, `_phyloseq.py:read_phyloseq`. See
+  [phyloseq-import-route](/decisions/phyloseq-import-route.md).
+- An absent phyloseq slot (`tax_table`, `sam_data`, `phy_tree`, `refseq`)
+  deserializes as the literal string `"\x01NULL\x01"` with no R class, so it
+  never reaches a constructor - the NULL check lives in the `phyloseq`
+  constructor itself (`_rdata.py:_or_none`), not in each slot's constructor.

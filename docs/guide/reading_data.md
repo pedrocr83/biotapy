@@ -196,3 +196,51 @@ Every tip must be a DNA sequence. A tip named by an ASV id raises a
 which need not match the numbering behind your tree, so matching by id could
 attach branches to the wrong features. Sequence tips that are not in
 `seqtab` are pruned, with the usual tree/table warning.
+
+## phyloseq
+
+`bt.io.read_phyloseq` reads a phyloseq object saved from R with `saveRDS()`
+or `save()`, directly - no R, no rpy2, and phyloseq itself never has to be
+installed:
+
+```python
+tdata = bt.io.read_phyloseq("ps.rds")
+```
+
+### `.rds` vs `.RData`, and `name=`
+
+An `.rds` file (`saveRDS(ps, "ps.rds")`) holds exactly one object, so
+`read_phyloseq` reads it directly. An `.RData`/`.rda` file (`save(ps, ...)`)
+can hold several objects; `read_phyloseq` reads the one phyloseq object it
+finds automatically. If it holds more than one phyloseq object, pass `name=`
+with the R variable name to select one - without it, a `ValueError` lists the
+names it found. A file with no phyloseq object at all also raises a
+`ValueError`.
+
+### What is read
+
+- `otu_table` becomes `X`, transposed exactly once so samples are always rows
+  regardless of whether the R object stored `taxa_are_rows=TRUE` or `FALSE`.
+- `tax_table` becomes rank columns in `var`, normalized like every other
+  biotapy reader.
+- `sample_data` becomes columns of `obs`.
+- `phy_tree` becomes the phylogeny in `vart["phylo"]`; ape's internal node
+  numbering is replaced with the same collision-free `n0, n1, ...` names
+  `read_qiime2`/`read_biom` use for Newick trees.
+
+Any of `tax_table`, `sample_data` or `phy_tree` being absent (`NULL` in R)
+gives an empty `var`/`obs` or no tree, never an error.
+
+### What is not read
+
+`refseq` (a `Biostrings` `DNAStringSet` of representative sequences) cannot
+be parsed by the underlying `rdata` reader yet. If it is populated,
+`read_phyloseq` raises a `ValueError` rather than guessing at or silently
+dropping the sequences; the message gives the R fix - export the sequences
+separately and re-save the object without the slot:
+
+```r
+Biostrings::writeXStringSet(refseq(ps), "refseq.fasta")
+ps@refseq <- NULL
+saveRDS(ps, "ps.rds")
+```
