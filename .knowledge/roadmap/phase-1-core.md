@@ -5118,7 +5118,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - `inplace=True` writes `obsp["braycurtis" | "jaccard" | "unweighted_unifrac" | "weighted_unifrac"]`
     as a dense `ndarray`.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
   - `tests/tl/test_beta.py`:
     ```python
     import anndata as ad
@@ -5307,9 +5307,9 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         assert list(out.index) == list(golden.index)
         np.testing.assert_allclose(out.to_numpy(), golden.to_numpy(), rtol=1e-7)
     ```
-- [ ] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl/test_beta.py -q`.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl/test_beta.py -q`.
   It fails with `AttributeError: module 'biotapy.tl' has no attribute 'beta'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `src/biotapy/tl/_beta.py`:
     ```python
     """Beta diversity: sample x sample distance matrices in ``obsp``."""
@@ -5443,7 +5443,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     `normalized=False`, so `normalized` is always passed.
   - This state of the file was gated alone in the prototype: ruff, format,
     mypy, and 32 tl tests.
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - Add `tl.beta` and `tl.unifrac` to the Tools block of `docs/api.md`.
   - Append to `docs/guide/diversity.md`:
     ````markdown
@@ -5470,11 +5470,11 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     - The table is densified once: 8 bytes x samples x features, plus 8 bytes x samples x samples
       for the result.
     ````
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - No concept states anything this changes: `obsp` keys are already in
     data-model-slots.
   - Add a log line. Tick 1.16 here.
-- [ ] **Step 6: Run, gate and commit.**
+- [x] **Step 6: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/tl -q`.
   - Golden: `uv run --group test pytest -m golden tests/tl/test_beta_golden.py -q`
     (6 passed; the esophagus golden test also downloads 1,840 B).

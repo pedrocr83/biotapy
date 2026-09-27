@@ -28,3 +28,25 @@ bt.tl.alpha(tdata, metrics=["shannon", "faith_pd"], inplace=True)  # obs["alpha_
   tree read from unrooted Newick, gets a zero-length split, which changes no root-to-tip
   distance.
 - scikit-bio needs dense input, so biotapy densifies at most 2**20 values (8 MiB) at a time.
+
+## Beta diversity: `tl.beta` and `tl.unifrac`
+
+`bt.tl.beta` computes Bray-Curtis (`metric="braycurtis"`, the default) or Jaccard
+(`metric="jaccard"`) distances between every pair of samples; `bt.tl.unifrac` computes
+unweighted or weighted UniFrac along the tree:
+
+```python
+bt.tl.beta(tdata, inplace=True)  # obsp["braycurtis"]
+bt.tl.unifrac(tdata, weighted=True, inplace=True)  # obsp["weighted_unifrac"]
+```
+
+- Jaccard is on presence/absence, like `phyloseq::distance(physeq, "jaccard", binary = TRUE)`.
+  Without `binary = TRUE` phyloseq computes vegan's quantitative Jaccard, a different number.
+- Weighted UniFrac is normalized to 0-1 by default, as in phyloseq; pass `normalized=False` for
+  the raw value.
+- A tree whose root has three or more children is used rooted where it is drawn. phyloseq
+  instead roots such a tree at a random tip, so its UniFrac changes from run to run.
+- Two all-zero samples are `NaN` apart under Bray-Curtis. Drop empty samples with
+  `bt.pp.filter_samples(tdata, 1)` before ordinating.
+- The table is densified once: 8 bytes x samples x features, plus 8 bytes x samples x samples
+  for the result.

@@ -59,4 +59,6 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     tl.alpha
+    tl.beta
+    tl.unifrac
 ```

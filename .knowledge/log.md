@@ -1,6 +1,33 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.16 done: `bt.tl.beta(adata, *, metric="braycurtis",
+  inplace=False) -> pd.DataFrame | None` wraps
+  `skbio.diversity.beta_diversity` for `braycurtis` and `jaccard` (on
+  presence/absence, matching `phyloseq::distance(physeq, "jaccard", binary =
+  TRUE)`); `bt.tl.unifrac(tdata, *, weighted=False, normalized=True,
+  inplace=False) -> pd.DataFrame | None` wraps the same function for
+  `unweighted_unifrac`/`weighted_unifrac` via `_core.get_skbio_tree`. Both
+  densify `X` once (R6.2) and, with `inplace=True`, write
+  `obsp["braycurtis" | "jaccard" | "unweighted_unifrac" |
+  "weighted_unifrac"]` and return `None`
+  ([pure-by-default](decisions/pure-by-default.md)). New
+  `src/biotapy/tl/_beta.py`. Confirmed against the installed scikit-bio 0.7.4
+  (R2.2): `beta_diversity(metric, counts, ids=..., taxa=..., tree=...,
+  **kwargs) -> DistanceMatrix`; `DistanceMatrix.to_data_frame()` has the ids
+  on both index and columns; `"jaccard"` is in `_qualitative_metrics` and is
+  auto-qualified to presence/absence; `weighted_unifrac`'s own default is
+  `normalized=False`, so `unifrac` always passes it explicitly. Two all-zero
+  samples are `NaN` apart under Bray-Curtis but `0.0` under both UniFracs and
+  under Jaccard, with no `RuntimeWarning` in any case. New tests in
+  `tests/tl/test_beta.py` (unit, Hypothesis, purity, the multifurcating-root
+  and post-filtering path-length cases) and `tests/tl/test_beta_golden.py`
+  (against `beta_*.csv.gz` and `unifrac_*.csv.gz` from Task 1.15a, on
+  GlobalPatterns and esophagus); both pass. Appended to
+  `docs/guide/diversity.md` and `docs/api.md`. No concept needed a content
+  change: the `obsp` keys were already in
+  [data-model-slots](contracts/data-model-slots.md); ticked Task 1.16's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.15 done: `bt.tl.alpha(adata, *, metrics=(...), inplace=False)
   -> pd.DataFrame | None` wraps `skbio.diversity.alpha_diversity` for
   `observed_features`, `shannon` (natural log), `simpson` (Gini-Simpson),
