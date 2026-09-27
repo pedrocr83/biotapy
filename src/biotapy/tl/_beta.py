@@ -53,7 +53,19 @@ def beta(adata: AnnData, *, metric: BetaMetric = "braycurtis", inplace: bool = F
     ``"jaccard"`` matches ``phyloseq::distance(physeq, "jaccard", binary = TRUE)``:
     without ``binary = TRUE``, vegan computes a quantitative Jaccard instead.
     scikit-bio needs dense input, so ``X`` is densified once (8 bytes x samples x
-    features) and the result takes 8 bytes x samples x samples.
+    features) and the result takes 8 bytes x samples x samples. scikit-bio's
+    working copies add to that: measured with tracemalloc on scikit-bio 0.7.4, peak
+    memory is the dense copy plus 1.5 results (its condensed and square matrices),
+    or two results while the matrix becomes a DataFrame, whichever is larger, and
+    ``"jaccard"`` adds a 1-byte presence/absence copy of ``X``.
+
+    References
+    ----------
+    Bray JR, Curtis JT (1957) An ordination of the upland forest communities of southern
+    Wisconsin. Ecological Monographs 27:325-349.
+
+    Jaccard P (1912) The distribution of the flora in the alpine zone. New Phytologist
+    11:37-50.
 
     Examples
     --------
@@ -117,6 +129,15 @@ def unifrac(
     integers, which truncates proportions to 0. Unweighted UniFrac uses presence
     only and runs on any abundance.
 
+    References
+    ----------
+    Lozupone C, Knight R (2005) UniFrac: a new phylogenetic method for comparing microbial
+    communities. Applied and Environmental Microbiology 71:8228-8235.
+
+    Lozupone CA et al. (2007) Quantitative and qualitative beta diversity measures lead to
+    different insights into factors that structure microbial communities. Applied and
+    Environmental Microbiology 73:1576-1585.
+
     Examples
     --------
     >>> import biotapy as bt
@@ -126,6 +147,7 @@ def unifrac(
     tree = get_skbio_tree(tdata)
     if weighted:
         require_counts(tdata, func="tl.unifrac(weighted=True)")
+    # scikit-bio rejects sparse input (rules.md R6.2): one dense copy of X.
     counts, ids, taxa = as_csr(tdata.X).toarray(), tdata.obs_names.tolist(), tdata.var_names.tolist()
     if weighted:
         distances = beta_diversity("weighted_unifrac", counts, ids=ids, taxa=taxa, tree=tree, normalized=normalized)

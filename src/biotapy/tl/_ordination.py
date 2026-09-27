@@ -51,7 +51,15 @@ def pcoa(
     Guide: :doc:`/guide/ordination`
 
     Like ``ordinate(physeq, "PCoA", ...)`` (``ape::pcoa`` with ``correction = "none"``).
-    Axis signs are arbitrary, as in R.
+    Axis signs are arbitrary, as in R. scikit-bio sets negative eigenvalues, and their
+    coordinates, to 0, whereas ``ape::pcoa`` reports those eigenvalues as negative.
+    Proportions divide by the trace, the sum of all eigenvalues with the negative ones
+    included, so they still match ape's ``Relative_eig`` on the positive axes.
+
+    References
+    ----------
+    Gower JC (1966) Some distance properties of latent root and vector methods used in
+    multivariate analysis. Biometrika 53:325-338.
 
     Examples
     --------
@@ -132,6 +140,11 @@ def nmds(
     ``vegan::metaMDS`` does by default (``try = 20``). The configuration is not
     rotated or scaled afterwards, unlike metaMDS's ``postMDS``, so compare
     configurations up to rotation and scale (Procrustes).
+
+    References
+    ----------
+    Kruskal JB (1964) Nonmetric multidimensional scaling: a numerical method. Psychometrika
+    29:115-129.
 
     Examples
     --------

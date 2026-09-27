@@ -68,6 +68,19 @@ def alpha(
     truncates proportions to 0. For an all-zero sample phyloseq reports Shannon 0
     and Simpson 1; biotapy returns NaN.
 
+    References
+    ----------
+    Shannon CE (1948) A mathematical theory of communication. Bell System Technical Journal
+    27:379-423.
+
+    Simpson EH (1949) Measurement of diversity. Nature 163:688.
+
+    Chao A (1984) Nonparametric estimation of the number of classes in a population.
+    Scandinavian Journal of Statistics 11:265-270.
+
+    Faith DP (1992) Conservation evaluation and phylogenetic diversity. Biological
+    Conservation 61:1-10.
+
     Examples
     --------
     >>> import biotapy as bt

@@ -62,6 +62,11 @@ def permanova(
     continuous term instead, so a numeric column raises rather than silently
     becoming one group per value.
 
+    References
+    ----------
+    Anderson MJ (2001) A new method for non-parametric multivariate analysis of variance.
+    Austral Ecology 26:32-46.
+
     Examples
     --------
     >>> import biotapy as bt

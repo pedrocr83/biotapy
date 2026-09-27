@@ -23,6 +23,11 @@ all of them, ape's `Relative_eig`. At most `n_obs - 1` axes are returned, and ax
 arbitrary, in R too. With `inplace=True` the coordinates go to `obsm["X_pcoa"]` and the axes to
 `uns["biotapy"]["pcoa"]`.
 
+When the distances are not Euclidean, some eigenvalues can be negative. scikit-bio sets them, and
+their coordinates, to 0, whereas `ape::pcoa` reports those eigenvalues as negative. The
+proportions divide by the trace, the sum of all eigenvalues with the negative ones included, so
+they still match ape's `Relative_eig` on the positive axes.
+
 ## NMDS
 
 `bt.tl.nmds` runs scikit-learn's non-metric SMACOF on the stored distances and keeps the best
