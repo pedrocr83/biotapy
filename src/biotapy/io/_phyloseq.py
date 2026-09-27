@@ -33,10 +33,12 @@ def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
     Raises
     ------
     ValueError
-        The file holds no phyloseq object, holds several and ``name`` is not given,
-        the phyloseq object has no ``otu_table``, or the ``refseq`` slot holds
-        sequences: rdata cannot parse a populated refseq yet, so the message gives the
-        R fix (``Biostrings::writeXStringSet`` then re-save without the slot).
+        The file cannot be parsed, holds no phyloseq object, holds several and
+        ``name`` is not given, ``name`` is given for a file that holds a single
+        object (only an ``.RData``/``.rda`` file needs it), the phyloseq object
+        has no ``otu_table``, or the ``refseq`` slot holds sequences: rdata
+        cannot parse a populated refseq yet, so the message gives the R fix
+        (``Biostrings::writeXStringSet`` then re-save without the slot).
     KeyError
         ``name`` is not a phyloseq object in the file.
 
@@ -57,7 +59,7 @@ def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
         # A later rdata release might parse Biostrings sequences; until then they must
         # not be dropped silently (R7.4), so a populated refseq is a hard error, not a
         # warned skip (ruling 2026-09-27).
-        raise _refseq_error(path)
+        raise _refseq_error(path, None)
     X, samples, features = _counts(slots["otu_table"], path)
     var = pd.DataFrame(index=features)
     if slots["tax_table"] is not None:

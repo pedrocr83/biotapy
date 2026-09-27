@@ -188,6 +188,13 @@ def test_read_dada2_rejects_a_non_matrix_rds(seqtab):
         bt.io.read_dada2(seqtab, taxa=PHYLOSEQ / "toy.rds")
 
 
+def test_read_dada2_rejects_a_character_vector_rds(seqtab):
+    with pytest.raises(ValueError, match="taxa="):
+        bt.io.read_dada2(seqtab, taxa=DADA2 / "char_vector.rds")
+    with pytest.raises(ValueError, match="seqtab="):
+        bt.io.read_dada2(DADA2 / "char_vector.rds")
+
+
 def test_read_dada2_reads_uppercase_rds_extension(tmp_path):
     path = tmp_path / "seqtab.RDS"
     path.write_bytes((DADA2 / "seqtab.rds").read_bytes())

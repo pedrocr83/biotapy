@@ -38,6 +38,14 @@ def test_read_phyloseq_populated_refseq_raises_with_the_r_fix():
         bt.io.read_phyloseq(PHYLOSEQ / "with_refseq.rds")
 
 
+def test_read_phyloseq_unparseable_file_names_the_cause_not_refseq(tmp_path):
+    path = tmp_path / "not_r.RData"
+    path.write_text("a,b\n1,2\n")
+    with pytest.raises(ValueError, match=r"path=.*cannot parse") as excinfo:
+        bt.io.read_phyloseq(path)
+    assert "refseq slot holds sequences" not in str(excinfo.value)
+
+
 def test_read_phyloseq_two_objects_need_a_name():
     with pytest.raises(ValueError, match=r"name=.*toy.*toy_b"):
         bt.io.read_phyloseq(PHYLOSEQ / "two_objects.RData")
@@ -49,9 +57,31 @@ def test_read_phyloseq_unknown_name_is_named():
         bt.io.read_phyloseq(PHYLOSEQ / "two_objects.RData", name="nope")
 
 
-def test_read_phyloseq_rejects_a_non_phyloseq_file():
-    with pytest.raises(ValueError, match="path=.*phyloseq"):
+def test_read_phyloseq_rejects_a_non_phyloseq_file_and_names_what_it_holds():
+    with pytest.raises(ValueError, match="path=.*phyloseq") as excinfo:
         bt.io.read_phyloseq(Path(__file__).parents[1] / "data" / "dada2" / "seqtab.rds")
+    assert "DataArray" in str(excinfo.value)
+
+
+def test_read_phyloseq_rds_content_with_rdata_suffix_reads_with_no_warning(tmp_path):
+    path = tmp_path / "toy.RData"
+    path.write_bytes((PHYLOSEQ / "toy.rds").read_bytes())
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        tdata = bt.io.read_phyloseq(path)
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+    assert tdata.shape == (6, 8)
+
+
+def test_read_phyloseq_rdata_content_with_rds_suffix_selects_by_name(tmp_path):
+    path = tmp_path / "two.rds"
+    path.write_bytes((PHYLOSEQ / "two_objects.RData").read_bytes())
+    assert bt.io.read_phyloseq(path, name="toy_b").shape == (2, 8)
+
+
+def test_read_phyloseq_name_on_a_single_object_file_is_named():
+    with pytest.raises(ValueError, match="name="):
+        bt.io.read_phyloseq(PHYLOSEQ / "toy.rds", name="toy")
 
 
 def test_read_phyloseq_output_saves_to_h5td(tmp_path):
