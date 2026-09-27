@@ -16,6 +16,11 @@ from rdata.parser import RData, RObjectType
 # An unset "...OrNULL" S4 slot is serialised as this marker string without a class,
 # so no constructor sees it; the phyloseq constructor maps it to None.
 _R_NULL = "\x01NULL\x01"
+# rdata.parser._parser.parse_data's only suffix-consistency UserWarnings (R2.2), matched
+# by exact text so nothing else - e.g. its "Tag not implemented ... and ignored", which
+# means an attribute was dropped - is ever hidden (R7.4). If rdata rewords these, the
+# regex stops matching and they surface again, loudly, instead of staying silently hidden.
+_SUFFIX_WARNING = r"^(Unknown file type: assumed RDS|Wrong extension .* for file in RD(ATA|S) format)$"
 PHYLOSEQ_SLOTS = ("otu_table", "tax_table", "sam_data", "phy_tree", "refseq")
 # rdata does not export its ConstructorDict alias; constructors take Any because callable
 # parameters are contravariant, and narrow with cast.
@@ -88,8 +93,9 @@ def load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]:
             # extension only steers rdata's own suffix-consistency UserWarnings, never what
             # gets parsed (rdata.parser._parser.parse_data, confirmed empirically, R2.2):
             # this reader tells RDS from RDATA by content below, so a mismatched or
-            # upper-case suffix must never warn (ruling 2026-09-27).
-            warnings.simplefilter("ignore", UserWarning)
+            # upper-case suffix must never warn (ruling 2026-09-27). Only those three
+            # messages are hidden, never every UserWarning (ruling 2026-09-27, R7.4).
+            warnings.filterwarnings("ignore", message=_SUFFIX_WARNING, category=UserWarning)
             parsed = rdata.parser.parse_file(path)
         converted = rdata.conversion.convert(parsed, _PHYLOSEQ)
     except NotImplementedError as error:

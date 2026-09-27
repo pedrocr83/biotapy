@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import pytest
+import rdata
 import treedata
 
 import biotapy as bt
@@ -46,6 +47,21 @@ def test_read_phyloseq_unparseable_file_names_the_cause_not_refseq(tmp_path):
     with pytest.raises(ValueError, match=r"path=.*cannot parse") as excinfo:
         bt.io.read_phyloseq(path)
     assert "refseq slot holds sequences" not in str(excinfo.value)
+
+
+def test_read_phyloseq_passes_other_rdata_warnings_through(monkeypatch):
+    # Monkeypatching rdata.parser.parse_file is the only way to trigger this rdata
+    # warning path without a crafted binary file: it fires deep inside rdata's own
+    # parser for an object shape none of the fixtures here have.
+    original = rdata.parser.parse_file
+
+    def _parse_and_warn(*args, **kwargs):
+        warnings.warn("Tag not implemented for type RObjectType.SPECIAL and ignored", UserWarning, stacklevel=2)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(rdata.parser, "parse_file", _parse_and_warn)
+    with pytest.warns(UserWarning, match="Tag not implemented"):
+        bt.io.read_phyloseq(PHYLOSEQ / "toy.rds")
 
 
 def test_read_phyloseq_two_objects_need_a_name():
