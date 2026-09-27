@@ -3257,7 +3257,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   review focus; fix pass.
 - [x] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
   and `modules/core.md` (`tree_from_phylo`), plus the log.
-- [ ] The PR's CI is green, including the new network/golden job.
+- [x] The PR's CI is green, including the new network/golden job.
 - [ ] Ask the user to review slice 1B before slice 1C.
 
 ---

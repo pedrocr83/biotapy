@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: PR #6 CI green on all 19 checks, including the first GitHub run of the `network` job (6 passed); Checkpoint B CI box ticked in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 6: golden files hold derived numbers only, which may be complete for a dataset; the user accepted `relative.csv.gz` (all GlobalPatterns proportions, AGPL-3 source) for this BSD-3 repo.
 * **Update**: Checkpoint B whole-branch review (Opus) of slice 1B stage 2 and its fix pass are done (F1-F8 plus a narrowed rdata warning filter); ticked in [phase-1-core](roadmap/phase-1-core.md). The PR's CI (network/golden job) and the user's review remain.
 * **Update** (Checkpoint B fix pass, F1-F8): fixed 8 controller-ruled findings
