@@ -83,6 +83,8 @@ Task 1.11, not yet written).
   spelling `"NA"` are still normalized to NaN downstream by
   `_core.normalize_ranks`, not by `_read_table` itself.
 
+# Dependencies
+
 - [core](/modules/core.md): `make_treedata`, `infer_x_kind`, `split_lineage`,
   `normalize_ranks`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
   `relabel_tips`, `warn_user`, `TreeData`, `RANKS`, `as_csr`.
