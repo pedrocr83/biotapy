@@ -1,5 +1,5 @@
 # Writes biotapy's R golden files and R-only test fixtures. Run only in tests/r/Dockerfile's image, from the
-# repo root: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
+# repo root: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
 suppressPackageStartupMessages({
   library(phyloseq)
   library(Biostrings)
@@ -71,6 +71,17 @@ zeroed <- counts
 zeroed["s6", ] <- 0
 saveRDS(phyloseq(otu_table(t(zeroed), taxa_are_rows = TRUE), tax_table(taxonomy)), "tests/data/phyloseq/zero_sample.rds")
 
+# Checkpoint B F2/F5: an integer otu_table (storage mode integer) with an ordered sample_data
+# factor that has an unused level, to check factor/category preservation and int64 X.
+# phyloseq::sample_data(data.frame(...)) silently drops unused factor levels (confirmed
+# empirically, R2.2), so the factor is set directly on the S4 slot instead.
+counts_int <- counts
+storage.mode(counts_int) <- "integer"
+level <- factor(c("low", "mid", "high", "low", "mid", "high"), levels = c("low", "mid", "high", "unused"), ordered = TRUE)
+level_data <- sample_data(data.frame(level = seq_len(6), row.names = paste0("s", 1:6)))
+level_data@.Data[[1]] <- level
+saveRDS(phyloseq(otu_table(t(counts_int), taxa_are_rows = TRUE), level_data), "tests/data/phyloseq/ordered_factor.rds")
+
 ## DADA2 .rds fixtures: the same values as the CSV strings in tests/io/test_dada2.py
 seqtab <- rbind(S1 = c(10L, 0L, 5L, 0L), S2 = c(0L, 0L, 0L, 0L), S3 = c(3L, 7L, 1L, 0L))
 colnames(seqtab) <- c("ACGTACGT", "TTGACCAA", "GGGCCCAA", "CCCCAAAA")
@@ -78,6 +89,9 @@ saveRDS(seqtab, "tests/data/dada2/seqtab.rds")
 taxa <- rbind(ACGTACGT = c("Bacteria", "Firmicutes", "Blautia"), TTGACCAA = c("Bacteria", "Bacteroidota", NA))
 colnames(taxa) <- c("Kingdom", "Phylum", "Genus")
 saveRDS(taxa, "tests/data/dada2/taxa.rds")
+
+# Checkpoint B F3: a plain character vector, not a matrix (no dim/dimnames at all).
+saveRDS(c("Bacteria", "Firmicutes"), "tests/data/dada2/char_vector.rds")
 
 writeLines(c(
   R.version.string,
