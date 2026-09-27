@@ -207,8 +207,7 @@ See the [changelog][].
 
 ## Contact
 
-For questions and help requests, you can reach out in the [scverse discourse][].
-If you found a bug, please use the [issue tracker][].
+Questions, bug reports and feature requests all go to the [issue tracker][].
 
 ## Citation
 
@@ -227,7 +226,6 @@ If you found a bug, please use the [issue tracker][].
 [roadmap]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/roadmap/phase-1-core.md
 [data-model-contract]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/contracts/data-model-slots.md
 [uv]: https://github.com/astral-sh/uv
-[scverse discourse]: https://discourse.scverse.org/
 [issue tracker]: https://github.com/pedrocr83/biotapy/issues
 [tests]: https://github.com/pedrocr83/biotapy/actions/workflows/test.yaml
 [documentation]: https://biotapy.readthedocs.io
