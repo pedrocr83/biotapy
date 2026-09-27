@@ -4,7 +4,7 @@ title: Pure by default, one inplace convention for tl
 description: io/pp return new objects and never mutate input; tl returns results, and inplace=True writes them to the documented slot; pl returns Axes.
 tags: [api, conventions]
 status: stable
-verified: { by: human:pedrocr83, at: 2026-09-26T09:40:17Z }
+verified: { by: human:pedrocr83, at: 2026-09-27T19:50:20Z }
 generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
 commit: 795dc19
 sources:

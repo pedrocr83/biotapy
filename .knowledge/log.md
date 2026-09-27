@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: [pure-by-default](decisions/pure-by-default.md) re-verified by
+  the user as amended in Task 1.17 (no `key_added`; `tl.permanova` has no
+  `inplace`); `verified.at` updated. The user also chose to keep
+  `obs["alpha_*"]` through feature changes, as documented (no contract change).
 * **Creation** (Checkpoint C): [tl](modules/tl.md) Module concept for Slice 1C
   (the six `bt.tl` functions and `_beta.py:stored_distances`), linked from
   [modules/index.md](modules/index.md). Ticked Checkpoint C's Knowledge item
