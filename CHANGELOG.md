@@ -26,10 +26,28 @@ and this project adheres to [Semantic Versioning][].
 - `bt.pp.relative`: per-sample relative abundance, added as a new layer.
 - `bt.pp.tax_glom`: aggregate features that share a lineage to a taxonomic
   rank.
+- `bt.pp.filter_features` / `bt.pp.filter_samples`: keep features by
+  prevalence and total reads, and samples by depth.
+- `bt.pp.rarefy`: subsample every sample to the same depth, without
+  replacement.
+- `bt.datasets.esophagus`: phyloseq's esophagus dataset, with a tree.
+- `bt.tl.alpha`: observed features, Shannon, Simpson, Chao1 and Faith's PD.
+- `bt.tl.beta` / `bt.tl.unifrac`: Bray-Curtis and Jaccard distances, and
+  unweighted and weighted UniFrac.
+- `bt.tl.pcoa` / `bt.tl.nmds`: principal coordinates and non-metric
+  multidimensional scaling of a stored distance matrix.
+- `bt.tl.permanova`: PERMANOVA of a stored distance matrix.
 - R golden parity tests for `pp.relative` and `pp.tax_glom` against phyloseq
   on real data.
 - New runtime dependencies: `rdata`, `xarray`, `pooch`, `scikit-bio`,
   `biom-format`, `treedata`, `networkx`, `scipy`, `pandas`.
+- New runtime dependency: `scikit-learn>=1.8`, for `tl.nmds`.
+
+### Changed
+
+- Feature-changing functions (`pp.filter_features`, `pp.rarefy`,
+  `pp.tax_glom`) keep `X` and drop the ordination summaries
+  `uns["biotapy"]["pcoa"]` and `["nmds"]` along with the other derived slots.
 
 ## [0.0.1] - 2026-09-26
 

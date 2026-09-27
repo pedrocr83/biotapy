@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
-commit: 6fd5344
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
+commit: 4a5adaf
 status: stable
 ---
 
@@ -41,6 +41,10 @@ none of them back.
   (Greengenes `k__`, RESCRIPT/SILVA `d__`, SILVA `D_0__`, or unprefixed) into
   rank columns, then run them through `normalize_ranks`.
 - `_slots.py:x_kind` / `require_counts` - read, or enforce, what `X` holds.
+  `require_counts` raises `ValueError` naming its `func=` unless `x_kind` is
+  `"counts"` and every stored value is a whole number (`infer_x_kind`'s rule,
+  O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
+  and `tl.unifrac(weighted=True)`.
 - `_slots.py:infer_x_kind` - classify a freshly read matrix as `"counts"`
   (every value a whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file
@@ -65,6 +69,13 @@ none of them back.
 - `_tree.py:tree_tips` - the tree's leaf names (nodes with no children).
 - `_tree.py:relabel_tips` - rename a subset of a tree's nodes (e.g. sequence
   -> ASV id), raising rather than silently merging nodes on a name collision.
+- `_tree.py:get_skbio_tree` - convert `vart['phylo']` into a scikit-bio
+  `TreeNode`, rooted where the networkx tree is drawn; a root with more than
+  two children keeps its first child and moves the rest under one new
+  zero-length node (scikit-bio's Faith PD and UniFrac reject a root with more
+  than two children). Used by `tl.alpha` (faith_pd) and `tl.unifrac`. Takes a
+  plain `AnnData`, raising `TypeError` when it is not a `TreeData` and
+  `KeyError` (from `get_tree`) when it has no `vart['phylo']`.
 - `_warnings.py:warn_user` - the single `UserWarning` entry point, attributed
   to the first stack frame outside biotapy; shared by `_tree.py` (tree/table
   mismatch) and `io/_join.py` (partial join).
@@ -76,13 +87,14 @@ none of them back.
 # Invariants
 
 - `as_csr` may return an object sharing buffers with its input; a caller must
-  never mutate the result in place (rules.md R6.2/R3.3 - matters for the
-  future `pp.rarefy`). `_matrix.py:as_csr`
+  never mutate the result in place (rules.md R6.2/R3.3 - `pp.rarefy` copies
+  `indices`/`indptr` and builds new `data`). `_matrix.py:as_csr`
 - `add_provenance` mutates its `adata` argument in place by design. Call it
   on a function's output copy, never on the caller's input.
   `_slots.py:add_provenance`
 - `feature_subset` drops `layers`, `obsm`, `obsp`, `varm`, `varp` and every
-  `uns` key except `biotapy`, but does not itself touch `vart`.
+  `uns` key except `biotapy`, and every `uns["biotapy"]` key except `x_kind`
+  and `provenance` (`_slots.py:KEPT_META`), but does not itself touch `vart`.
   `_slots.py:feature_subset`, `_slots.py:DERIVED_SLOTS`. TreeData's own
   subsetting prunes the tree to the kept leaves plus their ancestors, so
   unary internal nodes survive with their original edge lengths
@@ -112,7 +124,8 @@ none of them back.
 
 None inside biotapy. Imports only third-party packages: `numpy`, `scipy`,
 `pandas`, `anndata`, and, in `_tree.py` only, `treedata`/`networkx` and
-scikit-bio (Newick parsing, `_tree.py:tree_from_newick`). scikit-bio is a
+scikit-bio (Newick parsing, `_tree.py:tree_from_newick`; also used for
+`TreeNode` conversion, `_tree.py:get_skbio_tree`). scikit-bio is a
 real cost at import time: measured at commit 43d6efb, `import biotapy` takes
 ~1.0-1.1s, of which roughly half (~0.5s) is scikit-bio, found by diffing
 against importing biotapy's other runtime dependencies alone. A lazy
@@ -125,6 +138,11 @@ it properly (rules.md R10.1: no optimization without a measurement).
 
 # Gotchas
 
+- anndata 0.13 exposes `X` as `layers[None]`: `list(adata.layers.keys())`
+  includes `None`, and deleting that key deletes `X`. `feature_subset`
+  skips it. Before Task 1.13 it returned `X=None`, which `pp.tax_glom` hid
+  by reassigning `out.X` (`_slots.py:feature_subset`,
+  `tests/core/test_slots.py:test_feature_subset_keeps_x`).
 - `mypy --strict` type-checks `treedata` and `skbio` through
   `follow_untyped_imports` (`pyproject.toml` `[[tool.mypy.overrides]]`), not
   `ignore_missing_imports`: neither ships `py.typed`, and

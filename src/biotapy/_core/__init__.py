@@ -8,6 +8,7 @@ from ._taxonomy import RANKS, normalize_ranks, split_lineage, split_ranks
 from ._tree import (
     PHYLO_KEY,
     TreeData,
+    get_skbio_tree,
     get_tree,
     make_treedata,
     relabel_tips,
@@ -28,6 +29,7 @@ __all__ = [
     "as_csr",
     "as_generator",
     "feature_subset",
+    "get_skbio_tree",
     "get_tree",
     "import_optional",
     "infer_x_kind",

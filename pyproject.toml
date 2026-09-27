@@ -30,6 +30,7 @@ dependencies = [
   "pooch",
   "rdata>=1.1,<2",
   "scikit-bio>=0.7.4,<0.8",
+  "scikit-learn>=1.8",
   "scipy",
   # for debug logging (referenced from the issue template)
   "session-info2",
@@ -161,9 +162,10 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "src/biotapy" ]
 python_version = "3.12"
-# biom-format ships no type annotations at all; exempt only calls into it (not our own
-# code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
-untyped_calls_exclude = [ "biom" ]
+# biom-format and scikit-learn ship no type annotations at all, nor does scikit-bio's
+# subsample_counts; exempt only calls into them (not our own code) from strict's
+# disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [ "biom", "skbio.stats._subsample", "sklearn" ]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
@@ -180,6 +182,9 @@ overrides = [
   # pooch 1.9.0 ships no py.typed marker either; same treatment.
   { module = "pooch", follow_untyped_imports = true, implicit_reexport = true },
   { module = "pooch.*", follow_untyped_imports = true, implicit_reexport = true },
+  # scikit-learn 1.9.1 ships no py.typed marker either; same treatment.
+  { module = "sklearn", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "sklearn.*", follow_untyped_imports = true, implicit_reexport = true },
 ]
 
 [tool.pytest]

@@ -28,6 +28,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     datasets.enterotype
+    datasets.esophagus
     datasets.global_patterns
     datasets.toy
 ```
@@ -41,6 +42,26 @@ Public functions are listed here as they ship, from Phase 1 onward.
 .. autosummary::
     :toctree: generated
 
+    pp.filter_features
+    pp.filter_samples
+    pp.rarefy
     pp.relative
     pp.tax_glom
+```
+
+## Tools
+
+```{eval-rst}
+.. module:: biotapy.tl
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    tl.alpha
+    tl.beta
+    tl.nmds
+    tl.pcoa
+    tl.permanova
+    tl.unifrac
 ```

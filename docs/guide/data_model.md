@@ -28,7 +28,7 @@ tdata.shape  # (6 samples, 8 features)
 | `vart` | The phylogeny, leaves named after your features | `phylo` |
 | `obsm` | Ordinations and embeddings | `X_pcoa` |
 | `obsp` | Sample-by-sample distance matrices | `braycurtis`, `weighted_unifrac` |
-| `uns["biotapy"]` | biotapy's own bookkeeping | `x_kind`, `provenance` |
+| `uns["biotapy"]` | biotapy's own bookkeeping, and ordination summaries | `x_kind`, `provenance`, `pcoa`, `nmds` |
 
 `uns["biotapy"]["x_kind"]` records what `X` currently holds (`counts`, `relative`, `rpk`, `cpm`
 or `abundance`); a missing key means `counts`. `uns["biotapy"]["provenance"]` lists every
@@ -38,9 +38,10 @@ its current state.
 ## What survives a filter or an aggregation
 
 Functions that change which features exist (dropping rare taxa, aggregating to a rank) drop
-`layers`, `obsm`, `obsp`, `varm`, `varp`, and every `uns` key other than `uns["biotapy"]` -
-for example a plotted `uns["group_colors"]` disappears along with them - because a transform,
-distance or annotation computed on the old features would silently misdescribe the new ones.
+`layers`, `obsm`, `obsp`, `varm`, `varp`, the ordination summaries `uns["biotapy"]["pcoa"]` and
+`["nmds"]`, and every `uns` key other than `uns["biotapy"]` - for example a plotted
+`uns["group_colors"]` disappears along with them - because a transform, distance or annotation
+computed on the old features would silently misdescribe the new ones.
 Functions that only add a layer, or that subset samples, leave everything else in place.
 
 See the [data-model-slots contract](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/contracts/data-model-slots.md)

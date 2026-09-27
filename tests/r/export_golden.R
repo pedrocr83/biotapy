@@ -23,7 +23,7 @@ dense_frame <- function(physeq) {
   data.frame(sample_id = rownames(m), m, check.names = FALSE, row.names = NULL)
 }
 
-for (dir in c("tests/golden/global_patterns", "tests/data/phyloseq", "tests/data/dada2")) {
+for (dir in c("tests/golden/global_patterns", "tests/golden/esophagus", "tests/data/phyloseq", "tests/data/dada2")) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 }
 
@@ -38,6 +38,68 @@ write_golden(
 )
 write_golden(dense_frame(tax_glom(GlobalPatterns, "Phylum")), "tests/golden/global_patterns/tax_glom_phylum.csv.gz")
 write_golden(dense_frame(tax_glom(GlobalPatterns, "Genus")), "tests/golden/global_patterns/tax_glom_genus.csv.gz")
+
+## Slice 1C golden files: filtering, rarefaction, diversity, ordination (GlobalPatterns and esophagus)
+square_frame <- function(d) {
+  m <- as.matrix(d)
+  data.frame(sample_id = rownames(m), m, check.names = FALSE, row.names = NULL)
+}
+gp <- "tests/golden/global_patterns"
+keep_prevalence <- filter_taxa(GlobalPatterns, function(x) sum(x > 0) >= 0.1 * length(x))
+keep_total <- filter_taxa(GlobalPatterns, function(x) sum(x) >= 5)
+write_golden(
+  data.frame(taxon_id = names(keep_prevalence), prevalence = keep_prevalence, total = keep_total, row.names = NULL),
+  file.path(gp, "filter_features.csv.gz")
+)
+# rngseed = FALSE draws from the global stream seeded here; rngseed = <n> fails before R's first random draw.
+set.seed(20260927)
+rarefied <- rarefy_even_depth(GlobalPatterns, sample.size = 1e5, rngseed = FALSE, replace = FALSE, verbose = FALSE)
+write_golden(
+  data.frame(sample_id = sample_names(rarefied), sample_sum = sample_sums(rarefied), row.names = NULL),
+  file.path(gp, "rarefy.csv.gz")
+)
+richness <- estimate_richness(GlobalPatterns, measures = c("Observed", "Chao1", "Shannon", "Simpson"))
+write_golden(
+  data.frame(sample_id = sample_names(GlobalPatterns), richness, check.names = FALSE, row.names = NULL),
+  file.path(gp, "alpha.csv.gz")
+)
+faith <- picante::pd(samples_as_rows(GlobalPatterns), phy_tree(GlobalPatterns), include.root = TRUE)
+write_golden(data.frame(sample_id = rownames(faith), pd = faith$PD, sr = faith$SR, row.names = NULL), file.path(gp, "alpha_faith_pd.csv.gz"))
+# Biostrings (attached after phyloseq) masks distance() with IRanges' generic.
+bray <- phyloseq::distance(GlobalPatterns, "bray")
+write_golden(square_frame(bray), file.path(gp, "beta_braycurtis.csv.gz"))
+# vegdist's jaccard is quantitative unless binary = TRUE; scikit-bio's is presence/absence.
+write_golden(square_frame(phyloseq::distance(GlobalPatterns, "jaccard", binary = TRUE)), file.path(gp, "beta_jaccard.csv.gz"))
+data(esophagus)
+for (name in c("global_patterns", "esophagus")) {
+  physeq <- if (name == "esophagus") esophagus else GlobalPatterns
+  write_golden(square_frame(UniFrac(physeq, weighted = FALSE)), file.path("tests/golden", name, "unifrac_unweighted.csv.gz"))
+  write_golden(square_frame(UniFrac(physeq, weighted = TRUE, normalized = TRUE)), file.path("tests/golden", name, "unifrac_weighted.csv.gz"))
+}
+pcoa <- ordinate(GlobalPatterns, "PCoA", bray)
+axes <- 1:10
+write_golden(
+  data.frame(sample_id = rownames(pcoa$vectors), pcoa$vectors[, axes], check.names = FALSE, row.names = NULL),
+  file.path(gp, "pcoa_braycurtis_vectors.csv.gz")
+)
+write_golden(
+  data.frame(axis = axes, eigenvalue = pcoa$values$Eigenvalues[axes], relative_eig = pcoa$values$Relative_eig[axes]),
+  file.path(gp, "pcoa_braycurtis_values.csv.gz")
+)
+set.seed(20260927)
+# ordinate() runs metaMDS on the dist object (no autotransform) and prints every random start; keep the log short.
+invisible(capture.output(nmds <- ordinate(GlobalPatterns, "NMDS", bray)))
+write_golden(
+  data.frame(sample_id = rownames(nmds$points), nmds$points, check.names = FALSE, row.names = NULL),
+  file.path(gp, "nmds_braycurtis_points.csv.gz")
+)
+write_golden(data.frame(stress = nmds$stress), file.path(gp, "nmds_braycurtis_stress.csv.gz"))
+set.seed(20260927)
+adonis <- vegan::adonis2(bray ~ SampleType, data = data.frame(sample_data(GlobalPatterns)), permutations = 9999)
+write_golden(
+  data.frame(df = adonis$Df[1], sum_of_sqs = adonis$SumOfSqs[1], r2 = adonis$R2[1], f = adonis$F[1], p = adonis[["Pr(>F)"]][1]),
+  file.path(gp, "permanova_sampletype.csv.gz")
+)
 
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
@@ -96,5 +158,8 @@ saveRDS(c("Bacteria", "Firmicutes"), "tests/data/dada2/char_vector.rds")
 writeLines(c(
   R.version.string,
   paste("Bioconductor", as.character(BiocManager::version())),
-  paste0("phyloseq ", packageVersion("phyloseq"))
+  paste0("phyloseq ", packageVersion("phyloseq")),
+  paste0("vegan ", packageVersion("vegan")),
+  paste0("ape ", packageVersion("ape")),
+  paste0("picante ", packageVersion("picante"))
 ), "tests/golden/VERSIONS.txt")

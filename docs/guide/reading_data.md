@@ -11,10 +11,11 @@ that need raw counts check this and refuse proportions.
 
 ## Example datasets
 
-`bt.datasets.global_patterns()` and `bt.datasets.enterotype()`, two
-well-known phyloseq example datasets, are read through `bt.io.read_phyloseq`
-under the hood. See the [example datasets guide](datasets.md) for what each
-one holds, how caching and `BIOTAPY_DATA_DIR` work, and licensing.
+`bt.datasets.global_patterns()`, `bt.datasets.enterotype()` and
+`bt.datasets.esophagus()`, three well-known phyloseq example datasets, are
+read through `bt.io.read_phyloseq` under the hood. See the
+[example datasets guide](datasets.md) for what each one holds, how caching
+and `BIOTAPY_DATA_DIR` work, and licensing.
 
 ## BIOM
 

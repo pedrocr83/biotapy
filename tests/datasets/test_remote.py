@@ -17,7 +17,8 @@ def test_loaders_read_the_fetched_file(monkeypatch):
     monkeypatch.setattr(_remote, "_fetch", lambda name: fetched.append(name) or str(TOY_RDS))
     assert bt.datasets.global_patterns().shape == (6, 8)
     assert bt.datasets.enterotype().shape == (6, 8)
-    assert fetched == ["GlobalPatterns.RData", "enterotype.RData"]
+    assert bt.datasets.esophagus().shape == (6, 8)
+    assert fetched == ["GlobalPatterns.RData", "enterotype.RData", "esophagus.RData"]
 
 
 @pytest.mark.network
@@ -38,3 +39,12 @@ def test_enterotype_downloads_as_relative_abundance():
     tdata = bt.datasets.enterotype()
     assert tdata.shape == (280, 553) and tdata.uns["biotapy"]["x_kind"] == "relative"
     assert "phylo" not in tdata.vart
+
+
+@pytest.mark.network
+def test_esophagus_downloads_with_a_tree_and_no_metadata():
+    tdata = bt.datasets.esophagus()
+    tree = tdata.vart["phylo"]
+    assert tdata.shape == (3, 58) and list(tdata.obs_names) == ["B", "C", "D"]
+    assert sum(1 for n in tree.nodes if tree.out_degree(n) == 0) == 58
+    assert tdata.obs.columns.empty and tdata.var.columns.empty and tdata.uns["biotapy"]["x_kind"] == "counts"

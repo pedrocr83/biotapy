@@ -1,6 +1,199 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: [pure-by-default](decisions/pure-by-default.md) re-verified by
+  the user as amended in Task 1.17 (no `key_added`; `tl.permanova` has no
+  `inplace`); `verified.at` updated. The user also chose to keep
+  `obs["alpha_*"]` through feature changes, as documented (no contract change).
+* **Creation** (Checkpoint C): [tl](modules/tl.md) Module concept for Slice 1C
+  (the six `bt.tl` functions and `_beta.py:stored_distances`), linked from
+  [modules/index.md](modules/index.md). Ticked Checkpoint C's Knowledge item
+  in [phase-1-core](roadmap/phase-1-core.md); its review, push and
+  user-review items stay open.
+* **Update** (Checkpoint C fix C1): corrects the Task 1.15 entry's claim that
+  `faith_pd` "also runs on relative abundances": it returned 0 for every
+  sample on proportions, and weighted UniFrac put every pair 0 apart, because
+  scikit-bio 0.7.4's tree code (`_nodes_by_counts`, shared by Faith PD and
+  both UniFrac engines) casts abundances to int64. `_core.require_counts` now
+  also raises when `X` holds non-integer values (`infer_x_kind`'s rule on
+  `X.data`), which also covers `pp.rarefy` and `tl.alpha`'s
+  `observed_features`/`chao1`; `tl.unifrac(weighted=True)` now calls it;
+  `tl.alpha` gives `faith_pd` presence/absence, so Faith PD does run on
+  relative abundances now. Updated
+  [data-model-slots](contracts/data-model-slots.md) (the `x_kind`
+  convention) and [core](modules/core.md) (`require_counts`).
+* **Update**: Task 1.17 done (slice 1C's last task): `bt.tl.pcoa(adata, *,
+  distance="braycurtis", n_components=10, inplace=False) -> tuple[pd.DataFrame,
+  pd.DataFrame] | None` wraps `skbio.stats.ordination.pcoa`, asking for at most
+  `n_obs - 1` axes so `proportion_explained` divides by the trace like
+  `ape::pcoa`'s `Relative_eig`; `bt.tl.nmds(adata, *, distance="braycurtis",
+  n_components=2, seed=None, inplace=False) -> tuple[pd.DataFrame, float] |
+  None` wraps `sklearn.manifold.MDS` (non-metric SMACOF, `n_init=20`, as
+  `vegan::metaMDS`'s default `try = 20`); `bt.tl.permanova(adata, grouping, *,
+  distance="braycurtis", permutations=999, seed=None) -> pd.Series` wraps
+  `skbio.stats.distance.permanova`, with no `inplace` (it returns a test
+  result, not per-sample/per-pair values). New private
+  `tl._beta.stored_distances(adata, key) -> DistanceMatrix`, shared by all
+  three, raises `KeyError` naming the `bt.tl...` call that writes a missing
+  `obsp` key and `ValueError` on NaN distances. New `src/biotapy/tl/_ordination.py`
+  and `src/biotapy/tl/_permanova.py`. `_core.feature_subset` now keeps only
+  `x_kind` and `provenance` in `uns["biotapy"]` (`_slots.py:KEPT_META`),
+  dropping `pcoa`/`nmds` on a feature change. Added runtime dependency
+  `scikit-learn>=1.8` (approved 2026-09-27): every `MDS` argument is explicit
+  (`metric_mds=False`, `metric="precomputed"`, `n_init=20`, `init="random"`,
+  `normalized_stress="auto"`, `random_state=<int drawn from as_generator>`),
+  since scikit-learn 1.8 renamed `dissimilarity` to `metric` and changes
+  `n_init`'s and `init`'s defaults in 1.9/1.10. Confirmed against the
+  installed scikit-bio 0.7.4 and scikit-learn 1.9.1 (R2.2): `pcoa`'s
+  `OrdinationResults.samples`/`eigvals`/`proportion_explained`;
+  `permanova`'s `seed` accepts a `np.random.Generator` via
+  `skbio.util.get_rng`, and its result `Series` is indexed by `"test
+  statistic"`, `"p-value"`, `"sample size"`, `"number of groups"`, `"number
+  of permutations"`; `MDS.fit_transform`/`stress_` raise no
+  FutureWarning/DeprecationWarning with the pinned kwargs. `uv.lock` is
+  gitignored in this repo (`/uv.lock`, "resolve fresh in CI and for users; no
+  committed lockfile") so it is not staged, unlike the task brief's
+  instruction; `uv sync` added only scikit-learn, joblib, threadpoolctl and
+  cloudpickle, no other dependency moved. Amended the verified
+  [pure-by-default](decisions/pure-by-default.md) decision under the
+  controller's approved ruling: dropped the "key overridable by `key_added`"
+  clause (no `tl` function has one) and scoped "every `tl` function supports
+  both modes" to functions that return per-sample or per-pair values, since
+  `tl.permanova` does not; added a Consequences bullet recording that
+  exception. Updated [data-model-slots](contracts/data-model-slots.md) (new
+  `uns["biotapy"]` keys `pcoa`/`nmds`, and the Propagation table's Feature-changing
+  row) and [core](modules/core.md) (`feature_subset`'s invariant). Updated
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md):
+  scikit-learn is no longer "pending approval". Import time unchanged at
+  about 1.3 s (R10.1). Ticked Task 1.17's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.16 done: `bt.tl.beta(adata, *, metric="braycurtis",
+  inplace=False) -> pd.DataFrame | None` wraps
+  `skbio.diversity.beta_diversity` for `braycurtis` and `jaccard` (on
+  presence/absence, matching `phyloseq::distance(physeq, "jaccard", binary =
+  TRUE)`); `bt.tl.unifrac(tdata, *, weighted=False, normalized=True,
+  inplace=False) -> pd.DataFrame | None` wraps the same function for
+  `unweighted_unifrac`/`weighted_unifrac` via `_core.get_skbio_tree`. Both
+  densify `X` once (R6.2) and, with `inplace=True`, write
+  `obsp["braycurtis" | "jaccard" | "unweighted_unifrac" |
+  "weighted_unifrac"]` and return `None`
+  ([pure-by-default](decisions/pure-by-default.md)). New
+  `src/biotapy/tl/_beta.py`. Confirmed against the installed scikit-bio 0.7.4
+  (R2.2): `beta_diversity(metric, counts, ids=..., taxa=..., tree=...,
+  **kwargs) -> DistanceMatrix`; `DistanceMatrix.to_data_frame()` has the ids
+  on both index and columns; `"jaccard"` is in `_qualitative_metrics` and is
+  auto-qualified to presence/absence; `weighted_unifrac`'s own default is
+  `normalized=False`, so `unifrac` always passes it explicitly. Two all-zero
+  samples are `NaN` apart under Bray-Curtis but `0.0` under both UniFracs and
+  under Jaccard, with no `RuntimeWarning` in any case. New tests in
+  `tests/tl/test_beta.py` (unit, Hypothesis, purity, the multifurcating-root
+  and post-filtering path-length cases) and `tests/tl/test_beta_golden.py`
+  (against `beta_*.csv.gz` and `unifrac_*.csv.gz` from Task 1.15a, on
+  GlobalPatterns and esophagus); both pass. Appended to
+  `docs/guide/diversity.md` and `docs/api.md`. No concept needed a content
+  change: the `obsp` keys were already in
+  [data-model-slots](contracts/data-model-slots.md); ticked Task 1.16's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.15 done: `bt.tl.alpha(adata, *, metrics=(...), inplace=False)
+  -> pd.DataFrame | None` wraps `skbio.diversity.alpha_diversity` for
+  `observed_features`, `shannon` (natural log), `simpson` (Gini-Simpson),
+  `chao1` (bias-corrected) and `faith_pd` (via `_core.get_skbio_tree`).
+  `observed_features` and `chao1` require raw counts through
+  `_core.require_counts`; the others also run on relative abundances.
+  scikit-bio needs dense rows, so `X` is densified in chunks of at most
+  `2**20` values (R6.2). With `inplace=True` writes
+  `obs["alpha_<metric>"]` and returns `None`
+  ([pure-by-default](decisions/pure-by-default.md)). New package `bt.tl`,
+  with `src/biotapy/tl/__init__.py` (imports only, R4.1) and
+  `tl/_alpha.py`. Confirmed against the installed scikit-bio 0.7.4
+  (R2.2): `alpha_diversity(metric, counts, ids=..., **kwargs) -> pd.Series`;
+  `shannon(base=None)` defaults to natural log since 0.6.1, equal to
+  `base=math.e`; `chao1(bias_corrected=True)` is already the default;
+  `simpson` is `1 - sum(p**2)`; `faith_pd(counts, taxa, tree)` takes
+  `taxa=`/`tree=` as keyword args; an all-zero row gives 0 for
+  `observed_features`/`chao1`/`faith_pd` and NaN for `shannon`/`simpson`,
+  with no warning. New tests in `tests/tl/test_alpha.py` (unit,
+  Hypothesis, purity, memory-chunking) and
+  `tests/tl/test_alpha_golden.py` (against `alpha.csv.gz` and
+  `alpha_faith_pd.csv.gz` from Task 1.15a); both pass. Added
+  `docs/guide/diversity.md` and a Tools section to `docs/api.md`. Updated
+  [data-model-slots](contracts/data-model-slots.md) (`require_counts`
+  convention now names `tl.alpha`) and [pp](modules/pp.md) (`tl` ownership
+  note points at Slice 1C instead of "later phases"); ticked Task 1.15's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.15c done: `_core.get_skbio_tree(adata: AnnData) ->
+  skbio.TreeNode` converts the phylogeny in `vart["phylo"]` to a scikit-bio
+  `TreeNode` via `nx.bfs_edges`, rooted where the networkx tree is drawn. A
+  root with more than two children (the toy tree's has three) keeps its first
+  child and moves the rest under one new zero-length node, which changes no
+  root-to-tip path length; NaN branch lengths pass through unchanged. A plain
+  `AnnData` raises `TypeError` naming what it needs; a `TreeData` without
+  `vart["phylo"]` raises `KeyError` from `get_tree`. Exported from `_core`;
+  used by the upcoming `tl.alpha` (faith_pd) and `tl.unifrac`, kept in
+  `_tree.py` because only that module may import networkx (R4.5). New tests
+  in `tests/core/test_tree.py`. Confirmed against the installed scikit-bio
+  0.7.4 (`TreeNode.__init__`, `append`, `extend`, `tips`, `find`, `distance`)
+  that `append`/`extend` reparent nodes rather than copying them. Updated
+  [tree-access](contracts/tree-access.md) (statement 2, a Gotcha) and
+  [core](modules/core.md) (entry point, dependencies); ticked Task 1.15c's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.15b fix round 1: named `esophagus()` alongside
+  `global_patterns()`/`enterotype()` in two places the esophagus change had
+  left stale - [datasets](modules/datasets.md)'s Gotchas doctest-`+SKIP`
+  bullet and `docs/contributing.md`'s network-test paragraph. No behavior
+  change.
+* **Update**: Task 1.15b done: `bt.datasets.esophagus() -> TreeData` - 3
+  esophageal biopsies (samples `B`, `C`, `D`) x 58 OTUs, with a tree in
+  `vart["phylo"]` and no taxonomy or sample data, read through
+  `bt.io.read_phyloseq`. `_remote.py:_REGISTRY` gains `esophagus.RData`
+  (sha256 `0b06d9c3...`, 1,840 B) at the same pinned phyloseq commit;
+  `datasets/__init__.py` exports it. `docs/api.md`, `docs/guide/datasets.md`
+  and `docs/guide/reading_data.md` updated for the third loader. 1.16's
+  UniFrac golden test will use it. [datasets](modules/datasets.md) updated;
+  ticked in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.14 done: `pp.rarefy(adata, *, depth=, seed=)` subsamples
+  every sample to `depth` reads without replacement, via
+  `skbio.stats.subsample_counts`. `depth` defaults to the smallest non-zero
+  sample depth, so all-zero samples are skipped by default; samples with
+  strictly fewer than `depth` reads are dropped with one `UserWarning` naming
+  up to 5; a sample at exactly `depth` is kept. Features left all-zero after
+  subsampling are dropped through `_core.feature_subset`, and `X` becomes
+  `int64`. New `src/biotapy/pp/_rarefy.py`, `tests/pp/test_rarefy.py`,
+  `tests/pp/test_rarefy_golden.py` (matches which samples `phyloseq::
+  rarefy_even_depth` drops on GlobalPatterns; counts themselves are not
+  compared, per r-golden-parity's rarefaction row) and
+  `docs/guide/filtering.md`. `pyproject.toml`'s `untyped_calls_exclude` gains
+  `skbio.stats._subsample`. [pp](modules/pp.md) and [core](modules/core.md)
+  updated; ticked in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.13 done: `pp.filter_features(adata, *, min_prevalence=,
+  min_total=)` and `pp.filter_samples(adata, min_depth)`, both inclusive
+  thresholds, `ValueError` when nothing passes. `filter_features` goes
+  through `_core.feature_subset`; `filter_samples` subsets with AnnData
+  indexing so every slot (including `obsp` distances) survives. New
+  `src/biotapy/pp/_filter.py`, `tests/pp/test_filter.py`,
+  `tests/pp/test_filter_golden.py` (matches `phyloseq::filter_taxa` on
+  GlobalPatterns exactly) and `docs/guide/filtering.md`. [pp](modules/pp.md)
+  and [core](modules/core.md) updated; ticked in
+  [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.13 step 1: fixed a pre-existing `_core.feature_subset`
+  bug found while prototyping slice 1C - anndata 0.13 lists `X` itself as
+  `layers[None]`, so deleting every `layers` key deleted `X` too;
+  `feature_subset` now skips the `None` key. New test
+  `tests/core/test_slots.py:test_feature_subset_keeps_x`. Gotcha added to
+  [core](modules/core.md).
+* **Update**: Task 1.15a done: added CRAN `picante` to the `biotapy-golden`
+  image (own commit); `export_golden.R` gains the slice 1C block (filtering,
+  rarefaction, alpha/Faith PD, Bray-Curtis/Jaccard, UniFrac on GlobalPatterns
+  and esophagus, PCoA, NMDS, PERMANOVA); 15 new golden `.csv.gz` files under
+  `tests/golden/global_patterns/` and `tests/golden/esophagus/`,
+  `tests/golden/VERSIONS.txt` gains `vegan`, `ape` and `picante` lines. Two
+  container runs are bit-identical and the 14 pre-existing golden/fixture
+  files are unchanged. [r-golden-parity](contracts/r-golden-parity.md)
+  statement 1 and [regenerate-golden-files](playbooks/regenerate-golden-files.md)
+  (glob and two Common mistakes) updated to match; ticked in
+  [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Checkpoint B closed: the user reviewed slice 1B (PR #6 merged at their request) and approved the slice 1C plan as written; last box ticked in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Expanded slice 1C of [phase-1-core](roadmap/phase-1-core.md) into TDD steps (rules.md R1.2a): tasks 1.15a, 1.13, 1.14, 1.15b, 1.15c, 1.15, 1.16, 1.17 and Checkpoint C, prototyped against R goldens; scikit-learn>=1.8 (runtime) and picante (R image) approved. Awaiting user approval.
 * **Update**: PR #6 CI green on all 19 checks, including the first GitHub run of the `network` job (6 passed); Checkpoint B CI box ticked in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 6: golden files hold derived numbers only, which may be complete for a dataset; the user accepted `relative.csv.gz` (all GlobalPatterns proportions, AGPL-3 source) for this BSD-3 repo.
 * **Update**: Checkpoint B whole-branch review (Opus) of slice 1B stage 2 and its fix pass are done (F1-F8 plus a narrowed rdata warning filter); ticked in [phase-1-core](roadmap/phase-1-core.md). The PR's CI (network/golden job) and the user's review remain.
@@ -222,6 +415,13 @@
   [tree-access](contracts/tree-access.md) statement 2. Updated
   `docs/guide/reading_data.md` (new "DADA2" section) and `docs/api.md`;
   ticked Task 1.9's steps in [phase-1-core](roadmap/phase-1-core.md).
+* **Update** (Checkpoint C): the whole-slice review (opus) of slice 1C and its
+  fix pass (4a5adaf..0dd46d5, plus this follow-up) are done: `tl.permanova`'s
+  stray f-string prefix, `_core.require_counts`'s message now naming the NaN
+  case, and `tl.alpha`'s docstring/`docs/guide/diversity.md` now counting
+  `faith_pd`'s int64 presence copy. Ticked Checkpoint C's review item in
+  [phase-1-core](roadmap/phase-1-core.md); its push and user-review items
+  stay open.
 
 ## 2026-09-26
 * **Update**: Task 1.8 done: added `bt.io.read_qiime2(table, *, taxonomy=None,

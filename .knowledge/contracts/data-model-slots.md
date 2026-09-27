@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
+commit: 4a5adaf
 sources:
   - id: spec
     resource: ../../plan.md
@@ -34,7 +34,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
-| `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (eigenvalues, proportion explained) |
+| `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
 
 ## Conventions
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
@@ -55,9 +55,18 @@ Extends the spec's data-model table with exact keys.[^spec]
    (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
    No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
-   text table), and labeling proportions `counts` would let rarefy and chao1
-   run on them. Missing key means `counts`. Functions that need raw counts
-   (rarefy, chao1) call `_core.require_counts` and raise otherwise.
+   text table), and labeling proportions `counts` would misdescribe them to
+   every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
+   (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
+   phyloseq's `estimate_richness` refuses on non-integers; and
+   `tl.unifrac(weighted=True)`) call `_core.require_counts`, which raises
+   unless `x_kind` is `counts` *and* every stored value in `X` is a whole
+   number (`_slots.py:require_counts`, through `infer_x_kind`'s rule, O(nnz)).
+   The value check matters because fractions are otherwise truncated
+   silently: `pp.rarefy` casts `X` to int64 for `subsample_counts`, and
+   scikit-bio 0.7.4's tree code (Faith PD, UniFrac; `_nodes_by_counts`)
+   casts abundances to int64. `tl.alpha` gives `faith_pd` presence/absence,
+   so it needs no counts.
 3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
    `{"step", "version", "params"}`, appended by `_core.add_provenance`.
    JSON strings, not dicts, because h5ad cannot store a list of dicts.
@@ -71,7 +80,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 ## Propagation
 | Operation | Keeps | Drops |
 |---|---|---|
-| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, other `uns` keys |
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing | nothing |
 | Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
 

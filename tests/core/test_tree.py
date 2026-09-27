@@ -1,10 +1,14 @@
 import math
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import pytest
+from skbio import TreeNode
 
+import biotapy as bt
 from biotapy._core import (
+    get_skbio_tree,
     get_tree,
     make_treedata,
     relabel_tips,
@@ -183,3 +187,30 @@ def test_tree_from_phylo_internal_names_skip_tip_names():
 def test_tree_from_phylo_without_lengths_uses_nan():
     tree = tree_from_phylo([[3, 1], [3, 2]], None, ["a", "b"])
     assert all(math.isnan(d["length"]) for *_, d in tree.edges(data=True))
+
+
+def test_get_skbio_tree_keeps_names_and_lengths():
+    tree = get_skbio_tree(_make(tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)])))
+    assert isinstance(tree, TreeNode) and tree.name == "r"
+    assert {tip.name: tip.length for tip in tree.tips()} == {"a": 1.0, "b": 2.0}
+
+
+def test_get_skbio_tree_splits_a_multifurcating_root_without_changing_paths():
+    tdata = bt.datasets.toy()  # the root has three children
+    tree = get_skbio_tree(tdata)
+    assert len(tree.children) == 2
+    expected = nx.shortest_path_length(get_tree(tdata), "root", weight="length")
+    assert {tip.name: tip.distance(tree) for tip in tree.tips()} == pytest.approx(
+        {f"f{i}": expected[f"f{i}"] for i in range(1, 9)}
+    )
+
+
+def test_get_skbio_tree_keeps_nan_lengths():
+    assert math.isnan(get_skbio_tree(_make(tree_from_newick("(a,b:2);"))).find("a").length)
+
+
+def test_get_skbio_tree_without_phylogeny_names_the_key():
+    with pytest.raises(KeyError, match="phylo"):
+        get_skbio_tree(_make(None))
+    with pytest.raises(TypeError, match="needs a TreeData"):
+        get_skbio_tree(bt.datasets.toy().to_adata())

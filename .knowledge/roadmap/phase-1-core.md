@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T17:30:00Z }
 commit: 43d6efb
 sources:
   - id: spec
@@ -69,7 +69,8 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.7a | runtime | scikit-bio `>=0.7.4,<0.8` | Newick parsing, diversity, ordination - approved 2026-09-26 |
 | 1.11 | runtime | pooch | cached dataset downloads - approved 2026-09-27 |
 | 1.12b | test | pyarrow | declined 2026-09-27 - golden files are gzip CSV read by pandas |
-| 1.17 | runtime | scikit-learn | non-metric MDS (scikit-bio has none) |
+| 1.15a | R image | picante (CRAN, the image's pinned P3M snapshot) | Faith PD golden file (`picante::pd`) - approved 2026-09-27 |
+| 1.17 | runtime | scikit-learn `>=1.8` | non-metric MDS (scikit-bio has none); 1.8 renamed `dissimilarity` to `metric` - approved 2026-09-27 |
 | 1.18 | runtime | matplotlib | `pl` |
 | 1.21 | dev | asv | benchmarks |
 
@@ -3258,56 +3259,3016 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 - [x] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
   and `modules/core.md` (`tree_from_phylo`), plus the log.
 - [x] The PR's CI is green, including the new network/golden job.
-- [ ] Ask the user to review slice 1B before slice 1C.
+- [x] Ask the user to review slice 1B before slice 1C.
 
 ---
 
 ## Slice 1C - Filtering and diversity
 
+Expanded 2026-09-27 with superpowers:writing-plans (rules.md R1.2a), from three
+research passes and a full prototype. Every file below was written into a
+scratch copy of the repo at 11ee8dd and passed ruff, `ruff format`, `mypy
+--strict`, import-linter, pytest with doctests, and `sphinx-build -W`. The
+golden tests were also run against R output from the `biotapy-golden` image,
+with picante installed in a throwaway container. Implementers still re-check
+every API they call (R2.2).
+
+The branch then moved to e14e997 (PR #7, docs site). That PR adds
+`docs/guide/datasets.md`, points dataset `Guide:` lines at it, and adds pandas
+to intersphinx. The docs steps below are written against e14e997, and
+`sphinx-build -W` passed there with all of this slice's docs edits applied.
+
+**Goal:** phyloseq's filtering, rarefaction, alpha and beta diversity, UniFrac,
+PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
+[r-golden-parity](/contracts/r-golden-parity.md) tolerances.
+
+**Architecture:**
+- `pp` gains two filters and `rarefy`. They go through `_core.feature_subset`,
+  or through AnnData indexing for samples.
+- A new `tl` package wraps scikit-bio, plus scikit-learn for NMDS. Each
+  function returns its result; with `inplace=True` it writes the
+  [data-model-slots](/contracts/data-model-slots.md) keys instead.
+- `_core` gains the only networkx-to-`skbio.TreeNode` converter.
+
+**Tech stack:**
+- scikit-bio 0.7.4: `alpha_diversity`, `beta_diversity`, `subsample_counts`,
+  `pcoa`, `permanova`.
+- scikit-learn `>=1.8`: `sklearn.manifold.MDS`.
+- SciPy: `procrustes`, used in tests.
+- The R image: phyloseq 1.54.2, vegan 2.7.3, ape 5.8.1 and picante 1.8.2.
+
+**Execution order:** **1.15a -> 1.13 -> 1.14 -> 1.15b -> 1.15c -> 1.15 -> 1.16 -> 1.17 -> Checkpoint C.**
+- The R exports (1.15a) run first. They need no biotapy code, and every later
+  task's golden test reads them.
+- The esophagus loader (1.15b) and the tree converter (1.15c) are split out of
+  1.15/1.16, because each is its own function with its own tests (R1.4).
+
+### Slice 1C design
+- **Where the code goes.**
+
+  | File | Holds |
+  |---|---|
+  | `pp/_filter.py` | `filter_features`, `filter_samples` |
+  | `pp/_rarefy.py` | `rarefy` |
+  | `tl/_alpha.py` | `alpha` |
+  | `tl/_beta.py` | `beta`, `unifrac`; from 1.17 also `stored_distances`, which `_ordination.py` and `_permanova.py` import (same subpackage, module-boundaries rule 1) |
+  | `tl/_ordination.py` | `pcoa`, `nmds` |
+  | `tl/_permanova.py` | `permanova` |
+  | `_core/_tree.py` | `get_skbio_tree`, the networkx-to-`TreeNode` converter (tree-access) |
+  | `_core/_slots.py` | `feature_subset`: keeps `X` (1.13); drops the ordination summaries in `uns["biotapy"]` (1.17) |
+  | `datasets/_remote.py` | `esophagus` |
+
+- **What `tl` returns and writes.** Everything defaults to `inplace=False`.
+  With `inplace=True` a function writes the keys below and returns `None`
+  ([pure-by-default](/decisions/pure-by-default.md)).
+
+  | Function | Returns | `inplace=True` writes |
+  |---|---|---|
+  | `tl.alpha` | `DataFrame`, samples x metrics | `obs["alpha_<metric>"]` |
+  | `tl.beta` | `DataFrame`, samples x samples | `obsp["braycurtis"]` or `obsp["jaccard"]` |
+  | `tl.unifrac` | `DataFrame`, samples x samples | `obsp["unweighted_unifrac"]` or `obsp["weighted_unifrac"]` |
+  | `tl.pcoa` | `(coords, axes)`: `PC1..` per sample; `eigenvalue`, `proportion_explained` per axis | `obsm["X_pcoa"]`, `uns["biotapy"]["pcoa"] = {"eigenvalues", "proportion_explained"}` |
+  | `tl.nmds` | `(coords, stress)`: `NMDS1..` per sample; Kruskal stress-1 | `obsm["X_nmds"]`, `uns["biotapy"]["nmds"] = {"stress"}` (new key, 1.17) |
+  | `tl.permanova` | scikit-bio's result `Series` | nothing; no `inplace` (ruling in 1.17) |
+
+- **Dense input.** scikit-bio's `_ingest_table` turns a sparse matrix into a
+  0-d object array. It then raises `TypeError: '<class>' is not a supported
+  table format.`, for a raw `csr_matrix` and for an AnnData or TreeData with
+  sparse `X` alike.
+  - `tl.alpha` densifies at most `2**20` values (8 MiB) at a time.
+  - `tl.beta` and `tl.unifrac` densify once; pairwise distances need every row.
+- **Trees.** scikit-bio's Faith PD and UniFrac raise `The tree must be rooted.`
+  when the root has more than two children. `toy()`'s root has three.
+  - `get_skbio_tree` keeps the first child and moves the rest under one new
+    zero-length node, which changes no root-to-tip length.
+  - Unary nodes left by TreeData pruning, and NaN lengths (counted as 0), pass
+    through.
+- **Randomness.** `as_generator(seed)` is called once per public call.
+  - scikit-bio (`subsample_counts`, `permanova`) takes that Generator.
+  - scikit-learn takes an `int` drawn from it, because its `random_state`
+    rejects Generators.
+- **Found while prototyping (pre-existing bug).** On anndata 0.13.4,
+  `list(adata.layers.keys())` is `[None]`: `X` itself is `layers[None]`.
+  - `_core.feature_subset` deletes every `layers` key, so it deletes `X` and
+    returns `X=None`.
+  - `pp.tax_glom` hides this by reassigning `out.X`.
+  - `filter_features` would ship broken, so Task 1.13 fixes it first, with its
+    own test and commit.
+- **Research facts the tasks rely on.** All were measured on the prototype
+  against the R reference; re-check each (R2.2).
+  - **Filters.** On GlobalPatterns, `filter_taxa` keeps 12,711 taxa with
+    `sum(x > 0) >= 0.1 * length(x)` and 14,185 with `sum(x) >= 5` (13,711 with
+    `> 5`). `filter_features` matches both exactly.
+  - **Rarefaction.** At `sample.size = 1e5` phyloseq drops only TRRsed1 (58,688
+    reads). `rarefy` drops the same sample and takes 1.7 s for the other 25.
+    `skbio.stats.subsample_counts(counts, n, replace=False, seed=...)` accepts a
+    Generator and returns `int64`.
+  - **Alpha.**
+    - `estimate_richness` agrees with scikit-bio within 1.2e-15 relative, for
+      Shannon (natural log, `vegan::diversity`), Gini-Simpson and Chao1.
+      scikit-bio's `chao1(bias_corrected=True)` is vegan's
+      `S.obs + a1 (a1 - 1) / (2 (a2 + 1))`.
+    - Faith PD matches `picante::pd(include.root = TRUE)` within 2.2e-16. On
+      esophagus, `include.root` TRUE and FALSE agree, because every sample
+      spans both root children.
+    - An all-zero row gives observed 0, chao1 0, faith_pd 0 and Shannon/Simpson
+      NaN in scikit-bio; vegan gives Shannon 0 and Simpson 1.
+  - **Beta.** Bray-Curtis, binary Jaccard and both UniFracs, on GlobalPatterns
+    and esophagus, agree within 6.7e-16 absolute. UniFrac takes 0.4 s on
+    GlobalPatterns, and both datasets' trees are rooted (`ape::is.rooted`).
+  - **PCoA.**
+    - GlobalPatterns Bray-Curtis has no negative eigenvalues (ape's "no
+      correction was applied" branch).
+    - Eigenvalues and `Relative_eig` agree within 2e-15 relative, and
+      coordinates within 4e-12 after aligning each axis's sign.
+    - ape's `Relative_eig` divides by the trace. scikit-bio's
+      `proportion_explained` does so only when `dimensions < n`, and otherwise
+      divides by the sum of the positive eigenvalues. So `pcoa` asks for at most
+      `n_obs - 1` axes.
+  - **NMDS.**
+    - `metaMDS` reaches stress 0.171061. sklearn with `n_init=20` reaches 0.1736
+      (difference 0.0026), with Procrustes r >= 0.99995 for seeds 0 to 3, in
+      about 2 s.
+    - With `n_init=1`, r is 0.79 to 0.88 for three of four seeds, which fails
+      the contract. With `init="classical_mds"`, r is 0.72.
+  - **PERMANOVA.** F = 4.425943578211 in both, and p = 1e-4 in both at 9,999
+    permutations. scikit-bio takes 9-14 s.
+  - **Import time** is unchanged at about 1.3 s; `sklearn.manifold` adds 0.15 s.
+  - **esophagus.** sha256
+    `0b06d9c35f2e694c34461308af149eb54419453fcb98763de20ab61980b87e46`,
+    1,840 B. It reads through `read_phyloseq` with no warning: 3 x 58 float64
+    counts (samples B, C, D), no `obs`/`var` columns, and a tree with 114 edges.
+
+### Slice 1C global constraints (in addition to the Phase 1 list)
+- **scikit-learn.** Runtime dependency `scikit-learn>=1.8`, approved
+  2026-09-27 and added in 1.17. `MDS` is called with every argument explicit:
+  `n_components`, `metric_mds=False`, `metric="precomputed"`, `n_init=20`,
+  `init="random"`, `normalized_stress="auto"`, `random_state=<int>`.
+  - Never pass `dissimilarity=`: it is deprecated in 1.8 and removed in 1.10.
+  - `n_init` and `init` must be explicit because their defaults change:
+    `n_init` went from 4 to 1 in 1.9, and `init` becomes `"classical_mds"` in
+    1.10.
+- **The R image.** CRAN `picante` is added from the image's pinned P3M snapshot
+  (approved 2026-09-27), in its own commit (1.15a). vegan and ape already come
+  with phyloseq; nothing else is added.
+- **mypy.** scikit-learn 1.9.1 ships no `py.typed`, so it gets the same
+  `follow_untyped_imports` override as scikit-bio (1.17).
+  `untyped_calls_exclude` gains `"skbio.stats._subsample"` (1.14) and
+  `"sklearn"` (1.17). Never use `# type: ignore` for these.
+- **Dense copies.** scikit-bio never receives sparse input. Each wrapper states
+  its dense copy and its memory cost in `Notes` (R6.2).
+- **Trees.** networkx stays in `_core/_tree.py`; `tl` gets a `TreeNode` only
+  from `_core.get_skbio_tree` (R4.5).
+- **Keyword-only options.** Every defaulted parameter is keyword-only
+  (function-shape statement 1). That includes `alpha(metrics=)`,
+  `beta(metric=)` and `rarefy(depth=)`, which the draft interfaces listed as
+  positional.
+- **Mutation.** `tl` functions never mutate their input unless
+  `inplace=True`, and then they write only the data-model-slots keys. No
+  `key_added` (R2.3).
+- **Golden tolerances** are the r-golden-parity table's, unchanged:
+  - filter, alpha, beta and UniFrac: `rtol=1e-7`;
+  - PCoA: `rtol=1e-6`, coordinates per axis up to sign;
+  - NMDS: stress within 0.02, Procrustes r > 0.95;
+  - PERMANOVA: F within `rtol=1e-7`, p within 0.02 at 9,999 permutations;
+  - rarefaction: invariants only.
+- **Docs.** `docs/conf.py` is `nitpicky`.
+  - A public signature returning pandas types needs the pandas intersphinx
+    entry. Without it `-W` failed on 11ee8dd; `docs/conf.py` has had one since
+    eb7538e (PR #7), so no task adds it.
+  - A docstring cross-reference to a function from a later task breaks
+    `sphinx-build -W` at the earlier task.
+  - Dataset loaders' `Guide:` line points at `/guide/datasets` (b4e7811).
+- **Commits** stage explicit paths only. Never stage `.claude/`,
+  `.superpowers/`, `.worktrees/` or `notebooks/`.
+- **Every task's last commit** also stages `.knowledge/roadmap/phase-1-core.md`
+  with that task's boxes ticked, and `.knowledge/log.md` with its dated line
+  (R12.4). "Tick ... here" in a Knowledge step means this.
+
+### Slice 1C review focus
+1. **All-zero samples** reach every function. Expected:
+   - `rarefy`'s default depth skips them, and they are dropped with one warning;
+   - `alpha` gives 0 or NaN per metric and never raises;
+   - two of them are NaN apart under Bray-Curtis;
+   - `pcoa`, `nmds` and `permanova` then raise a `ValueError` naming the NaN,
+     not scikit-bio's symmetry error.
+
+   Tests:
+   - 1.14 `test_all_zero_sample_is_dropped_by_default`;
+   - 1.15 `test_all_zero_sample_is_nan_or_zero_never_raises`;
+   - 1.16 `test_all_zero_sample_and_feature`;
+   - 1.17 `test_pcoa_nan_distances_raise`.
+2. **Stale results after a feature change.** Distances, ordinations and their
+   `uns["biotapy"]` summaries must not survive `filter_features` or `rarefy`,
+   while `X` must. Tests:
+   - 1.13 `test_feature_subset_keeps_x` and
+     `test_drops_derived_slots_and_records_provenance`;
+   - 1.17 `test_feature_changes_drop_stored_ordinations` and
+     `test_feature_subset_drops_ordination_metadata`.
+3. **Trees scikit-bio rejects or could mis-measure**: a root with three or
+   more children, unary nodes left by filtering, and NaN branch lengths. Faith
+   PD and UniFrac must run, with root-to-tip lengths unchanged. Tests:
+   - 1.15c `test_get_skbio_tree_*`;
+   - 1.16 `test_unifrac_multifurcating_root_is_accepted` and
+     `test_unifrac_after_filtering_keeps_path_lengths`.
+4. **Stored zeros and decimal thresholds.** An explicitly stored CSR zero is
+   not "present", and 3 of 10 samples meets `min_prevalence=0.3`. Tests: 1.13
+   `test_explicit_zeros_do_not_count_as_present` and
+   `test_decimal_prevalence_boundary_is_kept`.
+5. **Calls in the wrong order or shape.** Each error says what to do:
+   - ordinating before `tl.beta` raises a `KeyError` naming the exact
+     `bt.tl...` call;
+   - a bare string as `metrics`, or `faith_pd` on a plain AnnData, raises a
+     `TypeError`.
+
+   Tests:
+   - 1.17 `test_pcoa_missing_distance_names_the_call` and
+     `test_permanova_missing_distance_names_the_call`;
+   - 1.15 `test_string_metrics_raise` and `test_faith_pd_needs_a_tree`.
+
+### Task 1.15a: R golden exports for slice 1C
+
+**Files:**
+- Modify:
+  - `tests/r/Dockerfile`: picante, in its own commit
+  - `tests/r/export_golden.R`
+  - `.knowledge/contracts/r-golden-parity.md`
+  - `.knowledge/playbooks/regenerate-golden-files.md`
+  - `.knowledge/log.md`
+- Generate with the container:
+  - 13 files under `tests/golden/global_patterns/`
+  - 2 files under `tests/golden/esophagus/`
+  - `tests/golden/VERSIONS.txt`, which gains three lines
+
+**Interfaces:**
+- **Consumes:**
+  - the `biotapy-golden` image from 1.12a;
+  - phyloseq's `data(GlobalPatterns)` and `data(esophagus)`, inside R.
+- **Produces:** these gzip CSV files, read by 1.13 to 1.17.
+
+  | File under `tests/golden/` | Columns | R call |
+  |---|---|---|
+  | `global_patterns/filter_features.csv.gz` | `taxon_id`, `prevalence`, `total` (TRUE/FALSE for all 19,216 taxa) | `filter_taxa(GP, function(x) sum(x > 0) >= 0.1 * length(x))`; `filter_taxa(GP, function(x) sum(x) >= 5)` |
+  | `global_patterns/rarefy.csv.gz` | `sample_id`, `sample_sum` (the 25 kept samples; `1e+05` each) | `rarefy_even_depth(GP, sample.size = 1e5, rngseed = FALSE, replace = FALSE)` after `set.seed(20260927)` |
+  | `global_patterns/alpha.csv.gz` | `sample_id`, `Observed`, `Chao1`, `se.chao1`, `Shannon`, `Simpson` | `estimate_richness(GP, measures = c("Observed", "Chao1", "Shannon", "Simpson"))` |
+  | `global_patterns/alpha_faith_pd.csv.gz` | `sample_id`, `pd`, `sr` | `picante::pd(samples x taxa, phy_tree(GP), include.root = TRUE)` |
+  | `global_patterns/beta_braycurtis.csv.gz` | `sample_id`, then one column per sample | `phyloseq::distance(GP, "bray")` |
+  | `global_patterns/beta_jaccard.csv.gz` | as above | `phyloseq::distance(GP, "jaccard", binary = TRUE)` |
+  | `global_patterns/unifrac_unweighted.csv.gz`, `unifrac_weighted.csv.gz` | as above | `UniFrac(GP, weighted = FALSE)`; `UniFrac(GP, weighted = TRUE, normalized = TRUE)` |
+  | `esophagus/unifrac_unweighted.csv.gz`, `unifrac_weighted.csv.gz` | as above (samples B, C, D) | the same on `esophagus` |
+  | `global_patterns/pcoa_braycurtis_vectors.csv.gz` | `sample_id`, `Axis.1` .. `Axis.10` | `ordinate(GP, "PCoA", bray)$vectors` (`ape::pcoa`, `correction = "none"`) |
+  | `global_patterns/pcoa_braycurtis_values.csv.gz` | `axis`, `eigenvalue`, `relative_eig` (10 rows) | `$values$Eigenvalues`, `$values$Relative_eig` |
+  | `global_patterns/nmds_braycurtis_points.csv.gz` | `sample_id`, `MDS1`, `MDS2` | `ordinate(GP, "NMDS", bray)$points` after `set.seed(20260927)` |
+  | `global_patterns/nmds_braycurtis_stress.csv.gz` | `stress` (one row) | `$stress` |
+  | `global_patterns/permanova_sampletype.csv.gz` | `df`, `sum_of_sqs`, `r2`, `f`, `p` (the `Model` row) | `vegan::adonis2(bray ~ SampleType, data, permutations = 9999)` after `set.seed(20260927)` |
+
+- [x] **Step 1: Record today's hashes.** Before changing anything, from the repo root:
+  ```bash
+  git ls-files tests/golden tests/data | grep -v VERSIONS.txt | xargs sha256sum > /tmp/claude-1000/golden-before.sha
+  ```
+  `VERSIONS.txt` is the only existing file this task changes: Step 3 appends three lines.
+- [x] **Step 2: Dockerfile, in its own commit** (r-golden-parity statement 1).
+  - In `tests/r/Dockerfile`, replace the last `RUN Rscript -e 'stopifnot(...)'` line with:
+    ```dockerfile
+    # picante (CRAN, same P3M snapshot): the Faith PD golden file. vegan and ape come with phyloseq.
+    RUN Rscript -e 'install.packages("picante")'
+    RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE))'
+    ```
+  - Build: `docker build -t biotapy-golden tests/r`.
+    - The earlier layers come from the build cache.
+    - The image's CRAN repo is `https://p3m.dev/cran/__linux__/noble/2026-04-23`.
+      From it, `install.packages("picante")` installs only picante 1.8.2,
+      because ape, nlme and vegan are already there. This was verified in a
+      throwaway container, not by building the image.
+    - If the cache is gone and phyloseq rebuilds, Step 4's before/after check
+      catches any drift. If it fails, stop and report (R14.2).
+  - Check that `docker run --rm biotapy-golden Rscript -e 'cat(format(packageVersion("picante")))'`
+    prints `1.8.2`.
+  - Commit: `git add tests/r/Dockerfile && git commit -m "build(r): add picante to the golden image"`.
+- [x] **Step 3: Export script.** In `tests/r/export_golden.R`:
+  - The directory loop gains the esophagus directory:
+    ```r
+    for (dir in c("tests/golden/global_patterns", "tests/golden/esophagus", "tests/data/phyloseq", "tests/data/dada2")) {
+    ```
+  - Insert this block after the `tax_glom_genus.csv.gz` line and before `## Synthetic phyloseq fixtures`:
+    ```r
+    ## Slice 1C golden files: filtering, rarefaction, diversity, ordination (GlobalPatterns and esophagus)
+    square_frame <- function(d) {
+      m <- as.matrix(d)
+      data.frame(sample_id = rownames(m), m, check.names = FALSE, row.names = NULL)
+    }
+    gp <- "tests/golden/global_patterns"
+    keep_prevalence <- filter_taxa(GlobalPatterns, function(x) sum(x > 0) >= 0.1 * length(x))
+    keep_total <- filter_taxa(GlobalPatterns, function(x) sum(x) >= 5)
+    write_golden(
+      data.frame(taxon_id = names(keep_prevalence), prevalence = keep_prevalence, total = keep_total, row.names = NULL),
+      file.path(gp, "filter_features.csv.gz")
+    )
+    # rngseed = FALSE draws from the global stream seeded here; rngseed = <n> fails before R's first random draw.
+    set.seed(20260927)
+    rarefied <- rarefy_even_depth(GlobalPatterns, sample.size = 1e5, rngseed = FALSE, replace = FALSE, verbose = FALSE)
+    write_golden(
+      data.frame(sample_id = sample_names(rarefied), sample_sum = sample_sums(rarefied), row.names = NULL),
+      file.path(gp, "rarefy.csv.gz")
+    )
+    richness <- estimate_richness(GlobalPatterns, measures = c("Observed", "Chao1", "Shannon", "Simpson"))
+    write_golden(
+      data.frame(sample_id = sample_names(GlobalPatterns), richness, check.names = FALSE, row.names = NULL),
+      file.path(gp, "alpha.csv.gz")
+    )
+    faith <- picante::pd(samples_as_rows(GlobalPatterns), phy_tree(GlobalPatterns), include.root = TRUE)
+    write_golden(data.frame(sample_id = rownames(faith), pd = faith$PD, sr = faith$SR, row.names = NULL), file.path(gp, "alpha_faith_pd.csv.gz"))
+    # Biostrings (attached after phyloseq) masks distance() with IRanges' generic.
+    bray <- phyloseq::distance(GlobalPatterns, "bray")
+    write_golden(square_frame(bray), file.path(gp, "beta_braycurtis.csv.gz"))
+    # vegdist's jaccard is quantitative unless binary = TRUE; scikit-bio's is presence/absence.
+    write_golden(square_frame(phyloseq::distance(GlobalPatterns, "jaccard", binary = TRUE)), file.path(gp, "beta_jaccard.csv.gz"))
+    data(esophagus)
+    for (name in c("global_patterns", "esophagus")) {
+      physeq <- if (name == "esophagus") esophagus else GlobalPatterns
+      write_golden(square_frame(UniFrac(physeq, weighted = FALSE)), file.path("tests/golden", name, "unifrac_unweighted.csv.gz"))
+      write_golden(square_frame(UniFrac(physeq, weighted = TRUE, normalized = TRUE)), file.path("tests/golden", name, "unifrac_weighted.csv.gz"))
+    }
+    pcoa <- ordinate(GlobalPatterns, "PCoA", bray)
+    axes <- 1:10
+    write_golden(
+      data.frame(sample_id = rownames(pcoa$vectors), pcoa$vectors[, axes], check.names = FALSE, row.names = NULL),
+      file.path(gp, "pcoa_braycurtis_vectors.csv.gz")
+    )
+    write_golden(
+      data.frame(axis = axes, eigenvalue = pcoa$values$Eigenvalues[axes], relative_eig = pcoa$values$Relative_eig[axes]),
+      file.path(gp, "pcoa_braycurtis_values.csv.gz")
+    )
+    set.seed(20260927)
+    # ordinate() runs metaMDS on the dist object (no autotransform) and prints every random start; keep the log short.
+    invisible(capture.output(nmds <- ordinate(GlobalPatterns, "NMDS", bray)))
+    write_golden(
+      data.frame(sample_id = rownames(nmds$points), nmds$points, check.names = FALSE, row.names = NULL),
+      file.path(gp, "nmds_braycurtis_points.csv.gz")
+    )
+    write_golden(data.frame(stress = nmds$stress), file.path(gp, "nmds_braycurtis_stress.csv.gz"))
+    set.seed(20260927)
+    adonis <- vegan::adonis2(bray ~ SampleType, data = data.frame(sample_data(GlobalPatterns)), permutations = 9999)
+    write_golden(
+      data.frame(df = adonis$Df[1], sum_of_sqs = adonis$SumOfSqs[1], r2 = adonis$R2[1], f = adonis$F[1], p = adonis[["Pr(>F)"]][1]),
+      file.path(gp, "permanova_sampletype.csv.gz")
+    )
+    ```
+  - Replace the closing `writeLines` call with:
+    ```r
+    writeLines(c(
+      R.version.string,
+      paste("Bioconductor", as.character(BiocManager::version())),
+      paste0("phyloseq ", packageVersion("phyloseq")),
+      paste0("vegan ", packageVersion("vegan")),
+      paste0("ape ", packageVersion("ape")),
+      paste0("picante ", packageVersion("picante"))
+    ), "tests/golden/VERSIONS.txt")
+    ```
+  - Why the block looks as it does (each point verified in the container):
+    - `phyloseq::distance` is namespaced because Biostrings, attached after
+      phyloseq, masks `distance()` with IRanges' generic. Unqualified, it fails:
+      `unable to find an inherited method for function 'distance' for signature 'x = "phyloseq", y = "character"'`.
+    - Each random step has its own `set.seed(20260927)`, so no file depends on
+      section order. `rarefy_even_depth(rngseed = FALSE)` draws from that
+      stream; `rngseed = <n>` fails with `object '.Random.seed' not found` in a
+      fresh session.
+    - `ordinate(GP, "NMDS", bray)` calls `metaMDS(ps.dist)` on the `dist`
+      object, so no autotransform happens. It prints all 20 random starts, which
+      `capture.output` swallows.
+    - `adonis2`'s default `by = NULL` gives one overall test; row 1 is `Model`.
+- [x] **Step 4: Run twice and check bit-identical.** From the repo root:
+  ```bash
+  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
+  sha256sum tests/golden/*/*.csv.gz tests/golden/VERSIONS.txt tests/data/phyloseq/* tests/data/dada2/* > /tmp/claude-1000/golden-run1.sha
+  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
+  sha256sum -c --quiet /tmp/claude-1000/golden-run1.sha
+  sha256sum -c --quiet /tmp/claude-1000/golden-before.sha
+  ```
+  Expected (as in the prototype):
+  - Both checks print nothing and exit 0: the second run is bit-identical to
+    the first, and all 14 pre-existing files (3 golden CSVs, 11 fixtures) are
+    unchanged.
+  - One run takes about 1 minute; Faith PD on GlobalPatterns alone takes about 20 s.
+  - The new files' sizes in bytes:
+
+    | File | Bytes |
+    |---|---|
+    | `filter_features` | 78,594 |
+    | `rarefy` | 163 |
+    | `alpha` | 1,214 |
+    | `alpha_faith_pd` | 376 |
+    | `beta_braycurtis` | 3,894 |
+    | `beta_jaccard` | 3,955 |
+    | `unifrac_unweighted` (GlobalPatterns) | 3,975 |
+    | `unifrac_weighted` (GlobalPatterns) | 3,989 |
+    | `pcoa_braycurtis_vectors` | 2,635 |
+    | `pcoa_braycurtis_values` | 261 |
+    | `nmds_braycurtis_points` | 657 |
+    | `nmds_braycurtis_stress` | 47 |
+    | `permanova_sampletype` | 97 |
+    | esophagus `unifrac_unweighted` | 107 |
+    | esophagus `unifrac_weighted` | 105 |
+  - `VERSIONS.txt` ends with `vegan 2.7.3`, `ape 5.8.1` and `picante 1.8.2`.
+  - Spot checks:
+    - `zcat tests/golden/global_patterns/permanova_sampletype.csv.gz` shows
+      `8,7.77436045388947,0.675619248642622,4.42594357821139,1e-04`;
+    - the NMDS stress is `0.171061337156148`;
+    - `rarefy.csv.gz` has 25 rows, with no `TRRsed1`.
+- [x] **Step 5: Size guard.** Run `uv run --group test pytest tests/test_data_files.py -q`.
+  Every file stays under 1 MB; the largest new one is 78,594 B. There is no
+  docs step: the files are test data, and the playbook covers how to
+  regenerate them.
+- [x] **Step 6: Knowledge.**
+  - `contracts/r-golden-parity.md` statement 1: replace "(`phyloseq`, which
+    brings `Biostrings`)" with "(`phyloseq`, which brings `Biostrings`,
+    `vegan` and `ape`, plus CRAN `picante` for Faith PD)".
+  - `playbooks/regenerate-golden-files.md`:
+    - the Steps' `sha256sum` glob becomes `tests/golden/*/*.csv.gz`, because
+      golden files now live in two dataset directories;
+    - add two Common mistakes:
+      - Biostrings masks `distance()`, so write `phyloseq::distance`;
+      - every random call needs its own preceding `set.seed(20260927)`, or
+        reruns stop being bit-identical.
+  - Add a log line. Tick 1.15a here.
+- [x] **Step 7: Gate and commit.**
+  - Run `uvx prek run --all-files` and `uv run --group test pytest`.
+  - Commit `test(r): export slice 1C golden files for filtering, diversity and ordination`,
+    staging `tests/r/export_golden.R`, the 15 new `.csv.gz` files,
+    `tests/golden/VERSIONS.txt` and the three knowledge files by explicit path.
+
 ### Task 1.13: `pp.filter_features`, `pp.filter_samples`
-- **Interfaces:** `filter_features(adata, *, min_prevalence: float | None = None, min_total: float | None = None) -> AnnData`
-  (prevalence = fraction of samples with a non-zero count; via `feature_subset`);
-  `filter_samples(adata, *, min_depth: float | None = None) -> AnnData` (AnnData indexing, keeps all slots).
-- phyloseq's `prune_*`/`subset_*` map to AnnData indexing in the Coming-from-R table; no wrappers (R2.1).
-- **Tests:** thresholds inclusive; both `None` raises `ValueError`; golden vs `filter_taxa`.
+
+**Files:**
+- Create:
+  - `src/biotapy/pp/_filter.py`
+  - `tests/pp/test_filter.py`
+  - `tests/pp/test_filter_golden.py`
+  - `docs/guide/filtering.md`
+- Modify:
+  - `src/biotapy/_core/_slots.py` and `tests/core/test_slots.py` (the `X` fix,
+    its own commit)
+  - `src/biotapy/pp/__init__.py`
+  - `docs/api.md`, `docs/guide/index.md`
+  - `.knowledge/modules/core.md`, `.knowledge/modules/pp.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `feature_subset`, `as_csr`, `add_provenance`;
+  - `tests/golden/global_patterns/filter_features.csv.gz` (1.15a).
+- **Produces:**
+  - `_core.feature_subset(adata, index)`: signature unchanged; it now keeps `X`.
+  - `bt.pp.filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_total: float | None = None) -> AnnData`.
+    Prevalence is the fraction of samples with a stored non-zero value. Both
+    thresholds are inclusive, and with both given a feature must pass both. It
+    goes through `feature_subset` and records provenance
+    `pp.filter_features`. Nothing passing raises `ValueError`.
+  - `bt.pp.filter_samples(adata: AnnData, min_depth: float) -> AnnData`.
+    `min_depth` is required, so it is positional (R3.1; a `None` default would
+    only raise). The threshold is inclusive. It subsets with AnnData indexing,
+    keeping every slot, and records provenance `pp.filter_samples`.
+  - phyloseq's `prune_*`/`subset_*` map to AnnData indexing in the
+    Coming-from-R table; there are no wrappers (R2.1).
+
+- [x] **Step 1: Failing test for the `feature_subset` bug.** Append to `tests/core/test_slots.py`:
+  ```python
+  def test_feature_subset_keeps_x():
+      np.testing.assert_array_equal(feature_subset(_adata(), np.array([0, 2])).X.toarray(), [[0, 2], [3, 5]])
+  ```
+  Run `uv run --group test pytest tests/core/test_slots.py -q`. It fails with
+  `AttributeError: 'NoneType' object has no attribute 'toarray'`.
+- [x] **Step 2: Fix.** In `src/biotapy/_core/_slots.py`'s `feature_subset`, replace the inner loop
+  (`for key in list(mapping.keys()):` and its `del` line) with:
+  ```python
+          # anndata 0.13 lists X itself as layers[None]; deleting that key would delete X.
+          for key in [key for key in mapping.keys() if key is not None]:
+              del mapping[key]
+  ```
+  - Run the same command and expect it to pass.
+  - `test_feature_subset_drops_derived_slots` still passes, because
+    `bool(adata.layers)` is `False` when only `None` is listed.
+  - Knowledge, in the same commit: add a Gotcha to `.knowledge/modules/core.md`:
+    > anndata 0.13 exposes `X` as `layers[None]`: `list(adata.layers.keys())`
+    > includes `None`, and deleting that key deletes `X`. `feature_subset`
+    > skips it. Before Task 1.13 it returned `X=None`, which `pp.tax_glom` hid
+    > by reassigning `out.X` (`_slots.py:feature_subset`,
+    > `tests/core/test_slots.py:test_feature_subset_keeps_x`).
+
+    Add a log line.
+  - Gate: `uvx prek run --all-files` and `uv run --group test pytest`.
+  - Commit `fix(core): keep X when feature_subset drops derived slots`.
+- [x] **Step 3: Failing tests.**
+  - `tests/pp/test_filter.py`:
+    ```python
+    import json
+
+    import anndata as ad
+    import numpy as np
+    import pandas as pd
+    import pytest
+    import scipy.sparse as sp
+    from hypothesis import given
+    from hypothesis import strategies as st
+    from hypothesis.extra.numpy import arrays
+
+    import biotapy as bt
+    from biotapy._core import get_tree
+
+
+    def _adata(dense) -> ad.AnnData:
+        return ad.AnnData(
+            X=sp.csr_matrix(dense),
+            obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+            var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
+        )
+
+
+    def _tips(tdata) -> set[str]:
+        tree = get_tree(tdata)
+        return {n for n in tree.nodes if tree.out_degree(n) == 0}
+
+
+    # toy(): f1..f8 are non-zero in 5, 5, 6, 6, 4, 5, 5, 4 of 6 samples and total 33, 19, 75, 117, 7, 130, 50, 11.
+
+
+    def test_min_prevalence_is_inclusive():
+        # f5 and f8 are in exactly 4 of 6 samples.
+        assert bt.pp.filter_features(bt.datasets.toy(), min_prevalence=4 / 6).n_vars == 8
+        assert list(bt.pp.filter_features(bt.datasets.toy(), min_prevalence=5 / 6).var_names) == [
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f6",
+            "f7",
+        ]
+
+
+    def test_min_total_is_inclusive():
+        out = bt.pp.filter_features(bt.datasets.toy(), min_total=19)
+        assert list(out.var_names) == ["f1", "f2", "f3", "f4", "f6", "f7"]
+
+
+    def test_both_thresholds_must_pass():
+        out = bt.pp.filter_features(bt.datasets.toy(), min_prevalence=1.0, min_total=100)
+        assert list(out.var_names) == ["f4"]
+
+
+    def test_decimal_prevalence_boundary_is_kept():
+        # 3 / 10 == 0.3 in floating point, while 0.3 * 10 is just above 3.
+        dense = np.ones((10, 2), dtype=np.int64)
+        dense[3:, 0] = 0
+        assert list(bt.pp.filter_features(_adata(dense), min_prevalence=0.3).var_names) == ["f0", "f1"]
+
+
+    def test_explicit_zeros_do_not_count_as_present():
+        adata = _adata(np.array([[1, 3], [2, 4]]))
+        adata.X.data[0] = 0  # a stored zero: still 4 stored entries
+        assert adata.X.nnz == 4
+        assert list(bt.pp.filter_features(adata, min_prevalence=1.0).var_names) == ["f1"]
+
+
+    def test_all_zero_feature_and_sample():
+        dense = np.array([[0, 0, 0], [1, 0, 2], [3, 0, 0]])
+        out = bt.pp.filter_features(_adata(dense), min_prevalence=0.1)
+        assert list(out.var_names) == ["f0", "f2"] and out.n_obs == 3
+
+
+    def test_single_sample():
+        assert list(bt.pp.filter_features(_adata(np.array([[0, 4, 1]])), min_total=1).var_names) == ["f1", "f2"]
+
+
+    def test_keeps_missing_ranks_and_prunes_the_tree():
+        out = bt.pp.filter_features(bt.datasets.toy(), min_total=11)
+        assert "f8" in out.var_names and pd.isna(out.var.loc["f8", "genus"])
+        assert _tips(out) == set(out.var_names) == {"f1", "f2", "f3", "f4", "f6", "f7", "f8"}
+
+
+    def test_drops_derived_slots_and_records_provenance():
+        tdata = bt.pp.relative(bt.datasets.toy())
+        tdata.obsp["braycurtis"] = np.zeros((6, 6))
+        out = bt.pp.filter_features(tdata, min_total=19)
+        assert "relative" not in out.layers and "braycurtis" not in out.obsp
+        entry = json.loads(out.uns["biotapy"]["provenance"][-1])
+        assert entry["step"] == "pp.filter_features" and entry["params"] == {"min_prevalence": None, "min_total": 19}
+
+
+    def test_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.pp.filter_features(tdata, min_prevalence=0.9)
+        assert_unchanged(before, tdata)
+
+
+    def test_neither_threshold_raises():
+        with pytest.raises(ValueError, match="min_prevalence=, min_total="):
+            bt.pp.filter_features(bt.datasets.toy())
+
+
+    def test_prevalence_outside_zero_to_one_raises():
+        with pytest.raises(ValueError, match="min_prevalence"):
+            bt.pp.filter_features(bt.datasets.toy(), min_prevalence=5)
+
+
+    def test_nothing_passing_raises():
+        with pytest.raises(ValueError, match="no feature passes"):
+            bt.pp.filter_features(bt.datasets.toy(), min_total=10_000)
+
+
+    @given(
+        arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 8)), elements=st.integers(0, 20)),
+        st.sampled_from([0.0, 0.25, 0.5, 1.0]),
+        st.integers(0, 30),
+    )
+    def test_keeps_exactly_the_features_passing_both(dense, prevalence, total):
+        passing = ((dense > 0).mean(axis=0) >= prevalence) & (dense.sum(axis=0) >= total)
+        if not passing.any():
+            with pytest.raises(ValueError, match="no feature passes"):
+                bt.pp.filter_features(_adata(dense), min_prevalence=prevalence, min_total=total)
+            return
+        out = bt.pp.filter_features(_adata(dense), min_prevalence=prevalence, min_total=total)
+        assert list(out.var_names) == [f"f{i}" for i in np.flatnonzero(passing)]
+        np.testing.assert_array_equal(out.X.toarray(), dense[:, passing])
+
+
+    # toy() sample depths: s1..s6 = 68, 66, 77, 76, 82, 73.
+
+
+    def test_min_depth_is_inclusive():
+        assert list(bt.pp.filter_samples(bt.datasets.toy(), 73).obs_names) == ["s3", "s4", "s5", "s6"]
+
+
+    def test_filter_samples_keeps_every_slot():
+        tdata = bt.pp.relative(bt.datasets.toy())
+        tdata.obsp["braycurtis"] = np.arange(36.0).reshape(6, 6)
+        tdata.obsm["X_pcoa"] = np.arange(12.0).reshape(6, 2)
+        out = bt.pp.filter_samples(tdata, 73)
+        np.testing.assert_array_equal(out.obsp["braycurtis"], np.arange(36.0).reshape(6, 6)[2:, 2:])
+        np.testing.assert_array_equal(out.obsm["X_pcoa"], np.arange(12.0).reshape(6, 2)[2:])
+        assert "relative" in out.layers and out.n_vars == 8 and _tips(out) == set(out.var_names)
+        assert json.loads(out.uns["biotapy"]["provenance"][-1])["step"] == "pp.filter_samples"
+
+
+    def test_filter_samples_drops_an_all_zero_sample_and_keeps_all_zero_features():
+        out = bt.pp.filter_samples(_adata(np.array([[0, 0], [0, 3]])), 1)
+        assert list(out.obs_names) == ["s1"] and out.n_vars == 2
+
+
+    def test_filter_samples_single_sample():
+        assert bt.pp.filter_samples(_adata(np.array([[2, 3]])), 5).n_obs == 1
+
+
+    def test_filter_samples_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.pp.filter_samples(tdata, 73)
+        assert_unchanged(before, tdata)
+
+
+    def test_filter_samples_nothing_passing_raises():
+        with pytest.raises(ValueError, match="min_depth=1000"):
+            bt.pp.filter_samples(bt.datasets.toy(), 1000)
+
+
+    @given(
+        arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 5)), elements=st.integers(0, 10)), st.integers(0, 20)
+    )
+    def test_filter_samples_keeps_exactly_the_deep_samples(dense, depth):
+        deep = dense.sum(axis=1) >= depth
+        if not deep.any():
+            with pytest.raises(ValueError, match="min_depth"):
+                bt.pp.filter_samples(_adata(dense), depth)
+            return
+        assert list(bt.pp.filter_samples(_adata(dense), depth).obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]
+    ```
+  - `tests/pp/test_filter_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    @pytest.mark.parametrize(
+        ("column", "threshold"), [("prevalence", {"min_prevalence": 0.1}), ("total", {"min_total": 5})]
+    )
+    def test_filter_features_matches_phyloseq_filter_taxa(column, threshold):
+        # prevalence: filter_taxa(GP, function(x) sum(x > 0) >= 0.1 * length(x)); total: function(x) sum(x) >= 5.
+        golden = pd.read_csv(GOLDEN / "filter_features.csv.gz", dtype={"taxon_id": str})
+        out = bt.pp.filter_features(bt.datasets.global_patterns(), **threshold)
+        assert list(out.var_names) == golden.loc[golden[column], "taxon_id"].tolist()
+    ```
+- [x] **Step 4: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_filter.py -q`.
+  It fails with `AttributeError: module 'biotapy.pp' has no attribute 'filter_features'`,
+  and with the same error for `'filter_samples'`.
+- [x] **Step 5: Implement.** `src/biotapy/pp/_filter.py`:
+  ```python
+  """Filters that keep a subset of features or samples."""
+
+  import numpy as np
+  from anndata import AnnData
+
+  from biotapy._core import add_provenance, as_csr, feature_subset
+
+
+  def filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_total: float | None = None) -> AnnData:
+      """Keep features that are present in enough samples and have enough reads.
+
+      Parameters
+      ----------
+      adata
+          Samples x features.
+      min_prevalence
+          Keep features that are non-zero in at least this fraction of samples, from 0 to 1.
+      min_total
+          Keep features whose total over all samples is at least this.
+
+      Returns
+      -------
+      AnnData
+          Same type as ``adata`` with the kept features in their original order; a
+          TreeData keeps their subtree. Both thresholds are inclusive and, when both
+          are given, a feature must pass both. ``layers``, ``obsm``, ``obsp``,
+          ``varm``, ``varp`` and every non-``biotapy`` ``uns`` key are dropped
+          because they described the old features.
+
+      Raises
+      ------
+      ValueError
+          Neither threshold is given, ``min_prevalence`` is outside 0 to 1, or no
+          feature passes.
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::filter_taxa``
+      Guide: :doc:`/guide/filtering`
+
+      In R: ``filter_taxa(physeq, function(x) sum(x > 0) >= p * length(x), prune = TRUE)``
+      for ``min_prevalence=p``, and ``function(x) sum(x) >= n`` for ``min_total=n``.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> bt.pp.filter_features(bt.datasets.toy(), min_prevalence=1.0).n_vars
+      2
+      """
+      if min_prevalence is None and min_total is None:
+          msg = "pass min_prevalence=, min_total= or both"
+          raise ValueError(msg)
+      X = as_csr(adata.X)
+      keep = np.ones(adata.n_vars, dtype=bool)
+      if min_prevalence is not None:
+          if not 0 <= min_prevalence <= 1:
+              msg = f"min_prevalence must be between 0 and 1, got {min_prevalence}"
+              raise ValueError(msg)
+          # Count stored non-zero values per column: a CSR matrix may also store explicit zeros.
+          present = np.bincount(X.indices[X.data != 0], minlength=adata.n_vars)
+          # Divide rather than multiply: 3 / 10 >= 0.3 holds, 3 >= 0.3 * 10 does not.
+          keep &= present / adata.n_obs >= min_prevalence
+      if min_total is not None:
+          keep &= np.asarray(X.sum(axis=0)).ravel() >= min_total
+      if not keep.any():
+          msg = f"no feature passes min_prevalence={min_prevalence}, min_total={min_total}"
+          raise ValueError(msg)
+      out = feature_subset(adata, np.flatnonzero(keep))
+      add_provenance(out, "pp.filter_features", min_prevalence=min_prevalence, min_total=min_total)
+      return out
+
+
+  def filter_samples(adata: AnnData, min_depth: float) -> AnnData:
+      """Keep samples with at least ``min_depth`` reads.
+
+      Parameters
+      ----------
+      adata
+          Samples x features.
+      min_depth
+          Keep samples whose total over all features is at least this.
+
+      Returns
+      -------
+      AnnData
+          Same type as ``adata`` with the kept samples in their original order.
+          Every slot is kept and subset by AnnData indexing, so ``obsp`` distances
+          stay valid; features that are now all-zero are kept.
+
+      Raises
+      ------
+      ValueError
+          No sample has ``min_depth`` reads.
+
+      Notes
+      -----
+      R equivalent: none
+      Guide: :doc:`/guide/filtering`
+
+      In R: ``prune_samples(sample_sums(physeq) >= min_depth, physeq)``.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> bt.pp.filter_samples(bt.datasets.toy(), 70).n_obs
+      4
+      """
+      depth = np.asarray(as_csr(adata.X).sum(axis=1)).ravel()
+      keep = np.flatnonzero(depth >= min_depth)
+      if keep.size == 0:
+          msg = f"no sample has min_depth={min_depth} reads; the deepest has {depth.max():g}"
+          raise ValueError(msg)
+      out = adata[keep].copy()
+      add_provenance(out, "pp.filter_samples", min_depth=min_depth)
+      return out
+  ```
+  - `src/biotapy/pp/__init__.py` gains `from ._filter import filter_features, filter_samples`.
+  - Its `__all__` becomes `["filter_features", "filter_samples", "relative", "tax_glom"]`.
+  - `np.bincount` over the column indices of stored non-zero values counts
+    presence. A sparse `X != 0` also works at run time, but scipy-stubs types
+    it as `bool`, so mypy rejects it.
+- [x] **Step 6: Docs.**
+  - Create `docs/guide/filtering.md`:
+    ````markdown
+    # Filtering and rarefaction
+
+    Filters keep a subset of features or samples; rarefaction subsamples every sample to the same
+    depth. Each returns a new object and leaves its input alone.
+
+    ## Features: `filter_features`
+
+    `bt.pp.filter_features` keeps features that are present in enough samples (`min_prevalence`, a
+    fraction from 0 to 1) and have enough reads in total (`min_total`). Both thresholds are
+    inclusive. Give either or both; with both, a feature must pass both:
+
+    ```python
+    import biotapy as bt
+
+    tdata = bt.datasets.toy()
+    out = bt.pp.filter_features(tdata, min_prevalence=0.5, min_total=20)
+    ```
+
+    Present means a non-zero count; a zero stored explicitly in the sparse matrix counts as absent.
+    In phyloseq the same filters are
+    `filter_taxa(physeq, function(x) sum(x > 0) >= 0.5 * length(x), prune = TRUE)` and
+    `filter_taxa(physeq, function(x) sum(x) >= 20, prune = TRUE)`.
+
+    Filtering changes the feature set, so everything computed from the old one is dropped: every
+    entry in `layers`, `obsm` and `obsp`. A TreeData keeps the subtree of the kept features, with
+    branch lengths unchanged.
+
+    ## Samples: `filter_samples`
+
+    `bt.pp.filter_samples(tdata, min_depth)` keeps samples with at least `min_depth` reads (again
+    inclusive). It only removes rows, so every slot is kept and subset, and distances in `obsp` stay
+    valid for the samples that remain. Features that become all-zero are kept; follow with
+    `filter_features` to drop them.
+    ````
+  - Add `filtering` to the `docs/guide/index.md` toctree, after `aggregation`.
+  - Add `pp.filter_features` and `pp.filter_samples` to the Preprocessing
+    block of `docs/api.md`, alphabetically before `pp.relative`.
+- [x] **Step 7: Knowledge.**
+  - `.knowledge/modules/pp.md`:
+    - In the Responsibility, "Does NOT own filtering or rarefaction
+      (`pp.filter_features`, `pp.filter_samples`, `pp.rarefy` - Slice 1C, not
+      yet written)" becomes "Owns filtering (`filter_features`,
+      `filter_samples`); does NOT own rarefaction (`pp.rarefy`, Task 1.14)".
+    - Add Entry points:
+      - `_filter.py:filter_features`: prevalence and total thresholds,
+        through `feature_subset`;
+      - `_filter.py:filter_samples`: a depth threshold, through AnnData
+        indexing, keeping every slot.
+    - Add Invariants:
+      - thresholds are inclusive;
+      - prevalence counts stored non-zero values and divides by `n_obs`,
+        rather than multiplying the threshold;
+      - nothing passing is a `ValueError`, never an empty object.
+  - Add a log line. Tick 1.13 here.
+- [x] **Step 8: Run, gate and commit.**
+  - Tests: `uv run --group test pytest tests/pp tests/core -q`.
+  - Golden: `uv run --group test pytest -m golden tests/pp/test_filter_golden.py -q`
+    (2 passed; the GlobalPatterns download is cached by pooch).
+  - Gates: `uvx prek run --all-files`, `uv run --group test pytest`, and
+    `uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
+  - Commit `feat(pp): add filter_features and filter_samples`.
 
 ### Task 1.14: `pp.rarefy`
-- **Interface:** `rarefy(adata, depth: int | None = None, *, seed: int | np.random.Generator | None = None) -> AnnData`.
-  `require_counts`; default depth = minimum sample depth (phyloseq default);
-  samples below depth dropped; per-row `Generator.multivariate_hypergeometric`
-  on the row's non-zeros (sampling without replacement; phyloseq defaults to
-  `replace=TRUE`, stated in Notes); all-zero features removed via `feature_subset`.
-- **Tests:** row sums == depth; no count exceeds the original; same seed ->
-  same result; golden invariants only.
+
+**Files:**
+- Create:
+  - `src/biotapy/pp/_rarefy.py`
+  - `tests/pp/test_rarefy.py`
+  - `tests/pp/test_rarefy_golden.py`
+- Modify:
+  - `src/biotapy/pp/__init__.py`
+  - `pyproject.toml` (`untyped_calls_exclude`)
+  - `docs/guide/filtering.md`, `docs/api.md`
+  - `.knowledge/modules/pp.md`, `.knowledge/modules/core.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `require_counts`, `as_csr`, `as_generator`, `feature_subset`,
+    `add_provenance`, `warn_user`;
+  - `skbio.stats.subsample_counts`;
+  - `tests/golden/global_patterns/rarefy.csv.gz`.
+- **Produces:** `bt.pp.rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Generator | None = None) -> AnnData`.
+  - `depth` defaults to the smallest non-zero sample depth.
+  - Samples below `depth` (strict `<`, as phyloseq) are dropped with one
+    `UserWarning` naming up to 5 of them.
+  - Draws are without replacement, per row.
+  - Features left all-zero are dropped through `feature_subset`.
+  - `X` becomes `int64` counts, and provenance records `pp.rarefy` with `depth`.
+
+- [x] **Step 1: Failing tests.**
+  - `tests/pp/test_rarefy.py`:
+    ```python
+    import json
+    import warnings
+
+    import anndata as ad
+    import numpy as np
+    import pandas as pd
+    import pytest
+    import scipy.sparse as sp
+    from hypothesis import given
+    from hypothesis import strategies as st
+    from hypothesis.extra.numpy import arrays
+
+    import biotapy as bt
+    from biotapy._core import get_tree
+
+
+    def _adata(dense) -> ad.AnnData:
+        return ad.AnnData(
+            X=sp.csr_matrix(dense),
+            obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+            var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
+        )
+
+
+    def _depths(adata) -> list[int]:
+        return np.asarray(adata.X.sum(axis=1)).ravel().astype(int).tolist()
+
+
+    # toy() sample depths: s1..s6 = 68, 66, 77, 76, 82, 73.
+
+
+    def test_default_depth_is_the_smallest_sample():
+        out = bt.pp.rarefy(bt.datasets.toy(), seed=0)
+        assert out.n_obs == 6 and _depths(out) == [66] * 6
+
+
+    def test_sample_at_exactly_depth_is_kept():
+        with pytest.warns(UserWarning, match=r"dropped 2 sample\(s\).*\['s1', 's2'\]"):
+            out = bt.pp.rarefy(bt.datasets.toy(), depth=73, seed=0)
+        assert list(out.obs_names) == ["s3", "s4", "s5", "s6"] and _depths(out) == [73] * 4
+
+
+    def test_no_count_exceeds_the_original():
+        tdata = bt.datasets.toy()
+        out = bt.pp.rarefy(tdata, depth=50, seed=1)
+        assert (out.X.toarray() <= tdata[:, out.var_names].X.toarray()).all()
+
+
+    def test_same_seed_same_result_and_generator_accepted():
+        first = bt.pp.rarefy(bt.datasets.toy(), depth=40, seed=7)
+        again = bt.pp.rarefy(bt.datasets.toy(), depth=40, seed=np.random.default_rng(7))
+        assert (first.X != again.X).nnz == 0
+
+
+    def test_features_left_all_zero_are_dropped():
+        dense = np.array([[5, 1, 0], [6, 0, 1]])
+        out = bt.pp.rarefy(_adata(dense), depth=5, seed=0)
+        assert out.X.toarray().sum(axis=0).min() > 0
+
+
+    def test_toy_tree_is_pruned_to_kept_features():
+        out = bt.pp.rarefy(bt.datasets.toy(), depth=5, seed=0)
+        tree = get_tree(out)
+        assert {n for n in tree.nodes if tree.out_degree(n) == 0} == set(out.var_names)
+
+
+    def test_all_zero_sample_is_dropped_by_default():
+        with pytest.warns(UserWarning, match=r"\['s0'\]"):
+            out = bt.pp.rarefy(_adata(np.array([[0, 0], [3, 4], [5, 5]])), seed=0)
+        assert list(out.obs_names) == ["s1", "s2"] and _depths(out) == [7, 7]
+
+
+    def test_single_sample():
+        assert _depths(bt.pp.rarefy(_adata(np.array([[3, 9, 2]])), depth=10, seed=0)) == [10]
+
+
+    def test_drops_derived_slots_keeps_counts_and_records_provenance():
+        out = bt.pp.rarefy(bt.pp.relative(bt.datasets.toy()), depth=60, seed=0)
+        assert "relative" not in out.layers and out.uns["biotapy"]["x_kind"] == "counts"
+        entry = json.loads(out.uns["biotapy"]["provenance"][-1])
+        assert entry["step"] == "pp.rarefy" and entry["params"] == {"depth": 60}
+
+
+    def test_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.pp.rarefy(tdata, depth=60, seed=0)
+        assert_unchanged(before, tdata)
+
+
+    def test_rejects_non_counts():
+        tdata = bt.datasets.toy()
+        tdata.uns["biotapy"]["x_kind"] = "relative"
+        with pytest.raises(ValueError, match="pp.rarefy needs raw counts"):
+            bt.pp.rarefy(tdata)
+
+
+    def test_depth_below_one_raises():
+        with pytest.raises(ValueError, match="depth must be at least 1"):
+            bt.pp.rarefy(bt.datasets.toy(), depth=0)
+
+
+    def test_depth_above_every_sample_raises():
+        with pytest.raises(ValueError, match="depth=1000"):
+            bt.pp.rarefy(bt.datasets.toy(), depth=1000)
+
+
+    @given(
+        arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 30)), st.integers(1, 40)
+    )
+    def test_kept_rows_sum_to_depth_and_never_exceed_the_original(dense, depth):
+        deep = dense.sum(axis=1) >= depth
+        if not deep.any():
+            with pytest.raises(ValueError, match="depth="):
+                bt.pp.rarefy(_adata(dense), depth=depth, seed=0)
+            return
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)  # shallow samples are dropped with a warning
+            out = bt.pp.rarefy(_adata(dense), depth=depth, seed=0)
+        assert list(out.obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]
+        assert _depths(out) == [depth] * int(deep.sum())
+        kept = dense[deep][:, [int(name[1:]) for name in out.var_names]]
+        assert (out.X.toarray() <= kept).all()
+    ```
+  - `tests/pp/test_rarefy_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def test_rarefy_drops_the_same_samples_as_phyloseq():
+        # R and NumPy generators differ, so only invariants are compared (contracts/r-golden-parity).
+        golden = pd.read_csv(GOLDEN / "rarefy.csv.gz", dtype={"sample_id": str})
+        tdata = bt.datasets.global_patterns()
+        with pytest.warns(UserWarning, match="TRRsed1"):
+            out = bt.pp.rarefy(tdata, depth=100_000, seed=0)
+        assert list(out.obs_names) == golden["sample_id"].tolist()
+        np.testing.assert_array_equal(np.asarray(out.X.sum(axis=1)).ravel(), golden["sample_sum"].to_numpy())
+        assert (out.X.toarray() <= tdata[out.obs_names, out.var_names].X.toarray()).all()
+    ```
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_rarefy.py -q`.
+  It fails with `AttributeError: module 'biotapy.pp' has no attribute 'rarefy'`.
+- [x] **Step 3: Implement.** `src/biotapy/pp/_rarefy.py`:
+  ```python
+  """Rarefaction: subsample every sample to the same depth."""
+
+  import numpy as np
+  import numpy.typing as npt
+  import scipy.sparse as sp
+  from anndata import AnnData
+  from skbio.stats import subsample_counts
+
+  from biotapy._core import add_provenance, as_csr, as_generator, feature_subset, require_counts, warn_user
+
+
+  def rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Generator | None = None) -> AnnData:
+      """Subsample every sample to ``depth`` reads, without replacement.
+
+      Parameters
+      ----------
+      adata
+          Samples x features with raw counts in ``X``.
+      depth
+          Reads to keep per sample. Defaults to the smallest non-zero sample depth.
+      seed
+          Seed or generator for the subsampling.
+
+      Returns
+      -------
+      AnnData
+          Same type as ``adata``. Samples with fewer than ``depth`` reads are dropped,
+          with one warning naming them. Every kept sample sums to ``depth``. Features
+          left all-zero are dropped, a TreeData keeps the remaining features' subtree,
+          and ``layers``, ``obsm``, ``obsp``, ``varm``, ``varp`` and every
+          non-``biotapy`` ``uns`` key are dropped.
+
+      Raises
+      ------
+      ValueError
+          ``X`` does not hold counts, ``depth`` is below 1, or no sample has ``depth`` reads.
+
+      Warns
+      -----
+      UserWarning
+          Samples with fewer than ``depth`` reads were dropped.
+
+      Notes
+      -----
+      R equivalent: ``phyloseq::rarefy_even_depth``
+      Guide: :doc:`/guide/filtering`
+
+      Draws are without replacement (scikit-bio ``subsample_counts``), so no count
+      exceeds the original; phyloseq defaults to ``replace = TRUE``. The default depth
+      skips all-zero samples, where phyloseq's ``min(sample_sums(physeq))`` would be 0.
+      R and NumPy random generators differ, so the counts never match phyloseq's.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> out = bt.pp.rarefy(bt.datasets.toy(), depth=60, seed=0)
+      >>> out.X.sum(axis=1).A1.tolist()
+      [60, 60, 60, 60, 60, 60]
+      """
+      require_counts(adata, func="pp.rarefy")
+      X = as_csr(adata.X)
+      sums = np.asarray(X.sum(axis=1)).ravel()
+      depth = _smallest_nonzero(sums) if depth is None else depth
+      if depth < 1:
+          msg = f"depth must be at least 1, got {depth}"
+          raise ValueError(msg)
+      # phyloseq drops samples with sample_sums(physeq) < sample.size; a sample at exactly depth stays.
+      kept = np.flatnonzero(sums >= depth)
+      if kept.size == 0:
+          msg = f"no sample has depth={depth} reads; the deepest has {sums.max():g}"
+          raise ValueError(msg)
+      if kept.size < adata.n_obs:
+          dropped = adata.obs_names[sums < depth].tolist()
+          warn_user(f"pp.rarefy dropped {len(dropped)} sample(s) with fewer than depth={depth} reads: {dropped[:5]}")
+      counts = _subsample_rows(X[kept], depth, as_generator(seed))
+      present = np.unique(counts.indices).astype(np.intp)
+      out = feature_subset(adata[kept], present)
+      out.X = counts[:, present]
+      add_provenance(out, "pp.rarefy", depth=depth)
+      return out
+
+
+  def _smallest_nonzero(sums: npt.NDArray[np.float64]) -> int:
+      # phyloseq's default is min(sample_sums(physeq)); skipping empty samples drops them instead of
+      # rarefying everything to 0. With every sample empty this is 1, and the caller's no-sample check raises.
+      nonzero = sums[sums > 0]
+      return int(nonzero.min()) if nonzero.size else 1
+
+
+  def _subsample_rows(X: sp.csr_matrix, depth: int, rng: np.random.Generator) -> sp.csr_matrix:
+      # Only the stored values are drawn from; zeros cannot be drawn, so positions carry over.
+      data = np.concatenate(
+          [
+              subsample_counts(X.data[start:end].astype(np.int64), depth, replace=False, seed=rng)
+              for start, end in zip(X.indptr[:-1], X.indptr[1:], strict=True)
+          ]
+      )
+      out = sp.csr_matrix((data, X.indices.copy(), X.indptr.copy()), shape=X.shape)
+      out.eliminate_zeros()
+      return out
+  ```
+  - `pp/__init__.py` gains `from ._rarefy import rarefy`, and `"rarefy"` joins `__all__`.
+  - Why the code looks as it does:
+    - Only a row's stored values are subsampled, and positions carry over,
+      because a zero can never be drawn.
+    - `indices`/`indptr` are copied and `data` is new. `as_csr` may share
+      buffers with the input, so nothing is written back (core invariant).
+    - mypy flags `Call to untyped function "subsample_counts" in typed context`,
+      so in `pyproject.toml` replace the `untyped_calls_exclude` comment and line with:
+      ```toml
+      # biom-format ships no type annotations at all, nor does scikit-bio's subsample_counts; exempt
+      # only calls into them (not our own code) from strict's disallow_untyped_calls
+      # (mypy/checkexpr.py matches by callee fullname).
+      untyped_calls_exclude = [ "biom", "skbio.stats._subsample" ]
+      ```
+- [x] **Step 4: Docs.**
+  - Append to `docs/guide/filtering.md`:
+    ````markdown
+
+    ## Rarefaction: `rarefy`
+
+    `bt.pp.rarefy` subsamples every sample to `depth` reads without replacement, so no count grows
+    and every kept sample sums to exactly `depth`:
+
+    ```python
+    out = bt.pp.rarefy(tdata, depth=60, seed=0)
+    ```
+
+    - `depth` defaults to the smallest non-zero sample depth. phyloseq's `rarefy_even_depth` uses
+      the smallest depth, zero included.
+    - Samples with fewer than `depth` reads are dropped, with one warning naming them; a sample with
+      exactly `depth` reads is kept.
+    - Features left all-zero are dropped, as with phyloseq's `trimOTUs = TRUE`.
+    - `X` must hold raw counts (`uns["biotapy"]["x_kind"] == "counts"`).
+    - phyloseq samples with replacement by default (`replace = TRUE`). biotapy always samples
+      without, like `replace = FALSE`.
+    - The same `seed` gives the same result. R and NumPy use different random generators, so the
+      counts never match phyloseq's draw for draw.
+    ````
+  - Add `pp.rarefy` to the Preprocessing block of `docs/api.md`.
+- [x] **Step 5: Knowledge.**
+  - `.knowledge/modules/pp.md`:
+    - the Responsibility now owns rarefaction too;
+    - add the `_rarefy.py:rarefy` entry point;
+    - add Invariants: without replacement, the default depth, the strict `<`
+      drop with a warning, all-zero features dropped, and `X` becomes `int64`.
+  - `.knowledge/modules/core.md`: in the `as_csr` invariant, "matters for the
+    future `pp.rarefy`" becomes "`pp.rarefy` copies `indices`/`indptr` and
+    builds new `data`".
+  - Add a log line. Tick 1.14 here.
+- [x] **Step 6: Run, gate and commit.**
+  - Tests: `uv run --group test pytest tests/pp -q`.
+  - Golden: `uv run --group test pytest -m golden tests/pp/test_rarefy_golden.py -q`
+    (1 passed, about 4 s).
+  - The three gates from Task 1.13 Step 8.
+  - Commit `feat(pp): add rarefy`.
+
+### Task 1.15b: `datasets.esophagus()`
+
+**Files:**
+- Modify:
+  - `src/biotapy/datasets/_remote.py`, `src/biotapy/datasets/__init__.py`
+  - `tests/datasets/test_remote.py`
+  - `docs/api.md`, `docs/guide/datasets.md`, `docs/guide/reading_data.md`
+  - `.knowledge/modules/datasets.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:** `read_phyloseq`, `_fetch`.
+- **Produces:** `bt.datasets.esophagus() -> TreeData`: 3 samples (B, C, D) x
+  58 OTUs, with a tree and no taxonomy or sample data. 1.16's UniFrac golden
+  test uses it.
+
+- [x] **Step 1: Failing tests.** In `tests/datasets/test_remote.py`:
+  - Extend `test_loaders_read_the_fetched_file`: after the enterotype
+    assertion, add `assert bt.datasets.esophagus().shape == (6, 8)`. The
+    `fetched` expectation becomes
+    `["GlobalPatterns.RData", "enterotype.RData", "esophagus.RData"]`.
+  - Append:
+    ```python
+    @pytest.mark.network
+    def test_esophagus_downloads_with_a_tree_and_no_metadata():
+        tdata = bt.datasets.esophagus()
+        tree = tdata.vart["phylo"]
+        assert tdata.shape == (3, 58) and list(tdata.obs_names) == ["B", "C", "D"]
+        assert sum(1 for n in tree.nodes if tree.out_degree(n) == 0) == 58
+        assert tdata.obs.columns.empty and tdata.var.columns.empty and tdata.uns["biotapy"]["x_kind"] == "counts"
+    ```
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/datasets -q`.
+  It fails with `AttributeError: module 'biotapy.datasets' has no attribute 'esophagus'`.
+- [x] **Step 3: Implement.**
+  - In `_remote.py`, `_REGISTRY` gains
+    `"esophagus.RData": "sha256:0b06d9c35f2e694c34461308af149eb54419453fcb98763de20ab61980b87e46",`.
+    It is at the same pinned commit; the file is 1,840 B.
+  - Append:
+    ```python
+    def esophagus() -> TreeData:
+        """esophagus: 3 esophageal biopsies, 58 OTUs, with a tree; no taxonomy or sample data.
+
+        Downloaded once (2 kB) from phyloseq's repository and cached.
+
+        Returns
+        -------
+        TreeData
+            Counts in ``X`` (samples ``B``, ``C``, ``D``) and the tree in ``vart['phylo']``;
+            ``obs`` and ``var`` have no columns.
+
+        Notes
+        -----
+        R equivalent: ``utils::data``
+        Guide: :doc:`/guide/datasets`
+
+        In R: ``data(esophagus, package = "phyloseq")``.
+
+        References
+        ----------
+        Pei Z et al. (2004) Bacterial biota in the human distal esophagus. PNAS 101:4250-4255.
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> bt.datasets.esophagus().shape  # doctest: +SKIP
+        (3, 58)
+        """
+        return read_phyloseq(_fetch("esophagus.RData"))
+    ```
+  - `datasets/__init__.py`: `from ._remote import enterotype, esophagus, global_patterns`
+    and `__all__ = ["enterotype", "esophagus", "global_patterns", "toy"]`.
+- [x] **Step 4: Docs.**
+  - In `docs/api.md`'s Datasets block, add `datasets.esophagus` after `datasets.enterotype`.
+  - `docs/guide/datasets.md`, the example-datasets page since PR #7:
+    - The intro "ships three example datasets" becomes "ships four example datasets".
+    - The heading `` ## `global_patterns` and `enterotype` `` becomes
+      `` ## `global_patterns`, `enterotype` and `esophagus` ``.
+    - Its first sentence becomes "`bt.datasets.global_patterns()`,
+      `bt.datasets.enterotype()` and `bt.datasets.esophagus()` are three
+      well-known phyloseq example datasets, read through `bt.io.read_phyloseq`:".
+    - After the enterotype bullet, add:
+      ```markdown
+      - **esophagus**: 3 esophageal biopsies (samples `B`, `C`, `D`), 58 OTUs, with a tree but no
+        taxonomy or sample data; counts in `X`. biotapy's UniFrac golden tests use it.
+      ```
+    - In "Caching with pooch", "Each of `global_patterns` and `enterotype`"
+      becomes "Each of `global_patterns`, `enterotype` and `esophagus`".
+    - In "Licensing", "`global_patterns` and `enterotype` download data"
+      becomes "`global_patterns`, `enterotype` and `esophagus` download data".
+  - `docs/guide/reading_data.md`, under "Example datasets":
+    "`bt.datasets.global_patterns()` and `bt.datasets.enterotype()`, two
+    well-known phyloseq example datasets" becomes
+    "`bt.datasets.global_patterns()`, `bt.datasets.enterotype()` and
+    `bt.datasets.esophagus()`, three well-known phyloseq example datasets".
+- [x] **Step 5: Knowledge.**
+  - `.knowledge/modules/datasets.md`:
+    - the Responsibility and Entry points gain `_remote.py:esophagus`;
+    - the Invariants' "both are downloaded" becomes "all three are downloaded";
+    - the Dependencies' pooch line names `esophagus.RData`.
+  - Add a log line. Tick 1.15b here.
+- [x] **Step 6: Run, gate and commit.**
+  - Run `uv run --group test pytest tests/datasets -q`.
+  - Run once `BIOTAPY_DATA_DIR=/tmp/claude-1000/pooch uv run --group test pytest -m network tests/datasets -q`
+    and expect 4 passed.
+  - The three gates.
+  - Commit `feat(datasets): add esophagus via pooch`.
+
+### Task 1.15c: `_core.get_skbio_tree`
+
+**Files:**
+- Modify:
+  - `src/biotapy/_core/_tree.py`, `src/biotapy/_core/__init__.py`
+  - `tests/core/test_tree.py`
+  - `.knowledge/contracts/tree-access.md`, `.knowledge/modules/core.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:** `get_tree`, `PHYLO_KEY`, `skbio.TreeNode`.
+- **Produces:** `_core.get_skbio_tree(adata: AnnData) -> skbio.TreeNode`.
+  - A plain AnnData raises `TypeError`, "needs a TreeData with a tree in vart['phylo']".
+  - No `vart['phylo']` raises `KeyError`, from `get_tree`.
+  - A root with more than two children gets a zero-length split.
+  - Used by `tl.alpha` (faith_pd) and `tl.unifrac`. Only `_tree.py` may import
+    networkx (R4.5), so this lives in `_core` whatever the caller count.
+
+- [x] **Step 1: Failing tests.** In `tests/core/test_tree.py`:
+  - Add `import networkx as nx`, `from skbio import TreeNode` and `import biotapy as bt`
+    to the import block.
+  - Add `get_skbio_tree` to the `from biotapy._core import (...)` list.
+  - Append:
+    ```python
+    def test_get_skbio_tree_keeps_names_and_lengths():
+        tree = get_skbio_tree(_make(tree_from_edges([("r", "a", 1.0), ("r", "b", 2.0)])))
+        assert isinstance(tree, TreeNode) and tree.name == "r"
+        assert {tip.name: tip.length for tip in tree.tips()} == {"a": 1.0, "b": 2.0}
+
+
+    def test_get_skbio_tree_splits_a_multifurcating_root_without_changing_paths():
+        tdata = bt.datasets.toy()  # the root has three children
+        tree = get_skbio_tree(tdata)
+        assert len(tree.children) == 2
+        expected = nx.shortest_path_length(get_tree(tdata), "root", weight="length")
+        assert {tip.name: tip.distance(tree) for tip in tree.tips()} == pytest.approx(
+            {f"f{i}": expected[f"f{i}"] for i in range(1, 9)}
+        )
+
+
+    def test_get_skbio_tree_keeps_nan_lengths():
+        assert math.isnan(get_skbio_tree(_make(tree_from_newick("(a,b:2);"))).find("a").length)
+
+
+    def test_get_skbio_tree_without_phylogeny_names_the_key():
+        with pytest.raises(KeyError, match="phylo"):
+            get_skbio_tree(_make(None))
+        with pytest.raises(TypeError, match="needs a TreeData"):
+            get_skbio_tree(bt.datasets.toy().to_adata())
+    ```
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/core/test_tree.py -q`.
+  It fails with `ImportError: cannot import name 'get_skbio_tree' from 'biotapy._core'`.
+- [x] **Step 3: Implement.**
+  - In `_core/_tree.py`, add `from anndata import AnnData` next to the other
+    third-party imports, and this function before `tree_from_newick`:
+    ```python
+    def get_skbio_tree(adata: AnnData) -> TreeNode:
+        """The phylogeny in ``vart['phylo']`` as a scikit-bio ``TreeNode``, rooted where it is drawn.
+
+        scikit-bio's Faith PD and UniFrac accept a root with at most two children. A
+        root with more (an unrooted Newick tree, or the toy tree) keeps its first child
+        and gets the others under one new zero-length node, which changes no
+        root-to-tip path length. Missing (NaN) branch lengths stay NaN; scikit-bio
+        counts them as zero. A plain AnnData raises ``TypeError``; a TreeData without
+        ``vart['phylo']`` raises ``KeyError``.
+        """
+        if not isinstance(adata, TreeData):
+            msg = f"needs a TreeData with a tree in vart[{PHYLO_KEY!r}], got {type(adata).__name__}"
+            raise TypeError(msg)
+        tree = get_tree(adata)
+        root = next(node for node in tree if tree.in_degree(node) == 0)
+        nodes = {root: TreeNode(name=root)}
+        for parent, child in nx.bfs_edges(tree, root):
+            nodes[child] = TreeNode(name=child, length=tree.edges[parent, child]["length"])
+            nodes[parent].append(nodes[child])
+        top = nodes[root]
+        if len(top.children) > 2:
+            split = TreeNode(length=0.0)
+            split.extend(top.children[1:])
+            top.append(split)
+        return top
+    ```
+  - Export `get_skbio_tree` from `_core/__init__.py`, both the import and `__all__`.
+  - Checked in the prototype:
+    - toy's tip distances to the root are unchanged;
+    - GlobalPatterns (19,216 tips) converts in 0.1 s;
+    - `TreeNode.append` and `extend` do not copy.
+- [x] **Step 4: Knowledge.**
+  - `contracts/tree-access.md` statement 2 gains "converting the phylogeny to
+    a scikit-bio `TreeNode` (`get_skbio_tree`)". Add a Gotcha: scikit-bio's
+    Faith PD and UniFrac need a root with at most two children, so
+    `get_skbio_tree` splits a wider root with a zero-length node, and phyloseq
+    instead roots an unrooted tree at a random tip.
+  - `.knowledge/modules/core.md`:
+    - add the Entry point `_tree.py:get_skbio_tree`;
+    - Dependencies: scikit-bio is also used for `TreeNode` conversion.
+  - Add a log line. Tick 1.15c here.
+  - There is no docs step: `_core` is private and not in `docs/api.md`. Users
+    meet the behaviour through the `tl.alpha` and `tl.unifrac` docstrings.
+- [x] **Step 5: Run, gate and commit.**
+  - Run `uv run --group test pytest tests/core -q`, then `uvx prek run --all-files`
+    and `uv run --group test pytest`.
+  - Commit `feat(core): convert the phylogeny to a scikit-bio TreeNode`.
 
 ### Task 1.15: `tl.alpha`
-- **Interface:** `alpha(adata, metrics: Sequence[str] = ("observed_features", "shannon", "simpson", "chao1"), *, inplace: bool = False) -> pd.DataFrame | None`;
-  `faith_pd` requires a TreeData (tree passed as `skbio.TreeNode`, conversion in `_core/_tree.py`).
-  Dense conversion in bounded row chunks (R6.2). `inplace=True` writes `obs["alpha_<metric>"]`.
-- **Check first:** scikit-bio's Shannon log base and Simpson definition vs
-  phyloseq `estimate_richness` (natural log, Gini-Simpson); pass parameters explicitly.
-- **Tests:** all-zero sample -> NaN, no exception; chunked == unchunked; golden vs `estimate_richness`.
+
+**Files:**
+- Create:
+  - `src/biotapy/tl/__init__.py`, `src/biotapy/tl/_alpha.py`
+  - `tests/tl/test_alpha.py`, `tests/tl/test_alpha_golden.py`
+  - `docs/guide/diversity.md`
+- Modify:
+  - `src/biotapy/__init__.py`
+  - `docs/api.md`, `docs/guide/index.md`
+  - `.knowledge/contracts/data-model-slots.md`, `.knowledge/modules/pp.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `as_csr`, `require_counts`, `get_skbio_tree` (1.15c);
+  - `skbio.diversity.alpha_diversity`;
+  - `alpha.csv.gz` and `alpha_faith_pd.csv.gz`.
+- **Produces:**
+  - `bt.tl.alpha(adata: AnnData, *, metrics: Sequence[AlphaMetric] = ("observed_features", "shannon", "simpson", "chao1"), inplace: bool = False) -> pd.DataFrame | None`.
+  - `AlphaMetric = Literal["observed_features", "shannon", "simpson", "chao1", "faith_pd"]`.
+  - The package `bt.tl`.
+
+- [x] **Step 1: Failing tests.**
+  - `tests/tl/test_alpha.py`:
+    ```python
+    import tracemalloc
+
+    import anndata as ad
+    import numpy as np
+    import pandas as pd
+    import pytest
+    import scipy.sparse as sp
+    from hypothesis import given
+    from hypothesis import strategies as st
+    from hypothesis.extra.numpy import arrays
+
+    import biotapy as bt
+
+    ALL = ["observed_features", "shannon", "simpson", "chao1", "faith_pd"]
+
+
+    def _adata(dense) -> ad.AnnData:
+        return ad.AnnData(
+            X=sp.csr_matrix(dense),
+            obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+            var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
+        )
+
+
+    def test_default_metrics_by_hand():
+        out = bt.tl.alpha(_adata(np.array([[1, 2, 3, 0], [4, 4, 0, 0]])))
+        assert list(out.columns) == ["observed_features", "shannon", "simpson", "chao1"]
+        p = np.array([1, 2, 3]) / 6
+        np.testing.assert_allclose(out.loc["s0"].to_numpy(), [3, -(p * np.log(p)).sum(), 1 - (p**2).sum(), 3], rtol=1e-12)
+        np.testing.assert_allclose(out.loc["s1"].to_numpy(), [2, np.log(2), 0.5, 2], rtol=1e-12)
+
+
+    def test_chao1_is_bias_corrected():
+        # 2 singletons, 1 doubleton: 4 + 2 * 1 / (2 * (1 + 1)) = 4.5
+        assert bt.tl.alpha(_adata(np.array([[1, 1, 2, 5]])), metrics=["chao1"]).loc["s0", "chao1"] == 4.5
+
+
+    def test_faith_pd_sums_branches_to_the_root():
+        # s1 lacks f5 and f8: every branch except n5-f5 (0.03) and n3-f8 (0.12); toy's branches total 1.34.
+        out = bt.tl.alpha(bt.datasets.toy(), metrics=["faith_pd"])
+        assert out.loc["s1", "faith_pd"] == pytest.approx(1.34 - 0.03 - 0.12)
+
+
+    def test_all_zero_sample_is_nan_or_zero_never_raises():
+        tdata = bt.datasets.toy()
+        dense = tdata.X.toarray()
+        dense[0] = 0
+        tdata.X = sp.csr_matrix(dense)
+        out = bt.tl.alpha(tdata, metrics=ALL)
+        assert out.loc["s1", ["observed_features", "chao1", "faith_pd"]].tolist() == [0, 0, 0]
+        assert out.loc["s1", ["shannon", "simpson"]].isna().all()
+
+
+    def test_all_zero_feature_changes_nothing():
+        dense = np.array([[1, 2, 0], [3, 1, 0]])
+        pd.testing.assert_frame_equal(bt.tl.alpha(_adata(dense)), bt.tl.alpha(_adata(dense[:, :2])))
+
+
+    def test_single_sample():
+        assert bt.tl.alpha(_adata(np.array([[4, 0, 1]])), metrics=["observed_features"]).shape == (1, 1)
+
+
+    def test_missing_rank_is_irrelevant():
+        tdata = bt.datasets.toy()
+        tdata.var["genus"] = np.nan
+        assert bt.tl.alpha(tdata).shape == (6, 4)
+
+
+    def test_inplace_writes_obs_and_returns_none():
+        tdata = bt.datasets.toy()
+        expected = bt.tl.alpha(tdata, metrics=["shannon", "faith_pd"])
+        assert bt.tl.alpha(tdata, metrics=["shannon", "faith_pd"], inplace=True) is None
+        np.testing.assert_array_equal(tdata.obs["alpha_shannon"], expected["shannon"])
+        np.testing.assert_array_equal(tdata.obs["alpha_faith_pd"], expected["faith_pd"])
+
+
+    def test_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.tl.alpha(tdata, metrics=ALL)
+        assert_unchanged(before, tdata)
+
+
+    def test_densifies_in_bounded_chunks():
+        # 2**19 + 1 features: each chunk of at most 2**20 values holds one sample (4 MiB);
+        # densifying all 8 samples at once would take 32 MiB.
+        n_obs, n_vars = 8, 2**19 + 1
+        rng = np.random.default_rng(0)
+        rows = np.repeat(np.arange(n_obs), 20)
+        cols = rng.choice(n_vars, size=rows.size)
+        X = sp.csr_matrix((rng.integers(1, 50, size=rows.size).astype(np.float64), (rows, cols)), shape=(n_obs, n_vars))
+        wide = ad.AnnData(
+            X=X,
+            obs=pd.DataFrame(index=[f"s{i}" for i in range(n_obs)]),
+            var=pd.DataFrame(index=[f"f{i}" for i in range(n_vars)]),
+        )
+        tracemalloc.start()
+        out = bt.tl.alpha(wide)
+        peak = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
+        assert peak < n_obs * n_vars * 8 / 2
+        pd.testing.assert_frame_equal(out, bt.tl.alpha(wide[:, np.unique(X.indices)].copy()))
+
+
+    def test_string_metrics_raise():
+        with pytest.raises(TypeError, match="not the string 'shannon'"):
+            bt.tl.alpha(bt.datasets.toy(), metrics="shannon")
+
+
+    def test_unknown_or_empty_metrics_raise():
+        with pytest.raises(ValueError, match="metrics must name"):
+            bt.tl.alpha(bt.datasets.toy(), metrics=["pielou"])
+        with pytest.raises(ValueError, match="metrics must name"):
+            bt.tl.alpha(bt.datasets.toy(), metrics=[])
+
+
+    def test_count_metrics_need_counts_others_do_not():
+        rel = bt.datasets.toy()
+        rel.uns["biotapy"]["x_kind"] = "relative"
+        with pytest.raises(ValueError, match=r"tl.alpha with \['chao1'\] needs raw counts"):
+            bt.tl.alpha(rel, metrics=["shannon", "chao1"])
+        assert bt.tl.alpha(rel, metrics=["shannon", "simpson", "faith_pd"]).shape == (6, 3)
+
+
+    def test_faith_pd_needs_a_tree():
+        with pytest.raises(TypeError, match="needs a TreeData"):
+            bt.tl.alpha(_adata(np.array([[1, 2]])), metrics=["faith_pd"])
+        tdata = bt.datasets.toy()
+        del tdata.vart["phylo"]
+        with pytest.raises(KeyError, match="phylo"):
+            bt.tl.alpha(tdata, metrics=["faith_pd"])
+
+
+    @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 8)), elements=st.integers(0, 20)))
+    def test_observed_features_counts_nonzero_features(dense):
+        out = bt.tl.alpha(_adata(dense), metrics=["observed_features", "simpson"])
+        np.testing.assert_array_equal(out["observed_features"], (dense > 0).sum(axis=1))
+        assert (out["observed_features"] <= dense.shape[1]).all()
+        simpson = out["simpson"].dropna()
+        assert ((simpson >= 0) & (simpson < 1)).all()
+    ```
+  - `tests/tl/test_alpha_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def test_alpha_matches_phyloseq_estimate_richness():
+        golden = pd.read_csv(GOLDEN / "alpha.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
+        out = bt.tl.alpha(bt.datasets.global_patterns())
+        assert list(out.index) == list(golden.index)
+        for metric, column in [
+            ("observed_features", "Observed"),
+            ("shannon", "Shannon"),
+            ("simpson", "Simpson"),
+            ("chao1", "Chao1"),
+        ]:
+            np.testing.assert_allclose(out[metric], golden[column], rtol=1e-7, err_msg=metric)
+
+
+    def test_faith_pd_matches_picante_pd_with_root():
+        golden = pd.read_csv(GOLDEN / "alpha_faith_pd.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
+        out = bt.tl.alpha(bt.datasets.global_patterns(), metrics=["faith_pd"])
+        assert list(out.index) == list(golden.index)
+        np.testing.assert_allclose(out["faith_pd"], golden["pd"], rtol=1e-7)
+    ```
+  - What the tests pin:
+    - `test_densifies_in_bounded_chunks` asserts the R6.2 chunking through the
+      public API. The tracemalloc peak was 8.1 MiB against 32 MiB for full
+      densification, and the test takes 0.04 s.
+    - It then checks that the chunked result equals the one-chunk result on
+      the non-zero columns.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl -q`.
+  It fails with `AttributeError: module 'biotapy' has no attribute 'tl'`.
+- [x] **Step 3: Implement.**
+  - `src/biotapy/tl/_alpha.py`:
+    ```python
+    """Alpha diversity: one value per sample and metric."""
+
+    import math
+    from collections.abc import Sequence
+    from typing import Any, Literal, get_args
+
+    import pandas as pd
+    from anndata import AnnData
+    from skbio.diversity import alpha_diversity
+
+    from biotapy._core import as_csr, get_skbio_tree, require_counts
+
+    AlphaMetric = Literal["observed_features", "shannon", "simpson", "chao1", "faith_pd"]
+    # phyloseq's estimate_richness: natural-log Shannon (vegan::diversity) and bias-corrected Chao1 (vegan::estimateR).
+    _PARAMS: dict[str, dict[str, Any]] = {"shannon": {"base": math.e}, "chao1": {"bias_corrected": True}}
+    # scikit-bio needs dense rows (rules.md R6.2); densify at most 2**20 values (8 MiB of float64) at a time.
+    _CHUNK_VALUES = 2**20
+
+
+    def alpha(
+        adata: AnnData,
+        *,
+        metrics: Sequence[AlphaMetric] = ("observed_features", "shannon", "simpson", "chao1"),
+        inplace: bool = False,
+    ) -> pd.DataFrame | None:
+        """Alpha diversity of every sample.
+
+        Parameters
+        ----------
+        adata
+            Samples x features. ``"faith_pd"`` needs a TreeData with ``vart['phylo']``.
+        metrics
+            Any of ``"observed_features"``, ``"shannon"`` (natural log), ``"simpson"``
+            (Gini-Simpson, ``1 - sum(p**2)``), ``"chao1"`` (bias-corrected) and ``"faith_pd"``.
+        inplace
+            Write ``obs['alpha_<metric>']`` for every metric and return ``None``.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            One row per sample (index ``obs_names``) and one column per metric, in the
+            order given. An all-zero sample gets 0 for ``observed_features``, ``chao1``
+            and ``faith_pd`` and NaN for ``shannon`` and ``simpson``.
+
+        Raises
+        ------
+        TypeError
+            ``metrics`` is a string, or ``"faith_pd"`` is asked of an AnnData that is not a TreeData.
+        ValueError
+            ``metrics`` is empty or names an unknown metric, or ``"observed_features"``
+            or ``"chao1"`` is asked of data that is not counts.
+        KeyError
+            ``"faith_pd"`` is asked of a TreeData without ``vart['phylo']``.
+
+        Notes
+        -----
+        R equivalent: ``phyloseq::estimate_richness``, ``picante::pd``
+        Guide: :doc:`/guide/diversity`
+
+        scikit-bio needs dense input, so rows are densified in chunks of at most 2**20
+        values (8 MiB of float64). Faith PD includes the root, as
+        ``picante::pd(include.root = TRUE)``; a root with more than two children first
+        gets a zero-length split, which changes no root-to-tip distance. For an
+        all-zero sample phyloseq reports Shannon 0 and Simpson 1; biotapy returns NaN.
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> out = bt.tl.alpha(bt.datasets.toy(), metrics=["observed_features", "shannon"])
+        >>> out.loc["s1"].round(3).tolist()
+        [6.0, 1.361]
+        """
+        _check_metrics(adata, metrics)
+        params = {metric: _PARAMS.get(metric, {}) for metric in metrics}
+        if "faith_pd" in metrics:
+            params["faith_pd"] = {"taxa": adata.var_names.tolist(), "tree": get_skbio_tree(adata)}
+        X = as_csr(adata.X)
+        step = max(1, _CHUNK_VALUES // max(adata.n_vars, 1))
+        frames = []
+        for start in range(0, adata.n_obs, step):
+            dense, ids = X[start : start + step].toarray(), adata.obs_names[start : start + step].tolist()
+            frames.append(pd.DataFrame({m: alpha_diversity(m, dense, ids=ids, **params[m]) for m in metrics}))
+        result = pd.concat(frames)
+        if not inplace:
+            return result
+        for metric in metrics:
+            adata.obs[f"alpha_{metric}"] = result[metric].to_numpy()
+        return None
+
+
+    def _check_metrics(adata: AnnData, metrics: Sequence[str]) -> None:
+        if isinstance(metrics, str):
+            msg = f"metrics must be a list of metric names, not the string {metrics!r}"
+            raise TypeError(msg)
+        known = get_args(AlphaMetric)
+        if not metrics or any(metric not in known for metric in metrics):
+            msg = f"metrics must name one or more of {list(known)}, got {list(metrics)}"
+            raise ValueError(msg)
+        needs_counts = [metric for metric in metrics if metric in ("observed_features", "chao1")]
+        if needs_counts:
+            require_counts(adata, func=f"tl.alpha with {needs_counts}")
+    ```
+  - `src/biotapy/tl/__init__.py`: `from ._alpha import alpha` and
+    `__all__ = ["alpha"]`. Imports only, R4.1.
+  - `src/biotapy/__init__.py`: `from . import datasets, io, pp, tl` and
+    `__all__ = ["__version__", "datasets", "io", "pp", "tl"]`.
+  - import-linter already declares the `(tl) | (fn)` layer, so `pyproject.toml`
+    does not change.
+- [x] **Step 4: Docs.**
+  - `docs/conf.py` needs no change. Its `intersphinx_mapping` has mapped
+    pandas since eb7538e, and the `nitpicky` build needs that for
+    `pandas.DataFrame` in the signature: without it `-W` failed in the
+    prototype on 11ee8dd. Confirm the entry is still there.
+  - `docs/api.md` gains a section after Preprocessing:
+    ````markdown
+    ## Tools
+
+    ```{eval-rst}
+    .. module:: biotapy.tl
+    .. currentmodule:: biotapy
+
+    .. autosummary::
+        :toctree: generated
+
+        tl.alpha
+    ```
+    ````
+  - Create `docs/guide/diversity.md` and add `diversity` to the guide toctree after `filtering`:
+    ````markdown
+    # Diversity
+
+    ## Alpha diversity: `tl.alpha`
+
+    `bt.tl.alpha` computes one value per sample for each metric, through scikit-bio:
+
+    | Metric | What it is | In R |
+    |---|---|---|
+    | `observed_features` | features with a non-zero count | `estimate_richness`: `Observed` |
+    | `shannon` | Shannon entropy, natural log | `estimate_richness`: `Shannon` |
+    | `simpson` | Gini-Simpson, `1 - sum(p**2)` | `estimate_richness`: `Simpson` |
+    | `chao1` | bias-corrected Chao1 | `estimate_richness`: `Chao1` |
+    | `faith_pd` | Faith's phylogenetic diversity, root included | `picante::pd(include.root = TRUE)` |
+
+    ```python
+    import biotapy as bt
+
+    tdata = bt.datasets.toy()
+    table = bt.tl.alpha(tdata)  # samples x metrics
+    bt.tl.alpha(tdata, metrics=["shannon", "faith_pd"], inplace=True)  # obs["alpha_shannon"], obs["alpha_faith_pd"]
+    ```
+
+    - `observed_features` and `chao1` need raw counts, as `estimate_richness` does. `shannon`,
+      `simpson` and `faith_pd` also run on relative abundances.
+    - An all-zero sample gets 0 for `observed_features`, `chao1` and `faith_pd`, and `NaN` for
+      `shannon` and `simpson`; phyloseq reports Shannon 0 and Simpson 1.
+    - `faith_pd` needs a TreeData with a tree. A root with three or more children, common in a
+      tree read from unrooted Newick, gets a zero-length split, which changes no root-to-tip
+      distance.
+    - scikit-bio needs dense input, so biotapy densifies at most 2**20 values (8 MiB) at a time.
+    ````
+- [x] **Step 5: Knowledge.**
+  - `contracts/data-model-slots.md` Convention 2: "Functions that need raw
+    counts (rarefy, chao1) call `_core.require_counts`" becomes "Functions
+    that need raw counts (`pp.rarefy`, and `tl.alpha` for `observed_features`
+    and `chao1`, which phyloseq's `estimate_richness` refuses on non-integers)
+    call `_core.require_counts`".
+  - `.knowledge/modules/pp.md`: "any diversity/ordination computation (`tl`,
+    later phases)" becomes "(`tl`, Slice 1C)". The `tl` Module concept itself
+    comes at Checkpoint C.
+  - Add a log line. Tick 1.15 here.
+- [x] **Step 6: Run, gate and commit.**
+  - Tests: `uv run --group test pytest tests/tl -q`.
+  - Golden: `uv run --group test pytest -m golden tests/tl/test_alpha_golden.py -q` (2 passed).
+  - The three gates.
+  - Commit `feat(tl): add alpha diversity`.
 
 ### Task 1.16: `tl.beta`, `tl.unifrac`
-- **Interfaces:** `beta(adata, metric: Literal["braycurtis", "jaccard"] = "braycurtis", *, inplace: bool = False) -> pd.DataFrame | None`;
-  `unifrac(tdata, *, weighted: bool = False, normalized: bool = True, inplace: bool = False) -> pd.DataFrame | None`
-  via `skbio.diversity.beta_diversity` with `tree=` and `taxa=`. `inplace=True` writes `obsp[<metric>]`.
-- **Gotchas:** vegan's `jaccard` is quantitative unless `binary=TRUE`, scikit-bio's is presence/absence:
-  golden compares against `vegdist(binary=TRUE)` and the docstring says so.
-  phyloseq's weighted UniFrac defaults to `normalized=TRUE`; scikit-bio's to `False`; pass it explicitly.
-- **Tests:** symmetric, zero diagonal (Hypothesis); golden vs phyloseq `distance` on esophagus and GlobalPatterns.
+
+**Files:**
+- Create:
+  - `src/biotapy/tl/_beta.py`
+  - `tests/tl/test_beta.py`, `tests/tl/test_beta_golden.py`
+- Modify:
+  - `src/biotapy/tl/__init__.py`
+  - `docs/api.md`, `docs/guide/diversity.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `as_csr`, `get_skbio_tree`, `TreeData`;
+  - `skbio.diversity.beta_diversity`, `skbio.DistanceMatrix`;
+  - `bt.datasets.esophagus` (1.15b);
+  - `bt.pp.filter_features` (1.13), in a test;
+  - the `beta_*` and `unifrac_*` golden files.
+- **Produces:**
+  - `bt.tl.beta(adata: AnnData, *, metric: BetaMetric = "braycurtis", inplace: bool = False) -> pd.DataFrame | None`,
+    with `BetaMetric = Literal["braycurtis", "jaccard"]`.
+  - `bt.tl.unifrac(tdata: TreeData, *, weighted: bool = False, normalized: bool = True, inplace: bool = False) -> pd.DataFrame | None`.
+  - `inplace=True` writes `obsp["braycurtis" | "jaccard" | "unweighted_unifrac" | "weighted_unifrac"]`
+    as a dense `ndarray`.
+
+- [x] **Step 1: Failing tests.**
+  - `tests/tl/test_beta.py`:
+    ```python
+    import anndata as ad
+    import numpy as np
+    import pandas as pd
+    import pytest
+    import scipy.sparse as sp
+    from hypothesis import given
+    from hypothesis import strategies as st
+    from hypothesis.extra.numpy import arrays
+
+    import biotapy as bt
+    from biotapy._core import make_treedata, tree_from_edges
+
+
+    def _adata(dense) -> ad.AnnData:
+        return ad.AnnData(
+            X=sp.csr_matrix(dense),
+            obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+            var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
+        )
+
+
+    def test_braycurtis_by_hand():
+        out = bt.tl.beta(_adata(np.array([[1, 2, 3], [3, 2, 1]])))
+        assert out.loc["s0", "s1"] == pytest.approx(4 / 12)
+        assert list(out.index) == list(out.columns) == ["s0", "s1"]
+
+
+    def test_jaccard_is_presence_absence():
+        out = bt.tl.beta(_adata(np.array([[1, 0, 30], [5, 5, 0]])), metric="jaccard")
+        assert out.loc["s0", "s1"] == pytest.approx(2 / 3)
+
+
+    def test_all_zero_sample_and_feature():
+        out = bt.tl.beta(_adata(np.array([[0, 0, 0], [1, 2, 0], [0, 0, 0]])))
+        assert out.loc["s0", "s1"] == 1.0 and np.isnan(out.loc["s0", "s2"])
+
+
+    def test_single_sample():
+        assert bt.tl.beta(_adata(np.array([[1, 2]]))).to_numpy().tolist() == [[0.0]]
+
+
+    def test_missing_rank_is_irrelevant():
+        tdata = bt.datasets.toy()
+        tdata.var["genus"] = np.nan
+        assert bt.tl.beta(tdata).shape == (6, 6)
+
+
+    def test_beta_inplace_writes_obsp(assert_unchanged):
+        tdata = bt.datasets.toy()
+        expected = bt.tl.beta(tdata, metric="jaccard")
+        assert bt.tl.beta(tdata, metric="jaccard", inplace=True) is None
+        np.testing.assert_array_equal(tdata.obsp["jaccard"], expected.to_numpy())
+
+
+    def test_beta_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.tl.beta(tdata)
+        assert_unchanged(before, tdata)
+
+
+    def test_unknown_metric_raises():
+        with pytest.raises(ValueError, match="metric must be one of"):
+            bt.tl.beta(bt.datasets.toy(), metric="euclidean")
+
+
+    @given(
+        arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 20)),
+        st.sampled_from(["braycurtis", "jaccard"]),
+    )
+    def test_beta_is_symmetric_with_zero_diagonal(dense, metric):
+        out = bt.tl.beta(_adata(dense), metric=metric).to_numpy()
+        np.testing.assert_array_equal(out, out.T)
+        np.testing.assert_array_equal(np.diag(out), 0.0)
+
+
+    def test_unifrac_by_hand():
+        # root -> a (1), root -> b (3); s0 holds a, s1 holds b: unweighted 4/4, weighted normalized 1.
+        tdata = make_treedata(
+            np.array([[2, 0], [0, 5]]),
+            obs=pd.DataFrame(index=["s0", "s1"]),
+            var=pd.DataFrame(index=["a", "b"]),
+            tree=tree_from_edges([("r", "a", 1.0), ("r", "b", 3.0)]),
+            x_kind="counts",
+            source="test",
+        )
+        assert bt.tl.unifrac(tdata).loc["s0", "s1"] == pytest.approx(1.0)
+        assert bt.tl.unifrac(tdata, weighted=True).loc["s0", "s1"] == pytest.approx(1.0)
+        assert bt.tl.unifrac(tdata, weighted=True, normalized=False).loc["s0", "s1"] == pytest.approx(4.0)
+
+
+    def test_unifrac_multifurcating_root_is_accepted():
+        # toy's root has three children; scikit-bio alone raises "The tree must be rooted."
+        out = bt.tl.unifrac(bt.datasets.toy())
+        assert out.shape == (6, 6) and out.loc["s1", "s4"] == pytest.approx(0.0916030534)
+
+
+    def test_unifrac_after_filtering_keeps_path_lengths():
+        # Filtering leaves unary nodes in the tree; distances between the kept features' samples must not change.
+        tdata = bt.datasets.toy()
+        dense = tdata.X.toarray()
+        dense[:, [4, 7]] = 0  # f5, f8 absent everywhere
+        tdata.X = sp.csr_matrix(dense)
+        filtered = bt.pp.filter_features(tdata, min_total=1)
+        assert filtered.n_vars == 6
+        pd.testing.assert_frame_equal(bt.tl.unifrac(filtered), bt.tl.unifrac(tdata))
+        pd.testing.assert_frame_equal(bt.tl.unifrac(filtered, weighted=True), bt.tl.unifrac(tdata, weighted=True))
+
+
+    def test_unifrac_all_zero_sample_single_sample_and_missing_rank():
+        tdata = bt.datasets.toy()
+        tdata.var["genus"] = np.nan
+        assert bt.tl.unifrac(tdata[:1].copy()).shape == (1, 1)
+        dense = tdata.X.toarray()
+        dense[0] = 0
+        tdata.X = sp.csr_matrix(dense)
+        assert bt.tl.unifrac(tdata, weighted=True).shape == (6, 6)
+
+
+    def test_unifrac_inplace_writes_the_contract_keys():
+        tdata = bt.datasets.toy()
+        assert bt.tl.unifrac(tdata, inplace=True) is None
+        assert bt.tl.unifrac(tdata, weighted=True, inplace=True) is None
+        assert {"unweighted_unifrac", "weighted_unifrac"} <= set(tdata.obsp.keys())
+
+
+    def test_unifrac_input_unchanged(assert_unchanged):
+        tdata = bt.datasets.toy()
+        before = tdata.copy()
+        bt.tl.unifrac(tdata, weighted=True)
+        assert_unchanged(before, tdata)
+
+
+    def test_unifrac_without_a_tree_names_it():
+        with pytest.raises(TypeError, match="needs a TreeData"):
+            bt.tl.unifrac(_adata(np.array([[1, 2]])))
+        tdata = bt.datasets.toy()
+        del tdata.vart["phylo"]
+        with pytest.raises(KeyError, match="phylo"):
+            bt.tl.unifrac(tdata)
+
+
+    @given(arrays(np.int64, st.tuples(st.integers(1, 5), st.just(8)), elements=st.integers(0, 20)), st.booleans())
+    def test_unifrac_is_symmetric_with_zero_diagonal(dense, weighted):
+        tdata = bt.datasets.toy()[: dense.shape[0]].copy()
+        tdata.X = sp.csr_matrix(dense)
+        out = bt.tl.unifrac(tdata, weighted=weighted).to_numpy()
+        np.testing.assert_array_equal(out, out.T)
+        np.testing.assert_array_equal(np.diag(out), 0.0)
+    ```
+  - `tests/tl/test_beta_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def _square(path: Path) -> pd.DataFrame:
+        return pd.read_csv(path, dtype={"sample_id": str}).set_index("sample_id")
+
+
+    @pytest.mark.parametrize("metric", ["braycurtis", "jaccard"])
+    def test_beta_matches_phyloseq_distance(metric):
+        # jaccard: phyloseq::distance(GP, "jaccard", binary = TRUE).
+        golden = _square(GOLDEN / "global_patterns" / f"beta_{metric}.csv.gz")
+        out = bt.tl.beta(bt.datasets.global_patterns(), metric=metric)
+        assert list(out.index) == list(golden.index) and list(out.columns) == list(golden.columns)
+        np.testing.assert_allclose(out.to_numpy(), golden.to_numpy(), rtol=1e-7)
+
+
+    @pytest.mark.parametrize("dataset", ["global_patterns", "esophagus"])
+    @pytest.mark.parametrize("weighted", [False, True])
+    def test_unifrac_matches_phyloseq_unifrac(dataset, weighted):
+        name = "weighted" if weighted else "unweighted"
+        golden = _square(GOLDEN / dataset / f"unifrac_{name}.csv.gz")
+        out = bt.tl.unifrac(getattr(bt.datasets, dataset)(), weighted=weighted)
+        assert list(out.index) == list(golden.index)
+        np.testing.assert_allclose(out.to_numpy(), golden.to_numpy(), rtol=1e-7)
+    ```
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl/test_beta.py -q`.
+  It fails with `AttributeError: module 'biotapy.tl' has no attribute 'beta'`.
+- [x] **Step 3: Implement.**
+  - `src/biotapy/tl/_beta.py`:
+    ```python
+    """Beta diversity: sample x sample distance matrices in ``obsp``."""
+
+    from typing import Literal, get_args
+
+    import pandas as pd
+    from anndata import AnnData
+    from skbio import DistanceMatrix
+    from skbio.diversity import beta_diversity
+
+    from biotapy._core import TreeData, as_csr, get_skbio_tree
+
+    BetaMetric = Literal["braycurtis", "jaccard"]
+
+
+    def beta(adata: AnnData, *, metric: BetaMetric = "braycurtis", inplace: bool = False) -> pd.DataFrame | None:
+        """Distances between every pair of samples.
+
+        Parameters
+        ----------
+        adata
+            Samples x features.
+        metric
+            ``"braycurtis"``, or ``"jaccard"`` on presence/absence.
+        inplace
+            Write the matrix to ``obsp[metric]`` and return ``None``.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            Symmetric samples x samples distances with a zero diagonal, indexed by
+            ``obs_names``. Two all-zero samples are NaN apart under Bray-Curtis.
+
+        Raises
+        ------
+        ValueError
+            ``metric`` is not ``"braycurtis"`` or ``"jaccard"``.
+
+        Notes
+        -----
+        R equivalent: ``phyloseq::distance``
+        Guide: :doc:`/guide/diversity`
+
+        ``"jaccard"`` matches ``phyloseq::distance(physeq, "jaccard", binary = TRUE)``:
+        without ``binary = TRUE``, vegan computes a quantitative Jaccard instead.
+        scikit-bio needs dense input, so ``X`` is densified once (8 bytes x samples x
+        features) and the result takes 8 bytes x samples x samples.
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> round(float(bt.tl.beta(bt.datasets.toy()).loc["s1", "s4"]), 3)
+        0.708
+        """
+        if metric not in get_args(BetaMetric):
+            msg = f"metric must be one of {list(get_args(BetaMetric))}, got {metric!r}"
+            raise ValueError(msg)
+        # scikit-bio rejects sparse input (rules.md R6.2): one dense copy of X.
+        distances = beta_diversity(metric, as_csr(adata.X).toarray(), ids=adata.obs_names.tolist())
+        return _store(adata, distances, key=metric, inplace=inplace)
+
+
+    def unifrac(
+        tdata: TreeData, *, weighted: bool = False, normalized: bool = True, inplace: bool = False
+    ) -> pd.DataFrame | None:
+        """UniFrac distances between every pair of samples.
+
+        Parameters
+        ----------
+        tdata
+            Samples x features with the phylogeny in ``vart['phylo']``.
+        weighted
+            Weight branches by abundance (weighted UniFrac) instead of presence.
+        normalized
+            Scale weighted UniFrac to 0-1, as phyloseq does. Ignored when unweighted.
+        inplace
+            Write the matrix to ``obsp['unweighted_unifrac']`` or
+            ``obsp['weighted_unifrac']`` and return ``None``.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            Symmetric samples x samples distances with a zero diagonal, indexed by ``obs_names``.
+
+        Raises
+        ------
+        TypeError
+            ``tdata`` is an AnnData that is not a TreeData.
+        KeyError
+            ``tdata`` has no ``vart['phylo']``.
+
+        Notes
+        -----
+        R equivalent: ``phyloseq::UniFrac``
+        Guide: :doc:`/guide/diversity`
+
+        scikit-bio needs a root with at most two children. A root with more keeps its
+        first child and gets the others under one new zero-length branch, so the tree
+        is used rooted where it is drawn; phyloseq instead roots an unrooted tree at a
+        random tip. scikit-bio's weighted UniFrac is unnormalized by default; biotapy
+        passes ``normalized`` explicitly and defaults to phyloseq's ``TRUE``.
+        ``X`` is densified once (8 bytes x samples x features).
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> round(float(bt.tl.unifrac(bt.datasets.toy()).loc["s1", "s4"]), 3)
+        0.092
+        """
+        tree = get_skbio_tree(tdata)
+        counts, ids, taxa = as_csr(tdata.X).toarray(), tdata.obs_names.tolist(), tdata.var_names.tolist()
+        if weighted:
+            distances = beta_diversity("weighted_unifrac", counts, ids=ids, taxa=taxa, tree=tree, normalized=normalized)
+        else:
+            distances = beta_diversity("unweighted_unifrac", counts, ids=ids, taxa=taxa, tree=tree)
+        return _store(tdata, distances, key="weighted_unifrac" if weighted else "unweighted_unifrac", inplace=inplace)
+
+
+    def _store(adata: AnnData, distances: DistanceMatrix, *, key: str, inplace: bool) -> pd.DataFrame | None:
+        frame = distances.to_data_frame()
+        if not inplace:
+            return frame
+        adata.obsp[key] = frame.to_numpy()
+        return None
+    ```
+  - `tl/__init__.py` gains `from ._beta import beta, unifrac`.
+  - `__all__` becomes `["alpha", "beta", "unifrac"]`.
+  - scikit-bio auto-qualifies `jaccard` to presence/absence
+    (`_qualitative_metrics`). `weighted_unifrac`'s own default is
+    `normalized=False`, so `normalized` is always passed.
+  - This state of the file was gated alone in the prototype: ruff, format,
+    mypy, and 32 tl tests.
+- [x] **Step 4: Docs.**
+  - Add `tl.beta` and `tl.unifrac` to the Tools block of `docs/api.md`.
+  - Append to `docs/guide/diversity.md`:
+    ````markdown
+
+    ## Beta diversity: `tl.beta` and `tl.unifrac`
+
+    `bt.tl.beta` computes Bray-Curtis (`metric="braycurtis"`, the default) or Jaccard
+    (`metric="jaccard"`) distances between every pair of samples; `bt.tl.unifrac` computes
+    unweighted or weighted UniFrac along the tree:
+
+    ```python
+    bt.tl.beta(tdata, inplace=True)  # obsp["braycurtis"]
+    bt.tl.unifrac(tdata, weighted=True, inplace=True)  # obsp["weighted_unifrac"]
+    ```
+
+    - Jaccard is on presence/absence, like `phyloseq::distance(physeq, "jaccard", binary = TRUE)`.
+      Without `binary = TRUE` phyloseq computes vegan's quantitative Jaccard, a different number.
+    - Weighted UniFrac is normalized to 0-1 by default, as in phyloseq; pass `normalized=False` for
+      the raw value.
+    - A tree whose root has three or more children is used rooted where it is drawn. phyloseq
+      instead roots such a tree at a random tip, so its UniFrac changes from run to run.
+    - Two all-zero samples are `NaN` apart under Bray-Curtis. Drop empty samples with
+      `bt.pp.filter_samples(tdata, 1)` before ordinating.
+    - The table is densified once: 8 bytes x samples x features, plus 8 bytes x samples x samples
+      for the result.
+    ````
+- [x] **Step 5: Knowledge.**
+  - No concept states anything this changes: `obsp` keys are already in
+    data-model-slots.
+  - Add a log line. Tick 1.16 here.
+- [x] **Step 6: Run, gate and commit.**
+  - Tests: `uv run --group test pytest tests/tl -q`.
+  - Golden: `uv run --group test pytest -m golden tests/tl/test_beta_golden.py -q`
+    (6 passed; the esophagus golden test also downloads 1,840 B).
+  - The three gates.
+  - Commit `feat(tl): add beta diversity and UniFrac`.
 
 ### Task 1.17: `tl.pcoa`, `tl.nmds`, `tl.permanova`
-- **Interfaces:** `pcoa(adata, *, distance: str = "braycurtis", n_components: int = 10, inplace: bool = False)`
-  reads `obsp[distance]` (error message says which `tl.beta` call to run),
-  writes `obsm["X_pcoa"]` and `uns["biotapy"]["pcoa"]`;
-  `nmds(adata, *, distance: str = "braycurtis", n_components: int = 2, seed=None, inplace: bool = False)`
-  via `sklearn.manifold.MDS` non-metric on the precomputed distances (check the current signature with Context7 first);
-  `permanova(adata, grouping: str, *, distance: str = "braycurtis", permutations: int = 999, seed=None) -> pd.Series`
-  via `skbio.stats.distance.permanova`.
-- **Tests:** golden per [r-golden-parity](/contracts/r-golden-parity.md) (PCoA up to sign, NMDS stress and Procrustes, PERMANOVA statistic exact, p-value within 0.02 at 9,999 permutations).
 
-### Checkpoint C - review slice 1C; `Module` concept for `tl`.
+**Files:**
+- Create:
+  - `src/biotapy/tl/_ordination.py`, `src/biotapy/tl/_permanova.py`
+  - `tests/tl/test_ordination.py`, `tests/tl/test_ordination_golden.py`
+  - `tests/tl/test_permanova.py`, `tests/tl/test_permanova_golden.py`
+  - `docs/guide/ordination.md`
+- Modify:
+  - `src/biotapy/tl/_beta.py` (add `stored_distances`), `src/biotapy/tl/__init__.py`
+  - `src/biotapy/_core/_slots.py` and `tests/core/test_slots.py`
+    (`uns["biotapy"]` propagation)
+  - `pyproject.toml`, `uv.lock` (scikit-learn)
+  - `docs/api.md`, `docs/guide/index.md`, `docs/guide/data_model.md`, `docs/guide/filtering.md`
+  - `.knowledge/contracts/data-model-slots.md`
+  - `.knowledge/decisions/optional-heavy-dependencies.md`
+  - `.knowledge/decisions/pure-by-default.md` (see the ruling in Step 6)
+  - `.knowledge/modules/core.md`
+  - `.knowledge/log.md`
+
+**Interfaces:**
+- **Consumes:**
+  - `obsp` matrices from 1.16, and `as_generator`;
+  - `skbio.stats.ordination.pcoa`, `skbio.stats.distance.permanova`,
+    `sklearn.manifold.MDS`;
+  - the `pcoa_*`, `nmds_*` and `permanova_*` golden files.
+- **Produces:**
+  - `bt.tl.pcoa(adata: AnnData, *, distance: str = "braycurtis", n_components: int = 10, inplace: bool = False) -> tuple[pd.DataFrame, pd.DataFrame] | None`.
+  - `bt.tl.nmds(adata: AnnData, *, distance: str = "braycurtis", n_components: int = 2, seed: int | np.random.Generator | None = None, inplace: bool = False) -> tuple[pd.DataFrame, float] | None`.
+  - `bt.tl.permanova(adata: AnnData, grouping: str, *, distance: str = "braycurtis", permutations: int = 999, seed: int | np.random.Generator | None = None) -> pd.Series`.
+  - `tl._beta.stored_distances(adata: AnnData, key: str) -> DistanceMatrix`
+    (private; `tl` only).
+  - `_core.feature_subset` keeps only `x_kind` and `provenance` in `uns["biotapy"]`.
+
+- [x] **Step 1: Dependency.**
+  - In `[project] dependencies`, add `"scikit-learn>=1.8",` after `"scikit-bio>=0.7.4,<0.8",`.
+  - Add the mypy overrides after the pooch pair:
+    ```toml
+      # scikit-learn 1.9.1 ships no py.typed marker either; same treatment.
+      { module = "sklearn", follow_untyped_imports = true, implicit_reexport = true },
+      { module = "sklearn.*", follow_untyped_imports = true, implicit_reexport = true },
+    ```
+  - Replace the `untyped_calls_exclude` comment and line with:
+    ```toml
+    # biom-format and scikit-learn ship no type annotations at all, nor does scikit-bio's
+    # subsample_counts; exempt only calls into them (not our own code) from strict's
+    # disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+    untyped_calls_exclude = [ "biom", "skbio.stats._subsample", "sklearn" ]
+    ```
+  - Run `uv sync --group dev --group test --group doc`. It resolves scikit-learn
+    1.9.1 plus joblib, threadpoolctl and cloudpickle; wheels exist for
+    CPython 3.12-3.14.
+  - Confirm that `uv run python -c "import sklearn; print(sklearn.__version__)"`
+    prints `1.9.1` or later, and that `sklearn/py.typed` does not exist
+    (R2.2). `pyproject-fmt` leaves this `pyproject.toml` unchanged, as in the
+    prototype.
+- [x] **Step 2: Failing tests.**
+  - Append to `tests/core/test_slots.py`:
+    ```python
+    def test_feature_subset_drops_ordination_metadata():
+        adata = _adata()
+        adata.uns["biotapy"] = {
+            "x_kind": "counts",
+            "provenance": ["{}"],
+            "pcoa": {"eigenvalues": np.ones(2)},
+            "nmds": {"stress": 0.1},
+        }
+        assert feature_subset(adata, np.array([0])).uns["biotapy"] == {"x_kind": "counts", "provenance": ["{}"]}
+    ```
+  - `tests/tl/test_ordination.py`:
+    ```python
+    import anndata as ad
+    import numpy as np
+    import pandas as pd
+    import pytest
+    import scipy.sparse as sp
+    import treedata as td
+    from scipy.spatial import procrustes
+    from scipy.spatial.distance import pdist, squareform
+
+    import biotapy as bt
+
+
+    def _toy_with(metric="braycurtis"):
+        tdata = bt.datasets.toy()
+        bt.tl.beta(tdata, metric=metric, inplace=True)
+        return tdata
+
+
+    def test_pcoa_reproduces_euclidean_distances():
+        # PCoA of Euclidean distances recovers them exactly from all positive axes.
+        tdata = bt.datasets.toy()
+        dense = tdata.X.toarray().astype(float)
+        tdata.obsp["euclidean"] = squareform(pdist(dense))
+        coords, axes = bt.tl.pcoa(tdata, distance="euclidean")
+        assert list(coords.columns) == [f"PC{i}" for i in range(1, 6)]  # at most n_obs - 1 axes
+        np.testing.assert_allclose(squareform(pdist(coords.to_numpy())), tdata.obsp["euclidean"], atol=1e-9)
+        assert axes["proportion_explained"].sum() == pytest.approx(1.0)
+
+
+    def test_pcoa_proportion_divides_by_all_eigenvalues():
+        coords, axes = bt.tl.pcoa(_toy_with(), n_components=2)
+        assert coords.shape == (6, 2) and list(axes.index) == ["PC1", "PC2"]
+        assert (axes["proportion_explained"] <= 1).all() and axes["eigenvalue"].is_monotonic_decreasing
+
+
+    def test_pcoa_inplace_writes_obsm_and_uns():
+        tdata = _toy_with()
+        coords, axes = bt.tl.pcoa(tdata, n_components=3)
+        assert bt.tl.pcoa(tdata, n_components=3, inplace=True) is None
+        np.testing.assert_array_equal(tdata.obsm["X_pcoa"], coords.to_numpy())
+        np.testing.assert_array_equal(tdata.uns["biotapy"]["pcoa"]["eigenvalues"], axes["eigenvalue"].to_numpy())
+        np.testing.assert_array_equal(
+            tdata.uns["biotapy"]["pcoa"]["proportion_explained"], axes["proportion_explained"].to_numpy()
+        )
+
+
+    def test_pcoa_input_unchanged(assert_unchanged):
+        tdata = _toy_with()
+        before = tdata.copy()
+        bt.tl.pcoa(tdata)
+        assert_unchanged(before, tdata)
+
+
+    def test_pcoa_missing_distance_names_the_call():
+        with pytest.raises(KeyError, match=r"bt.tl.unifrac\(tdata, weighted=True, inplace=True\)"):
+            bt.tl.pcoa(bt.datasets.toy(), distance="weighted_unifrac")
+
+
+    def test_pcoa_nan_distances_raise():
+        tdata = bt.datasets.toy()
+        dense = tdata.X.toarray()
+        dense[[0, 1]] = 0  # two all-zero samples are NaN apart under Bray-Curtis
+        tdata.X = sp.csr_matrix(dense)
+        bt.tl.beta(tdata, inplace=True)
+        with pytest.raises(ValueError, match="NaN"):
+            bt.tl.pcoa(tdata)
+
+
+    def test_pcoa_single_sample_and_bad_components_raise():
+        with pytest.raises(ValueError, match="at least 2 samples"):
+            bt.tl.pcoa(_toy_with()[:1].copy())
+        with pytest.raises(ValueError, match="n_components"):
+            bt.tl.pcoa(_toy_with(), n_components=0)
+
+
+    def test_pcoa_after_filter_samples_uses_the_subset():
+        tdata = bt.pp.filter_samples(_toy_with(), 70)
+        coords, _ = bt.tl.pcoa(tdata)
+        assert list(coords.index) == ["s3", "s4", "s5", "s6"] and coords.shape[1] == 3
+
+
+    def test_nmds_same_seed_same_result():
+        first, stress = bt.tl.nmds(_toy_with(), seed=3)
+        again, stress_again = bt.tl.nmds(_toy_with(), seed=np.random.default_rng(3))
+        np.testing.assert_array_equal(first.to_numpy(), again.to_numpy())
+        assert stress == stress_again and 0 <= stress < 0.2
+        assert list(first.columns) == ["NMDS1", "NMDS2"]
+
+
+    def test_nmds_recovers_a_planar_configuration():
+        points = np.random.default_rng(0).uniform(size=(10, 2))
+        adata = ad.AnnData(X=sp.csr_matrix(np.ones((10, 1))), obs=pd.DataFrame(index=[f"s{i}" for i in range(10)]))
+        adata.obsp["euclidean"] = squareform(pdist(points))
+        coords, stress = bt.tl.nmds(adata, distance="euclidean", seed=0)
+        _, _, disparity = procrustes(points, coords.to_numpy())
+        assert stress < 0.05 and np.sqrt(1 - disparity) > 0.99
+
+
+    def test_nmds_inplace_writes_obsm_and_stress():
+        tdata = _toy_with()
+        coords, stress = bt.tl.nmds(tdata, seed=0)
+        assert bt.tl.nmds(tdata, seed=0, inplace=True) is None
+        np.testing.assert_array_equal(tdata.obsm["X_nmds"], coords.to_numpy())
+        assert tdata.uns["biotapy"]["nmds"] == {"stress": stress}
+
+
+    def test_nmds_input_unchanged(assert_unchanged):
+        tdata = _toy_with()
+        before = tdata.copy()
+        bt.tl.nmds(tdata, seed=0)
+        assert_unchanged(before, tdata)
+
+
+    def test_nmds_too_few_samples_raise():
+        with pytest.raises(ValueError, match="more than n_components"):
+            bt.tl.nmds(_toy_with()[:3].copy(), seed=0)
+
+
+    def test_feature_changes_drop_stored_ordinations():
+        tdata = _toy_with()
+        bt.tl.pcoa(tdata, inplace=True)
+        bt.tl.nmds(tdata, seed=0, inplace=True)
+        out = bt.pp.filter_features(tdata, min_total=19)
+        assert not {"X_pcoa", "X_nmds"} & set(out.obsm.keys())
+        assert set(out.uns["biotapy"]) == {"x_kind", "provenance"}
+
+
+    def test_stored_results_survive_h5td(tmp_path):
+        tdata = _toy_with()
+        bt.tl.alpha(tdata, inplace=True)
+        bt.tl.unifrac(tdata, weighted=True, inplace=True)
+        bt.tl.pcoa(tdata, inplace=True)
+        bt.tl.nmds(tdata, seed=0, inplace=True)
+        tdata.write_h5td(tmp_path / "toy.h5td")
+        back = td.read_h5td(tmp_path / "toy.h5td")
+        np.testing.assert_array_equal(back.obsp["weighted_unifrac"], tdata.obsp["weighted_unifrac"])
+        np.testing.assert_array_equal(back.obsm["X_pcoa"], tdata.obsm["X_pcoa"])
+        np.testing.assert_array_equal(
+            back.uns["biotapy"]["pcoa"]["eigenvalues"], tdata.uns["biotapy"]["pcoa"]["eigenvalues"]
+        )
+        assert back.uns["biotapy"]["nmds"]["stress"] == tdata.uns["biotapy"]["nmds"]["stress"]
+        np.testing.assert_array_equal(back.obs["alpha_shannon"], tdata.obs["alpha_shannon"])
+    ```
+  - `tests/tl/test_ordination_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+    from scipy.spatial import procrustes
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def _with_braycurtis():
+        tdata = bt.datasets.global_patterns()
+        bt.tl.beta(tdata, inplace=True)
+        return tdata
+
+
+    def test_pcoa_matches_ape_pcoa():
+        vectors = pd.read_csv(GOLDEN / "pcoa_braycurtis_vectors.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
+        values = pd.read_csv(GOLDEN / "pcoa_braycurtis_values.csv.gz")
+        coords, axes = bt.tl.pcoa(_with_braycurtis(), n_components=10)
+        assert list(coords.index) == list(vectors.index)
+        np.testing.assert_allclose(axes["eigenvalue"], values["eigenvalue"], rtol=1e-6)
+        np.testing.assert_allclose(axes["proportion_explained"], values["relative_eig"], rtol=1e-6)
+        ours, theirs = coords.to_numpy(), vectors.to_numpy()
+        # Eigenvector signs are arbitrary: align each axis before comparing.
+        signs = np.sign((ours * theirs).sum(axis=0))
+        np.testing.assert_allclose(ours * signs, theirs, rtol=1e-6)
+
+
+    def test_nmds_matches_vegan_metamds():
+        points = pd.read_csv(GOLDEN / "nmds_braycurtis_points.csv.gz", dtype={"sample_id": str}).set_index("sample_id")
+        r_stress = pd.read_csv(GOLDEN / "nmds_braycurtis_stress.csv.gz")["stress"].iloc[0]
+        coords, stress = bt.tl.nmds(_with_braycurtis(), seed=0)
+        assert list(coords.index) == list(points.index)
+        assert abs(stress - r_stress) < 0.02
+        _, _, disparity = procrustes(points.to_numpy(), coords.to_numpy())
+        assert np.sqrt(1 - disparity) > 0.95
+    ```
+  - `tests/tl/test_permanova.py`:
+    ```python
+    import numpy as np
+    import pytest
+
+    import biotapy as bt
+
+
+    def _toy_with():
+        tdata = bt.datasets.toy()
+        bt.tl.beta(tdata, inplace=True)
+        return tdata
+
+
+    def test_permanova_pseudo_f_by_hand():
+        tdata = _toy_with()
+        d2 = tdata.obsp["braycurtis"] ** 2
+        total = d2[np.triu_indices(6, 1)].sum() / 6
+        within = sum(d2[np.ix_(idx, idx)][np.triu_indices(3, 1)].sum() / 3 for idx in ([0, 1, 2], [3, 4, 5]))
+        expected = (total - within) / (within / 4)
+        result = bt.tl.permanova(tdata, "group", seed=0)
+        assert result["test statistic"] == pytest.approx(expected)
+        assert result["number of groups"] == 2 and result["sample size"] == 6
+
+
+    def test_permanova_same_seed_same_p_value():
+        first = bt.tl.permanova(_toy_with(), "group", permutations=99, seed=1)
+        again = bt.tl.permanova(_toy_with(), "group", permutations=99, seed=np.random.default_rng(1))
+        assert first["p-value"] == again["p-value"] and first["number of permutations"] == 99
+
+
+    def test_permanova_input_unchanged(assert_unchanged):
+        tdata = _toy_with()
+        before = tdata.copy()
+        bt.tl.permanova(tdata, "group", seed=0)
+        assert_unchanged(before, tdata)
+
+
+    def test_permanova_unknown_grouping_is_named():
+        with pytest.raises(KeyError, match="grouping='site'"):
+            bt.tl.permanova(_toy_with(), "site")
+
+
+    def test_permanova_missing_group_raises():
+        tdata = _toy_with()
+        tdata.obs["group"] = tdata.obs["group"].cat.add_categories("C")
+        tdata.obs.loc["s1", "group"] = np.nan
+        with pytest.raises(ValueError, match=r"missing for 1 sample"):
+            bt.tl.permanova(tdata, "group")
+
+
+    def test_permanova_missing_distance_names_the_call():
+        with pytest.raises(KeyError, match=r"bt.tl.beta\(adata, metric='jaccard', inplace=True\)"):
+            bt.tl.permanova(bt.datasets.toy(), "group", distance="jaccard")
+    ```
+  - `tests/tl/test_permanova_golden.py`:
+    ```python
+    from pathlib import Path
+
+    import numpy as np
+    import pandas as pd
+    import pytest
+
+    import biotapy as bt
+
+    GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+    pytestmark = [pytest.mark.golden, pytest.mark.network]
+
+
+    def test_permanova_matches_vegan_adonis2():
+        golden = pd.read_csv(GOLDEN / "permanova_sampletype.csv.gz").iloc[0]
+        tdata = bt.datasets.global_patterns()
+        bt.tl.beta(tdata, inplace=True)
+        result = bt.tl.permanova(tdata, "SampleType", permutations=9999, seed=0)
+        np.testing.assert_allclose(result["test statistic"], golden["f"], rtol=1e-7)
+        assert result["number of groups"] == golden["df"] + 1
+        assert abs(result["p-value"] - golden["p"]) <= 0.02
+    ```
+  - Test choices:
+    - `test_nmds_recovers_a_planar_configuration` uses 10 random planar points
+      rather than toy. On toy, NMDS falls into the degenerate two-cluster
+      solution (stress 0.002), where a rank-order check fails (73% agreement)
+      without any bug.
+    - The p-value tolerance in the PERMANOVA golden test is the contract's 0.02.
+      Both sides give 1e-4, the smallest p at 9,999 permutations.
+- [x] **Step 3: Run, expect failure.** Run `uv run --group test pytest tests/tl tests/core/test_slots.py -q`.
+  - `AttributeError: module 'biotapy.tl' has no attribute 'pcoa'` (and `nmds`, `permanova`).
+  - `test_feature_subset_drops_ordination_metadata` fails with an
+    `AssertionError`: the result still holds `pcoa` and `nmds`.
+- [x] **Step 4: Implement.**
+  - `_core/_slots.py`:
+    - after `DERIVED_SLOTS` add:
+      ```python
+      # The uns['biotapy'] keys that survive a feature change; the others (pcoa, nmds) described the old features.
+      KEPT_META = ("x_kind", "provenance")
+      ```
+    - replace `feature_subset`'s last `out.uns = ...` line with:
+      ```python
+          meta = out.uns.get("biotapy", {"x_kind": "counts"})
+          out.uns = {"biotapy": {key: meta[key] for key in KEPT_META if key in meta}}
+      ```
+  - `tl/_beta.py`:
+    - add `import numpy as np` to the imports;
+    - after `BetaMetric` add:
+      ```python
+      # The call that writes each obsp key, for the error raised when a key is missing.
+      _WRITTEN_BY = {
+          "braycurtis": "bt.tl.beta(adata, metric='braycurtis', inplace=True)",
+          "jaccard": "bt.tl.beta(adata, metric='jaccard', inplace=True)",
+          "unweighted_unifrac": "bt.tl.unifrac(tdata, inplace=True)",
+          "weighted_unifrac": "bt.tl.unifrac(tdata, weighted=True, inplace=True)",
+      }
+      ```
+    - append:
+      ```python
+      def stored_distances(adata: AnnData, key: str) -> DistanceMatrix:
+          """``obsp[key]`` as a scikit-bio DistanceMatrix; a missing key names the call that writes it."""
+          if key not in adata.obsp:
+              call = _WRITTEN_BY.get(key, "bt.tl.beta or bt.tl.unifrac with inplace=True")
+              msg = f"distance={key!r}: no obsp[{key!r}]; run {call} first"
+              raise KeyError(msg)
+          values = np.asarray(adata.obsp[key], dtype=np.float64)
+          if np.isnan(values).any():
+              msg = f"distance={key!r}: obsp[{key!r}] holds NaN, as between two all-zero samples; drop them first"
+              raise ValueError(msg)
+          return DistanceMatrix(values, ids=adata.obs_names.tolist())
+      ```
+  - `src/biotapy/tl/_ordination.py`:
+    ```python
+    """Ordination of a stored distance matrix: PCoA and non-metric MDS."""
+
+    import numpy as np
+    import pandas as pd
+    from anndata import AnnData
+    from skbio.stats.ordination import pcoa as skbio_pcoa
+    from sklearn.manifold import MDS
+
+    from biotapy._core import as_generator
+
+    from ._beta import stored_distances
+
+    # vegan::metaMDS's try = 20: the best of 20 random starts.
+    _NMDS_STARTS = 20
+
+
+    def pcoa(
+        adata: AnnData, *, distance: str = "braycurtis", n_components: int = 10, inplace: bool = False
+    ) -> tuple[pd.DataFrame, pd.DataFrame] | None:
+        """Principal coordinates analysis of a distance matrix in ``obsp``.
+
+        Parameters
+        ----------
+        adata
+            Samples x features with ``obsp[distance]``, written by :func:`biotapy.tl.beta`
+            or :func:`biotapy.tl.unifrac` with ``inplace=True``.
+        distance
+            The ``obsp`` key to ordinate.
+        n_components
+            Axes to keep; at most ``n_obs - 1`` are returned.
+        inplace
+            Write the coordinates to ``obsm['X_pcoa']`` and the axes to
+            ``uns['biotapy']['pcoa']`` (``eigenvalues``, ``proportion_explained``), and return ``None``.
+
+        Returns
+        -------
+        tuple of pandas.DataFrame, or None
+            Coordinates (samples x ``PC1``..), and per axis its ``eigenvalue`` and
+            ``proportion_explained`` (eigenvalue / sum of all eigenvalues, as ``ape::pcoa``'s ``Relative_eig``).
+
+        Raises
+        ------
+        KeyError
+            ``obsp[distance]`` is missing; the message names the call that writes it.
+        ValueError
+            ``n_components`` is below 1, there are fewer than 2 samples, or the distances hold NaN.
+
+        Notes
+        -----
+        R equivalent: ``phyloseq::ordinate``, ``ape::pcoa``
+        Guide: :doc:`/guide/ordination`
+
+        Like ``ordinate(physeq, "PCoA", ...)`` (``ape::pcoa`` with ``correction = "none"``).
+        Axis signs are arbitrary, as in R.
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> tdata = bt.datasets.toy()
+        >>> bt.tl.beta(tdata, inplace=True)
+        >>> coords, axes = bt.tl.pcoa(tdata, n_components=2)
+        >>> coords.shape
+        (6, 2)
+        """
+        distances = stored_distances(adata, distance)
+        if n_components < 1 or adata.n_obs < 2:
+            msg = f"tl.pcoa needs n_components >= 1 and at least 2 samples, got {n_components} and {adata.n_obs}"
+            raise ValueError(msg)
+        # With fewer axes than samples, scikit-bio divides by the trace of the centred matrix, as ape::pcoa does.
+        dimensions = min(n_components, adata.n_obs - 1)
+        result = skbio_pcoa(distances, dimensions=dimensions)
+        names = [f"PC{i}" for i in range(1, dimensions + 1)]
+        coords = pd.DataFrame(result.samples.to_numpy(), index=adata.obs_names, columns=names)
+        axes = pd.DataFrame(
+            {"eigenvalue": result.eigvals.to_numpy(), "proportion_explained": result.proportion_explained.to_numpy()},
+            index=names,
+        )
+        if not inplace:
+            return coords, axes
+        adata.obsm["X_pcoa"] = coords.to_numpy()
+        adata.uns.setdefault("biotapy", {})["pcoa"] = {
+            "eigenvalues": axes["eigenvalue"].to_numpy(),
+            "proportion_explained": axes["proportion_explained"].to_numpy(),
+        }
+        return None
+
+
+    def nmds(
+        adata: AnnData,
+        *,
+        distance: str = "braycurtis",
+        n_components: int = 2,
+        seed: int | np.random.Generator | None = None,
+        inplace: bool = False,
+    ) -> tuple[pd.DataFrame, float] | None:
+        """Non-metric multidimensional scaling of a distance matrix in ``obsp``.
+
+        Parameters
+        ----------
+        adata
+            Samples x features with ``obsp[distance]``, written by :func:`biotapy.tl.beta`
+            or :func:`biotapy.tl.unifrac` with ``inplace=True``.
+        distance
+            The ``obsp`` key to ordinate.
+        n_components
+            Dimensions of the configuration.
+        seed
+            Seed or generator for the random starts.
+        inplace
+            Write the configuration to ``obsm['X_nmds']`` and the stress to
+            ``uns['biotapy']['nmds']['stress']``, and return ``None``.
+
+        Returns
+        -------
+        tuple of pandas.DataFrame and float, or None
+            The configuration (samples x ``NMDS1``..) and its Kruskal stress-1.
+
+        Raises
+        ------
+        KeyError
+            ``obsp[distance]`` is missing; the message names the call that writes it.
+        ValueError
+            ``n_components`` is below 1, there are not more samples than
+            ``n_components + 1``, or the distances hold NaN.
+
+        Notes
+        -----
+        R equivalent: ``phyloseq::ordinate``, ``vegan::metaMDS``
+        Guide: :doc:`/guide/ordination`
+
+        scikit-learn's SMACOF, non-metric, keeps the best of 20 random starts, as
+        ``vegan::metaMDS`` does by default (``try = 20``). The configuration is not
+        rotated or scaled afterwards, unlike metaMDS's ``postMDS``, so compare
+        configurations up to rotation and scale (Procrustes).
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> tdata = bt.datasets.toy()
+        >>> bt.tl.beta(tdata, inplace=True)
+        >>> coords, stress = bt.tl.nmds(tdata, seed=0)
+        >>> coords.shape
+        (6, 2)
+        """
+        distances = stored_distances(adata, distance)
+        if n_components < 1 or adata.n_obs <= n_components + 1:
+            msg = f"tl.nmds needs n_components >= 1 and more than n_components + 1 samples, got {n_components} and {adata.n_obs}"
+            raise ValueError(msg)
+        # scikit-learn takes an int or a RandomState, not a Generator: draw its seed from ours.
+        random_state = int(as_generator(seed).integers(2**31 - 1))
+        mds = MDS(
+            n_components=n_components,
+            metric_mds=False,
+            metric="precomputed",
+            n_init=_NMDS_STARTS,
+            init="random",
+            normalized_stress="auto",
+            random_state=random_state,
+        )
+        names = [f"NMDS{i}" for i in range(1, n_components + 1)]
+        coords = pd.DataFrame(mds.fit_transform(distances.data), index=adata.obs_names, columns=names)
+        stress = float(mds.stress_)
+        if not inplace:
+            return coords, stress
+        adata.obsm["X_nmds"] = coords.to_numpy()
+        adata.uns.setdefault("biotapy", {})["nmds"] = {"stress": stress}
+        return None
+    ```
+  - `src/biotapy/tl/_permanova.py`:
+    ```python
+    """PERMANOVA: do groups of samples differ in a stored distance matrix?"""
+
+    import numpy as np
+    import pandas as pd
+    from anndata import AnnData
+    from skbio.stats.distance import permanova as skbio_permanova
+
+    from biotapy._core import as_generator
+
+    from ._beta import stored_distances
+
+
+    def permanova(
+        adata: AnnData,
+        grouping: str,
+        *,
+        distance: str = "braycurtis",
+        permutations: int = 999,
+        seed: int | np.random.Generator | None = None,
+    ) -> pd.Series:
+        """Permutational multivariate analysis of variance of a distance matrix in ``obsp``.
+
+        Parameters
+        ----------
+        adata
+            Samples x features with ``obsp[distance]``, written by :func:`biotapy.tl.beta`
+            or :func:`biotapy.tl.unifrac` with ``inplace=True``.
+        grouping
+            The ``obs`` column holding each sample's group.
+        distance
+            The ``obsp`` key to test.
+        permutations
+            Permutations for the p-value.
+        seed
+            Seed or generator for the permutations.
+
+        Returns
+        -------
+        pandas.Series
+            scikit-bio's result: ``test statistic`` (pseudo-F), ``p-value``,
+            ``sample size``, ``number of groups``, ``number of permutations`` and the
+            method and statistic names.
+
+        Raises
+        ------
+        KeyError
+            ``grouping`` is not an ``obs`` column, or ``obsp[distance]`` is missing.
+        ValueError
+            ``grouping`` has missing values, or the distances hold NaN.
+
+        Notes
+        -----
+        R equivalent: ``vegan::adonis2``
+        Guide: :doc:`/guide/ordination`
+
+        Matches ``adonis2(distance ~ grouping, data, permutations)`` with one term,
+        whose ``F`` is the test statistic. P-values agree only up to permutation noise:
+        R and NumPy random generators differ.
+
+        Examples
+        --------
+        >>> import biotapy as bt
+        >>> tdata = bt.datasets.toy()
+        >>> bt.tl.beta(tdata, inplace=True)
+        >>> result = bt.tl.permanova(tdata, "group", seed=0)
+        >>> int(result["number of groups"])
+        2
+        """
+        if grouping not in adata.obs.columns:
+            msg = f"grouping={grouping!r} is not a column of obs"
+            raise KeyError(msg)
+        groups = adata.obs[grouping]
+        if groups.isna().any():
+            msg = f"grouping={grouping!r} is missing for {int(groups.isna().sum())} sample(s); drop them first"
+            raise ValueError(msg)
+        distances = stored_distances(adata, distance)
+        result: pd.Series = skbio_permanova(
+            distances, groups.to_numpy(), permutations=permutations, seed=as_generator(seed)
+        )
+        return result
+    ```
+  - `tl/__init__.py`:
+    ```python
+    from ._alpha import alpha
+    from ._beta import beta, unifrac
+    from ._ordination import nmds, pcoa
+    from ._permanova import permanova
+
+    __all__ = ["alpha", "beta", "nmds", "pcoa", "permanova", "unifrac"]
+    ```
+  - Why the code looks as it does:
+    - `pcoa` asks scikit-bio for at most `n_obs - 1` axes. With exactly `n`
+      axes, `proportion_explained` would divide by the sum of positive
+      eigenvalues instead of ape's trace.
+    - `result: pd.Series = ...` in `permanova` is a typed binding, not a cast.
+      scikit-bio's string annotation `'pd.Series'` resolves to `Any` under
+      mypy, and returning it fails `no-any-return`.
+- [x] **Step 5: Docs.**
+  - `docs/api.md` Tools block: add `tl.nmds`, `tl.pcoa` and `tl.permanova`.
+    The block is then `tl.alpha`, `tl.beta`, `tl.nmds`, `tl.pcoa`,
+    `tl.permanova`, `tl.unifrac`.
+  - Add `ordination` to the guide toctree after `diversity`.
+  - Create `docs/guide/ordination.md`:
+    ````markdown
+    # Ordination and PERMANOVA
+
+    Ordination and PERMANOVA read a distance matrix that `tl.beta` or `tl.unifrac` stored in
+    `obsp`; `distance=` names it (default `"braycurtis"`). When it is missing, the error names the
+    call to run.
+
+    ```python
+    import biotapy as bt
+
+    tdata = bt.datasets.toy()
+    bt.tl.beta(tdata, inplace=True)
+    coords, axes = bt.tl.pcoa(tdata)  # PC1.. per sample; eigenvalue and proportion per axis
+    coords, stress = bt.tl.nmds(tdata, seed=0)  # NMDS1, NMDS2 and Kruskal stress-1
+    result = bt.tl.permanova(tdata, "group", seed=0)
+    result["test statistic"], result["p-value"]
+    ```
+
+    ## PCoA
+
+    `bt.tl.pcoa` matches `ordinate(physeq, "PCoA", distance)`, which runs `ape::pcoa` with no
+    correction for negative eigenvalues. `proportion_explained` is each eigenvalue over the sum of
+    all of them, ape's `Relative_eig`. At most `n_obs - 1` axes are returned, and axis signs are
+    arbitrary, in R too. With `inplace=True` the coordinates go to `obsm["X_pcoa"]` and the axes to
+    `uns["biotapy"]["pcoa"]`.
+
+    ## NMDS
+
+    `bt.tl.nmds` runs scikit-learn's non-metric SMACOF on the stored distances and keeps the best
+    of 20 random starts, as `vegan::metaMDS` does by default. vegan then rotates and rescales its
+    result (`postMDS`); biotapy does not, so compare configurations up to rotation and scale. With
+    `inplace=True`: `obsm["X_nmds"]` and `uns["biotapy"]["nmds"]["stress"]`.
+
+    ## PERMANOVA
+
+    `bt.tl.permanova(tdata, grouping)` tests whether the groups in `obs[grouping]` differ, like
+    `vegan::adonis2(distance ~ grouping, data)`. The pseudo-F statistic matches vegan exactly;
+    p-values come from permutations and agree only up to that noise. Drop samples with a missing
+    group first.
+
+    ## After filtering
+
+    `pp.filter_features` and `pp.rarefy` drop stored distances and ordinations, including
+    `uns["biotapy"]["pcoa"]` and `["nmds"]`, since they described the old features.
+    `pp.filter_samples` keeps them, subset to the remaining samples: distances stay valid, but an
+    ordination is not recomputed, so run `tl.pcoa` again for the ordination of the subset.
+    ````
+  - `docs/guide/data_model.md`:
+    - the `uns["biotapy"]` row becomes
+      `` | `uns["biotapy"]` | biotapy's own bookkeeping, and ordination summaries | `x_kind`, `provenance`, `pcoa`, `nmds` | ``;
+    - in "What survives a filter or an aggregation", "`varm`, `varp`, and every
+      `uns` key other than `uns["biotapy"]`" becomes "`varm`, `varp`, the
+      ordination summaries `uns["biotapy"]["pcoa"]` and `["nmds"]`, and every
+      `uns` key other than `uns["biotapy"]`".
+  - `docs/guide/filtering.md`: "every entry in `layers`, `obsm` and `obsp`."
+    becomes "every entry in `layers`, `obsm` and `obsp`, and the ordination
+    summaries in `uns["biotapy"]`."
+- [x] **Step 6: Knowledge.**
+  - `contracts/data-model-slots.md`:
+    - The Slots row `uns["biotapy"]` keys become: `x_kind`, `provenance`,
+      `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`).
+    - Propagation, Feature-changing row:
+      - Keeps "`uns["biotapy"]`" becomes "`uns["biotapy"]["x_kind"]` and `["provenance"]`".
+      - Drops gains "`uns["biotapy"]["pcoa"]`, `["nmds"]`".
+  - `.knowledge/modules/core.md`: in the `feature_subset` invariant, "every
+    `uns` key except `biotapy`" becomes "every `uns` key except `biotapy`, and
+    every `uns["biotapy"]` key except `x_kind` and `provenance`
+    (`_slots.py:KEPT_META`)".
+  - `decisions/optional-heavy-dependencies.md`:
+    - "scikit-learn (Phase 1, NMDS - pending approval)" becomes
+      "scikit-learn (`>=1.8`, Phase 1, NMDS)";
+    - add: "Task 1.17 added scikit-learn (`>=1.8`, approved 2026-09-27):
+      scikit-bio has no non-metric MDS, and 1.8 renamed `dissimilarity` to
+      `metric`. It brings joblib, threadpoolctl and cloudpickle, and adds
+      about 0.15 s to `import biotapy`."
+  - `decisions/pure-by-default.md`, a verified decision, so edit it only
+    because the user approves this plan's ruling. Add a Consequences bullet:
+    "`tl.permanova` returns a test result, not per-sample or per-pair values,
+    so it has no slot and no `inplace`. No `tl` function takes `key_added`
+    until a use case needs one (rules.md R2.3)."
+  - Add a log line. Tick 1.17 here.
+- [x] **Step 7: Run, gate and commit.**
+  - Tests: `uv run --group test pytest tests/tl tests/core tests/pp -q`.
+  - Golden:
+    `uv run --group test pytest -m golden tests/tl/test_ordination_golden.py tests/tl/test_permanova_golden.py -q`.
+    Expect 3 passed. PERMANOVA takes about 10 s at 9,999 permutations, and
+    NMDS about 5 s.
+  - Record `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1` in
+    the report (R10.1; the prototype measured about 1.3 s, unchanged).
+  - The three gates.
+  - Commit `feat(tl): add PCoA, NMDS and PERMANOVA`, staging `uv.lock`
+    together with `pyproject.toml`.
+
+### Checkpoint C - review slice 1C
+- [x] Review the whole slice (superpowers:requesting-code-review) against:
+  - every contract: function-shape, data-model-slots, module-boundaries,
+    tree-access and r-golden-parity;
+  - the pure-by-default decision;
+  - the slice 1C review focus.
+
+  Then a fix pass, one commit per finding, each with a test.
+- [x] Knowledge: write the `Module` concept `.knowledge/modules/tl.md` with the
+  codebase-map template:
+  - **Responsibility:** diversity, ordination and PERMANOVA over `obsp`; owns
+    no reader and no transform.
+  - **Entry points:** the six functions, and `_beta.py:stored_distances`.
+  - **Invariants:**
+    - `inplace` writes only the data-model-slots keys;
+    - scikit-bio gets dense input, `alpha` in chunks of `2**20` values;
+    - trees come only from `_core.get_skbio_tree`;
+    - `pcoa` returns at most `n_obs - 1` axes, and its proportions divide by
+      the trace;
+    - `nmds` keeps the best of 20 starts;
+    - `permanova` has no `inplace`.
+  - **Dependencies:** `_core` (`as_csr`, `require_counts`, `get_skbio_tree`,
+    `as_generator`), scikit-bio and scikit-learn.
+  - **Verification:** `uv run --group test pytest tests/tl -q`, and
+    `-m golden tests/tl` with a pooch cache.
+  - **Gotchas:**
+    - the all-zero-sample results per metric;
+    - PCoA axis signs are arbitrary, and tests align them per axis;
+    - NMDS on toy is degenerate (stress 0.002), so tests use planar points;
+    - the PERMANOVA golden test takes about 10 s at 9,999 permutations.
+
+  Add its line to `modules/index.md`, and a log line.
+- [ ] Push `phase-1c` and open the PR, after the user approves that push (R13.3).
+  The PR's CI must be green, including the network/golden job and the Python
+  3.14 jobs.
+- [ ] Ask the user to review slice 1C before slice 1D.
 
 ---
 

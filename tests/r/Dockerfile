@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN Rscript -e 'install.packages("BiocManager")' \
     && Rscript -e 'BiocManager::install(version = "3.22", ask = FALSE, update = FALSE)'
 RUN Rscript -e 'BiocManager::install("phyloseq", version = "3.22", ask = FALSE, update = FALSE)'
-RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE))'
+# picante (CRAN, same P3M snapshot): the Faith PD golden file. vegan and ape come with phyloseq.
+RUN Rscript -e 'install.packages("picante")'
+RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE))'
 WORKDIR /work
 CMD ["Rscript", "tests/r/export_golden.R"]

@@ -5,8 +5,8 @@ description: Only biotapy/_core/_tree.py imports treedata or networkx, so a Tree
 tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T10:23:10Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:33:04Z }
+commit: 6f3d626
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json
@@ -24,8 +24,9 @@ sources:
 2. It owns: constructing a TreeData (`make_treedata`), building a tree from an
    edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), Newick
    parsing (`tree_from_newick`), building a tree from an ape `phylo` edge
-   matrix (`tree_from_phylo`), listing tips (`tree_tips`), and relabeling
-   tips (`relabel_tips`).
+   matrix (`tree_from_phylo`), listing tips (`tree_tips`), relabeling
+   tips (`relabel_tips`), and converting the phylogeny to a scikit-bio
+   `TreeNode` (`get_skbio_tree`).
 3. Newick parsing reuses scikit-bio (`TreeNode.read([text], convert_underscores=False)`);
    biotapy never writes its own parser.
 4. `treedata` is pinned to `>=0.3.1,<0.4` in `pyproject.toml`.
@@ -78,6 +79,9 @@ reaches past the helpers.[^spec]
   phyloseq-derived tree (`io.read_phyloseq`) and a Newick-derived one
   (`io.read_biom`/`read_qiime2`/`read_dada2`) name their internal nodes the
   same way. A missing `edge.length` becomes `nan`, same as `tree_from_newick`.
+- scikit-bio's Faith PD and UniFrac need a root with at most two children, so
+  `get_skbio_tree` splits a wider root with a zero-length node, and phyloseq
+  instead roots an unrooted tree at a random tip.
 
 [^treedata]: treedata 0.3.1 on PyPI
 [^spec]: Python Microbiome Toolkit development report, section Risks

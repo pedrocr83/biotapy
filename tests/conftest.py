@@ -17,6 +17,8 @@ def _assert_unchanged(before: AnnData, after: AnnData) -> None:
         assert (as_csr(before.layers[key]) != as_csr(after.layers[key])).nnz == 0, key
     before_meta = before.uns.get("biotapy", {})
     after_meta = after.uns.get("biotapy", {})
+    # A stray write such as uns["biotapy"]["pcoa"] from a call with inplace=False.
+    assert set(before_meta) == set(after_meta), "uns['biotapy']"
     assert before_meta.get("x_kind") == after_meta.get("x_kind")
     # provenance survives an h5 round-trip as an ndarray of str rather than a list.
     before_provenance = [str(entry) for entry in before_meta.get("provenance", [])]

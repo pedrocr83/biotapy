@@ -33,6 +33,22 @@ def test_require_counts_rejects_relative():
         require_counts(adata, func="pp.rarefy")
 
 
+def test_require_counts_rejects_non_integer_values():
+    adata = _adata()
+    adata.X = sp.csr_matrix(np.array([[0.0, 2.0, 1.0], [3.0, 4.0, 5.0]]))
+    require_counts(adata, func="pp.rarefy")  # whole numbers stored as float pass
+    adata.X = sp.csr_matrix(np.array([[0.0, 0.5, 1.0], [3.0, 4.0, 5.0]]))
+    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer or missing"):
+        require_counts(adata, func="pp.rarefy")
+
+
+def test_require_counts_rejects_nan_values():
+    adata = _adata()
+    adata.X = sp.csr_matrix(np.array([[0.0, np.nan, 1.0], [3.0, 4.0, 5.0]]))
+    with pytest.raises(ValueError, match=r"missing \(NaN\)"):
+        require_counts(adata, func="pp.rarefy")
+
+
 def test_add_provenance_appends_json_entries():
     adata = _adata()
     add_provenance(adata, "pp.a", rank="genus")
@@ -55,6 +71,10 @@ def test_feature_subset_leaves_input_alone():
     assert adata.n_vars == 3 and "relative" in adata.layers and "other" in adata.uns
 
 
+def test_feature_subset_keeps_x():
+    np.testing.assert_array_equal(feature_subset(_adata(), np.array([0, 2])).X.toarray(), [[0, 2], [3, 5]])
+
+
 def test_infer_x_kind_whole_numbers_are_counts():
     assert infer_x_kind(sp.csr_matrix(np.array([[1.0, 0.0], [2.0, 3.0]]))) == "counts"
 
@@ -75,3 +95,14 @@ def test_infer_x_kind_other_values_are_abundance():
 
 def test_infer_x_kind_row_sum_outside_tolerance_is_abundance():
     assert infer_x_kind(sp.csr_matrix(np.array([[0.25, 0.75], [0.4, 0.598]]))) == "abundance"
+
+
+def test_feature_subset_drops_ordination_metadata():
+    adata = _adata()
+    adata.uns["biotapy"] = {
+        "x_kind": "counts",
+        "provenance": ["{}"],
+        "pcoa": {"eigenvalues": np.ones(2)},
+        "nmds": {"stress": 0.1},
+    }
+    assert feature_subset(adata, np.array([0])).uns["biotapy"] == {"x_kind": "counts", "provenance": ["{}"]}

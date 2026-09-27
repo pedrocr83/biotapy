@@ -5,8 +5,8 @@ description: Every function with an R equivalent is tested against gzip CSV gold
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T14:30:00Z }
-commit: c9aa76a
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T16:28:13Z }
+commit: 79402e2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -18,8 +18,9 @@ sources:
 1. Golden files are produced by `tests/r/export_golden.R`, run only inside the
    pinned container `tests/r/Dockerfile`, never in normal CI. The image
    installs only what the current golden files need (`phyloseq`, which brings
-   `Biostrings`); a new golden function that needs another package adds it in
-   its own commit (rules.md R2.3).
+   `Biostrings`, `vegan` and `ape`, plus CRAN `picante` for Faith PD); a new
+   golden function that needs another package adds it in its own commit
+   (rules.md R2.3).
 2. Output: `tests/golden/<dataset>/<function>.csv.gz`, samples as rows
    (see [samples-as-rows](/decisions/samples-as-rows.md)), plus
    `tests/golden/VERSIONS.txt` listing R and package versions. Golden files

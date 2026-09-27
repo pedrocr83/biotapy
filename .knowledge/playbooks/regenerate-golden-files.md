@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
-commit: 6fd5344
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T16:28:13Z }
+commit: 79402e2
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -30,7 +30,7 @@ From the repo root:
 ```bash
 docker build -t biotapy-golden tests/r
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
-sha256sum tests/golden/global_patterns/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > /tmp/golden-run1.sha
+sha256sum tests/golden/*/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > /tmp/golden-run1.sha
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
 sha256sum -c /tmp/golden-run1.sha
 ```
@@ -68,3 +68,7 @@ uv run --group test pytest tests/test_data_files.py -q
   `tests/r/Dockerfile`'s final `RUN Rscript -e 'stopifnot(requireNamespace(...))'`
   layer catches this at build time; keep it, and add any new package's
   `requireNamespace()` call to that check when a golden function needs one.
+- Calling `distance()` unqualified: Biostrings, attached after phyloseq, masks
+  it with IRanges' generic, so write `phyloseq::distance`.
+- Sharing one `set.seed(20260927)` across sections: every random call needs
+  its own preceding `set.seed(20260927)`, or reruns stop being bit-identical.
