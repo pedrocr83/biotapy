@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T09:42:00Z }
-commit: 625429c
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
+commit: 6fd5344
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -14,9 +14,13 @@ sources:
 ---
 
 # When
-- The pin in `tests/r/Dockerfile` (R, Bioconductor or phyloseq version) is
-  bumped. The bump is its own commit; regenerating every file is a separate,
-  following commit (rules.md R13.1).
+- The pin in `tests/r/Dockerfile` (the R base image or the Bioconductor
+  release) is bumped. This also changes which phyloseq version installs, but
+  the Dockerfile does not pin phyloseq itself: `BiocManager::install("phyloseq",
+  version = "3.22", ...)`'s `version=` is the Bioconductor release, not a
+  phyloseq version. `tests/golden/VERSIONS.txt` records the phyloseq version
+  that installed (currently 1.54.2). The bump is its own commit; regenerating
+  every file is a separate, following commit (rules.md R13.1).
 - A new golden function is added and needs its `.csv.gz` written.
 - Never for any other reason: golden files and the R-written fixtures under
   `tests/data/phyloseq/` and `tests/data/dada2/` are never hand-edited.

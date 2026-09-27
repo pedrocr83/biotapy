@@ -2415,6 +2415,9 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
    one transpose. Tests in 1.10.
 3. **Populated `refseq`.** One warning naming `Biostrings::writeXStringSet`;
    the counts, taxonomy and tree still load. Tests in 1.10.
+   > Amended 2026-09-27: shipped as a `ValueError` naming the R fix, not a
+   > warning - rdata 1.1.0 cannot parse a populated `refseq` at all. See
+   > [phyloseq-import-route](/decisions/phyloseq-import-route.md) Amendment.
 4. **`.RData` holding several objects.** `name=` selects one; without it,
    several phyloseq objects raise an error that lists their names; none
    raises. Tests in 1.10.
@@ -2617,6 +2620,14 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   - Stage the generated binaries by explicit path.
 
 ### Task 1.10: `io.read_phyloseq`
+
+> **Amended 2026-09-27 (Checkpoint B):** the `refseq` handling below (Steps 2,
+> 5, 6) plans a warned skip. The shipped behaviour is a `ValueError` naming
+> the R fix instead: rdata 1.1.0 cannot parse a populated `refseq` at all, so
+> there is no four-slots-good, one-slot-skipped result to warn and return.
+> See [phyloseq-import-route](/decisions/phyloseq-import-route.md) Amendment
+> 2026-09-27 and rules.md R7.4. The steps below are the historical plan and
+> are not rewritten.
 
 **Files:**
 - Create:
@@ -3244,7 +3255,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 ### Checkpoint B - review slice 1B stage 2
 - [ ] Whole-branch review of stage 2 against every contract and the stage-2
   review focus; fix pass.
-- [ ] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
+- [x] Knowledge: update `modules/io.md` (phyloseq and `.rds`), `modules/datasets.md`
   and `modules/core.md` (`tree_from_phylo`), plus the log.
 - [ ] The PR's CI is green, including the new network/golden job.
 - [ ] Ask the user to review slice 1B before slice 1C.

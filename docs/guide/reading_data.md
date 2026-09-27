@@ -3,6 +3,12 @@
 Readers turn a file format into a `TreeData` that follows the one
 [data model](data_model.md) every biotapy function relies on.
 
+No format below records whether its table holds counts or proportions, so
+every reader infers `uns["biotapy"]["x_kind"]` from the values: whole numbers
+are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
+(within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
+that need raw counts check this and refuse proportions.
+
 ## Example datasets
 
 `bt.datasets.global_patterns()` and `bt.datasets.enterotype()` return two
@@ -17,16 +23,11 @@ tdata = bt.datasets.global_patterns()
 ```
 
 Each is downloaded once from phyloseq's repository and cached on disk with
-[pooch](https://www.fatiando.org/pooch/); later calls reuse the cached file
-and touch the network only to check it is still there. Set `BIOTAPY_DATA_DIR`
-to change the cache directory (the default is a per-user cache directory).
-The data stays licensed to phyloseq's authors; biotapy ships none of it.
-
-No format below records whether its table holds counts or proportions, so
-every reader infers `uns["biotapy"]["x_kind"]` from the values: whole numbers
-are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
-(within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
-that need raw counts check this and refuse proportions.
+[pooch](https://www.fatiando.org/pooch/); a later call re-hashes the cached
+file and, as long as the hash still matches, reads it straight from disk with
+no network access at all. Set `BIOTAPY_DATA_DIR` to change the cache
+directory (the default is a per-user cache directory). The data stays
+licensed to phyloseq's authors; biotapy ships none of it.
 
 ## BIOM
 
