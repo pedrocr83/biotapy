@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:33:04Z }
-commit: 6f3d626
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
+commit: 795dc19
 status: stable
 ---
 
@@ -89,7 +89,8 @@ none of them back.
   on a function's output copy, never on the caller's input.
   `_slots.py:add_provenance`
 - `feature_subset` drops `layers`, `obsm`, `obsp`, `varm`, `varp` and every
-  `uns` key except `biotapy`, but does not itself touch `vart`.
+  `uns` key except `biotapy`, and every `uns["biotapy"]` key except `x_kind`
+  and `provenance` (`_slots.py:KEPT_META`), but does not itself touch `vart`.
   `_slots.py:feature_subset`, `_slots.py:DERIVED_SLOTS`. TreeData's own
   subsetting prunes the tree to the kept leaves plus their ancestors, so
   unary internal nodes survive with their original edge lengths

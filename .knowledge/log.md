@@ -1,6 +1,51 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.17 done (slice 1C's last task): `bt.tl.pcoa(adata, *,
+  distance="braycurtis", n_components=10, inplace=False) -> tuple[pd.DataFrame,
+  pd.DataFrame] | None` wraps `skbio.stats.ordination.pcoa`, asking for at most
+  `n_obs - 1` axes so `proportion_explained` divides by the trace like
+  `ape::pcoa`'s `Relative_eig`; `bt.tl.nmds(adata, *, distance="braycurtis",
+  n_components=2, seed=None, inplace=False) -> tuple[pd.DataFrame, float] |
+  None` wraps `sklearn.manifold.MDS` (non-metric SMACOF, `n_init=20`, as
+  `vegan::metaMDS`'s default `try = 20`); `bt.tl.permanova(adata, grouping, *,
+  distance="braycurtis", permutations=999, seed=None) -> pd.Series` wraps
+  `skbio.stats.distance.permanova`, with no `inplace` (it returns a test
+  result, not per-sample/per-pair values). New private
+  `tl._beta.stored_distances(adata, key) -> DistanceMatrix`, shared by all
+  three, raises `KeyError` naming the `bt.tl...` call that writes a missing
+  `obsp` key and `ValueError` on NaN distances. New `src/biotapy/tl/_ordination.py`
+  and `src/biotapy/tl/_permanova.py`. `_core.feature_subset` now keeps only
+  `x_kind` and `provenance` in `uns["biotapy"]` (`_slots.py:KEPT_META`),
+  dropping `pcoa`/`nmds` on a feature change. Added runtime dependency
+  `scikit-learn>=1.8` (approved 2026-09-27): every `MDS` argument is explicit
+  (`metric_mds=False`, `metric="precomputed"`, `n_init=20`, `init="random"`,
+  `normalized_stress="auto"`, `random_state=<int drawn from as_generator>`),
+  since scikit-learn 1.8 renamed `dissimilarity` to `metric` and changes
+  `n_init`'s and `init`'s defaults in 1.9/1.10. Confirmed against the
+  installed scikit-bio 0.7.4 and scikit-learn 1.9.1 (R2.2): `pcoa`'s
+  `OrdinationResults.samples`/`eigvals`/`proportion_explained`;
+  `permanova`'s `seed` accepts a `np.random.Generator` via
+  `skbio.util.get_rng`, and its result `Series` is indexed by `"test
+  statistic"`, `"p-value"`, `"sample size"`, `"number of groups"`, `"number
+  of permutations"`; `MDS.fit_transform`/`stress_` raise no
+  FutureWarning/DeprecationWarning with the pinned kwargs. `uv.lock` is
+  gitignored in this repo (`/uv.lock`, "resolve fresh in CI and for users; no
+  committed lockfile") so it is not staged, unlike the task brief's
+  instruction; `uv sync` added only scikit-learn, joblib, threadpoolctl and
+  cloudpickle, no other dependency moved. Amended the verified
+  [pure-by-default](decisions/pure-by-default.md) decision under the
+  controller's approved ruling: dropped the "key overridable by `key_added`"
+  clause (no `tl` function has one) and scoped "every `tl` function supports
+  both modes" to functions that return per-sample or per-pair values, since
+  `tl.permanova` does not; added a Consequences bullet recording that
+  exception. Updated [data-model-slots](contracts/data-model-slots.md) (new
+  `uns["biotapy"]` keys `pcoa`/`nmds`, and the Propagation table's Feature-changing
+  row) and [core](modules/core.md) (`feature_subset`'s invariant). Updated
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md):
+  scikit-learn is no longer "pending approval". Import time unchanged at
+  about 1.3 s (R10.1). Ticked Task 1.17's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.16 done: `bt.tl.beta(adata, *, metric="braycurtis",
   inplace=False) -> pd.DataFrame | None` wraps
   `skbio.diversity.beta_diversity` for `braycurtis` and `jaccard` (on

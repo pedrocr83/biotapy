@@ -2,6 +2,7 @@
 
 from typing import Literal, get_args
 
+import numpy as np
 import pandas as pd
 from anndata import AnnData
 from skbio import DistanceMatrix
@@ -10,6 +11,14 @@ from skbio.diversity import beta_diversity
 from biotapy._core import TreeData, as_csr, get_skbio_tree
 
 BetaMetric = Literal["braycurtis", "jaccard"]
+
+# The call that writes each obsp key, for the error raised when a key is missing.
+_WRITTEN_BY = {
+    "braycurtis": "bt.tl.beta(adata, metric='braycurtis', inplace=True)",
+    "jaccard": "bt.tl.beta(adata, metric='jaccard', inplace=True)",
+    "unweighted_unifrac": "bt.tl.unifrac(tdata, inplace=True)",
+    "weighted_unifrac": "bt.tl.unifrac(tdata, weighted=True, inplace=True)",
+}
 
 
 def beta(adata: AnnData, *, metric: BetaMetric = "braycurtis", inplace: bool = False) -> pd.DataFrame | None:
@@ -123,3 +132,16 @@ def _store(adata: AnnData, distances: DistanceMatrix, *, key: str, inplace: bool
         return frame
     adata.obsp[key] = frame.to_numpy()
     return None
+
+
+def stored_distances(adata: AnnData, key: str) -> DistanceMatrix:
+    """``obsp[key]`` as a scikit-bio DistanceMatrix; a missing key names the call that writes it."""
+    if key not in adata.obsp:
+        call = _WRITTEN_BY.get(key, "bt.tl.beta or bt.tl.unifrac with inplace=True")
+        msg = f"distance={key!r}: no obsp[{key!r}]; run {call} first"
+        raise KeyError(msg)
+    values = np.asarray(adata.obsp[key], dtype=np.float64)
+    if np.isnan(values).any():
+        msg = f"distance={key!r}: obsp[{key!r}] holds NaN, as between two all-zero samples; drop them first"
+        raise ValueError(msg)
+    return DistanceMatrix(values, ids=adata.obs_names.tolist())

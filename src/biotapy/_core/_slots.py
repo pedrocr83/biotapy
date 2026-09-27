@@ -13,6 +13,8 @@ from ._matrix import as_csr
 XKind = Literal["counts", "relative", "rpk", "cpm", "abundance"]
 ParamValue = str | int | float | bool | None
 DERIVED_SLOTS = ("layers", "obsm", "obsp", "varm", "varp")
+# The uns['biotapy'] keys that survive a feature change; the others (pcoa, nmds) described the old features.
+KEPT_META = ("x_kind", "provenance")
 # Stored proportions are rounded: enterotype's sample sums run 0.99986-1.00000
 # (decisions/phyloseq-import-route), so an exact test for 1 would call them abundances.
 RELATIVE_TOLERANCE = 1e-3
@@ -62,5 +64,6 @@ def feature_subset(adata: AnnData, index: npt.NDArray[np.intp]) -> AnnData:
         # anndata 0.13 lists X itself as layers[None]; deleting that key would delete X.
         for key in [key for key in mapping.keys() if key is not None]:
             del mapping[key]
-    out.uns = {"biotapy": out.uns.get("biotapy", {"x_kind": "counts"})}
+    meta = out.uns.get("biotapy", {"x_kind": "counts"})
+    out.uns = {"biotapy": {key: meta[key] for key in KEPT_META if key in meta}}
     return out

@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:46:59Z }
-commit: d28af22
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
+commit: 795dc19
 sources:
   - id: spec
     resource: ../../plan.md
@@ -34,7 +34,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
-| `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (eigenvalues, proportion explained) |
+| `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
 
 ## Conventions
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
@@ -73,7 +73,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 ## Propagation
 | Operation | Keeps | Drops |
 |---|---|---|
-| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, other `uns` keys |
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing | nothing |
 | Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
 

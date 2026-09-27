@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T11:37:52Z }
-commit: 8a1790e
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
+commit: 795dc19
 sources:
   - id: spec
     resource: ../../plan.md
@@ -21,7 +21,7 @@ torch or an R installation into every install is unacceptable.[^spec]
 - Core runtime deps, each added in the phase that first imports it:
   anndata, treedata (`>=0.3.1,<0.4`), networkx, numpy, scipy, pandas,
   scikit-bio (`>=0.7.4,<0.8`), matplotlib, pooch (Phase 0-1); scikit-learn
-  (Phase 1, NMDS - pending approval); mudata (Phase 2). Phase 0 added numpy; the
+  (`>=1.8`, Phase 1, NMDS); mudata (Phase 2). Phase 0 added numpy; the
   template adds `session-info2` (debug report referenced by the issue template).
   Phase 1 task 1.1 added scipy and pandas, plus the dev-only stubs
   `pandas-stubs` and `scipy-stubs` so `mypy --strict` can check them.
@@ -33,7 +33,10 @@ torch or an R installation into every install is unacceptable.[^spec]
   ([phyloseq-import-route](phyloseq-import-route.md)). Task 1.11 added pooch,
   to download and cache `datasets.global_patterns`/`enterotype` from
   phyloseq's repository at run time instead of committing its (AGPL-3) data
-  files (R6.6).
+  files (R6.6). Task 1.17 added scikit-learn (`>=1.8`, approved 2026-09-27):
+  scikit-bio has no non-metric MDS, and 1.8 renamed `dissimilarity` to
+  `metric`. It brings joblib, threadpoolctl and cloudpickle, and adds
+  about 0.15 s to `import biotapy`.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

@@ -79,3 +79,14 @@ def test_infer_x_kind_other_values_are_abundance():
 
 def test_infer_x_kind_row_sum_outside_tolerance_is_abundance():
     assert infer_x_kind(sp.csr_matrix(np.array([[0.25, 0.75], [0.4, 0.598]]))) == "abundance"
+
+
+def test_feature_subset_drops_ordination_metadata():
+    adata = _adata()
+    adata.uns["biotapy"] = {
+        "x_kind": "counts",
+        "provenance": ["{}"],
+        "pcoa": {"eigenvalues": np.ones(2)},
+        "nmds": {"stress": 0.1},
+    }
+    assert feature_subset(adata, np.array([0])).uns["biotapy"] == {"x_kind": "counts", "provenance": ["{}"]}

@@ -5515,7 +5515,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     (private; `tl` only).
   - `_core.feature_subset` keeps only `x_kind` and `provenance` in `uns["biotapy"]`.
 
-- [ ] **Step 1: Dependency.**
+- [x] **Step 1: Dependency.**
   - In `[project] dependencies`, add `"scikit-learn>=1.8",` after `"scikit-bio>=0.7.4,<0.8",`.
   - Add the mypy overrides after the pooch pair:
     ```toml
@@ -5537,7 +5537,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     prints `1.9.1` or later, and that `sklearn/py.typed` does not exist
     (R2.2). `pyproject-fmt` leaves this `pyproject.toml` unchanged, as in the
     prototype.
-- [ ] **Step 2: Failing tests.**
+- [x] **Step 2: Failing tests.**
   - Append to `tests/core/test_slots.py`:
     ```python
     def test_feature_subset_drops_ordination_metadata():
@@ -5823,11 +5823,11 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       without any bug.
     - The p-value tolerance in the PERMANOVA golden test is the contract's 0.02.
       Both sides give 1e-4, the smallest p at 9,999 permutations.
-- [ ] **Step 3: Run, expect failure.** Run `uv run --group test pytest tests/tl tests/core/test_slots.py -q`.
+- [x] **Step 3: Run, expect failure.** Run `uv run --group test pytest tests/tl tests/core/test_slots.py -q`.
   - `AttributeError: module 'biotapy.tl' has no attribute 'pcoa'` (and `nmds`, `permanova`).
   - `test_feature_subset_drops_ordination_metadata` fails with an
     `AssertionError`: the result still holds `pcoa` and `nmds`.
-- [ ] **Step 4: Implement.**
+- [x] **Step 4: Implement.**
   - `_core/_slots.py`:
     - after `DERIVED_SLOTS` add:
       ```python
@@ -6134,7 +6134,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     - `result: pd.Series = ...` in `permanova` is a typed binding, not a cast.
       scikit-bio's string annotation `'pd.Series'` resolves to `Any` under
       mypy, and returning it fails `no-any-return`.
-- [ ] **Step 5: Docs.**
+- [x] **Step 5: Docs.**
   - `docs/api.md` Tools block: add `tl.nmds`, `tl.pcoa` and `tl.permanova`.
     The block is then `tl.alpha`, `tl.beta`, `tl.nmds`, `tl.pcoa`,
     `tl.permanova`, `tl.unifrac`.
@@ -6197,7 +6197,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - `docs/guide/filtering.md`: "every entry in `layers`, `obsm` and `obsp`."
     becomes "every entry in `layers`, `obsm` and `obsp`, and the ordination
     summaries in `uns["biotapy"]`."
-- [ ] **Step 6: Knowledge.**
+- [x] **Step 6: Knowledge.**
   - `contracts/data-model-slots.md`:
     - The Slots row `uns["biotapy"]` keys become: `x_kind`, `provenance`,
       `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`).
@@ -6221,7 +6221,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     so it has no slot and no `inplace`. No `tl` function takes `key_added`
     until a use case needs one (rules.md R2.3)."
   - Add a log line. Tick 1.17 here.
-- [ ] **Step 7: Run, gate and commit.**
+- [x] **Step 7: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/tl tests/core tests/pp -q`.
   - Golden:
     `uv run --group test pytest -m golden tests/tl/test_ordination_golden.py tests/tl/test_permanova_golden.py -q`.

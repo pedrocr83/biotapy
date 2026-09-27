@@ -5,8 +5,8 @@ description: io/pp return new objects and never mutate input; tl returns results
 tags: [api, conventions]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-26T09:40:17Z }
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
+commit: 795dc19
 sources:
   - id: spec
     resource: ../../plan.md
@@ -26,11 +26,12 @@ behaviour. Confirmed by the user on 2026-09-26.
 | `io`, `datasets` | new `TreeData` / `MuData` | n/a |
 | `pp` | new `TreeData` | never |
 | `tl` (default `inplace=False`) | the result (`pd.DataFrame`, `np.ndarray`, `pd.Series`) | never |
-| `tl` with `inplace=True` | `None` | writes to the slot named in [data-model-slots](/contracts/data-model-slots.md), key overridable by `key_added` |
+| `tl` with `inplace=True` | `None` | writes to the slot named in [data-model-slots](/contracts/data-model-slots.md) |
 | `fn`, `da` | new object or result `pd.DataFrame` | never |
 | `pl` | `matplotlib.axes.Axes` | never |
 
-Every `tl` function supports both modes with identical semantics.
+Every `tl` function that returns per-sample or per-pair values supports both modes with
+identical semantics; `tl.permanova` is the exception (see Consequences).
 
 # Rejected
 - **scanpy default (`copy=False`, mutate)**: contradicts the spec's purity rule.
@@ -39,5 +40,8 @@ Every `tl` function supports both modes with identical semantics.
 
 # Consequences
 - Tests assert the input object is unchanged after every `pp`/`tl` call.
+- `tl.permanova` returns a test result, not per-sample or per-pair values, so
+  it has no slot and no `inplace`. No `tl` function takes `key_added` until a
+  use case needs one (rules.md R2.3).
 
 [^spec]: Python Microbiome Toolkit development report, section Function-level implementation

@@ -12,4 +12,5 @@ transforms
 aggregation
 filtering
 diversity
+ordination
 ```
