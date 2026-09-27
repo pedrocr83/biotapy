@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Checkpoint C closed in [phase-1-core](roadmap/phase-1-core.md):
+  the user approved pushing `phase-1c`, PR #8 merged on green CI (19/19,
+  including the network job and Python 3.14) as `5f57d27`, and the user
+  chose to continue to slice 1D, which is now being planned (R1.2a).
 * **Update**: [pure-by-default](decisions/pure-by-default.md) re-verified by
   the user as amended in Task 1.17 (no `key_added`; `tl.permanova` has no
   `inplace`); `verified.at` updated. The user also chose to keep

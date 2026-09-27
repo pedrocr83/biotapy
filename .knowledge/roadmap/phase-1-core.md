@@ -6265,10 +6265,10 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     - the PERMANOVA golden test takes about 10 s at 9,999 permutations.
 
   Add its line to `modules/index.md`, and a log line.
-- [ ] Push `phase-1c` and open the PR, after the user approves that push (R13.3).
+- [x] Push `phase-1c` and open the PR, after the user approves that push (R13.3).
   The PR's CI must be green, including the network/golden job and the Python
   3.14 jobs.
-- [ ] Ask the user to review slice 1C before slice 1D.
+- [x] Ask the user to review slice 1C before slice 1D.
 
 ---
 
