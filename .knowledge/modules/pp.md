@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:58:07Z }
-commit: e401f91
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:46:59Z }
+commit: d28af22
 status: stable
 ---
 
@@ -16,7 +16,7 @@ Owns the `bt.pp.*` verbs that transform an AnnData/TreeData's abundance
 table: `relative` (adds a layer, keeps every feature), `tax_glom`
 (aggregates features to a taxonomic rank, drops derived slots). Owns
 filtering (`filter_features`, `filter_samples`) and rarefaction (`rarefy`);
-does NOT own any diversity/ordination computation (`tl`, later phases).
+does NOT own any diversity/ordination computation (`tl`, Slice 1C).
 
 # Entry points
 

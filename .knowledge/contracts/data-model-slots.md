@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:46:59Z }
+commit: d28af22
 sources:
   - id: spec
     resource: ../../plan.md
@@ -57,7 +57,9 @@ Extends the spec's data-model table with exact keys.[^spec]
    No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
    text table), and labeling proportions `counts` would let rarefy and chao1
    run on them. Missing key means `counts`. Functions that need raw counts
-   (rarefy, chao1) call `_core.require_counts` and raise otherwise.
+   (`pp.rarefy`, and `tl.alpha` for `observed_features` and `chao1`, which
+   phyloseq's `estimate_richness` refuses on non-integers) call
+   `_core.require_counts` and raise otherwise.
 3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
    `{"step", "version", "params"}`, appended by `_core.add_provenance`.
    JSON strings, not dicts, because h5ad cannot store a list of dicts.

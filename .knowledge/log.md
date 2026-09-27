@@ -1,6 +1,33 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.15 done: `bt.tl.alpha(adata, *, metrics=(...), inplace=False)
+  -> pd.DataFrame | None` wraps `skbio.diversity.alpha_diversity` for
+  `observed_features`, `shannon` (natural log), `simpson` (Gini-Simpson),
+  `chao1` (bias-corrected) and `faith_pd` (via `_core.get_skbio_tree`).
+  `observed_features` and `chao1` require raw counts through
+  `_core.require_counts`; the others also run on relative abundances.
+  scikit-bio needs dense rows, so `X` is densified in chunks of at most
+  `2**20` values (R6.2). With `inplace=True` writes
+  `obs["alpha_<metric>"]` and returns `None`
+  ([pure-by-default](decisions/pure-by-default.md)). New package `bt.tl`,
+  with `src/biotapy/tl/__init__.py` (imports only, R4.1) and
+  `tl/_alpha.py`. Confirmed against the installed scikit-bio 0.7.4
+  (R2.2): `alpha_diversity(metric, counts, ids=..., **kwargs) -> pd.Series`;
+  `shannon(base=None)` defaults to natural log since 0.6.1, equal to
+  `base=math.e`; `chao1(bias_corrected=True)` is already the default;
+  `simpson` is `1 - sum(p**2)`; `faith_pd(counts, taxa, tree)` takes
+  `taxa=`/`tree=` as keyword args; an all-zero row gives 0 for
+  `observed_features`/`chao1`/`faith_pd` and NaN for `shannon`/`simpson`,
+  with no warning. New tests in `tests/tl/test_alpha.py` (unit,
+  Hypothesis, purity, memory-chunking) and
+  `tests/tl/test_alpha_golden.py` (against `alpha.csv.gz` and
+  `alpha_faith_pd.csv.gz` from Task 1.15a); both pass. Added
+  `docs/guide/diversity.md` and a Tools section to `docs/api.md`. Updated
+  [data-model-slots](contracts/data-model-slots.md) (`require_counts`
+  convention now names `tl.alpha`) and [pp](modules/pp.md) (`tl` ownership
+  note points at Slice 1C instead of "later phases"); ticked Task 1.15's
+  steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.15c done: `_core.get_skbio_tree(adata: AnnData) ->
   skbio.TreeNode` converts the phylogeny in `vart["phylo"]` to a scikit-bio
   `TreeNode` via `nx.bfs_edges`, rooted where the networkx tree is drawn. A

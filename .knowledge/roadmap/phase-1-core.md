@@ -4729,7 +4729,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - `AlphaMetric = Literal["observed_features", "shannon", "simpson", "chao1", "faith_pd"]`.
   - The package `bt.tl`.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
   - `tests/tl/test_alpha.py`:
     ```python
     import tracemalloc
@@ -4912,9 +4912,9 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       densification, and the test takes 0.04 s.
     - It then checks that the chunked result equals the one-chunk result on
       the non-zero columns.
-- [ ] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl -q`.
+- [x] **Step 2: Run, expect failure.** Run `uv run --group test pytest tests/tl -q`.
   It fails with `AttributeError: module 'biotapy' has no attribute 'tl'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `src/biotapy/tl/_alpha.py`:
     ```python
     """Alpha diversity: one value per sample and metric."""
@@ -5025,7 +5025,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     `__all__ = ["__version__", "datasets", "io", "pp", "tl"]`.
   - import-linter already declares the `(tl) | (fn)` layer, so `pyproject.toml`
     does not change.
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - `docs/conf.py` needs no change. Its `intersphinx_mapping` has mapped
     pandas since eb7538e, and the `nitpicky` build needs that for
     `pandas.DataFrame` in the signature: without it `-W` failed in the
@@ -5077,7 +5077,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
       distance.
     - scikit-bio needs dense input, so biotapy densifies at most 2**20 values (8 MiB) at a time.
     ````
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - `contracts/data-model-slots.md` Convention 2: "Functions that need raw
     counts (rarefy, chao1) call `_core.require_counts`" becomes "Functions
     that need raw counts (`pp.rarefy`, and `tl.alpha` for `observed_features`
@@ -5087,7 +5087,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     later phases)" becomes "(`tl`, Slice 1C)". The `tl` Module concept itself
     comes at Checkpoint C.
   - Add a log line. Tick 1.15 here.
-- [ ] **Step 6: Run, gate and commit.**
+- [x] **Step 6: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/tl -q`.
   - Golden: `uv run --group test pytest -m golden tests/tl/test_alpha_golden.py -q` (2 passed).
   - The three gates.

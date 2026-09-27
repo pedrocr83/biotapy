@@ -11,4 +11,5 @@ datasets
 transforms
 aggregation
 filtering
+diversity
 ```

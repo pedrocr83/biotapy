@@ -48,3 +48,15 @@ Public functions are listed here as they ship, from Phase 1 onward.
     pp.relative
     pp.tax_glom
 ```
+
+## Tools
+
+```{eval-rst}
+.. module:: biotapy.tl
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    tl.alpha
+```
