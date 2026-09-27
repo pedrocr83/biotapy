@@ -2455,7 +2455,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   - The DADA2 `.rds` files hold the same values as the CSV strings in
     `tests/io/test_dada2.py`.
 
-- [ ] **Step 1: Dockerfile** - `tests/r/Dockerfile`:
+- [x] **Step 1: Dockerfile** - `tests/r/Dockerfile`:
   ```dockerfile
   # syntax=docker/dockerfile:1
   # biotapy's R golden-file image (contracts/r-golden-parity). Bumping a pin here is its own commit,
@@ -2470,7 +2470,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   WORKDIR /work
   CMD ["Rscript", "tests/r/export_golden.R"]
   ```
-- [ ] **Step 2: Export script** - `tests/r/export_golden.R`:
+- [x] **Step 2: Export script** - `tests/r/export_golden.R`:
   ```r
   # Writes biotapy's R golden files and R-only test fixtures. Run only in tests/r/Dockerfile's image, from the
   # repo root: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
@@ -2555,7 +2555,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     paste0("phyloseq ", packageVersion("phyloseq"))
   ), "tests/golden/VERSIONS.txt")
   ```
-- [ ] **Step 3: Build and run** (the user approved the Docker build with this plan). From the repo root:
+- [x] **Step 3: Build and run** (the user approved the Docker build with this plan). From the repo root:
   ```bash
   docker build -t biotapy-golden tests/r
   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/work biotapy-golden
@@ -2572,7 +2572,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     The controller then rules on a documented subset.
   - Record in the report the file sizes, the build time, and
     `docker image inspect biotapy-golden --format '{{.Size}}'`.
-- [ ] **Step 4: Size guard test** - `tests/test_data_files.py`:
+- [x] **Step 4: Size guard test** - `tests/test_data_files.py`:
   ```python
   from pathlib import Path
 
@@ -2595,7 +2595,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
   Run `uv run --group test pytest tests/test_data_files.py -q`. Expect every
   test to pass. The test runs after the files exist; its job is to keep
   catching growth later.
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - Write `.knowledge/playbooks/regenerate-golden-files.md` (`type: Playbook`):
     - when to regenerate: a pin bump, or new golden functions, each in its own
       commit;
@@ -2611,7 +2611,7 @@ because it writes the `.RData`/`.rds` test fixtures the readers need.
     - Statement 2: golden files are gzip CSV (`<function>.csv.gz`), not
       parquet; the user declined `pyarrow` on 2026-09-27.
   - Add a log line.
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   - Run `uvx prek run --all-files` and `uv run --group test pytest`.
   - Commit `test(r): add the R golden container, golden files and R-written fixtures`.
   - Stage the generated binaries by explicit path.

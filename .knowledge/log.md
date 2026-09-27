@@ -1,6 +1,29 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.12a done: added the pinned R golden-file image
+  (`tests/r/Dockerfile`, `rocker/r-ver:4.5.3` + Bioconductor 3.22 +
+  phyloseq/Biostrings), `tests/r/export_golden.R` writing the GlobalPatterns
+  golden files (`relative`, `tax_glom_phylum`, `tax_glom_genus`, gzip CSV per
+  the pyarrow decline below) and R-only phyloseq/DADA2 fixtures built from
+  biotapy's `toy()` numbers, and `tests/test_data_files.py` enforcing the
+  1 MB cap (R6.6). The plan's Dockerfile needed a controller-approved fix
+  mid-task: `rocker/r-ver:4.5.3` ships no `zlib.h`/curl/xml2/ssl/glpk/gmp
+  development headers, so `BiocManager::install()` failed to compile
+  `XVector` -> `Biostrings` -> `phyloseq` from source yet still exited 0
+  (`docker build` looked green on a broken image); added an `apt-get`
+  system-library layer and a `stopifnot(requireNamespace(...))` build-time
+  check so a broken install now fails the build. Two docker builds against
+  the fixed Dockerfile were needed in total (first attempt failed without
+  the fix, second succeeded); the bit-identical rerun check passed on the
+  first attempt with the fix. Added the
+  [regenerate-golden-files](playbooks/regenerate-golden-files.md) playbook
+  and its line in [playbooks/index.md](playbooks/index.md);
+  [r-golden-parity](contracts/r-golden-parity.md) now states golden tests
+  carry both `golden` and `network` (they run in the network CI job), that
+  the image installs only what current golden files need, and that golden
+  files are gzip CSV, not parquet (pyarrow declined 2026-09-27). Ticked Task
+  1.12a's steps in [phase-1-core](roadmap/phase-1-core.md).
 * **Verification**: `human:pedrocr83` approved the slice 1B stage-2 plan, the runtime dependency pooch and a local Docker build/run for the R golden image; declined pyarrow, so golden files are gzip CSV ([phase-1-core](roadmap/phase-1-core.md)).
 * **Update**: [phase-1-core](roadmap/phase-1-core.md): Checkpoint B1 closed (PR #5 merged as c64a138, CI green incl. Python 3.14; user go-ahead). Slice 1B stage 2 expanded into TDD steps for approval: 1.12a (R container, golden files, R-written fixtures), 1.10 (read_phyloseq), 1.9b (DADA2 .rds), 1.11 (datasets via pooch + network CI job), 1.12b (golden tests); no third-party data committed.
 * **Update** (Checkpoint B1 residual N1): [data-model-slots](contracts/data-model-slots.md)
