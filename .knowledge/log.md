@@ -12,6 +12,21 @@
 * **Update**: Task 1.9b fix round 1 (I2, R12.1): `modules/io.md`'s
   `_dada2.py:read_dada2` entry point said "CSV or TSV"; now names `.rds`
   (`saveRDS`) too, matching Task 1.9b.
+* **Update**: Task 1.9b fix round 1 (deferred minors 4-6, addendum): an
+  upper-case `.RDS` path no longer makes `read_matrix_rds` emit two spurious
+  warnings (`rdata.parser.parse_file` now gets
+  `extension=path.suffix.lower()`; `load_phyloseq` was checked and needs no
+  change, since `rdata.read_rds` always passes the literal `extension=".rds"`
+  internally, confirmed empirically before deciding not to touch it);
+  `read_dada2` now casts integer `X` to `np.int64` so counts have the same
+  dtype from CSV and `.rds` input. Confirmed by temporarily reverting
+  `read_matrix_rds`'s `rename_axis` fix that
+  `test_read_dada2_rds_matches_csv`'s `obs.index.name` assertion is the only
+  one that observes it - `var.index.name` (reset unconditionally by
+  `.set_axis` in `read_dada2`) and a candidate `var.columns.name` check both
+  stayed `None` either way for these fixtures, so the existing
+  `var.index.name` assertion was kept rather than replaced. Added two more
+  Gotchas to [modules/io.md](modules/io.md).
 * **Update**: Task 1.9b done: `bt.io.read_dada2`'s `seqtab` and `taxa` accept
   `.rds` files, dispatched in `_dada2.py:_read_table` to `_rdata.py:read_matrix_rds`
   (Task 1.10). Controller ruling: fixed a deferred minor from Task 1.10 in the

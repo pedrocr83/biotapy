@@ -141,3 +141,13 @@ Task 1.11, not yet written).
   default `constructor_dict`, so a phyloseq-shaped `.rds` converts quietly to
   a `dict` instead of rdata warning once per missing S4-slot constructor
   before the `ValueError` fires (Task 1.9b fix round 1).
+- `rdata.parser.parse_file` infers a file's format from `path.suffix`
+  case-sensitively when no `extension=` is passed, so an upper-case `.RDS`
+  path made it warn twice ("Unknown file type", "Wrong extension"). Fixed by
+  passing `extension=path.suffix.lower()` in `_rdata.py:read_matrix_rds`
+  only - `_rdata.py:load_phyloseq`'s `rdata.read_rds` call was checked and is
+  unaffected, because `read_rds` always passes the literal `extension=".rds"`
+  internally regardless of the path given to it (Task 1.9b fix round 1).
+- `read_dada2` casts `X` to `np.int64` when it holds integers, so counts are
+  the same dtype whether they came from a CSV (pandas' default `int64`) or an
+  `.rds` matrix (R's 32-bit integer, `int32`) (Task 1.9b fix round 1).

@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -81,3 +82,13 @@ def test_read_phyloseq_all_zero_sample_without_sample_data():
     assert tdata.obs.columns.empty and list(tdata.obs_names) == [f"s{i}" for i in range(1, 7)]
     assert "phylo" not in tdata.vart
     assert tdata.uns["biotapy"]["x_kind"] == "counts"
+
+
+def test_read_phyloseq_reads_uppercase_rds_extension(tmp_path):
+    path = tmp_path / "toy.RDS"
+    path.write_bytes((PHYLOSEQ / "toy.rds").read_bytes())
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        tdata = bt.io.read_phyloseq(path)
+    assert not caught
+    assert tdata.shape == (6, 8)

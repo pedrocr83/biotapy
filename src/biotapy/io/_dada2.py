@@ -4,6 +4,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from biotapy._core import (
@@ -108,6 +109,9 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
         _require_sequence_tips(tree_tips(phylo), tree)
         phylo = relabel_tips(phylo, dict(zip(sequences, names, strict=True)))
     obs, X = pd.DataFrame(index=counts.index), counts.to_numpy()
+    # Independent of the input format (CSV gives int64; a .rds matrix keeps R's int32).
+    if np.issubdtype(X.dtype, np.integer):
+        X = X.astype(np.int64)
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind=infer_x_kind(X), source="io.read_dada2")
 
 

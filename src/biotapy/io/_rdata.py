@@ -102,7 +102,9 @@ def read_matrix_rds(path: Path, *, argument: str) -> pd.DataFrame:
     ``argument`` names the input in the ``ValueError`` raised when the file holds
     something other than a matrix, e.g. ``"seqtab='seqtab.rds'"``.
     """
-    parsed = rdata.parser.parse_file(path)
+    # rdata infers the extension from path.suffix by default, case-sensitively, and
+    # warns twice for e.g. ".RDS"; passing it lower-cased avoids that false positive.
+    parsed = rdata.parser.parse_file(path, extension=path.suffix.lower())
     if parsed.object.info.type is RObjectType.STR:
         attrs = convert_attrs(parsed.object, lambda node: rdata.conversion.convert(node))
         flat = [convert_char(cell, default_encoding=None, force_default_encoding=False) for cell in parsed.object.value]
