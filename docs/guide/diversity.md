@@ -46,7 +46,8 @@ bt.tl.unifrac(tdata, weighted=True, inplace=True)  # obsp["weighted_unifrac"]
   the raw value.
 - A tree whose root has three or more children is used rooted where it is drawn. phyloseq
   instead roots such a tree at a random tip, so its UniFrac changes from run to run.
-- Two all-zero samples are `NaN` apart under Bray-Curtis. Drop empty samples with
+- Two all-zero samples are `NaN` apart under Bray-Curtis and 0 apart under Jaccard
+  (scikit-bio's convention; vegan's binary Jaccard gives `NaN`). Drop empty samples with
   `bt.pp.filter_samples(tdata, 1)` before ordinating.
 - The table is densified once: 8 bytes x samples x features, plus 8 bytes x samples x samples
   for the result.

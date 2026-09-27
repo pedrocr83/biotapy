@@ -117,6 +117,18 @@ def test_unifrac_all_zero_sample_single_sample_and_missing_rank():
     assert bt.tl.unifrac(tdata, weighted=True).shape == (6, 6)
 
 
+def test_two_all_zero_samples_pin_scikit_bios_convention():
+    # scikit-bio's own values, kept as is with no custom NaN mapping (rules.md R2.1).
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    dense[[0, 1]] = 0  # s1, s2 both empty
+    tdata.X = sp.csr_matrix(dense)
+    assert np.isnan(bt.tl.beta(tdata).loc["s1", "s2"])
+    assert bt.tl.beta(tdata, metric="jaccard").loc["s1", "s2"] == 0.0
+    assert bt.tl.unifrac(tdata).loc["s1", "s2"] == 0.0
+    assert bt.tl.unifrac(tdata, weighted=True).loc["s1", "s2"] == 0.0
+
+
 def test_unifrac_inplace_writes_the_contract_keys():
     tdata = bt.datasets.toy()
     assert bt.tl.unifrac(tdata, inplace=True) is None

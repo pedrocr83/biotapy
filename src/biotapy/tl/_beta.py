@@ -28,7 +28,8 @@ def beta(adata: AnnData, *, metric: BetaMetric = "braycurtis", inplace: bool = F
     -------
     pandas.DataFrame or None
         Symmetric samples x samples distances with a zero diagonal, indexed by
-        ``obs_names``. Two all-zero samples are NaN apart under Bray-Curtis.
+        ``obs_names``. Two all-zero samples are NaN apart under Bray-Curtis and 0
+        apart under Jaccard (scikit-bio's convention; vegan's binary Jaccard gives NaN).
 
     Raises
     ------
@@ -80,6 +81,7 @@ def unifrac(
     -------
     pandas.DataFrame or None
         Symmetric samples x samples distances with a zero diagonal, indexed by ``obs_names``.
+        Two all-zero samples are 0 apart.
 
     Raises
     ------
