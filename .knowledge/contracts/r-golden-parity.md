@@ -5,8 +5,8 @@ description: Every function with an R equivalent is tested against gzip CSV gold
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T09:42:00Z }
-commit: 625429c
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T14:30:00Z }
+commit: c9aa76a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -39,6 +39,12 @@ sources:
    | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
+6. Golden files hold numbers derived from third-party example data, never the
+   raw files: those are fetched at test time by pooch. Derived numbers may be
+   complete for a dataset (`global_patterns/relative.csv.gz` holds every
+   nonzero proportion of GlobalPatterns, AGPL-3 via phyloseq); the user
+   accepted this for this BSD-3 repository on 2026-09-27. Test fixtures under
+   `tests/data/` stay synthetic.
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match
