@@ -59,7 +59,8 @@ def feature_subset(adata: AnnData, index: npt.NDArray[np.intp]) -> AnnData:
     out = adata[:, index].copy()
     for slot in DERIVED_SLOTS:
         mapping = getattr(out, slot)
-        for key in list(mapping.keys()):
+        # anndata 0.13 lists X itself as layers[None]; deleting that key would delete X.
+        for key in [key for key in mapping.keys() if key is not None]:
             del mapping[key]
     out.uns = {"biotapy": out.uns.get("biotapy", {"x_kind": "counts"})}
     return out

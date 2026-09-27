@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
-commit: 6fd5344
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:36:43Z }
+commit: c0b860e
 status: stable
 ---
 
@@ -125,6 +125,11 @@ it properly (rules.md R10.1: no optimization without a measurement).
 
 # Gotchas
 
+- anndata 0.13 exposes `X` as `layers[None]`: `list(adata.layers.keys())`
+  includes `None`, and deleting that key deletes `X`. `feature_subset`
+  skips it. Before Task 1.13 it returned `X=None`, which `pp.tax_glom` hid
+  by reassigning `out.X` (`_slots.py:feature_subset`,
+  `tests/core/test_slots.py:test_feature_subset_keeps_x`).
 - `mypy --strict` type-checks `treedata` and `skbio` through
   `follow_untyped_imports` (`pyproject.toml` `[[tool.mypy.overrides]]`), not
   `ignore_missing_imports`: neither ships `py.typed`, and

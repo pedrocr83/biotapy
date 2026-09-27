@@ -1,6 +1,12 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.13 step 1: fixed a pre-existing `_core.feature_subset`
+  bug found while prototyping slice 1C - anndata 0.13 lists `X` itself as
+  `layers[None]`, so deleting every `layers` key deleted `X` too;
+  `feature_subset` now skips the `None` key. New test
+  `tests/core/test_slots.py:test_feature_subset_keeps_x`. Gotcha added to
+  [core](modules/core.md).
 * **Update**: Task 1.15a done: added CRAN `picante` to the `biotapy-golden`
   image (own commit); `export_golden.R` gains the slice 1C block (filtering,
   rarefaction, alpha/Faith PD, Bray-Curtis/Jaccard, UniFrac on GlobalPatterns

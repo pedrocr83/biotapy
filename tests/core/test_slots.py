@@ -55,6 +55,10 @@ def test_feature_subset_leaves_input_alone():
     assert adata.n_vars == 3 and "relative" in adata.layers and "other" in adata.uns
 
 
+def test_feature_subset_keeps_x():
+    np.testing.assert_array_equal(feature_subset(_adata(), np.array([0, 2])).X.toarray(), [[0, 2], [3, 5]])
+
+
 def test_infer_x_kind_whole_numbers_are_counts():
     assert infer_x_kind(sp.csr_matrix(np.array([[1.0, 0.0], [2.0, 3.0]]))) == "counts"
 
