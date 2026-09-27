@@ -47,8 +47,8 @@ def alpha(
     TypeError
         ``metrics`` is a string, or ``"faith_pd"`` is asked of an AnnData that is not a TreeData.
     ValueError
-        ``metrics`` is empty or names an unknown metric, or ``"observed_features"``
-        or ``"chao1"`` is asked of data that is not counts.
+        ``metrics`` is empty, names an unknown metric or repeats one, or
+        ``"observed_features"`` or ``"chao1"`` is asked of data that is not counts.
     KeyError
         ``"faith_pd"`` is asked of a TreeData without ``vart['phylo']``.
 
@@ -95,6 +95,10 @@ def _check_metrics(adata: AnnData, metrics: Sequence[str]) -> None:
     known = get_args(AlphaMetric)
     if not metrics or any(metric not in known for metric in metrics):
         msg = f"metrics must name one or more of {list(known)}, got {list(metrics)}"
+        raise ValueError(msg)
+    repeated = [metric for metric in known if list(metrics).count(metric) > 1]
+    if repeated:
+        msg = f"metrics repeats {repeated}; name each metric once"
         raise ValueError(msg)
     needs_counts = [metric for metric in metrics if metric in ("observed_features", "chao1")]
     if needs_counts:

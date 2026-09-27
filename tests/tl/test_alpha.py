@@ -114,6 +114,11 @@ def test_unknown_or_empty_metrics_raise():
         bt.tl.alpha(bt.datasets.toy(), metrics=[])
 
 
+def test_repeated_metrics_raise():
+    with pytest.raises(ValueError, match=r"metrics repeats \['shannon'\]"):
+        bt.tl.alpha(bt.datasets.toy(), metrics=["shannon", "simpson", "shannon"])
+
+
 def test_count_metrics_need_counts_others_do_not():
     rel = bt.datasets.toy()
     rel.uns["biotapy"]["x_kind"] = "relative"
