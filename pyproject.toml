@@ -75,6 +75,20 @@ doc = [
 ]
 
 [tool.hatch]
+# Development-only files (rules.md, plan.md, .knowledge/, tests/r/, scripts/, .github/)
+# stay in the GitHub repo but are not part of what ships to PyPI.
+build.targets.sdist.include = [
+  "/CHANGELOG.md",
+  "/docs",
+  "/src/biotapy",
+  "/tests",
+]
+build.targets.sdist.exclude = [
+  "/docs/_build",
+  "/docs/generated",
+  "/docs/jupyter_execute",
+  "/tests/r",
+]
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
 envs.docs.scripts.build = "sphinx-build -M html docs docs/_build -W {args}"
