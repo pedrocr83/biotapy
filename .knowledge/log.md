@@ -411,6 +411,13 @@
   [tree-access](contracts/tree-access.md) statement 2. Updated
   `docs/guide/reading_data.md` (new "DADA2" section) and `docs/api.md`;
   ticked Task 1.9's steps in [phase-1-core](roadmap/phase-1-core.md).
+* **Update** (Checkpoint C): the whole-slice review (opus) of slice 1C and its
+  fix pass (4a5adaf..0dd46d5, plus this follow-up) are done: `tl.permanova`'s
+  stray f-string prefix, `_core.require_counts`'s message now naming the NaN
+  case, and `tl.alpha`'s docstring/`docs/guide/diversity.md` now counting
+  `faith_pd`'s int64 presence copy. Ticked Checkpoint C's review item in
+  [phase-1-core](roadmap/phase-1-core.md); its push and user-review items
+  stay open.
 
 ## 2026-09-26
 * **Update**: Task 1.8 done: added `bt.io.read_qiime2(table, *, taxonomy=None,

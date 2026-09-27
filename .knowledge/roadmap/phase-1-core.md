@@ -6234,7 +6234,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     together with `pyproject.toml`.
 
 ### Checkpoint C - review slice 1C
-- [ ] Review the whole slice (superpowers:requesting-code-review) against:
+- [x] Review the whole slice (superpowers:requesting-code-review) against:
   - every contract: function-shape, data-model-slots, module-boundaries,
     tree-access and r-golden-parity;
   - the pure-by-default decision;
