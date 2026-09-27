@@ -32,6 +32,8 @@ def rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Ge
 
     Raises
     ------
+    TypeError
+        ``depth`` is given and is not an integer.
     ValueError
         ``X`` does not hold counts, ``depth`` is below 1, or no sample has ``depth`` reads.
 
@@ -58,9 +60,12 @@ def rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Ge
     [60, 60, 60, 60, 60, 60]
     """
     require_counts(adata, func="pp.rarefy")
+    if depth is not None and (isinstance(depth, bool) or not isinstance(depth, int | np.integer)):
+        msg = f"depth= must be an integer, got {depth}"
+        raise TypeError(msg)
     X = as_csr(adata.X)
     sums = np.asarray(X.sum(axis=1)).ravel()
-    depth = _smallest_nonzero(sums) if depth is None else depth
+    depth = _smallest_nonzero(sums) if depth is None else int(depth)
     if depth < 1:
         msg = f"depth must be at least 1, got {depth}"
         raise ValueError(msg)
@@ -80,7 +85,7 @@ def rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Ge
     return out
 
 
-def _smallest_nonzero(sums: npt.NDArray[np.float64]) -> int:
+def _smallest_nonzero(sums: npt.NDArray[np.int64]) -> int:
     # phyloseq's default is min(sample_sums(physeq)); skipping empty samples drops them instead of
     # rarefying everything to 0. With every sample empty this is 1, and the caller's no-sample check raises.
     nonzero = sums[sums > 0]
@@ -95,6 +100,7 @@ def _subsample_rows(X: sp.csr_matrix, depth: int, rng: np.random.Generator) -> s
             for start, end in zip(X.indptr[:-1], X.indptr[1:], strict=True)
         ]
     )
-    out = sp.csr_matrix((data, X.indices.copy(), X.indptr.copy()), shape=X.shape)
+    # subsample_counts returns the platform's default int (int32 on Windows); pin int64 explicitly.
+    out = sp.csr_matrix((data.astype(np.int64, copy=False), X.indices.copy(), X.indptr.copy()), shape=X.shape)
     out.eliminate_zeros()
     return out

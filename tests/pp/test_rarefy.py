@@ -100,6 +100,12 @@ def test_depth_below_one_raises():
         bt.pp.rarefy(bt.datasets.toy(), depth=0)
 
 
+@pytest.mark.parametrize("depth", [5.5, True])
+def test_non_integer_depth_raises(depth):
+    with pytest.raises(TypeError, match="depth= must be an integer, got"):
+        bt.pp.rarefy(bt.datasets.toy(), depth=depth)
+
+
 def test_depth_above_every_sample_raises():
     with pytest.raises(ValueError, match="depth=1000"):
         bt.pp.rarefy(bt.datasets.toy(), depth=1000)
