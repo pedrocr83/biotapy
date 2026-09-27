@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 import biotapy as bt
@@ -25,6 +26,11 @@ def test_global_patterns_downloads_and_loads():
     tree = tdata.vart["phylo"]
     assert tdata.shape == (26, 19216) and sum(1 for n in tree.nodes if tree.out_degree(n) == 0) == 19216
     assert tdata.uns["biotapy"]["x_kind"] == "counts" and "phylum" in tdata.var.columns
+
+
+@pytest.mark.network
+def test_global_patterns_sample_type_is_categorical():
+    assert isinstance(bt.datasets.global_patterns().obs["SampleType"].dtype, pd.CategoricalDtype)
 
 
 @pytest.mark.network

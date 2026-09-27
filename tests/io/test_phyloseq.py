@@ -122,3 +122,24 @@ def test_read_phyloseq_reads_uppercase_rds_extension(tmp_path):
         tdata = bt.io.read_phyloseq(path)
     assert not caught
     assert tdata.shape == (6, 8)
+
+
+def test_read_phyloseq_keeps_ordered_factor_with_unused_level():
+    level = bt.io.read_phyloseq(PHYLOSEQ / "ordered_factor.rds").obs["level"]
+    assert isinstance(level.dtype, pd.CategoricalDtype)
+    assert level.cat.ordered
+    assert level.cat.categories.tolist() == ["low", "mid", "high", "unused"]
+
+
+def test_read_phyloseq_ordered_factor_round_trips_through_h5td(tmp_path):
+    tdata = bt.io.read_phyloseq(PHYLOSEQ / "ordered_factor.rds")
+    tdata.write_h5td(tmp_path / "x.h5td")
+    back = treedata.read_h5td(tmp_path / "x.h5td")
+    level = back.obs["level"]
+    assert isinstance(level.dtype, pd.CategoricalDtype)
+    assert level.cat.ordered and level.cat.categories.tolist() == ["low", "mid", "high", "unused"]
+    assert level.astype(str).tolist() == tdata.obs["level"].astype(str).tolist()
+
+
+def test_read_phyloseq_ordered_factor_fixture_x_is_int64():
+    assert bt.io.read_phyloseq(PHYLOSEQ / "ordered_factor.rds").X.dtype == np.int64

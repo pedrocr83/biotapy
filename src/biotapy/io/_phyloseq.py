@@ -90,6 +90,9 @@ def _counts(otu: Any, path: str | Path) -> tuple[sp.csr_matrix, list[str], list[
     array, taxa_are_rows = otu
     rows, columns = ([str(v) for v in array.coords[dim].values] for dim in array.dims)
     values = np.asarray(array.values)
+    # Independent of otu_table's R storage mode (double or integer): counts are int64.
+    if np.issubdtype(values.dtype, np.integer):
+        values = values.astype(np.int64)
     # Samples are rows (R6.1): transpose once when phyloseq stored taxa as rows.
     return (as_csr(values.T), columns, rows) if taxa_are_rows else (as_csr(values), rows, columns)
 
@@ -98,5 +101,8 @@ def _text_columns(frame: pd.DataFrame) -> pd.DataFrame:
     # dataframe_constructor gives R character columns pd.NA-backed strings; read_qiime2's
     # NaN-backed dtype (._qiime2._TEXT) is what round-trips through h5td (h5py cannot
     # write an all-missing object column, and pd.NA behaves differently there than NaN).
-    text = [column for column in frame.columns if pd.api.types.is_string_dtype(frame[column])]
+    # pd.api.types.is_string_dtype is also True for a Categorical of strings (pandas
+    # 3.0.6), which would silently flatten an R factor's order/levels, so only the
+    # dtypes that are really text are cast: pandas' own string dtype, and plain object.
+    text = [c for c in frame.columns if isinstance(frame[c].dtype, pd.StringDtype) or frame[c].dtype == object]
     return frame.astype(dict.fromkeys(text, _TEXT)) if text else frame
