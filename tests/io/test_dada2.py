@@ -1,9 +1,15 @@
 import numpy as np
+import pandas as pd
 import pytest
+import treedata
 
 import biotapy as bt
 
 SEQTAB = '"","ACGTACGT","TTGACCAA","GGGCCCAA","CCCCAAAA"\n"S1",10,0,5,0\n"S2",0,0,0,0\n"S3",3,7,1,0\n'
+SPECIES_UNKNOWN = (
+    '"","Kingdom","Species"\n'
+    '"ACGTACGT","Bacteria",NA\n"TTGACCAA","Bacteria",NA\n"GGGCCCAA","Bacteria",NA\n"CCCCAAAA","Bacteria",NA\n'
+)
 TAXA = '"","Kingdom","Phylum","Genus"\n"ACGTACGT","Bacteria","Firmicutes","Blautia"\n"TTGACCAA","Bacteria","Bacteroidota",NA\n'
 
 
@@ -38,6 +44,17 @@ def test_read_dada2_normalizes_taxa(seqtab, taxa):
     assert {"kingdom", "phylum", "genus", "sequence"} <= set(var.columns)
     assert var.loc["ASV1", "genus"] == "Blautia" and np.isnan(var.loc["ASV2", "genus"])
     assert var.loc["ASV3", ["kingdom", "phylum", "genus"]].isna().all()
+
+
+def test_read_dada2_output_saves_to_h5td(seqtab, tmp_path):
+    taxa = tmp_path / "species_unknown.csv"
+    taxa.write_text(SPECIES_UNKNOWN)
+    tdata = bt.io.read_dada2(seqtab, taxa=taxa)
+    assert tdata.var["species"].isna().all()
+    expected = tdata.var.copy()  # the writer turns str columns into categoricals in place
+    tdata.write_h5td(tmp_path / "x.h5td")
+    back = treedata.read_h5td(tmp_path / "x.h5td")
+    pd.testing.assert_frame_equal(back.var.astype("str"), expected)
 
 
 def test_read_dada2_reads_tsv(tmp_path):

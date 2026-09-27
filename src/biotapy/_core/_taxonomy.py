@@ -2,7 +2,6 @@
 
 import re
 
-import numpy as np
 import pandas as pd
 from anndata import AnnData
 
@@ -54,13 +53,14 @@ def _require_distinct_ranks(frame: pd.DataFrame) -> None:
 def normalize_ranks(frame: pd.DataFrame) -> pd.DataFrame:
     """Canonical lowercase rank columns with missing values as NaN (contracts/data-model-slots).
 
-    Column order is kept.
+    Column order is kept. Rank columns use the pandas ``str`` dtype.
     """
     _require_distinct_ranks(frame)
     out = frame.rename(columns=_canonical)
     for rank in [column for column in out.columns if column in RANKS]:
         values = out[rank].astype("string").str.strip().str.replace(_PREFIX, "", regex=True)
-        out[rank] = values.astype(object).mask(values.isna() | values.isin(_MISSING), np.nan)
+        # "str" (NaN for missing), not object: h5py cannot write an all-NaN object column.
+        out[rank] = values.mask(values.isna() | values.isin(_MISSING)).astype("str")
     return out
 
 

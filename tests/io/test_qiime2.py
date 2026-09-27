@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 import pytest
+import treedata
 
 import biotapy as bt
 
@@ -31,6 +33,15 @@ def test_read_qiime2_table(table_qza):
     tdata = bt.io.read_qiime2(table_qza)
     assert tdata.shape == (3, 4) and list(tdata.obs_names) == ["S1", "S2", "S3"]
     assert tdata.uns["biotapy"]["x_kind"] == "counts"
+
+
+def test_read_qiime2_output_saves_to_h5td(table_qza, tmp_path):
+    tdata = bt.io.read_qiime2(table_qza)
+    assert tdata.var["species"].isna().all()
+    expected = tdata.var.copy()  # the writer turns str columns into categoricals in place
+    tdata.write_h5td(tmp_path / "x.h5td")
+    back = treedata.read_h5td(tmp_path / "x.h5td")
+    pd.testing.assert_frame_equal(back.var.astype("str"), expected)
 
 
 def test_read_qiime2_taxonomy(table_qza, make_qza):

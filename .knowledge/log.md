@@ -1,6 +1,9 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint B1 fix C1): [data-model-slots](contracts/data-model-slots.md)
+  convention 1 now states that rank columns use the pandas `str` dtype, so
+  reader output with an all-missing rank saves to h5td/h5ad.
 * **Update**: Task 1.9 done: added `bt.io.read_dada2(seqtab, taxa=None, *,
   tree=None) -> TreeData`, the last reader in slice 1B stage 1, reading a
   DADA2 sequence table (CSV or TSV, samples x sequences) as R's `write.csv`

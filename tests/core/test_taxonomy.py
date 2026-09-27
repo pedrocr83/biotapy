@@ -82,6 +82,12 @@ def test_normalize_ranks_canonicalizes_names_and_missing_values():
     assert out["sequence"].tolist() == ["AC", "GT", "TT"]
 
 
+def test_normalize_ranks_stores_ranks_as_str_even_when_all_missing():
+    out = normalize_ranks(pd.DataFrame({"Genus": ["g__", "NA"], "Species": [np.nan, np.nan]}))
+    assert out["genus"].dtype == "str" and out["species"].dtype == "str"
+    assert out[["genus", "species"]].isna().all().all()
+
+
 def test_normalize_ranks_leaves_input_alone():
     frame = pd.DataFrame({"Genus": ["g__Blautia"]})
     normalize_ranks(frame)

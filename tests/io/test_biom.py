@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
+import treedata
 from biom.exception import TableException
 from biom.util import biom_open
 
@@ -69,6 +70,15 @@ def test_read_biom_without_taxonomy_has_no_rank_columns(tmp_path, biom_table):
     assert not set(bt.io.read_biom(path).var.columns) & {"kingdom", "phylum"}
 
 
+def test_read_biom_output_saves_to_h5td(biom_hdf5, tmp_path):
+    tdata = bt.io.read_biom(biom_hdf5)
+    assert tdata.var["species"].isna().all()
+    expected = tdata.var.copy()  # the writer turns str columns into categoricals in place
+    tdata.write_h5td(tmp_path / "x.h5td")
+    back = treedata.read_h5td(tmp_path / "x.h5td")
+    pd.testing.assert_frame_equal(back.var.astype("str"), expected)
+
+
 def test_read_biom_records_counts_and_provenance(biom_hdf5):
     meta = bt.io.read_biom(biom_hdf5).uns["biotapy"]
     assert meta["x_kind"] == "counts" and '"io.read_biom"' in meta["provenance"][-1]
@@ -82,9 +92,7 @@ def test_write_biom_round_trips_toy(tmp_path, fmt):
     back = bt.io.read_biom(path)
     assert list(back.obs_names) == list(toy.obs_names) and list(back.var_names) == list(toy.var_names)
     np.testing.assert_array_equal(back.X.toarray(), toy.X.toarray())
-    pd.testing.assert_frame_equal(
-        back.var[RANK_COLUMNS].fillna("-"), toy.var[RANK_COLUMNS].fillna("-"), check_dtype=False
-    )
+    pd.testing.assert_frame_equal(back.var[RANK_COLUMNS].fillna("-"), toy.var[RANK_COLUMNS].fillna("-"))
     assert back.obs["group"].tolist() == toy.obs["group"].astype(str).tolist()
 
 

@@ -40,6 +40,10 @@ Extends the spec's data-model table with exact keys.[^spec]
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
    bare prefixes (`"g__"`) to `NaN`, strip `k__`-style prefixes, and map rank
    aliases (`domain` -> `kingdom`) to the canonical lowercase names.
+   Rank columns use the pandas `str` dtype (missing value `NaN`), never
+   `object`: anndata's h5ad/h5td writer rejects an all-`NaN` `object` column,
+   so a reader whose `species` rank is entirely missing could not be saved
+   (`_core/_taxonomy.py:normalize_ranks`).
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
    Readers always set it. Missing key means `counts`. Functions that need raw
    counts (rarefy, chao1) call `_core.require_counts` and raise otherwise.
