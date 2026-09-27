@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 0fdbd4d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T07:28:41Z }
+commit: 43d6efb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -30,7 +30,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
 | `layers` | same-shape transforms of `X` | `relative`, `clr` |
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
-| `var` | taxonomy, one lowercase column per rank; sequences | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence` |
+| `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column) |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
@@ -40,14 +40,33 @@ Extends the spec's data-model table with exact keys.[^spec]
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
    bare prefixes (`"g__"`) to `NaN`, strip `k__`-style prefixes, and map rank
    aliases (`domain` -> `kingdom`) to the canonical lowercase names.
+   Rank columns use `pd.StringDtype(na_value=np.nan)` - pandas 3's `str`
+   dtype, spelled out because `astype("str")` on pandas 2.3 gives `object`
+   with every missing value turned into the text `"<NA>"` - never
+   `object`: anndata's h5ad/h5td writer rejects an all-`NaN` `object` column,
+   so a reader whose `species` rank is entirely missing could not be saved
+   (`_core/_taxonomy.py:normalize_ranks`). This holds for every reader's
+   output; it does not (yet) hold after `pp.tax_glom`, whose emptied ranks
+   below the target rank are pandas' default float64 NaN, not the `str`
+   dtype (`pp/_glom.py:tax_glom`, `out.var[below] = np.nan`) - a known,
+   deferred inconsistency, not a second convention.
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
-   Readers always set it. Missing key means `counts`. Functions that need raw
-   counts (rarefy, chao1) call `_core.require_counts` and raise otherwise.
+   Readers always set it, inferred from the values by `_core.infer_x_kind`
+   (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
+   nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
+   No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+   text table), and labeling proportions `counts` would let rarefy and chao1
+   run on them. Missing key means `counts`. Functions that need raw counts
+   (rarefy, chao1) call `_core.require_counts` and raise otherwise.
 3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
    `{"step", "version", "params"}`, appended by `_core.add_provenance`.
    JSON strings, not dicts, because h5ad cannot store a list of dicts.
 4. **Trees** are created only by `_core` ([tree-access](/contracts/tree-access.md))
    with `label=None`, so TreeData adds no `tree` column to `var`.
+5. **Ids are unique strings.** `_core.make_treedata` casts `obs`/`var` index
+   values to `str` and raises `ValueError` on duplicates, naming them (up to
+   5), so integer or mixed-type ids from a reader (e.g. unquoted BIOM JSON
+   ids) never collide silently.
 
 ## Propagation
 | Operation | Keeps | Drops |

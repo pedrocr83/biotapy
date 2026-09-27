@@ -6,7 +6,7 @@ tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
 generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 0fdbd4d
+commit: 43d6efb
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json
@@ -22,10 +22,11 @@ sources:
    `networkx`. Everything else imports the `TreeData` type and tree helpers
    from `biotapy._core`.
 2. It owns: constructing a TreeData (`make_treedata`), building a tree from an
-   edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), and, when
-   first needed, Newick parsing and conversion to `skbio.TreeNode`.
-3. Newick parsing reuses scikit-bio (`TreeNode.read([text])`); biotapy never
-   writes its own parser.
+   edge list (`tree_from_edges`), reading the phylogeny (`get_tree`), Newick
+   parsing (`tree_from_newick`), listing tips (`tree_tips`), and relabeling
+   tips (`relabel_tips`).
+3. Newick parsing reuses scikit-bio (`TreeNode.read([text], convert_underscores=False)`);
+   biotapy never writes its own parser.
 4. `treedata` is pinned to `>=0.3.1,<0.4` in `pyproject.toml`.
 
 # Why
@@ -45,6 +46,30 @@ reaches past the helpers.[^spec]
 - `MuData` holds TreeData modalities in memory, but `write_h5mu` drops `vart`
   and reading returns plain AnnData. Save tree-bearing modalities with
   `write_h5td` (matters from Phase 2).
+- `tree_from_newick` always passes `convert_underscores=False`: scikit-bio's
+  default turns unescaped `ASV_1` into `ASV 1`, corrupting ids.
+- Malformed Newick surfaces as two scikit-bio exceptions, not one: with the
+  default format sniffing, `TreeNode.read` raises `UnrecognizedFormatError`
+  for most malformed text (the sniffer rejects it) and `NewickFormatError`
+  only for text that sniffs as Newick but fails to parse (e.g. `(a:x,b:1);`).
+  `tree_from_newick` catches exactly those two and raises `ValueError` naming
+  its `argument` (readers pass `tree='<path>'`). Passing `format="newick"` to
+  skip the sniffer is worse: some malformed text then leaks a bare
+  `IndexError`, and a `FormatIdentificationWarning` is emitted.
+- Internal-node labels (support values such as `0.95`) cannot survive as graph
+  node names because they repeat across the tree; `tree_from_newick` drops them
+  and assigns fresh `n0, n1, ...` names in preorder, skipping any value already
+  used as a tip name.
+- A missing branch length (no `:length` in the Newick text) becomes `nan`, not
+  `0.0` or `None`, so downstream sum-of-branch-length code must handle NaN.
+- `relabel_tips` raises `ValueError` when a new name already names a node
+  that is not itself renamed: `nx.relabel_nodes` would silently merge the two
+  nodes (a mixed `ASV1`/sequence DADA2 tree lost an edge this way). Swaps are
+  allowed. `read_dada2` also requires every tip to be a DNA sequence.
+- `make_treedata`'s tree/table alignment issues at most one `UserWarning` per
+  call, even when both extra features and extra tips exist; it names both
+  counts and keeps only the shared features, pruning the tree to kept tips
+  plus ancestors. No shared feature is a hard `ValueError`, not a warning.
 
 [^treedata]: treedata 0.3.1 on PyPI
 [^spec]: Python Microbiome Toolkit development report, section Risks

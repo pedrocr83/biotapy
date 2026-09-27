@@ -23,9 +23,11 @@ classifiers = [
 ]
 dependencies = [
   "anndata",
+  "biom-format>=2.1.16",
   "networkx",
   "numpy",
   "pandas",
+  "scikit-bio>=0.7.4,<0.8",
   "scipy",
   # for debug logging (referenced from the issue template)
   "session-info2",
@@ -142,6 +144,9 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "src/biotapy" ]
 python_version = "3.12"
+# biom-format ships no type annotations at all; exempt only calls into it (not our own
+# code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [ "biom" ]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
@@ -149,6 +154,12 @@ overrides = [
   # instead of ignoring it, so `TreeData` stays a real type under strict mode.
   { module = "treedata", follow_untyped_imports = true, implicit_reexport = true },
   { module = "treedata.*", follow_untyped_imports = true, implicit_reexport = true },
+  # scikit-bio 0.7.4 ships no py.typed marker either; same treatment.
+  { module = "skbio", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "skbio.*", follow_untyped_imports = true, implicit_reexport = true },
+  # biom-format 2.1.17 ships no py.typed marker either; same treatment.
+  { module = "biom", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "biom.*", follow_untyped_imports = true, implicit_reexport = true },
 ]
 
 [tool.pytest]

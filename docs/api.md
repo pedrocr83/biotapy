@@ -2,6 +2,21 @@
 
 Public functions are listed here as they ship, from Phase 1 onward.
 
+## Input and output
+
+```{eval-rst}
+.. module:: biotapy.io
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    io.read_biom
+    io.read_dada2
+    io.read_qiime2
+    io.write_biom
+```
+
 ## Datasets
 
 ```{eval-rst}

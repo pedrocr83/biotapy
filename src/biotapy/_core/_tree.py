@@ -5,17 +5,23 @@
 # below from being evaluated eagerly and raising TypeError.
 from __future__ import annotations
 
-from collections.abc import Iterable
+import itertools
+import math
+from collections import Counter
+from collections.abc import Iterable, Mapping
 from typing import cast
 
 import networkx as nx
-import numpy.typing as npt
+import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from skbio import TreeNode
+from skbio.io import NewickFormatError, UnrecognizedFormatError
 from treedata import TreeData as TreeData
 
 from ._matrix import as_csr
 from ._slots import XKind, add_provenance
+from ._warnings import warn_user
 
 PHYLO_KEY = "phylo"
 
@@ -27,6 +33,27 @@ def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
     return tree
 
 
+def tree_tips(tree: nx.DiGraph[str]) -> list[str]:
+    """Names of the tree's tips (nodes without children)."""
+    return [node for node in tree.nodes if tree.out_degree(node) == 0]
+
+
+def relabel_tips(tree: nx.DiGraph[str], names: Mapping[str, str]) -> nx.DiGraph[str]:
+    """Rename the nodes listed in ``names`` (e.g. sequence -> ASV id); others keep theirs.
+
+    A new name that already names a node which is not itself renamed raises
+    ``ValueError``: networkx would silently merge the two nodes.
+    """
+    renamed = {old: new for old, new in names.items() if old in tree}
+    clashes = [new for new in renamed.values() if new in tree and new not in renamed]
+    if clashes:
+        msg = f"names= would merge nodes: {clashes[:3]} already name other nodes of the tree"
+        raise ValueError(msg)
+    # types-networkx's overloads for relabel_nodes resolve to Any here (PEP 696 default type
+    # params on a generic base class), even though the runtime call is exactly this typed.
+    return cast("nx.DiGraph[str]", nx.relabel_nodes(tree, renamed, copy=True))
+
+
 def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
     """Return the phylogeny in ``vart['phylo']``."""
     if PHYLO_KEY not in tdata.vart:
@@ -36,8 +63,49 @@ def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
     return cast("nx.DiGraph[str]", tdata.vart[PHYLO_KEY])
 
 
+def tree_from_newick(text: str, *, argument: str = "text") -> nx.DiGraph[str]:
+    """Parse one Newick tree; tips keep their names, internal nodes get unique ones.
+
+    Internal labels (often support values such as ``0.95``) repeat, so they
+    cannot name graph nodes and are dropped. A missing branch length is NaN.
+    Malformed text, or a tip without a unique name, raises ``ValueError``
+    naming ``argument`` (a reader passes e.g. ``"tree='tree.nwk'"``).
+    """
+    try:
+        # skbio turns "_" into " " in unquoted names by default; ASV ids need them intact.
+        root = TreeNode.read([text], convert_underscores=False)
+    except (NewickFormatError, UnrecognizedFormatError) as error:
+        # skbio's format sniffer rejects most malformed text (UnrecognizedFormatError)
+        # before its Newick parser can raise NewickFormatError.
+        msg = f"{argument} is not a valid Newick tree"
+        raise ValueError(msg) from error
+    tips = [tip.name for tip in root.tips()]
+    _require_unique_names(tips, argument)
+    names = _node_names(root, set(tips))
+    tree = tree_from_edges(
+        (names[id(node.parent)], names[id(node)], math.nan if node.length is None else float(node.length))
+        for node in root.preorder(include_self=False)
+    )
+    # A lone root that is also a tip has no edges; add it explicitly so it still becomes a node.
+    tree.add_nodes_from(names.values())
+    return tree
+
+
+def _require_unique_names(tips: list[str | None], argument: str) -> None:
+    bad = [name for name, count in Counter(tips).items() if name is None or count > 1]
+    if bad:
+        msg = f"{argument} needs unique Newick tip names; unnamed or repeated: {bad[:5]}"
+        raise ValueError(msg)
+
+
+def _node_names(root: TreeNode, tips: set[str]) -> dict[int, str]:
+    fresh = (name for name in (f"n{i}" for i in itertools.count()) if name not in tips)
+    # _require_unique_names already rejected None/duplicate tip names before this runs.
+    return {id(node): cast(str, node.name) if node.is_tip() else next(fresh) for node in root.preorder()}
+
+
 def make_treedata(
-    X: sp.spmatrix | npt.ArrayLike,
+    X: object,
     *,
     obs: pd.DataFrame,
     var: pd.DataFrame,
@@ -45,9 +113,55 @@ def make_treedata(
     x_kind: XKind,
     source: str,
 ) -> TreeData:
-    """Construct a TreeData that follows contracts/data-model-slots."""
+    """Construct a TreeData that follows contracts/data-model-slots.
+
+    Ids become unique strings. With a tree, only features that are its tips
+    are kept and tips outside the table are pruned; a mismatch warns once.
+    """
+    obs, var = _with_str_ids(obs, "obs"), _with_str_ids(var, "var")
+    matrix = as_csr(X)
+    if tree is not None:
+        matrix, var, tree = _align_tree(matrix, var, tree)
     vart = None if tree is None else {PHYLO_KEY: tree}
-    tdata = TreeData(X=as_csr(X), obs=obs, var=var, vart=vart, label=None)
+    tdata = TreeData(X=matrix, obs=obs, var=var, vart=vart, label=None)
     tdata.uns["biotapy"] = {"x_kind": x_kind}
     add_provenance(tdata, source)
     return tdata
+
+
+def _with_str_ids(frame: pd.DataFrame, axis: str) -> pd.DataFrame:
+    n_missing = int(np.count_nonzero(frame.index.isna()))
+    if n_missing:
+        msg = f"{axis} ids must not be missing; {n_missing} id(s) are NaN or None"
+        raise ValueError(msg)
+    out = frame.copy()
+    out.index = out.index.astype(str)
+    duplicated = out.index[out.index.duplicated()].unique().tolist()
+    if duplicated:
+        msg = f"duplicate {axis} ids: {duplicated[:5]}"
+        raise ValueError(msg)
+    return out
+
+
+def _align_tree(
+    X: sp.csr_matrix, var: pd.DataFrame, tree: nx.DiGraph[str]
+) -> tuple[sp.csr_matrix, pd.DataFrame, nx.DiGraph[str]]:
+    tips = set(tree_tips(tree))
+    shared = var.index.isin(tips)
+    n_extra = len(tips - set(var.index))
+    if shared.all() and n_extra == 0:
+        return X, var, tree
+    if not shared.any():
+        msg = (
+            "no feature of the table is a tip of the tree; "
+            f"features: {var.index[:3].tolist()}, tips: {sorted(tips)[:3]}"
+        )
+        raise ValueError(msg)
+    msg = (
+        f"tree and table disagree: {int((~shared).sum())} feature(s) not in the tree and "
+        f"{n_extra} tree tip(s) not in the table; keeping the {int(shared.sum())} shared features"
+    )
+    warn_user(msg)
+    kept = var.index[shared]
+    keep_nodes = set(kept).union(*(nx.ancestors(tree, tip) for tip in kept))
+    return X[:, np.flatnonzero(shared)], var.loc[kept], tree.subgraph(keep_nodes).copy()

@@ -9,3 +9,4 @@
 * [R bridge before native ports](r-bridge-before-ports.md) - R-only DA methods ship first through an optional rpy2 bridge; native ports only for the most used.
 * [No bundled KEGG mapping files](no-bundled-kegg.md) - Functional hierarchy mappings are downloaded on first use, never shipped in the wheel.
 * [Package name biotapy](package-name-biotapy.md) - Distribution and import name is biotapy, hosted at github.com/pedrocr83/biotapy.
+* [Read phyloseq via rdata, refseq warned and skipped](phyloseq-import-route.md) - A ~35-line rdata constructor_dict reads GlobalPatterns/enterotype/esophagus with zero shape mismatches and zero residual warnings; native rdata (+xarray) is the route for Tasks 1.9/1.10, an R export script is rejected as the default, and a populated refseq is warned-and-skipped rather than guessed at (no test fixture has one).

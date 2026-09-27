@@ -44,6 +44,10 @@ Choose from the options below to install biotapy:
    pip install git+https://github.com/pedrocr83/biotapy.git  # (or `uv add`)
    ```
 
+On Python 3.14, the `biom-format` dependency has no wheels yet, so it is built
+from source and needs a C compiler until biom-format publishes 3.14 wheels
+([biocore/biom-format#1004][biom-format-1004]).
+
 ## Release notes
 
 See the [changelog][].
@@ -66,3 +70,4 @@ If you found a bug, please use the [issue tracker][].
 [api documentation]: https://biotapy.readthedocs.io/page/api.html
 [pypi]: https://pypi.org/project/biotapy
 [venv]: https://docs.python.org/3/tutorial/venv.html
+[biom-format-1004]: https://github.com/biocore/biom-format/pull/1004
