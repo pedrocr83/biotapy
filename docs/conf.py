@@ -126,8 +126,11 @@ html_title = project
 
 html_theme_options = {
     "repository_url": repository_url,
+    "repository_branch": "master",
+    "path_to_docs": "docs",
     "use_repository_button": True,
-    "path_to_docs": "docs/",
+    "use_edit_page_button": True,
+    "use_issues_button": True,
     "navigation_with_keys": False,
 }
 

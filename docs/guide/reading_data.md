@@ -11,23 +11,10 @@ that need raw counts check this and refuse proportions.
 
 ## Example datasets
 
-`bt.datasets.global_patterns()` and `bt.datasets.enterotype()` return two
-well-known phyloseq example datasets - GlobalPatterns (26 samples, 19,216
-OTUs, with taxonomy and a tree) and enterotype (280 samples, 553 genera, as
-relative abundances) - read through `bt.io.read_phyloseq`:
-
-```python
-import biotapy as bt
-
-tdata = bt.datasets.global_patterns()
-```
-
-Each is downloaded once from phyloseq's repository and cached on disk with
-[pooch](https://www.fatiando.org/pooch/); a later call re-hashes the cached
-file and, as long as the hash still matches, reads it straight from disk with
-no network access at all. Set `BIOTAPY_DATA_DIR` to change the cache
-directory (the default is a per-user cache directory). The data stays
-licensed to phyloseq's authors; biotapy ships none of it.
+`bt.datasets.global_patterns()` and `bt.datasets.enterotype()`, two
+well-known phyloseq example datasets, are read through `bt.io.read_phyloseq`
+under the hood. See the [example datasets guide](datasets.md) for what each
+one holds, how caching and `BIOTAPY_DATA_DIR` work, and licensing.
 
 ## BIOM
 
