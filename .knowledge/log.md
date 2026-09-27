@@ -1,6 +1,11 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Creation** (Checkpoint C): [tl](modules/tl.md) Module concept for Slice 1C
+  (the six `bt.tl` functions and `_beta.py:stored_distances`), linked from
+  [modules/index.md](modules/index.md). Ticked Checkpoint C's Knowledge item
+  in [phase-1-core](roadmap/phase-1-core.md); its review, push and
+  user-review items stay open.
 * **Update** (Checkpoint C fix C1): corrects the Task 1.15 entry's claim that
   `faith_pd` "also runs on relative abundances": it returned 0 for every
   sample on proportions, and weighted UniFrac put every pair 0 apart, because

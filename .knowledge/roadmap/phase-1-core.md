@@ -6241,7 +6241,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - the slice 1C review focus.
 
   Then a fix pass, one commit per finding, each with a test.
-- [ ] Knowledge: write the `Module` concept `.knowledge/modules/tl.md` with the
+- [x] Knowledge: write the `Module` concept `.knowledge/modules/tl.md` with the
   codebase-map template:
   - **Responsibility:** diversity, ordination and PERMANOVA over `obsp`; owns
     no reader and no transform.
