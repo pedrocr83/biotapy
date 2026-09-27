@@ -129,6 +129,25 @@ def test_two_all_zero_samples_pin_scikit_bios_convention():
     assert bt.tl.unifrac(tdata, weighted=True).loc["s1", "s2"] == 0.0
 
 
+def _toy_proportions(x_kind: str) -> ad.AnnData:
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    tdata.X = sp.csr_matrix(dense / dense.sum(axis=1, keepdims=True))
+    tdata.uns["biotapy"]["x_kind"] = x_kind
+    return tdata
+
+
+@pytest.mark.parametrize("x_kind", ["relative", "counts"])
+def test_weighted_unifrac_needs_counts(x_kind):
+    # scikit-bio's tree code casts abundances to int64, which would put every pair of proportions 0 apart.
+    with pytest.raises(ValueError, match=r"tl.unifrac\(weighted=True\) needs raw counts"):
+        bt.tl.unifrac(_toy_proportions(x_kind), weighted=True)
+
+
+def test_unweighted_unifrac_on_proportions_equals_counts():
+    pd.testing.assert_frame_equal(bt.tl.unifrac(_toy_proportions("relative")), bt.tl.unifrac(bt.datasets.toy()))
+
+
 def test_unifrac_inplace_writes_the_contract_keys():
     tdata = bt.datasets.toy()
     assert bt.tl.unifrac(tdata, inplace=True) is None

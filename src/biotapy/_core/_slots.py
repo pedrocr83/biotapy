@@ -42,10 +42,14 @@ def infer_x_kind(X: object) -> XKind:
 
 
 def require_counts(adata: AnnData, *, func: str) -> None:
-    """Raise unless ``X`` holds raw counts."""
+    """Raise unless ``X`` holds raw counts: labelled ``"counts"`` and every stored value a whole number."""
     kind = x_kind(adata)
     if kind != "counts":
         msg = f"{func} needs raw counts in X, but uns['biotapy']['x_kind'] is {kind!r}"
+        raise ValueError(msg)
+    # One definition of counts: infer_x_kind's whole-number rule, which reads only X.data (O(nnz)).
+    if infer_x_kind(adata.X) != "counts":
+        msg = f"{func} needs raw counts in X, but X holds non-integer values"
         raise ValueError(msg)
 
 

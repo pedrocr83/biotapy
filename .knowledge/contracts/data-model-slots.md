@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
-commit: 795dc19
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
+commit: 4a5adaf
 sources:
   - id: spec
     resource: ../../plan.md
@@ -55,11 +55,18 @@ Extends the spec's data-model table with exact keys.[^spec]
    (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
    No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
-   text table), and labeling proportions `counts` would let rarefy and chao1
-   run on them. Missing key means `counts`. Functions that need raw counts
-   (`pp.rarefy`, and `tl.alpha` for `observed_features` and `chao1`, which
-   phyloseq's `estimate_richness` refuses on non-integers) call
-   `_core.require_counts` and raise otherwise.
+   text table), and labeling proportions `counts` would misdescribe them to
+   every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
+   (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
+   phyloseq's `estimate_richness` refuses on non-integers; and
+   `tl.unifrac(weighted=True)`) call `_core.require_counts`, which raises
+   unless `x_kind` is `counts` *and* every stored value in `X` is a whole
+   number (`_slots.py:require_counts`, through `infer_x_kind`'s rule, O(nnz)).
+   The value check matters because fractions are otherwise truncated
+   silently: `pp.rarefy` casts `X` to int64 for `subsample_counts`, and
+   scikit-bio 0.7.4's tree code (Faith PD, UniFrac; `_nodes_by_counts`)
+   casts abundances to int64. `tl.alpha` gives `faith_pd` presence/absence,
+   so it needs no counts.
 3. **Provenance** is `uns["biotapy"]["provenance"]`: a list of JSON strings
    `{"step", "version", "params"}`, appended by `_core.add_provenance`.
    JSON strings, not dicts, because h5ad cannot store a list of dicts.

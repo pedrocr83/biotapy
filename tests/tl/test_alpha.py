@@ -127,6 +127,27 @@ def test_count_metrics_need_counts_others_do_not():
     assert bt.tl.alpha(rel, metrics=["shannon", "simpson", "faith_pd"]).shape == (6, 3)
 
 
+def _toy_proportions() -> ad.AnnData:
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    tdata.X = sp.csr_matrix(dense / dense.sum(axis=1, keepdims=True))
+    tdata.uns["biotapy"]["x_kind"] = "relative"
+    return tdata
+
+
+def test_faith_pd_on_proportions_equals_counts():
+    # scikit-bio's tree code casts abundances to int64, which would turn every proportion into 0.
+    out = bt.tl.alpha(_toy_proportions(), metrics=["faith_pd"])
+    pd.testing.assert_frame_equal(out, bt.tl.alpha(bt.datasets.toy(), metrics=["faith_pd"]))
+
+
+def test_count_metrics_reject_fractional_values_labelled_counts():
+    tdata = _toy_proportions()
+    tdata.uns["biotapy"]["x_kind"] = "counts"
+    with pytest.raises(ValueError, match=r"tl.alpha with \['chao1'\] needs raw counts in X, but X holds non-integer"):
+        bt.tl.alpha(tdata, metrics=["chao1"])
+
+
 def test_faith_pd_needs_a_tree():
     with pytest.raises(TypeError, match="needs a TreeData"):
         bt.tl.alpha(_adata(np.array([[1, 2]])), metrics=["faith_pd"])

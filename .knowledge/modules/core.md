@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
-commit: 795dc19
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
+commit: 4a5adaf
 status: stable
 ---
 
@@ -41,6 +41,10 @@ none of them back.
   (Greengenes `k__`, RESCRIPT/SILVA `d__`, SILVA `D_0__`, or unprefixed) into
   rank columns, then run them through `normalize_ranks`.
 - `_slots.py:x_kind` / `require_counts` - read, or enforce, what `X` holds.
+  `require_counts` raises `ValueError` naming its `func=` unless `x_kind` is
+  `"counts"` and every stored value is a whole number (`infer_x_kind`'s rule,
+  O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
+  and `tl.unifrac(weighted=True)`.
 - `_slots.py:infer_x_kind` - classify a freshly read matrix as `"counts"`
   (every value a whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file

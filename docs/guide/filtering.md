@@ -47,7 +47,7 @@ out = bt.pp.rarefy(tdata, depth=60, seed=0)
 - Samples with fewer than `depth` reads are dropped, with one warning naming them; a sample with
   exactly `depth` reads is kept.
 - Features left all-zero are dropped, as with phyloseq's `trimOTUs = TRUE`.
-- `X` must hold raw counts (`uns["biotapy"]["x_kind"] == "counts"`).
+- `X` must hold raw counts: `uns["biotapy"]["x_kind"] == "counts"` and whole numbers.
 - phyloseq samples with replacement by default (`replace = TRUE`). biotapy always samples
   without, like `replace = FALSE`.
 - The same `seed` gives the same result. R and NumPy use different random generators, so the

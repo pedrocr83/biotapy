@@ -4,6 +4,7 @@ import math
 from collections.abc import Sequence
 from typing import Any, Literal, get_args
 
+import numpy as np
 import pandas as pd
 from anndata import AnnData
 from skbio.diversity import alpha_diversity
@@ -48,7 +49,8 @@ def alpha(
         ``metrics`` is a string, or ``"faith_pd"`` is asked of an AnnData that is not a TreeData.
     ValueError
         ``metrics`` is empty, names an unknown metric or repeats one, or
-        ``"observed_features"`` or ``"chao1"`` is asked of data that is not counts.
+        ``"observed_features"`` or ``"chao1"`` is asked of data that is not raw
+        counts (``x_kind`` ``"counts"`` and whole numbers).
     KeyError
         ``"faith_pd"`` is asked of a TreeData without ``vart['phylo']``.
 
@@ -60,8 +62,11 @@ def alpha(
     scikit-bio needs dense input, so rows are densified in chunks of at most 2**20
     values (8 MiB of float64). Faith PD includes the root, as
     ``picante::pd(include.root = TRUE)``; a root with more than two children first
-    gets a zero-length split, which changes no root-to-tip distance. For an
-    all-zero sample phyloseq reports Shannon 0 and Simpson 1; biotapy returns NaN.
+    gets a zero-length split, which changes no root-to-tip distance. Faith PD
+    depends on presence only, so it is computed on presence/absence and runs on
+    any abundance: scikit-bio's tree code casts abundances to integers, which
+    truncates proportions to 0. For an all-zero sample phyloseq reports Shannon 0
+    and Simpson 1; biotapy returns NaN.
 
     Examples
     --------
@@ -79,7 +84,10 @@ def alpha(
     frames = []
     for start in range(0, adata.n_obs, step):
         dense, ids = X[start : start + step].toarray(), adata.obs_names[start : start + step].tolist()
-        frames.append(pd.DataFrame({m: alpha_diversity(m, dense, ids=ids, **params[m]) for m in metrics}))
+        # Faith PD depends on presence only, and scikit-bio's tree code casts abundances to int64,
+        # which would turn every proportion into 0.
+        inputs = {m: (dense > 0).astype(np.int64) if m == "faith_pd" else dense for m in metrics}
+        frames.append(pd.DataFrame({m: alpha_diversity(m, inputs[m], ids=ids, **params[m]) for m in metrics}))
     result = pd.concat(frames)
     if not inplace:
         return result

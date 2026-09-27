@@ -44,6 +44,9 @@ bt.tl.unifrac(tdata, weighted=True, inplace=True)  # obsp["weighted_unifrac"]
   Without `binary = TRUE` phyloseq computes vegan's quantitative Jaccard, a different number.
 - Weighted UniFrac is normalized to 0-1 by default, as in phyloseq; pass `normalized=False` for
   the raw value.
+- Weighted UniFrac needs raw counts: `x_kind` `"counts"` and whole numbers. scikit-bio's tree code
+  casts abundances to integers, so proportions would all become 0. Unweighted UniFrac uses
+  presence only and runs on relative abundances too.
 - A tree whose root has three or more children is used rooted where it is drawn. phyloseq
   instead roots such a tree at a random tip, so its UniFrac changes from run to run.
 - Two all-zero samples are `NaN` apart under Bray-Curtis and 0 apart under Jaccard

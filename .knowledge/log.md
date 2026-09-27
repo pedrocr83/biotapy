@@ -1,6 +1,18 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update** (Checkpoint C fix C1): corrects the Task 1.15 entry's claim that
+  `faith_pd` "also runs on relative abundances": it returned 0 for every
+  sample on proportions, and weighted UniFrac put every pair 0 apart, because
+  scikit-bio 0.7.4's tree code (`_nodes_by_counts`, shared by Faith PD and
+  both UniFrac engines) casts abundances to int64. `_core.require_counts` now
+  also raises when `X` holds non-integer values (`infer_x_kind`'s rule on
+  `X.data`), which also covers `pp.rarefy` and `tl.alpha`'s
+  `observed_features`/`chao1`; `tl.unifrac(weighted=True)` now calls it;
+  `tl.alpha` gives `faith_pd` presence/absence, so Faith PD does run on
+  relative abundances now. Updated
+  [data-model-slots](contracts/data-model-slots.md) (the `x_kind`
+  convention) and [core](modules/core.md) (`require_counts`).
 * **Update**: Task 1.17 done (slice 1C's last task): `bt.tl.pcoa(adata, *,
   distance="braycurtis", n_components=10, inplace=False) -> tuple[pd.DataFrame,
   pd.DataFrame] | None` wraps `skbio.stats.ordination.pcoa`, asking for at most

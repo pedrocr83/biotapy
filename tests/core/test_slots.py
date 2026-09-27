@@ -33,6 +33,15 @@ def test_require_counts_rejects_relative():
         require_counts(adata, func="pp.rarefy")
 
 
+def test_require_counts_rejects_non_integer_values():
+    adata = _adata()
+    adata.X = sp.csr_matrix(np.array([[0.0, 2.0, 1.0], [3.0, 4.0, 5.0]]))
+    require_counts(adata, func="pp.rarefy")  # whole numbers stored as float pass
+    adata.X = sp.csr_matrix(np.array([[0.0, 0.5, 1.0], [3.0, 4.0, 5.0]]))
+    with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer values"):
+        require_counts(adata, func="pp.rarefy")
+
+
 def test_add_provenance_appends_json_entries():
     adata = _adata()
     add_provenance(adata, "pp.a", rank="genus")

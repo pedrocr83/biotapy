@@ -8,7 +8,7 @@ from anndata import AnnData
 from skbio import DistanceMatrix
 from skbio.diversity import beta_diversity
 
-from biotapy._core import TreeData, as_csr, get_skbio_tree
+from biotapy._core import TreeData, as_csr, get_skbio_tree, require_counts
 
 BetaMetric = Literal["braycurtis", "jaccard"]
 
@@ -98,6 +98,8 @@ def unifrac(
         ``tdata`` is an AnnData that is not a TreeData.
     KeyError
         ``tdata`` has no ``vart['phylo']``.
+    ValueError
+        ``weighted=True`` and ``X`` is not raw counts (``x_kind`` ``"counts"`` and whole numbers).
 
     Notes
     -----
@@ -111,6 +113,10 @@ def unifrac(
     passes ``normalized`` explicitly and defaults to phyloseq's ``TRUE``.
     ``X`` is densified once (8 bytes x samples x features).
 
+    Weighted UniFrac needs raw counts: scikit-bio's tree code casts abundances to
+    integers, which truncates proportions to 0. Unweighted UniFrac uses presence
+    only and runs on any abundance.
+
     Examples
     --------
     >>> import biotapy as bt
@@ -118,6 +124,8 @@ def unifrac(
     0.092
     """
     tree = get_skbio_tree(tdata)
+    if weighted:
+        require_counts(tdata, func="tl.unifrac(weighted=True)")
     counts, ids, taxa = as_csr(tdata.X).toarray(), tdata.obs_names.tolist(), tdata.var_names.tolist()
     if weighted:
         distances = beta_diversity("weighted_unifrac", counts, ids=ids, taxa=taxa, tree=tree, normalized=normalized)
