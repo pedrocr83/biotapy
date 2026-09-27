@@ -3,7 +3,6 @@
 import csv
 import tempfile
 import zipfile
-from collections import Counter
 from pathlib import Path
 
 import biom
@@ -13,6 +12,7 @@ import pandas as pd
 from biotapy._core import TreeData, make_treedata, split_lineage, tree_from_newick
 
 from ._biom import _biom_parts
+from ._join import _join_to
 
 _ID_HEADERS_ANY_CASE = frozenset({"id", "sampleid", "sample id", "sample-id", "featureid", "feature id", "feature-id"})
 _ID_HEADERS_EXACT = frozenset({"#SampleID", "#Sample ID", "#OTUID", "#OTU ID", "sample_name"})
@@ -33,10 +33,12 @@ def read_qiime2(
         ``FeatureTable[Frequency]`` artifact (``.qza``).
     taxonomy
         ``FeatureData[Taxonomy]`` artifact; replaces any taxonomy in the table.
+        Features it lists that are not in the table are ignored.
     tree
         ``Phylogeny[Rooted]`` or ``Phylogeny[Unrooted]`` artifact.
     metadata
-        QIIME 2 sample metadata file (TSV); samples not in the table are ignored.
+        QIIME 2 sample metadata file (TSV); samples not in the table are ignored
+        (metadata often covers more samples than one table).
 
     Returns
     -------
@@ -79,12 +81,13 @@ def read_qiime2(
             biom.load_table(str(_payload(table, "feature-table.biom", workdir, argument="table")))
         )
         if taxonomy is not None:
-            var = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, argument="taxonomy")).reindex(var.index)
+            ranks = _taxonomy(_payload(taxonomy, "taxonomy.tsv", workdir, argument="taxonomy"))
+            var = _join_to(ranks, var.index, argument=f"taxonomy={str(taxonomy)!r}")
         phylo = (
             None if tree is None else tree_from_newick(_payload(tree, "tree.nwk", workdir, argument="tree").read_text())
         )
     if metadata is not None:
-        obs = _metadata(Path(metadata)).reindex(obs.index)
+        obs = _join_to(_metadata(Path(metadata)), obs.index, argument=f"metadata={str(metadata)!r}")
     return make_treedata(X, obs=obs, var=var, tree=phylo, x_kind="counts", source="io.read_qiime2")
 
 
@@ -150,16 +153,8 @@ def _typed(values: pd.Series, declared: str) -> pd.Series:
 def _metadata(path: Path) -> pd.DataFrame:
     header, data, types = _metadata_rows(path)
     ids = [row[0] for row in data]
-    _require_unique_ids(ids, path)
     frame = pd.DataFrame([row[1:] for row in data], index=ids, columns=header[1:], dtype=object)
     declared = [t.lower() for t in types[1:]] if types else [""] * len(frame.columns)
     return pd.DataFrame(
         {c: _typed(frame[c], d) for c, d in zip(frame.columns, declared, strict=True)}, index=frame.index
     )
-
-
-def _require_unique_ids(ids: list[str], path: Path) -> None:
-    duplicated = [i for i, count in Counter(ids).items() if count > 1]
-    if duplicated:
-        msg = f"metadata={str(path)!r} repeats sample ids: {duplicated}"
-        raise ValueError(msg)

@@ -40,7 +40,8 @@ def test_read_dada2_keeps_all_zero_sample_and_feature(seqtab):
 
 
 def test_read_dada2_normalizes_taxa(seqtab, taxa):
-    var = bt.io.read_dada2(seqtab, taxa).var
+    with pytest.warns(UserWarning, match=r"taxa=.*2 of 4"):
+        var = bt.io.read_dada2(seqtab, taxa).var
     assert {"kingdom", "phylum", "genus", "sequence"} <= set(var.columns)
     assert var.loc["ASV1", "genus"] == "Blautia" and np.isnan(var.loc["ASV2", "genus"])
     assert var.loc["ASV3", ["kingdom", "phylum", "genus"]].isna().all()
@@ -63,6 +64,13 @@ def test_read_dada2_keeps_sample_ids_verbatim(tmp_path):
     tdata = bt.io.read_dada2(path)
     assert list(tdata.obs_names) == ["001", "002", "NA", "1e3"]
     assert tdata.X.dtype.kind == "i" and tdata.X.toarray()[2].tolist() == [5, 6]
+
+
+def test_read_dada2_taxa_sharing_no_sequence_raises(seqtab, tmp_path):
+    path = tmp_path / "taxa.csv"
+    path.write_text('"","Kingdom"\n"TTTTTTTT","Bacteria"\n')
+    with pytest.raises(ValueError, match=r"taxa=.*shares no ids.*TTTTTTTT"):
+        bt.io.read_dada2(seqtab, taxa=path)
 
 
 def test_read_dada2_reads_tsv(tmp_path):

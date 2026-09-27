@@ -7,6 +7,8 @@ import pandas as pd
 
 from biotapy._core import TreeData, make_treedata, normalize_ranks, relabel_tips, tree_from_newick
 
+from ._join import _join_to
+
 _SEQUENCE = re.compile(r"^[ACGTN]+$")
 
 
@@ -21,6 +23,7 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
         names are kept verbatim as text (``001`` stays ``001``, ``NA`` is a name).
     taxa
         CSV or TSV of ``assignTaxonomy``/``addSpecies`` output: sequences x ranks.
+        Sequences it lists that are not in ``seqtab`` are ignored.
     tree
         Newick file whose tips are sequences or ASV ids.
 
@@ -61,7 +64,7 @@ def read_dada2(seqtab: str | Path, taxa: str | Path | None = None, *, tree: str 
     names = [f"ASV{i}" for i in range(1, len(sequences) + 1)]
     var = pd.DataFrame({"sequence": sequences}, index=names)
     if taxa is not None:
-        ranks = normalize_ranks(_read_table(Path(taxa))).reindex(sequences)
+        ranks = _join_to(normalize_ranks(_read_table(Path(taxa))), pd.Index(sequences), argument=f"taxa={str(taxa)!r}")
         var = ranks.set_axis(names).join(var)
     phylo = None
     if tree is not None:

@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import itertools
 import math
-import warnings
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from pathlib import Path
 from typing import cast
 
 import networkx as nx
@@ -22,10 +20,9 @@ from treedata import TreeData as TreeData
 
 from ._matrix import as_csr
 from ._slots import XKind, add_provenance
+from ._warnings import warn_user
 
 PHYLO_KEY = "phylo"
-# Warnings point at the first frame outside biotapy, however deep the call.
-_PACKAGE_DIR = str(Path(__file__).resolve().parents[1])
 
 
 def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
@@ -138,7 +135,7 @@ def _align_tree(
         f"tree and table disagree: {int((~shared).sum())} feature(s) not in the tree and "
         f"{n_extra} tree tip(s) not in the table; keeping the {int(shared.sum())} shared features"
     )
-    warnings.warn(msg, UserWarning, skip_file_prefixes=(_PACKAGE_DIR,))
+    warn_user(msg)
     kept = var.index[shared]
     keep_nodes = set(kept).union(*(nx.ancestors(tree, tip) for tip in kept))
     return X[:, np.flatnonzero(shared)], var.loc[kept], tree.subgraph(keep_nodes).copy()

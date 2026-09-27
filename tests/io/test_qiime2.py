@@ -46,11 +46,25 @@ def test_read_qiime2_output_saves_to_h5td(table_qza, tmp_path):
 
 def test_read_qiime2_taxonomy(table_qza, make_qza):
     taxonomy = make_qza("taxonomy", "taxonomy.tsv", TAXONOMY.encode())
-    var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
+    with pytest.warns(UserWarning, match=r"taxonomy=.*1 of 4"):
+        var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
     assert var.loc["OTU_1", ["kingdom", "phylum", "class"]].tolist() == ["Bacteria", "Firmicutes", "Clostridia"]
     assert var.loc["OTU_3", "kingdom"] == "Unassigned"
     assert var.loc["OTU_4"].isna().all()
     assert var["confidence"].tolist()[:3] == [0.98, 0.7, 0.5]
+
+
+def test_read_qiime2_taxonomy_sharing_no_feature_raises(table_qza, make_qza):
+    taxonomy = make_qza("taxonomy", "taxonomy.tsv", b"Feature ID\tTaxon\nOTU_9\tk__Bacteria\n")
+    with pytest.raises(ValueError, match=r"taxonomy=.*shares no ids.*OTU_1.*OTU_9"):
+        bt.io.read_qiime2(table_qza, taxonomy=taxonomy)
+
+
+def test_read_qiime2_taxonomy_duplicate_feature_id_is_named(table_qza, make_qza):
+    content = b"Feature ID\tTaxon\nOTU_1\tk__Bacteria\nOTU_1\tk__Archaea\nOTU_2\tk__Bacteria\n"
+    taxonomy = make_qza("taxonomy", "taxonomy.tsv", content)
+    with pytest.raises(ValueError, match=r"taxonomy=.*repeats ids.*OTU_1"):
+        bt.io.read_qiime2(table_qza, taxonomy=taxonomy)
 
 
 def test_read_qiime2_taxonomy_without_confidence(table_qza, make_qza):
@@ -78,6 +92,21 @@ def test_read_qiime2_metadata(table_qza, tmp_path):
     assert list(obs.index) == ["S1", "S2", "S3"]
     assert obs["site"].tolist() == ["gut", "skin", "gut"]
     assert obs["depth"].dtype.kind == "f" and np.isnan(obs.loc["S2", "depth"])
+
+
+def test_read_qiime2_metadata_sharing_no_sample_raises(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\nX1\t10\nX2\t20\n")
+    with pytest.raises(ValueError, match=r"metadata=.*shares no ids.*S1.*X1"):
+        bt.io.read_qiime2(table_qza, metadata=path)
+
+
+def test_read_qiime2_metadata_missing_sample_warns(table_qza, tmp_path):
+    path = tmp_path / "metadata.tsv"
+    path.write_text("sample-id\tdepth\nS1\t10\nS3\t30\n")
+    with pytest.warns(UserWarning, match=r"metadata=.*1 of 3"):
+        obs = bt.io.read_qiime2(table_qza, metadata=path).obs
+    assert np.isnan(obs.loc["S2", "depth"])
 
 
 @pytest.mark.parametrize("header", ["id", "SampleID", "Sample-ID", "#SampleID", "sample_name"])

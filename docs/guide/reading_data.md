@@ -100,6 +100,18 @@ An artifact is recognized by the payload file it holds, not by its
 the wrong artifact - for example a taxonomy artifact as `table` - raises a
 `ValueError` naming the argument and the payload it expected.
 
+### Matching taxonomy and metadata to the table
+
+Taxonomy and sample metadata are matched to the table by id, with the same
+checks for both:
+
+- Ids that are only in the taxonomy or metadata file are ignored: a metadata
+  file often covers more samples than one table.
+- Table ids missing from the file get `NaN`, and one `UserWarning` gives
+  their count.
+- A file that shares no id with the table, or that repeats an id, raises a
+  `ValueError` naming the argument and example ids.
+
 ### Sample metadata
 
 `metadata` reads a QIIME 2 sample-metadata TSV, independent of any artifact:
@@ -116,8 +128,7 @@ the wrong artifact - for example a taxonomy artifact as `table` - raises a
   "infer". Missing values become `NaN`.
 - The file is read as `utf-8-sig`, so a BOM added by Excel does not break the
   ID header.
-- Samples in the metadata that are not in the table are ignored; `obs` is
-  aligned to the table's sample order.
+- `obs` is aligned to the table's sample order, as described above.
 
 ## DADA2
 
@@ -146,8 +157,11 @@ Sequences become the feature ids `ASV1..ASVn`, in column order, with the
 original sequence kept in `var["sequence"]`. `taxa` (`assignTaxonomy`/
 `addSpecies` output: sequences x `Kingdom..Species`) is matched to `seqtab`'s
 sequences and its rank columns are normalized exactly like every other
-biotapy reader (lowercase names, `NA` becomes `NaN`); a sequence missing from
-`taxa` gets `NaN` in every rank column.
+biotapy reader (lowercase names, `NA` becomes `NaN`). The match follows the
+same rules as QIIME 2 taxonomy: sequences only in `taxa` are ignored, a
+sequence missing from `taxa` gets `NaN` in every rank column with one
+`UserWarning` giving the count, and a `taxa` file sharing no sequence with
+`seqtab`, or repeating one, raises a `ValueError`.
 
 ### Attaching a tree
 
