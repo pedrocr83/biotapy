@@ -21,3 +21,12 @@ def test_rules_gate_blocks_merges():
 def test_no_extras_job_imports_every_submodule():
     steps = WORKFLOW["jobs"]["import-without-extras"]["steps"]
     assert any("walk_packages" in step.get("run", "") for step in steps)
+
+
+def test_network_job_runs_network_and_golden_tests():
+    steps = WORKFLOW["jobs"]["network"]["steps"]
+    assert any(step.get("run", "").strip() == 'uv run --group test pytest -m "network or golden"' for step in steps)
+
+
+def test_network_job_blocks_merges():
+    assert "network" in WORKFLOW["jobs"]["check"]["needs"]
