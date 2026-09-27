@@ -61,3 +61,23 @@ def test_read_phyloseq_output_saves_to_h5td(tmp_path):
     back = treedata.read_h5td(tmp_path / "x.h5td")
     pd.testing.assert_frame_equal(back.var.astype("str"), expected_var.astype("str"))
     assert back.obs["group"].astype(str).tolist() == tdata.obs["group"].astype(str).tolist()
+
+
+def test_read_phyloseq_single_sample_keeps_all_zero_features():
+    tdata = bt.io.read_phyloseq(PHYLOSEQ / "single_sample.rds")
+    assert tdata.shape == (1, 8)
+    np.testing.assert_array_equal(tdata.X.toarray(), bt.datasets.toy().X[:1].toarray())
+    assert tdata.X.toarray()[0, [4, 7]].tolist() == [0, 0]
+    tree = tdata.vart["phylo"]
+    assert list(tdata.var_names) == [f"f{i}" for i in range(1, 9)]
+    assert {n for n in tree.nodes if tree.out_degree(n) == 0} == {f"f{i}" for i in range(1, 9)}
+
+
+def test_read_phyloseq_all_zero_sample_without_sample_data():
+    tdata = bt.io.read_phyloseq(PHYLOSEQ / "zero_sample.rds")
+    assert tdata.shape == (6, 8)
+    assert tdata.X[5].nnz == 0
+    np.testing.assert_array_equal(tdata.X.toarray()[:5], bt.datasets.toy().X.toarray()[:5])
+    assert tdata.obs.columns.empty and list(tdata.obs_names) == [f"s{i}" for i in range(1, 7)]
+    assert "phylo" not in tdata.vart
+    assert tdata.uns["biotapy"]["x_kind"] == "counts"

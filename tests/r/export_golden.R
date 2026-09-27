@@ -66,6 +66,10 @@ save(toy, toy_b, file = "tests/data/phyloseq/two_objects.RData")
 saveRDS(phyloseq(otu_table(counts, taxa_are_rows = FALSE), groups), "tests/data/phyloseq/samples_as_rows.rds")
 sequences <- DNAStringSet(setNames(c("ACGT", "ACGA", "ACGC", "ACGG", "TCGT", "TCGA", "TCGC", "TCGG"), paste0("f", 1:8)))
 saveRDS(merge_phyloseq(toy, sequences), "tests/data/phyloseq/with_refseq.rds")
+saveRDS(prune_samples("s1", toy), "tests/data/phyloseq/single_sample.rds")
+zeroed <- counts
+zeroed["s6", ] <- 0
+saveRDS(phyloseq(otu_table(t(zeroed), taxa_are_rows = TRUE), tax_table(taxonomy)), "tests/data/phyloseq/zero_sample.rds")
 
 ## DADA2 .rds fixtures: the same values as the CSV strings in tests/io/test_dada2.py
 seqtab <- rbind(S1 = c(10L, 0L, 5L, 0L), S2 = c(0L, 0L, 0L, 0L), S3 = c(3L, 7L, 1L, 0L))
