@@ -104,7 +104,7 @@ def test_rejects_fractional_values_labelled_counts():
 
 
 def test_depth_below_one_raises():
-    with pytest.raises(ValueError, match="depth must be at least 1"):
+    with pytest.raises(ValueError, match="depth= must be at least 1"):
         bt.pp.rarefy(bt.datasets.toy(), depth=0)
 
 

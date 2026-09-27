@@ -67,7 +67,7 @@ def rarefy(adata: AnnData, *, depth: int | None = None, seed: int | np.random.Ge
     sums = np.asarray(X.sum(axis=1)).ravel()
     depth = _smallest_nonzero(sums) if depth is None else int(depth)
     if depth < 1:
-        msg = f"depth must be at least 1, got {depth}"
+        msg = f"depth= must be at least 1, got {depth}"
         raise ValueError(msg)
     # phyloseq drops samples with sample_sums(physeq) < sample.size; a sample at exactly depth stays.
     kept = np.flatnonzero(sums >= depth)

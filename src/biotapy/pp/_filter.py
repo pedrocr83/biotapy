@@ -40,6 +40,9 @@ def filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_
 
     In R: ``filter_taxa(physeq, function(x) sum(x > 0) >= p * length(x), prune = TRUE)``
     for ``min_prevalence=p``, and ``function(x) sum(x) >= n`` for ``min_total=n``.
+    biotapy keeps a feature when ``present / n_obs >= min_prevalence``, while phyloseq's
+    ``sum(x > 0) >= p * length(x)`` can drop it at an exact boundary through floating
+    point: 7 of 25 samples at ``p = 0.28``, since ``0.28 * 25`` is ``7.000000000000001``.
 
     Examples
     --------
@@ -85,7 +88,9 @@ def filter_samples(adata: AnnData, min_depth: float) -> AnnData:
     AnnData
         Same type as ``adata`` with the kept samples in their original order.
         Every slot is kept and subset by AnnData indexing, so ``obsp`` distances
-        stay valid; features that are now all-zero are kept.
+        stay valid; features that are now all-zero are kept. Kept ordinations
+        (``obsm`` and the ``pcoa``/``nmds`` summaries in ``uns['biotapy']``) were
+        computed with the dropped samples included, so recompute them.
 
     Raises
     ------

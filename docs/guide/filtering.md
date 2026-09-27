@@ -21,10 +21,12 @@ In phyloseq the same filters are
 `filter_taxa(physeq, function(x) sum(x > 0) >= 0.5 * length(x), prune = TRUE)` and
 `filter_taxa(physeq, function(x) sum(x) >= 20, prune = TRUE)`.
 
-Filtering changes the feature set, so everything computed from the old one is dropped: every
-entry in `layers`, `obsm`, `obsp`, `varm` and `varp`, and the ordination summaries in
-`uns["biotapy"]`. A TreeData keeps the subtree of the kept features, with branch lengths
-unchanged.
+Filtering changes the feature set, so these are dropped: every entry in `layers`, `obsm`,
+`obsp`, `varm` and `varp`, every `uns` key other than `uns["biotapy"]`, and the ordination
+summaries (`pcoa`, `nmds`) inside it. `obs` is kept whole, as mia keeps `colData`, so the
+`alpha_*` columns that `bt.tl.alpha(..., inplace=True)` writes survive `filter_features`,
+`rarefy` and `tax_glom` while still describing the old features: recompute them. A TreeData
+keeps the subtree of the kept features, with branch lengths unchanged.
 
 ## Samples: `filter_samples`
 
