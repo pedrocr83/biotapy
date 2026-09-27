@@ -111,6 +111,16 @@ def test_nmds_input_unchanged(assert_unchanged):
     assert_unchanged(before, tdata)
 
 
+def test_nmds_nan_distances_raise():
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    dense[[0, 1]] = 0  # two all-zero samples are NaN apart under Bray-Curtis
+    tdata.X = sp.csr_matrix(dense)
+    bt.tl.beta(tdata, inplace=True)
+    with pytest.raises(ValueError, match=r"distance='braycurtis': obsp\['braycurtis'\] holds NaN"):
+        bt.tl.nmds(tdata, seed=0)
+
+
 def test_nmds_too_few_samples_raise():
     with pytest.raises(ValueError, match="more than n_components"):
         bt.tl.nmds(_toy_with()[:3].copy(), seed=0)

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse as sp
 
 import biotapy as bt
 
@@ -63,6 +64,16 @@ def test_permanova_missing_group_raises():
     tdata.obs.loc["s1", "group"] = np.nan
     with pytest.raises(ValueError, match=r"missing for 1 sample"):
         bt.tl.permanova(tdata, "group")
+
+
+def test_permanova_nan_distances_raise():
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    dense[[0, 1]] = 0  # two all-zero samples are NaN apart under Bray-Curtis
+    tdata.X = sp.csr_matrix(dense)
+    bt.tl.beta(tdata, inplace=True)
+    with pytest.raises(ValueError, match=r"distance='braycurtis': obsp\['braycurtis'\] holds NaN"):
+        bt.tl.permanova(tdata, "group", seed=0)
 
 
 def test_permanova_missing_distance_names_the_call():

@@ -8,7 +8,7 @@ from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
 import biotapy as bt
-from biotapy._core import make_treedata, tree_from_edges
+from biotapy._core import get_tree, make_treedata, tree_from_edges
 
 
 def _adata(dense) -> ad.AnnData:
@@ -105,6 +105,19 @@ def test_unifrac_after_filtering_keeps_path_lengths():
     assert filtered.n_vars == 6
     pd.testing.assert_frame_equal(bt.tl.unifrac(filtered), bt.tl.unifrac(tdata))
     pd.testing.assert_frame_equal(bt.tl.unifrac(filtered, weighted=True), bt.tl.unifrac(tdata, weighted=True))
+
+
+def _toy_with_f1_length(length: float) -> ad.AnnData:
+    tdata = bt.datasets.toy()
+    get_tree(tdata).edges["n4", "f1"]["length"] = length
+    return tdata
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+def test_unifrac_counts_a_nan_branch_length_as_zero(weighted):
+    out = bt.tl.unifrac(_toy_with_f1_length(np.nan), weighted=weighted)
+    assert np.isfinite(out.to_numpy()).all()
+    pd.testing.assert_frame_equal(out, bt.tl.unifrac(_toy_with_f1_length(0.0), weighted=weighted))
 
 
 def test_unifrac_all_zero_sample_single_sample_and_missing_rank():

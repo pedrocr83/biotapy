@@ -10,6 +10,7 @@ from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
 import biotapy as bt
+from biotapy._core import get_tree
 
 ALL = ["observed_features", "shannon", "simpson", "chao1", "faith_pd"]
 
@@ -39,6 +40,18 @@ def test_faith_pd_sums_branches_to_the_root():
     # s1 lacks f5 and f8: every branch except n5-f5 (0.03) and n3-f8 (0.12); toy's branches total 1.34.
     out = bt.tl.alpha(bt.datasets.toy(), metrics=["faith_pd"])
     assert out.loc["s1", "faith_pd"] == pytest.approx(1.34 - 0.03 - 0.12)
+
+
+def _toy_with_f1_length(length: float) -> ad.AnnData:
+    tdata = bt.datasets.toy()
+    get_tree(tdata).edges["n4", "f1"]["length"] = length
+    return tdata
+
+
+def test_faith_pd_counts_a_nan_branch_length_as_zero():
+    out = bt.tl.alpha(_toy_with_f1_length(np.nan), metrics=["faith_pd"])
+    assert np.isfinite(out["faith_pd"]).all()
+    pd.testing.assert_frame_equal(out, bt.tl.alpha(_toy_with_f1_length(0.0), metrics=["faith_pd"]))
 
 
 def test_all_zero_sample_is_nan_or_zero_never_raises():
