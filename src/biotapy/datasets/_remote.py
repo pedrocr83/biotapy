@@ -44,7 +44,7 @@ def global_patterns() -> TreeData:
     Notes
     -----
     R equivalent: ``utils::data``
-    Guide: :doc:`/guide/reading_data`
+    Guide: :doc:`/guide/datasets`
 
     In R: ``data(GlobalPatterns, package = "phyloseq")``.
 
@@ -73,7 +73,7 @@ def enterotype() -> TreeData:
     Notes
     -----
     R equivalent: ``utils::data``
-    Guide: :doc:`/guide/reading_data`
+    Guide: :doc:`/guide/datasets`
 
     In R: ``data(enterotype, package = "phyloseq")``.
 
