@@ -141,7 +141,9 @@ checks for both:
   row shorter than the header is padded, and an empty type cell means
   "infer". A column declared `numeric` that holds a non-numeric value (such
   as `1,000` or `thirty`) raises a `ValueError` naming the column and the
-  values, as QIIME 2 itself does. Missing values become `NaN`.
+  values, as QIIME 2 itself does. Missing values become `NaN`; text columns
+  are NaN-backed strings, so a column that is empty for every sample of the
+  table still saves to h5ad/h5td.
 - The file is read as `utf-8-sig`, so a BOM added by Excel does not break the
   ID header.
 - `obs` is aligned to the table's sample order, as described above.

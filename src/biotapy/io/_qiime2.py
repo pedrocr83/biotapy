@@ -16,6 +16,9 @@ from ._join import _join_to
 
 _ID_HEADERS_ANY_CASE = frozenset({"id", "sampleid", "sample id", "sample-id", "featureid", "feature id", "feature-id"})
 _ID_HEADERS_EXACT = frozenset({"#SampleID", "#Sample ID", "#OTUID", "#OTU ID", "sample_name"})
+# Text columns are NaN-backed strings, not object: a column empty for every sample kept
+# from the table is all NaN, and h5py cannot write an all-NaN object column.
+_TEXT = pd.StringDtype(na_value=np.nan)
 
 
 def read_qiime2(
@@ -164,14 +167,14 @@ def _padded_row(row: list[str], header: list[str], path: Path) -> list[str]:
 def _typed(values: pd.Series, declared: str, path: Path) -> pd.Series:
     values = values.mask(values == "", np.nan)
     if declared == "categorical":
-        return values
+        return values.astype(_TEXT)
     numeric = pd.to_numeric(values, errors="coerce")
     bad = values[values.notna() & numeric.isna()].unique().tolist()
     if declared == "numeric" and bad:
         msg = f"metadata={str(path)!r} column {values.name!r} is declared numeric but holds {bad[:5]}"
         raise ValueError(msg)
     # QIIME 2 infers numeric when every present value parses as a number.
-    return values if bad else numeric
+    return values.astype(_TEXT) if bad else numeric
 
 
 def _metadata(path: Path) -> pd.DataFrame:

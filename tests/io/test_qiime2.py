@@ -71,7 +71,8 @@ def test_read_qiime2_taxonomy_duplicate_feature_id_is_named(table_qza, make_qza)
 
 def test_read_qiime2_taxonomy_without_confidence(table_qza, make_qza):
     taxonomy = make_qza("taxonomy", "taxonomy.tsv", b"Feature ID\tTaxon\nOTU_1\tk__Bacteria\n")
-    var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
+    with pytest.warns(UserWarning, match=r"taxonomy=.*3 of 4"):
+        var = bt.io.read_qiime2(table_qza, taxonomy=taxonomy).var
     assert "confidence" not in var.columns and var.loc["OTU_1", "kingdom"] == "Bacteria"
 
 
@@ -218,3 +219,13 @@ def test_read_qiime2_metadata_duplicate_columns_are_named(table_qza, tmp_path):
     path.write_text("sample-id\tdepth\tsite\tdepth\nS1\t1\tgut\t2\n")
     with pytest.raises(ValueError, match=r"metadata=.*'depth'"):
         bt.io.read_qiime2(table_qza, metadata=path)
+
+
+@pytest.mark.parametrize("types", ["", "#q2:types\tnumeric\tcategorical\n"])
+def test_read_qiime2_metadata_text_column_empty_for_the_table_saves(table_qza, tmp_path, types):
+    path = tmp_path / "metadata.tsv"
+    path.write_text(f"sample-id\tdepth\tnote\n{types}S1\t10\t\nS2\t20\t\nS3\t30\t\nS9\t1\tspilled\n")
+    tdata = bt.io.read_qiime2(table_qza, metadata=path)
+    tdata.copy().write_h5td(tmp_path / "x.h5td")
+    back = treedata.read_h5td(tmp_path / "x.h5td")
+    assert back.obs["note"].isna().all() and back.obs["depth"].tolist() == [10, 20, 30]
