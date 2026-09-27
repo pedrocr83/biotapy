@@ -5,8 +5,8 @@ description: File readers and writer for BIOM, QIIME 2 artifacts and DADA2 seque
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T11:17:10Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T11:37:52Z }
+commit: 8a1790e
 status: stable
 ---
 
@@ -17,7 +17,7 @@ Owns the `bt.io.*` verbs that move data between files and a TreeData:
 `read_dada2` (`_dada2.py`) and `read_phyloseq` (`_phyloseq.py`, `_rdata.py`),
 plus the private checked-join helper shared across readers (`_join.py`). Does
 NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
-Task 1.11, not yet written).
+[datasets](/modules/datasets.md), Task 1.11): those call `read_phyloseq`.
 
 # Entry points
 

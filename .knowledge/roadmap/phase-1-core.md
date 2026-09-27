@@ -3025,8 +3025,8 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
 - **Produces:** `bt.datasets.global_patterns() -> TreeData` and
   `bt.datasets.enterotype() -> TreeData`.
 
-- [ ] **Step 1: Dependency.** Add `"pooch"` to `[project] dependencies`, pending user approval, then run `uv sync`.
-- [ ] **Step 2: Failing tests** - `tests/datasets/test_remote.py`:
+- [x] **Step 1: Dependency.** Add `"pooch"` to `[project] dependencies`, pending user approval, then run `uv sync`.
+- [x] **Step 2: Failing tests** - `tests/datasets/test_remote.py`:
   ```python
   from pathlib import Path
 
@@ -3064,8 +3064,8 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   That is a deliberate exception for network isolation (R11.4): it is the
   only way to test the loaders offline without committing third-party data.
   Say so in a one-line comment in the test.
-- [ ] **Step 3: Run, expect failure** (`ImportError` for `_remote`).
-- [ ] **Step 4: Implement** `src/biotapy/datasets/_remote.py`:
+- [x] **Step 3: Run, expect failure** (`ImportError` for `_remote`).
+- [x] **Step 4: Implement** `src/biotapy/datasets/_remote.py`:
   ```python
   """Example datasets from phyloseq's repository, downloaded once and cached with pooch."""
 
@@ -3152,7 +3152,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   - Export both from `datasets/__init__.py`.
   - Confirm the `pooch.create`/`fetch` signatures in the installed pooch (R2.2).
   - `@cache` keeps construction lazy, so importing does no work (R4.7).
-- [ ] **Step 5: CI job.** Add a `network` job to `.github/workflows/test.yaml`, matching the file's style: pinned action SHAs, `uv`, `shell: bash`.
+- [x] **Step 5: CI job.** Add a `network` job to `.github/workflows/test.yaml`, matching the file's style: pinned action SHAs, `uv`, `shell: bash`.
   - It runs on `ubuntu-latest` with Python 3.13.
   - It caches `BIOTAPY_DATA_DIR=${{ github.workspace }}/.pooch` with
     `actions/cache` pinned to `55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0`
@@ -3164,7 +3164,7 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   - Extend `tests/test_ci.py` with one test that the workflow has a job running
     `-m "network or golden"` and that it is in `check.needs`, in the existing
     style.
-- [ ] **Step 6: Docs and knowledge.**
+- [x] **Step 6: Docs and knowledge.**
   - Add both loaders to `docs/api.md` (Datasets block).
   - Add a short "Example datasets" section to the reading guide:
     - they are downloaded and cached;
@@ -3173,8 +3173,8 @@ does not change; `seqtab` and `taxa` may each be a `.rds` file.
   - `modules/datasets.md` gains the remote loaders, and the gotcha that
     examples are `+SKIP` because they download.
   - Add the dependency sentence, and a log line.
-- [ ] **Step 7: Run** `uv run --group test pytest -m network tests/datasets -q` once locally. It downloads about 630 kB. Expect 2 passed; record it in the report.
-- [ ] **Step 8: Gate** (the normal suite excludes network); commit `feat(datasets): add GlobalPatterns and enterotype via pooch`.
+- [x] **Step 7: Run** `uv run --group test pytest -m network tests/datasets -q` once locally. It downloads about 630 kB. Expect 2 passed; record it in the report.
+- [x] **Step 8: Gate** (the normal suite excludes network); commit `feat(datasets): add GlobalPatterns and enterotype via pooch`.
 
 ### Task 1.12b: golden tests for `relative` and `tax_glom`
 

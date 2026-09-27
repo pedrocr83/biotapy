@@ -1,6 +1,21 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Creation**: Task 1.11 done: `bt.datasets.global_patterns()` and
+  `bt.datasets.enterotype()` (`src/biotapy/datasets/_remote.py`) download
+  GlobalPatterns/enterotype from phyloseq's repository through `pooch`,
+  pinned to one commit and a SHA-256, and read them with `bt.io.read_phyloseq`.
+  Added `pooch` to `[project] dependencies` (approved 2026-09-27) and its
+  mypy override (P8: `follow_untyped_imports`, no `py.typed` marker in
+  1.9.0). Added the `network` CI job (`pytest -m "network or golden"`,
+  cached `BIOTAPY_DATA_DIR`) to [phase-1-core](roadmap/phase-1-core.md)'s
+  workflow, extended `tests/test_ci.py`. Updated
+  [modules/datasets.md](modules/datasets.md) (entry points, invariants,
+  dependencies, the `+SKIP` doctest gotcha),
+  [modules/io.md](modules/io.md) (the stale "not yet written" note) and
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md)
+  (the pooch sentence). Ticked Task 1.11's steps in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.9b fix round 1 (I1, R3.5): `_rdata.py:read_matrix_rds`
   gained a keyword-only `argument` and raises `ValueError` naming it when the
   file's converted object isn't a 2-D `xr.DataArray` - a phyloseq `.rds`
