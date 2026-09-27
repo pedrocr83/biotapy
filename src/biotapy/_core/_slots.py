@@ -56,7 +56,11 @@ def require_counts(adata: AnnData, *, func: str) -> None:
 def add_provenance(adata: AnnData, step: str, **params: ParamValue) -> None:
     """Append one JSON entry to ``uns['biotapy']['provenance']`` (h5ad cannot store a list of dicts)."""
     meta = adata.uns.setdefault("biotapy", {"x_kind": "counts"})
-    entry = json.dumps({"step": step, "version": version("biotapy"), "params": params})
+    entry = json.dumps(
+        {"step": step, "version": version("biotapy"), "params": params},
+        # A threshold taken from a numpy reduction is a numpy scalar, which json rejects; .item() is its Python value.
+        default=lambda value: value.item() if isinstance(value, np.generic) else json.JSONEncoder().default(value),
+    )
     meta["provenance"] = [*meta.get("provenance", []), entry]
 
 

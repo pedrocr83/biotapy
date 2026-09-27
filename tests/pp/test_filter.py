@@ -91,6 +91,12 @@ def test_drops_derived_slots_and_records_provenance():
     assert entry["step"] == "pp.filter_features" and entry["params"] == {"min_prevalence": None, "min_total": 19}
 
 
+def test_numpy_thresholds_are_recorded_as_python_numbers():
+    out = bt.pp.filter_features(bt.datasets.toy(), min_prevalence=np.float32(0.5), min_total=np.int64(19))
+    assert list(out.var_names) == ["f1", "f2", "f3", "f4", "f6", "f7"]
+    assert json.loads(out.uns["biotapy"]["provenance"][-1])["params"] == {"min_prevalence": 0.5, "min_total": 19}
+
+
 def test_input_unchanged(assert_unchanged):
     tdata = bt.datasets.toy()
     before = tdata.copy()
@@ -150,6 +156,15 @@ def test_filter_samples_keeps_every_slot():
 def test_filter_samples_drops_an_all_zero_sample_and_keeps_all_zero_features():
     out = bt.pp.filter_samples(_adata(np.array([[0, 0], [0, 3]])), 1)
     assert list(out.obs_names) == ["s1"] and out.n_vars == 2
+
+
+def test_filter_samples_accepts_a_numpy_threshold():
+    # rarefy's X is int64, so a depth taken from it is an np.int64, not an int.
+    tdata = bt.pp.rarefy(bt.datasets.toy(), depth=60, seed=0)
+    depths = np.asarray(tdata.X.sum(axis=1)).ravel()
+    out = bt.pp.filter_samples(tdata, depths.min())
+    assert out.n_obs == 6
+    assert json.loads(out.uns["biotapy"]["provenance"][-1])["params"] == {"min_depth": 60}
 
 
 def test_filter_samples_single_sample():
