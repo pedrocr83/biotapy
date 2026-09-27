@@ -29,7 +29,8 @@ def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
     -------
     TreeData
         The table in ``X``; observation ``taxonomy`` metadata as rank columns in
-        ``var``; sample metadata in ``obs``; the tree in ``vart['phylo']``.
+        ``var``; sample metadata in ``obs``, with empty values as NaN; the
+        tree in ``vart['phylo']``.
 
     Raises
     ------
@@ -84,7 +85,8 @@ def _biom_parts(table: biom.Table) -> tuple[sp.csr_matrix, pd.DataFrame, pd.Data
 def _metadata_frame(metadata: Sequence[Mapping[str, object]] | None, ids: list[str]) -> pd.DataFrame:
     if metadata is None:
         return pd.DataFrame(index=ids)
-    return pd.DataFrame([dict(entry) for entry in metadata], index=ids)
+    # BIOM has no null: write_biom (and others) write a missing value as "".
+    return pd.DataFrame([dict(entry) for entry in metadata], index=ids).replace("", np.nan)
 
 
 def _taxonomy_frame(metadata: Sequence[Mapping[str, object]] | None, ids: list[str]) -> pd.DataFrame:
@@ -123,9 +125,9 @@ def write_biom(adata: AnnData, path: str | Path, *, fmt: Literal["hdf5", "json"]
 
     BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
     everything outside ``X``, rank columns and ``obs`` are not written.
-    Sample metadata is written as text; missing values become empty strings
-    and read back as ``""``, not NaN. Missing ranks are written as bare
-    prefixes (``g__``) so every rank keeps its place.
+    Sample metadata is written as text; missing values are written as empty
+    strings and read back as NaN. Missing ranks are written as bare prefixes
+    (``g__``) so every rank keeps its place.
 
     Examples
     --------

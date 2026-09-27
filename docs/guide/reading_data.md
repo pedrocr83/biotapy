@@ -37,7 +37,8 @@ gets a `var` with no rank columns at all, rather than columns full of `NaN`.
 ### Sample metadata becomes obs columns
 
 Whatever a table's sample metadata holds becomes columns of `obs`, one column
-per key, unchanged.
+per key, unchanged except that empty values become `NaN` (BIOM has no null,
+so writers store a missing value as an empty string).
 
 ### Ids are always strings
 
@@ -69,8 +70,8 @@ bt.io.write_biom(tdata, "table.biom")
 
 BIOM has no slot for a tree, layers or embeddings: a TreeData's tree and
 everything outside `X`, rank columns and `obs` are not written. Sample
-metadata is written as text; missing values become empty strings and read
-back as `""`, not NaN.
+metadata is written as text; missing values are written as empty strings and
+read back as `NaN`.
 
 Rank columns are written as prefixed values (`k__`, `p__`, ..., `g__`) rather
 than bare strings, even where a rank is missing. BIOM's HDF5 reader drops

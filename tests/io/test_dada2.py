@@ -113,3 +113,20 @@ def test_read_dada2_tree_tips_must_be_sequences(seqtab, tmp_path, newick):
     path.write_text(newick)
     with pytest.raises(ValueError, match=r"tree=.*ASV1"):
         bt.io.read_dada2(seqtab, tree=path)
+
+
+def test_read_dada2_tree_mismatch_keeps_shared_features(seqtab, tmp_path):
+    path = tmp_path / "tree.nwk"
+    path.write_text("((ACGTACGT:1,TTGACCAA:1):1,GGGGTTTT:1);")
+    with pytest.warns(UserWarning, match=r"2 feature\(s\) not in the tree and 1 tree tip\(s\)"):
+        tdata = bt.io.read_dada2(seqtab, tree=path)
+    phylo = tdata.vart["phylo"]
+    assert list(tdata.var_names) == ["ASV1", "ASV2"]
+    assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"ASV1", "ASV2"}
+
+
+def test_read_dada2_tree_sharing_no_feature_raises(seqtab, tmp_path):
+    path = tmp_path / "tree.nwk"
+    path.write_text("((GGGGTTTT:1,AAAACCCC:1):1,TTTTGGGG:1);")
+    with pytest.raises(ValueError, match="no feature"):
+        bt.io.read_dada2(seqtab, tree=path)

@@ -1,7 +1,9 @@
+import biom
 import numpy as np
 import pandas as pd
 import pytest
 import treedata
+from biom.util import biom_open
 
 import biotapy as bt
 
@@ -77,6 +79,27 @@ def test_read_qiime2_tree(table_qza, make_qza):
     tree = make_qza("tree", "tree.nwk", NEWICK.encode())
     phylo = bt.io.read_qiime2(table_qza, tree=tree).vart["phylo"]
     assert {n for n in phylo.nodes if phylo.out_degree(n) == 0} == {"OTU_1", "OTU_2", "OTU_3", "OTU_4"}
+
+
+def test_read_qiime2_tree_mismatch_keeps_shared_features(table_qza, make_qza):
+    tree = make_qza("tree", "tree.nwk", b"((OTU_1:1,OTU_2:1):1,OTU_9:1);")
+    with pytest.warns(UserWarning, match=r"2 feature\(s\) not in the tree and 1 tree tip\(s\)"):
+        tdata = bt.io.read_qiime2(table_qza, tree=tree)
+    assert list(tdata.var_names) == ["OTU_1", "OTU_2"]
+
+
+def test_read_qiime2_tree_sharing_no_feature_raises(table_qza, make_qza):
+    tree = make_qza("tree", "tree.nwk", b"((X:1,Y:1):1,Z:1);")
+    with pytest.raises(ValueError, match="no feature"):
+        bt.io.read_qiime2(table_qza, tree=tree)
+
+
+def test_read_qiime2_single_sample(make_qza, tmp_path):
+    path = tmp_path / "one.biom"
+    with biom_open(str(path), "w") as handle:
+        biom.Table(np.array([[3], [0], [5]]), ["OTU_1", "OTU_2", "OTU_3"], ["S1"]).to_hdf5(handle, "biotapy tests")
+    tdata = bt.io.read_qiime2(make_qza("table", "feature-table.biom", path.read_bytes()))
+    assert tdata.shape == (1, 3) and tdata.X.toarray().tolist() == [[3, 0, 5]]
 
 
 def test_read_qiime2_wrong_artifact_names_the_argument(make_qza):
