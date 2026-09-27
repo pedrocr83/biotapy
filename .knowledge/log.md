@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: [phase-1-core](roadmap/phase-1-core.md): Checkpoint B1 closed (PR #5 merged as c64a138, CI green incl. Python 3.14; user go-ahead). Slice 1B stage 2 expanded into TDD steps for approval: 1.12a (R container, golden files, R-written fixtures), 1.10 (read_phyloseq), 1.9b (DADA2 .rds), 1.11 (datasets via pooch + network CI job), 1.12b (golden tests); no third-party data committed.
 * **Update** (Checkpoint B1 residual N1): [data-model-slots](contracts/data-model-slots.md)
   convention 1 names the rank dtype as `pd.StringDtype(na_value=np.nan)`:
   `astype("str")` means that dtype only on pandas 3, and on pandas 2.3 it
