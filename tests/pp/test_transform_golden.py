@@ -15,9 +15,7 @@ def test_relative_matches_phyloseq_transform_sample_counts():
     golden = pd.read_csv(GOLDEN / "relative.csv.gz", dtype={"sample_id": str, "taxon_id": str})
     out = bt.pp.relative(bt.datasets.global_patterns())
     rel = out.layers["relative"].tocoo()
-    ours = pd.DataFrame(
-        {"sample_id": out.obs_names[rel.row], "taxon_id": out.var_names[rel.col], "value": rel.data}
-    )
+    ours = pd.DataFrame({"sample_id": out.obs_names[rel.row], "taxon_id": out.var_names[rel.col], "value": rel.data})
     merged = golden.merge(ours, on=["sample_id", "taxon_id"], how="outer", suffixes=("_r", "_py"), indicator=True)
     assert (merged["_merge"] == "both").all()
     np.testing.assert_allclose(merged["value_py"], merged["value_r"], rtol=1e-7)
