@@ -41,6 +41,8 @@ Public functions are listed here as they ship, from Phase 1 onward.
 .. autosummary::
     :toctree: generated
 
+    pp.filter_features
+    pp.filter_samples
     pp.relative
     pp.tax_glom
 ```

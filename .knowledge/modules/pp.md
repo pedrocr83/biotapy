@@ -1,23 +1,23 @@
 ---
 type: Module
 title: pp (preprocessing)
-description: Pure transforms over AnnData/TreeData that scale abundances per sample or aggregate features along the taxonomy.
+description: Pure transforms over AnnData/TreeData that scale abundances per sample, aggregate features along the taxonomy, or filter samples/features.
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T14:08:28Z }
-commit: 0fdbd4d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T16:36:43Z }
+commit: 03544a6
 status: stable
 ---
 
 # Responsibility
 
 Owns the `bt.pp.*` verbs that transform an AnnData/TreeData's abundance
-table: `relative` (adds a layer, keeps every feature) and `tax_glom`
-(aggregates features to a taxonomic rank, drops derived slots). Does NOT own
-filtering or rarefaction (`pp.filter_features`, `pp.filter_samples`,
-`pp.rarefy` - Slice 1C, not yet written) or any diversity/ordination
-computation (`tl`, later phases).
+table: `relative` (adds a layer, keeps every feature), `tax_glom`
+(aggregates features to a taxonomic rank, drops derived slots). Owns
+filtering (`filter_features`, `filter_samples`); does NOT own rarefaction
+(`pp.rarefy`, Task 1.14) or any diversity/ordination computation (`tl`,
+later phases).
 
 # Entry points
 
@@ -26,6 +26,10 @@ computation (`tl`, later phases).
   `transform_sample_counts` (returns `NaN` there).
 - `_glom.py:tax_glom` - aggregate features sharing a lineage down to `rank`
   into their most abundant member.
+- `_filter.py:filter_features` - prevalence and total thresholds, through
+  `feature_subset`.
+- `_filter.py:filter_samples` - a depth threshold, through AnnData indexing,
+  keeping every slot.
 
 # Invariants
 
@@ -45,6 +49,15 @@ computation (`tl`, later phases).
 - `tax_glom` goes through `_core.feature_subset`, so a TreeData's tree is
   pruned to the archetypes' leaves plus ancestors rather than rebuilt - see
   [core](/modules/core.md) for what that keeps.
+- `filter_features`/`filter_samples` thresholds are inclusive.
+  `_filter.py:filter_features`, `_filter.py:filter_samples`
+- `filter_features` counts prevalence from stored non-zero values and divides
+  by `n_obs`, rather than multiplying the threshold by `n_obs`, because a
+  fraction like `3 / 10` is not exactly representable and multiplying can put
+  the boundary on the wrong side. `_filter.py:filter_features`,
+  `tests/pp/test_filter.py:test_decimal_prevalence_boundary_is_kept`.
+- Nothing passing either filter raises `ValueError`; neither ever returns an
+  empty object. `_filter.py:filter_features`, `_filter.py:filter_samples`
 
 # Dependencies
 

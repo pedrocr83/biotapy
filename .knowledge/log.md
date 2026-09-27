@@ -1,6 +1,16 @@
 # Knowledge bundle log
 
 ## 2026-09-27
+* **Update**: Task 1.13 done: `pp.filter_features(adata, *, min_prevalence=,
+  min_total=)` and `pp.filter_samples(adata, min_depth)`, both inclusive
+  thresholds, `ValueError` when nothing passes. `filter_features` goes
+  through `_core.feature_subset`; `filter_samples` subsets with AnnData
+  indexing so every slot (including `obsp` distances) survives. New
+  `src/biotapy/pp/_filter.py`, `tests/pp/test_filter.py`,
+  `tests/pp/test_filter_golden.py` (matches `phyloseq::filter_taxa` on
+  GlobalPatterns exactly) and `docs/guide/filtering.md`. [pp](modules/pp.md)
+  and [core](modules/core.md) updated; ticked in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.13 step 1: fixed a pre-existing `_core.feature_subset`
   bug found while prototyping slice 1C - anndata 0.13 lists `X` itself as
   `layers[None]`, so deleting every `layers` key deleted `X` too;

@@ -3731,14 +3731,14 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - phyloseq's `prune_*`/`subset_*` map to AnnData indexing in the
     Coming-from-R table; there are no wrappers (R2.1).
 
-- [ ] **Step 1: Failing test for the `feature_subset` bug.** Append to `tests/core/test_slots.py`:
+- [x] **Step 1: Failing test for the `feature_subset` bug.** Append to `tests/core/test_slots.py`:
   ```python
   def test_feature_subset_keeps_x():
       np.testing.assert_array_equal(feature_subset(_adata(), np.array([0, 2])).X.toarray(), [[0, 2], [3, 5]])
   ```
   Run `uv run --group test pytest tests/core/test_slots.py -q`. It fails with
   `AttributeError: 'NoneType' object has no attribute 'toarray'`.
-- [ ] **Step 2: Fix.** In `src/biotapy/_core/_slots.py`'s `feature_subset`, replace the inner loop
+- [x] **Step 2: Fix.** In `src/biotapy/_core/_slots.py`'s `feature_subset`, replace the inner loop
   (`for key in list(mapping.keys()):` and its `del` line) with:
   ```python
           # anndata 0.13 lists X itself as layers[None]; deleting that key would delete X.
@@ -3758,7 +3758,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
     Add a log line.
   - Gate: `uvx prek run --all-files` and `uv run --group test pytest`.
   - Commit `fix(core): keep X when feature_subset drops derived slots`.
-- [ ] **Step 3: Failing tests.**
+- [x] **Step 3: Failing tests.**
   - `tests/pp/test_filter.py`:
     ```python
     import json
@@ -3964,10 +3964,10 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         out = bt.pp.filter_features(bt.datasets.global_patterns(), **threshold)
         assert list(out.var_names) == golden.loc[golden[column], "taxon_id"].tolist()
     ```
-- [ ] **Step 4: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_filter.py -q`.
+- [x] **Step 4: Run, expect failure.** Run `uv run --group test pytest tests/pp/test_filter.py -q`.
   It fails with `AttributeError: module 'biotapy.pp' has no attribute 'filter_features'`,
   and with the same error for `'filter_samples'`.
-- [ ] **Step 5: Implement.** `src/biotapy/pp/_filter.py`:
+- [x] **Step 5: Implement.** `src/biotapy/pp/_filter.py`:
   ```python
   """Filters that keep a subset of features or samples."""
 
@@ -4090,7 +4090,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - `np.bincount` over the column indices of stored non-zero values counts
     presence. A sparse `X != 0` also works at run time, but scipy-stubs types
     it as `bool`, so mypy rejects it.
-- [ ] **Step 6: Docs.**
+- [x] **Step 6: Docs.**
   - Create `docs/guide/filtering.md`:
     ````markdown
     # Filtering and rarefaction
@@ -4130,7 +4130,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
   - Add `filtering` to the `docs/guide/index.md` toctree, after `aggregation`.
   - Add `pp.filter_features` and `pp.filter_samples` to the Preprocessing
     block of `docs/api.md`, alphabetically before `pp.relative`.
-- [ ] **Step 7: Knowledge.**
+- [x] **Step 7: Knowledge.**
   - `.knowledge/modules/pp.md`:
     - In the Responsibility, "Does NOT own filtering or rarefaction
       (`pp.filter_features`, `pp.filter_samples`, `pp.rarefy` - Slice 1C, not
@@ -4147,7 +4147,7 @@ PCoA, NMDS and PERMANOVA on TreeData, each matching R within the
         rather than multiplying the threshold;
       - nothing passing is a `ValueError`, never an empty object.
   - Add a log line. Tick 1.13 here.
-- [ ] **Step 8: Run, gate and commit.**
+- [x] **Step 8: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/pp tests/core -q`.
   - Golden: `uv run --group test pytest -m golden tests/pp/test_filter_golden.py -q`
     (2 passed; the GlobalPatterns download is cached by pooch).
