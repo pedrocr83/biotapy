@@ -27,8 +27,9 @@ Task 1.11, not yet written).
   var)`. Used by `read_biom` and reused by `read_qiime2` (see Gotchas).
 - `_qiime2.py:read_qiime2` - a `.qza` feature table plus optional taxonomy,
   tree and QIIME 2 metadata TSV, with no QIIME 2 install.
-- `_dada2.py:read_dada2` - a DADA2 `seqtab`/`seqtab.nochim` CSV or TSV, plus
-  optional `assignTaxonomy`/`addSpecies` taxonomy and a Newick tree.
+- `_dada2.py:read_dada2` - a DADA2 `seqtab`/`seqtab.nochim` CSV, TSV or
+  `.rds` (`saveRDS`), plus optional `assignTaxonomy`/`addSpecies` taxonomy
+  (same three formats) and a Newick tree.
 - `_phyloseq.py:read_phyloseq` - a phyloseq object saved from R
   (`.rds`/`.RData`), read natively through `rdata` (no R, no rpy2); `name=`
   selects one object from an `.RData` holding several.

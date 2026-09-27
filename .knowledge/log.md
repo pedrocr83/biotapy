@@ -9,6 +9,9 @@
   instead of rdata's default avoids rdata warning once per missing S4-slot
   constructor before that check runs. Added a Gotcha to
   [modules/io.md](modules/io.md).
+* **Update**: Task 1.9b fix round 1 (I2, R12.1): `modules/io.md`'s
+  `_dada2.py:read_dada2` entry point said "CSV or TSV"; now names `.rds`
+  (`saveRDS`) too, matching Task 1.9b.
 * **Update**: Task 1.9b done: `bt.io.read_dada2`'s `seqtab` and `taxa` accept
   `.rds` files, dispatched in `_dada2.py:_read_table` to `_rdata.py:read_matrix_rds`
   (Task 1.10). Controller ruling: fixed a deferred minor from Task 1.10 in the
