@@ -8149,7 +8149,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
 which is hatch-test's `coverage report`. After this task that step exits
 non-zero below 90% total line coverage (ruling 18).
 
-- [ ] **Step 1: Failing test.** In `tests/test_ci.py`:
+- [x] **Step 1: Failing test.** In `tests/test_ci.py`:
   - Replace the header imports and `WORKFLOW` with:
     ```python
     import tomllib
@@ -8171,7 +8171,7 @@ non-zero below 90% total line coverage (ruling 18).
         assert any(":cov-report" in step.get("run", "") for step in steps)
     ```
   - `uv run --group test pytest tests/test_ci.py -q` fails with `KeyError: 'report'`.
-- [ ] **Step 2: Implement.** In `pyproject.toml`, after `run.source = [ "biotapy" ]`
+- [x] **Step 2: Implement.** In `pyproject.toml`, after `run.source = [ "biotapy" ]`
   (pyproject-fmt moves the key there if it is written earlier), add:
   ```toml
   # rules.md R11.6 through a line-coverage proxy: coverage.py has no per-function view, so the whole
@@ -8179,7 +8179,7 @@ non-zero below 90% total line coverage (ruling 18).
   report.fail_under = 90
   ```
   Run the test again; it passes.
-- [ ] **Step 3: Measure.** Run
+- [x] **Step 3: Measure.** Run
   `uv run --group test coverage run -m pytest -q && uv run --group test coverage report`
   and read the per-file table:
   - `TOTAL` must be at least 90; it was 99% before this slice;
@@ -8187,7 +8187,7 @@ non-zero below 90% total line coverage (ruling 18).
 
   Name any file under 90% in the report. `datasets/_remote.py` is expected at
   89%, because its downloads run only in the network job.
-- [ ] **Step 4: Gate and commit.** Add a log line and tick 1.19b. Run the
+- [x] **Step 4: Gate and commit.** Add a log line and tick 1.19b. Run the
   three gates. Commit `ci: fail the test job below 90% line coverage`,
   staging `pyproject.toml`, `tests/test_ci.py`, the roadmap and the log.
 

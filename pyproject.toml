@@ -209,6 +209,9 @@ run.omit = [
 ]
 run.patch = [ "subprocess" ]
 run.source = [ "biotapy" ]
+# rules.md R11.6 through a line-coverage proxy: coverage.py has no per-function view, so the whole
+# package (public and private modules) must reach 90%; CI's `coverage report` step fails below it.
+report.fail_under = 90
 
 [tool.cruft]
 skip = [

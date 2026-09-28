@@ -1,6 +1,16 @@
 # Knowledge bundle log
 
 ## 2026-09-28
+* **Update**: Task 1.19b done: `[tool.coverage].report.fail_under = 90` in
+  `pyproject.toml`, so CI's `test` job's `cov-report` step (hatch-test's
+  `coverage report`) fails below 90% total line coverage - the proxy for
+  R11.6, since coverage.py has no per-function view. `tests/test_ci.py`
+  gained `test_coverage_below_90_percent_fails_the_test_job`, asserting the
+  config key and that a `test` job step names `cov-report`. Measured: 560
+  tests, `TOTAL` 99%; every `pl` file 100%; only
+  `src/biotapy/datasets/_remote.py` (89%, downloads run only in the network
+  job) is under 90%. Ticked Task 1.19b in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.19 done: a local Sphinx extension,
   `docs/extensions/coming_from_r.py`, parses each public function's
   docstring `Notes` section - `r_equivalents(doc)` raises `ValueError`
