@@ -161,7 +161,7 @@ lint.pylint.max-returns = 4
 lint.pylint.max-statements = 30
 
 [tool.mypy]
-files = [ "src/biotapy" ]
+files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
 # biom-format and scikit-learn ship no type annotations at all, nor does scikit-bio's
 # subsample_counts; exempt only calls into them (not our own code) from strict's
