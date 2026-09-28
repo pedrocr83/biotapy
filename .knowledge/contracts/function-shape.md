@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T08:21:37Z }
+commit: 9789e0b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -64,7 +64,10 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
 
 # Enforced by
 - ruff `D`, `PLR0913`, `PLR0917` and mypy strict (Phase 0, task 0.4).
-- `tests/test_docstrings.py` (Phase 1, task 1.19) parses every public function's `R equivalent:` line.
+- `tests/test_docstrings.py` checks every public function's docstring. It must have exactly one
+  `R equivalent:` line, parsed by `docs/extensions/coming_from_r.py`, with `Guide:` on the next
+  line, and an `Examples` section. The same parser writes the Coming-from-R table at each docs
+  build, with `docs/_data/r_idioms.toml` for the R calls that are plain AnnData code (task 1.19).
 - Doctests in CI (`--doctest-modules` in pytest config, Phase 0 task 0.4).
 - Purity: every `pp`/`tl` test asserts the input is unchanged.
 

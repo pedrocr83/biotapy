@@ -7843,7 +7843,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     `https://biotapy.readthedocs.io/page/coming_from_r.html`, which 1.23's
     README links.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
   - `tests/test_docstrings.py`:
     ```python
     """Every public function's docstring keeps the contracts/function-shape skeleton (rules.md R8.2)."""
@@ -7964,11 +7964,11 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
       means exactly what the table needs.
     - The `Examples` check asks only for a `>>> ` line. The `io` readers'
       examples start with `import tempfile`, and the contract allows that.
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/test_docstrings.py tests/test_coming_from_r.py -q`
   errors while collecting both files with
   `FileNotFoundError: [Errno 2] No such file or directory: '.../docs/extensions/coming_from_r.py'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `docs/extensions/coming_from_r.py`. `conf.py` already puts
     `docs/extensions` on `sys.path` and loads every `.py` there as an
     extension, so the file needs no registration:
@@ -8093,7 +8093,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
 
     Removing the double backticks from `pl.richness`'s R line failed exactly
     `test_docstring_has_the_contract_sections[bt.pl.richness]`.
-- [ ] **Step 4: Docs.**
+- [x] **Step 4: Docs.**
   - Create `docs/coming_from_r.md`. Its prose is written by hand; only the
     included table is generated (R8.4):
     ````markdown
@@ -8124,7 +8124,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
       rows and the header);
     - `grep -c 'href="generated/biotapy.pl.bar.html#biotapy.pl.bar"' docs/_build/html/coming_from_r.html`
       prints `1`: the `{func}` roles resolved under `nitpicky`.
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   - `contracts/function-shape.md`, Enforced by: "`tests/test_docstrings.py`
     (Phase 1, task 1.19) parses every public function's `R equivalent:` line."
     becomes: "`tests/test_docstrings.py` checks every public function's
@@ -8134,7 +8134,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     docs build, with `docs/_data/r_idioms.toml` for the R calls that are plain
     AnnData code (task 1.19)."
   - Add a log line. Tick 1.19 here.
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   - The three gates.
   - Commit `docs: generate the Coming-from-R table and test every public docstring`,
     staging the five new files, `docs/conf.py`, `docs/index.md`, the concept,

@@ -1,6 +1,30 @@
 # Knowledge bundle log
 
 ## 2026-09-28
+* **Update**: Task 1.19 done: a local Sphinx extension,
+  `docs/extensions/coming_from_r.py`, parses each public function's
+  docstring `Notes` section - `r_equivalents(doc)` raises `ValueError`
+  unless there is exactly one `R equivalent:` line naming ```` ``pkg::fn`` ````
+  items or `none` - and writes the Coming-from-R table
+  (`docs/generated/coming_from_r_table.md`, git-ignored) from `rows()`/
+  `render()` at the `builder-inited` hook, `write_table`. `rows()` also reads
+  `docs/_data/r_idioms.toml` (stdlib `tomllib`, no new dependency) for the 19
+  phyloseq accessors that are plain AnnData/TreeData code plus the 5 "not in
+  0.1" rows, and raises if a call is mapped by both a docstring and the
+  idioms file. `tests/test_docstrings.py` uses the same parser to check
+  every public function across `datasets`, `io`, `pl`, `pp`, `tl` (25
+  functions: 18 with one R item, 5 with two, 2 with `none`) has a parseable
+  `R equivalent:` line, a `Guide:` link on the next line, and an `Examples`
+  section; `tests/test_coming_from_r.py` checks the table covers all 31
+  phyloseq functions from the phase's exit-gate list and marks the 5
+  uncovered ones. The committed page `docs/coming_from_r.md` `{include}`s
+  the generated fragment; `docs/conf.py`'s `exclude_patterns` excludes the
+  fragment so `-W` does not fail on an unincluded document, and
+  `docs/index.md`'s "User guide" toctree gains it. Built table: 48 rows (49
+  `<tr>` with the header); the `{func}` roles resolved under `nitpicky`.
+  Updated [function-shape](contracts/function-shape.md)'s "Enforced by" to
+  describe the parser instead of only naming the test file. Ticked Task 1.19
+  in [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.18 done (slice 1D's first task): new top-layer package
   `bt.pl`, computing nothing and reading only slots `tl`/`pp` already write.
   `bt.pl.bar(adata, fill, *, x=None, layer=None, ax=None) -> Axes` sums the

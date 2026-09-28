@@ -1,0 +1,30 @@
+# R calls with no biotapy function of their own, for the generated Coming-from-R table
+# (docs/extensions/coming_from_r.py). Every other row comes from a public docstring's
+# "R equivalent:" line; a call listed there must not be listed here too.
+# Values are MyST markdown, inserted as they are.
+
+[idioms]
+"phyloseq::otu_table" = '`tdata.X` (samples x features)'
+"phyloseq::sample_data" = '`tdata.obs`'
+"phyloseq::tax_table" = '`tdata.var`, one column per rank'
+"phyloseq::phy_tree" = '`tdata.vart["phylo"]`'
+"phyloseq::refseq" = '`tdata.var["sequence"]`'
+"phyloseq::nsamples" = '`tdata.n_obs`'
+"phyloseq::ntaxa" = '`tdata.n_vars`'
+"phyloseq::sample_names" = '`tdata.obs_names`'
+"phyloseq::taxa_names" = '`tdata.var_names`'
+"phyloseq::sample_sums" = '`tdata.X.sum(axis=1)`'
+"phyloseq::taxa_sums" = '`tdata.X.sum(axis=0)`'
+"phyloseq::rank_names" = '`tdata.var.columns`'
+"phyloseq::sample_variables" = '`tdata.obs.columns`'
+"phyloseq::get_variable" = '`tdata.obs[column]`'
+"phyloseq::get_taxa_unique" = '`tdata.var[rank].unique()`'
+"phyloseq::prune_taxa" = '`tdata[:, keep].copy()`'
+"phyloseq::prune_samples" = '`tdata[keep].copy()`'
+"phyloseq::subset_taxa" = '`tdata[:, tdata.var["phylum"] == "Chlamydiae"].copy()`'
+"phyloseq::subset_samples" = '`tdata[tdata.obs["SampleType"] == "Feces"].copy()`'
+"phyloseq::tip_glom" = "not in 0.1"
+"phyloseq::merge_samples" = "not in 0.1"
+"phyloseq::psmelt" = "not in 0.1"
+"phyloseq::plot_tree" = "not in 0.1"
+"phyloseq::plot_net" = "not in 0.1"
