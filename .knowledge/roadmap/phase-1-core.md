@@ -8214,7 +8214,7 @@ non-zero below 90% total line coverage (ruling 18).
   - the pages `tutorials/getting_started` and `tutorials/phyloseq_analysis`,
     which 1.23's README links.
 
-- [ ] **Step 1: Failing tests.** Append to `tests/test_ci.py`:
+- [x] **Step 1: Failing tests.** Append to `tests/test_ci.py`:
   ```python
 
 
@@ -8228,7 +8228,7 @@ non-zero below 90% total line coverage (ruling 18).
       assert "docs" in WORKFLOW["jobs"]["check"]["needs"]
   ```
   `uv run --group test pytest tests/test_ci.py -q` fails with `KeyError: 'docs'`.
-- [ ] **Step 2: The CI job.** In `.github/workflows/test.yaml`:
+- [x] **Step 2: The CI job.** In `.github/workflows/test.yaml`:
   - Insert before the `knowledge-touched` job's comment:
     ```yaml
       # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
@@ -8264,7 +8264,7 @@ non-zero below 90% total line coverage (ruling 18).
     save only logs "Unable to reserve cache".
   - The prototype's zizmor 1.24.1 run on this file reported no findings.
   - Run the Step 1 command: 8 passed (5 from before this slice, 1 from 1.19b).
-- [ ] **Step 3: Execution settings.**
+- [x] **Step 3: Execution settings.**
   - In `docs/conf.py`, replace `nb_execution_mode = "off"` with:
     ```python
     # Every notebook runs at build time; a failing cell fails the build. The cache lives in docs/_build.
@@ -8276,7 +8276,7 @@ non-zero below 90% total line coverage (ruling 18).
     (ruling 14).
   - Keep myst-nb's default 30 s cell timeout: the slowest notebook ran in
     11.4 s in total.
-- [ ] **Step 4: Notebooks.**
+- [x] **Step 4: Notebooks.**
   - Create `docs/tutorials/getting_started.md`:
     ````markdown
     ---
@@ -8523,7 +8523,7 @@ non-zero below 90% total line coverage (ruling 18).
   - The faceted cells use `layout="constrained"` with
     `fig.legend(..., loc="outside right center")`. With plain
     `loc="center right"`, the shared legend covered the last panel.
-- [ ] **Step 5: Build and read the output.**
+- [x] **Step 5: Build and read the output.**
   - Build with `uv run --group doc sphinx-build -W -b html docs docs/_build/html`,
     with `BIOTAPY_DATA_DIR` set to a pooch cache (default: the per-user
     cache). CI runs the equivalent `uvx hatch run docs:build`.
@@ -8548,7 +8548,7 @@ non-zero below 90% total line coverage (ruling 18).
   - Kernel lines such as `[IPKernelApp] WARNING | Kernel is running over TCP
     without encryption` are the kernel's stderr, not Sphinx warnings; `-W`
     ignores them.
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   - Add a log line and tick 1.20. Run the three gates.
   - Commit `docs: add getting started and the phyloseq vignette, executed on every build`,
     staging the two new notebooks, `docs/conf.py`, `docs/tutorials/quick_tour.md`,

@@ -85,7 +85,9 @@ myst_enable_extensions = [
 ]
 myst_url_schemes = ("http", "https", "mailto")
 nb_output_stderr = "remove"
-nb_execution_mode = "off"
+# Every notebook runs at build time; a failing cell fails the build. The cache lives in docs/_build.
+nb_execution_mode = "cache"
+nb_execution_raise_on_error = True
 nb_merge_streams = True
 typehints_defaults = "braces"
 always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14

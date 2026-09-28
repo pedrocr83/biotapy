@@ -37,3 +37,13 @@ def test_coverage_below_90_percent_fails_the_test_job():
     assert coverage["report"]["fail_under"] == 90
     steps = WORKFLOW["jobs"]["test"]["steps"]
     assert any(":cov-report" in step.get("run", "") for step in steps)
+
+
+def test_docs_job_builds_the_docs_with_the_pooch_cache():
+    steps = WORKFLOW["jobs"]["docs"]["steps"]
+    build = [step for step in steps if step.get("run", "").strip() == "uvx hatch run docs:build"]
+    assert build and "BIOTAPY_DATA_DIR" in build[0]["env"]
+
+
+def test_docs_job_blocks_merges():
+    assert "docs" in WORKFLOW["jobs"]["check"]["needs"]

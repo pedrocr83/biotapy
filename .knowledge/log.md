@@ -1,6 +1,28 @@
 # Knowledge bundle log
 
 ## 2026-09-28
+* **Update**: Task 1.20 done: two MyST text notebooks,
+  `docs/tutorials/getting_started.md` (GlobalPatterns, one ordination and one
+  richness plot) and `docs/tutorials/phyloseq_analysis.md` (the phyloseq
+  analysis vignette redone on GlobalPatterns, enterotype and esophagus
+  through `bt.datasets.*`/pooch - no golden CSV read), added to
+  `docs/tutorials/index.md`'s toctree. `docs/conf.py` now sets
+  `nb_execution_mode = "cache"` and `nb_execution_raise_on_error = True`
+  globally (myst-nb 1.4.0/jupyter-cache 1.0.1, already in the doc group);
+  `quick_tour.md` dropped its page-level `execution_mode: force` override.
+  A new CI job `docs` builds the docs with `uvx hatch run docs:build`
+  (Read the Docs' command) against the `network` job's pooch cache and is
+  now required by `check`; `tests/test_ci.py` gained
+  `test_docs_job_builds_the_docs_with_the_pooch_cache` and
+  `test_docs_job_blocks_merges` (RED: `KeyError: 'docs'`; GREEN: 8 passed).
+  A clean `uvx hatch run docs:build` executed all three notebooks (7.0 s,
+  16.2 s, 2.6 s) and `sphinx-build -W` succeeded with 8 `<img>` in the
+  vignette page, checked by eye against the R vignette's figures. A probe
+  cell (`bt.pl.scree(bt.datasets.esophagus())`) confirmed the gate bites:
+  the build exited 2 with `WARNING: Executing notebook failed:
+  CellExecutionError [mystnb.exec]` and a `KeyError` naming `bt.tl.pcoa`;
+  the cell was removed and the build re-verified green. Ticked Task 1.20 in
+  [phase-1-core](roadmap/phase-1-core.md).
 * **Update**: Task 1.19b done: `[tool.coverage].report.fail_under = 90` in
   `pyproject.toml`, so CI's `test` job's `cov-report` step (hatch-test's
   `coverage report`) fails below 90% total line coverage - the proxy for
