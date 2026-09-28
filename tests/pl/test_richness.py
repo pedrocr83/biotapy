@@ -50,6 +50,13 @@ def test_richness_nan_values_are_left_out(ax):
     assert len(_points(ax)) == 5 and np.isfinite(_points(ax)).all()
 
 
+def test_richness_single_sample(ax):
+    tdata = bt.datasets.toy()[:1].copy()
+    bt.tl.alpha(tdata, metrics=["shannon"], inplace=True)
+    bt.pl.richness(tdata, "shannon", ax=ax)
+    np.testing.assert_array_equal(_points(ax), [[0, tdata.obs["alpha_shannon"].iloc[0]]])
+
+
 def test_richness_input_unchanged(assert_unchanged, ax):
     tdata = _toy_with("shannon")
     before = tdata.copy()

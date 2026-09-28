@@ -171,6 +171,11 @@ def test_heatmap_layer_and_all_zero_sample(ax):
     )
 
 
+def test_heatmap_single_sample(ax):
+    dense = np.array([[4, 0, 1]])
+    np.testing.assert_array_equal(bt.pl.heatmap(_adata(dense), ax=ax).images[0].get_array(), dense.T)
+
+
 def test_heatmap_nothing_positive_raises(ax):
     with pytest.raises(ValueError, match="no positive value"):
         bt.pl.heatmap(_adata(np.zeros((2, 3))), ax=ax)
