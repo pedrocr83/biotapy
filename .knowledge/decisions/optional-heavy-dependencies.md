@@ -4,7 +4,7 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-28T07:47:57Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T07:47:57Z }
 commit: 806bede
 sources:
   - id: spec
