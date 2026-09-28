@@ -65,3 +65,19 @@ Public functions are listed here as they ship, from Phase 1 onward.
     tl.permanova
     tl.unifrac
 ```
+
+## Plots
+
+```{eval-rst}
+.. module:: biotapy.pl
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    pl.bar
+    pl.heatmap
+    pl.ordination
+    pl.richness
+    pl.scree
+```

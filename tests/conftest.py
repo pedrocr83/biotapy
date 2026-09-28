@@ -1,10 +1,14 @@
 from collections.abc import Callable
 
+import matplotlib
 import pandas as pd
 import pytest
 from anndata import AnnData
 
 from biotapy._core import as_csr
+
+# Headless and identical to CI's MPLBACKEND=agg; tests/ is collected before the src/ doctests, so they get it too.
+matplotlib.use("Agg")
 
 
 def _assert_unchanged(before: AnnData, after: AnnData) -> None:

@@ -6676,7 +6676,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     ``plot_ordination`` and ``plot_scree``, and every `Guide:` line is
     `:doc:`/guide/plotting``.
 
-- [ ] **Step 1: Baseline and dependency.**
+- [x] **Step 1: Baseline and dependency.**
   - Before any change, record `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1`
     three times. The prototype measured 1.21-1.31 s cumulative on 37da645
     (wall clock 1.40-1.51 s).
@@ -6689,7 +6689,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     `uv run python -c "import matplotlib, pathlib; print(matplotlib.__version__, (pathlib.Path(matplotlib.__file__).parent / 'py.typed').exists())"`
     prints the version and `True`: mypy needs the marker to type `Axes`.
   - No mypy override is needed, unlike scikit-bio and scikit-learn.
-- [ ] **Step 2: Failing tests.**
+- [x] **Step 2: Failing tests.**
   - `tests/conftest.py`:
     - add `import matplotlib` to the imports, after `from collections.abc import Callable`;
     - after `from biotapy._core import as_csr`, add:
@@ -7080,12 +7080,12 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
       ruling 1: with `None` labels mixed in, every read stays in its bar.
     - The toy NMDS is degenerate (stress about 0.002), which does not matter
       here: the tests compare plotted points with the stored ones, sorted.
-- [ ] **Step 3: Run, expect failure.** Run `uv run --group test pytest tests/pl -q`.
+- [x] **Step 3: Run, expect failure.** Run `uv run --group test pytest tests/pl -q`.
   - Every test except `test_import_biotapy_does_not_load_matplotlib` fails
     with `AttributeError: module 'biotapy' has no attribute 'pl'`.
   - That one passes already: it guards the implementation against a
     module-level import.
-- [ ] **Step 4: Implement.**
+- [x] **Step 4: Implement.**
   - `src/biotapy/pl/_common.py`:
     ```python
     """Helpers shared by the pl topic files: new axes, groups of a column, colours, the plotted table."""
@@ -7649,14 +7649,14 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
       `heatmap` densifies the table once, which R6.2 allows because `imshow`
       needs a dense array; its `Notes` state the cost.
     - In `_by_x`, a missing `x` value is coded `len(labels) - 1`, the `NA` row.
-- [ ] **Step 5: Run.**
+- [x] **Step 5: Run.**
   - Run `uv run --group test pytest tests/pl src/biotapy/pl -q`: 37 tests and
     5 doctests pass (42 in the prototype, 5.4 s).
   - Then run
     `uv run --group test --with pytest-xdist --with pytest-randomly pytest tests/pl -q -n 4`,
     because CI's hatch-test environment runs xdist with pytest-randomly. It
     must pass in random order.
-- [ ] **Step 6: Docs.**
+- [x] **Step 6: Docs.**
   - `docs/conf.py`: in `intersphinx_mapping`, after the networkx entry, add
     `"matplotlib": ("https://matplotlib.org/stable/", None),`. Without it the
     `nitpicky` build cannot resolve `matplotlib.axes.Axes` in the signatures.
@@ -7762,7 +7762,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     for example by sample type:
     `ax.set_xticks(range(tdata.n_obs), labels=tdata.obs["group"], rotation=90)`.
     ````
-- [ ] **Step 7: Knowledge and rules.**
+- [x] **Step 7: Knowledge and rules.**
   - `decisions/optional-heavy-dependencies.md` (ruling 22):
     - In the first Decision bullet, "scikit-bio (`>=0.7.4,<0.8`), matplotlib,
       pooch (Phase 0-1); scikit-learn (`>=1.8`, Phase 1, NMDS); mudata
@@ -7794,7 +7794,7 @@ a refreshed knowledge bundle follow; biotapy 0.1.0 goes to PyPI.
     ([r-golden-parity](...))". Make this edit only because approving this
     plan approves it (ruling 21).
   - Add a log line. Tick 1.18 here.
-- [ ] **Step 8: Run, gate and commit.**
+- [x] **Step 8: Run, gate and commit.**
   - Tests: `uv run --group test pytest tests/pl tests/tl src/biotapy/pl -q`.
   - Import time:
     - run `uv run python -X importtime -c "import biotapy" 2>&1 | tail -1`

@@ -105,6 +105,7 @@ intersphinx_mapping = {
     "treedata": ("https://treedata.readthedocs.io/en/stable/", None),
     "skbio": ("https://scikit.bio/docs/latest/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and

@@ -192,7 +192,8 @@ Full contract: [.knowledge/contracts/data-model-slots.md](.knowledge/contracts/d
 - **R11.2** Every public function has: a happy path; edge cases (all-zero
   sample, all-zero feature, NaN/missing taxonomy rank, single sample); a purity
   assertion; a Hypothesis property test when an invariant exists; a golden
-  test when an R equivalent exists
+  test when an R equivalent exists, except in `pl`, whose plots draw `tl`
+  results that have one
   ([r-golden-parity](.knowledge/contracts/r-golden-parity.md)).
 - **R11.3** Tolerances are explicit in the test. Any tolerance looser than the
   contract default carries a one-line reason.

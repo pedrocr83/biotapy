@@ -1,5 +1,38 @@
 # Knowledge bundle log
 
+## 2026-09-28
+* **Update**: Task 1.18 done (slice 1D's first task): new top-layer package
+  `bt.pl`, computing nothing and reading only slots `tl`/`pp` already write.
+  `bt.pl.bar(adata, fill, *, x=None, layer=None, ax=None) -> Axes` sums the
+  features of each `fill` group before drawing stacked bars (`phyloseq::plot_bar`
+  without the per-feature outlines); `bt.pl.heatmap(adata, *, layer=None,
+  ax=None) -> Axes` draws the table in `obs`/`var` order on phyloseq's
+  `#000033`-`#66CCFF` log colour scale, zeros black
+  (`phyloseq::plot_heatmap`); `bt.pl.richness(adata, metric, *, x=None,
+  color=None, ax=None) -> Axes` scatters a stored `obs['alpha_<metric>']`
+  (`phyloseq::plot_richness`); `bt.pl.ordination(adata, *, basis="pcoa",
+  components=(1, 2), color=None, ax=None) -> Axes` scatters a stored PCoA or
+  NMDS with axis-label percentages or a stress note
+  (`phyloseq::plot_ordination`); `bt.pl.scree(adata, *, ax=None) -> Axes`
+  bars the stored `proportion_explained` (`phyloseq::plot_scree`). A missing
+  slot raises `KeyError` naming the `tl`/`pp` call that writes it; a numeric
+  grouping column raises `TypeError` with the `.astype("category")` hint, as
+  `tl.permanova` does. matplotlib (`>=3.8`, resolved 3.11.2) is now a runtime
+  dependency, approved 2026-09-27; `pl` imports it only inside its functions
+  (pyplot only when it must make a figure), so `import biotapy` still does not
+  load it (`tests/pl/test_init.py` pins this; import time unchanged at
+  1.2-1.3 s). rules.md R11.2 now excepts `pl` from the golden-test
+  requirement (controller ruling 2026-09-27), recorded in
+  [r-golden-parity](contracts/r-golden-parity.md) (Statement 7) and
+  [add-a-function](playbooks/add-a-function.md) (Step 4). Corrected
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md):
+  matplotlib was listed as already added in "Phase 0-1" but was not a
+  dependency until this task; the Consequences section now names
+  `import-without-extras` instead of an all-extras CI job, which does not
+  exist yet. Refreshed `commit` to `806bede` on those two contracts/decisions
+  and on [add-a-function](playbooks/add-a-function.md). Ticked Task 1.18 in
+  [phase-1-core](roadmap/phase-1-core.md).
+
 ## 2026-09-27
 * **Update**: Checkpoint C closed in [phase-1-core](roadmap/phase-1-core.md):
   the user approved pushing `phase-1c`, PR #8 merged on green CI (19/19,

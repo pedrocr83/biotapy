@@ -13,4 +13,5 @@ aggregation
 filtering
 diversity
 ordination
+plotting
 ```
