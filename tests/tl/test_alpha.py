@@ -15,25 +15,17 @@ from biotapy._core import get_tree
 ALL = ["observed_features", "shannon", "simpson", "chao1", "faith_pd"]
 
 
-def _adata(dense) -> ad.AnnData:
-    return ad.AnnData(
-        X=sp.csr_matrix(dense),
-        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
-        var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
-    )
-
-
-def test_default_metrics_by_hand():
-    out = bt.tl.alpha(_adata(np.array([[1, 2, 3, 0], [4, 4, 0, 0]])))
+def test_default_metrics_by_hand(make_adata):
+    out = bt.tl.alpha(make_adata(np.array([[1, 2, 3, 0], [4, 4, 0, 0]])))
     assert list(out.columns) == ["observed_features", "shannon", "simpson", "chao1"]
     p = np.array([1, 2, 3]) / 6
     np.testing.assert_allclose(out.loc["s0"].to_numpy(), [3, -(p * np.log(p)).sum(), 1 - (p**2).sum(), 3], rtol=1e-12)
     np.testing.assert_allclose(out.loc["s1"].to_numpy(), [2, np.log(2), 0.5, 2], rtol=1e-12)
 
 
-def test_chao1_is_bias_corrected():
+def test_chao1_is_bias_corrected(make_adata):
     # 2 singletons, 1 doubleton: 4 + 2 * 1 / (2 * (1 + 1)) = 4.5
-    assert bt.tl.alpha(_adata(np.array([[1, 1, 2, 5]])), metrics=["chao1"]).loc["s0", "chao1"] == 4.5
+    assert bt.tl.alpha(make_adata(np.array([[1, 1, 2, 5]])), metrics=["chao1"]).loc["s0", "chao1"] == 4.5
 
 
 def test_faith_pd_sums_branches_to_the_root():
@@ -64,13 +56,13 @@ def test_all_zero_sample_is_nan_or_zero_never_raises():
     assert out.loc["s1", ["shannon", "simpson"]].isna().all()
 
 
-def test_all_zero_feature_changes_nothing():
+def test_all_zero_feature_changes_nothing(make_adata):
     dense = np.array([[1, 2, 0], [3, 1, 0]])
-    pd.testing.assert_frame_equal(bt.tl.alpha(_adata(dense)), bt.tl.alpha(_adata(dense[:, :2])))
+    pd.testing.assert_frame_equal(bt.tl.alpha(make_adata(dense)), bt.tl.alpha(make_adata(dense[:, :2])))
 
 
-def test_single_sample():
-    assert bt.tl.alpha(_adata(np.array([[4, 0, 1]])), metrics=["observed_features"]).shape == (1, 1)
+def test_single_sample(make_adata):
+    assert bt.tl.alpha(make_adata(np.array([[4, 0, 1]])), metrics=["observed_features"]).shape == (1, 1)
 
 
 def test_missing_rank_is_irrelevant():
@@ -161,9 +153,9 @@ def test_count_metrics_reject_fractional_values_labelled_counts():
         bt.tl.alpha(tdata, metrics=["chao1"])
 
 
-def test_faith_pd_needs_a_tree():
+def test_faith_pd_needs_a_tree(make_adata):
     with pytest.raises(TypeError, match="needs a TreeData"):
-        bt.tl.alpha(_adata(np.array([[1, 2]])), metrics=["faith_pd"])
+        bt.tl.alpha(make_adata(np.array([[1, 2]])), metrics=["faith_pd"])
     tdata = bt.datasets.toy()
     del tdata.vart["phylo"]
     with pytest.raises(KeyError, match="phylo"):
@@ -171,8 +163,8 @@ def test_faith_pd_needs_a_tree():
 
 
 @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 8)), elements=st.integers(0, 20)))
-def test_observed_features_counts_nonzero_features(dense):
-    out = bt.tl.alpha(_adata(dense), metrics=["observed_features", "simpson"])
+def test_observed_features_counts_nonzero_features(make_adata, dense):
+    out = bt.tl.alpha(make_adata(dense), metrics=["observed_features", "simpson"])
     np.testing.assert_array_equal(out["observed_features"], (dense > 0).sum(axis=1))
     assert (out["observed_features"] <= dense.shape[1]).all()
     simpson = out["simpson"].dropna()

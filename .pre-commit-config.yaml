@@ -47,7 +47,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy --strict (rules.md R7.2)
-        entry: uv run --group dev mypy
+        entry: uv run --group dev --group doc mypy
         language: system
         pass_filenames: false
         types: [python]

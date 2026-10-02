@@ -85,7 +85,9 @@ myst_enable_extensions = [
 ]
 myst_url_schemes = ("http", "https", "mailto")
 nb_output_stderr = "remove"
-nb_execution_mode = "off"
+# Every notebook runs at build time; a failing cell fails the build. The cache lives in docs/_build.
+nb_execution_mode = "cache"
+nb_execution_raise_on_error = True
 nb_merge_streams = True
 typehints_defaults = "braces"
 always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14
@@ -105,12 +107,14 @@ intersphinx_mapping = {
     "treedata": ("https://treedata.readthedocs.io/en/stable/", None),
     "skbio": ("https://scikit.bio/docs/latest/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+# The Coming-from-R table is written by extensions/coming_from_r.py and included by coming_from_r.md.
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints", "generated/coming_from_r_table.md"]
 
 
 # -- Options for HTML output -------------------------------------------------

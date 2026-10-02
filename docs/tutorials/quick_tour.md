@@ -9,9 +9,6 @@ kernelspec:
   display_name: Python 3
   language: python
   name: python3
-mystnb:
-  execution_mode: force
-  execution_raise_on_error: true
 ---
 
 # Quick tour

@@ -1,24 +1,14 @@
 import json
 
-import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
-import scipy.sparse as sp
 from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
 import biotapy as bt
 from biotapy._core import get_tree
-
-
-def _adata(dense) -> ad.AnnData:
-    return ad.AnnData(
-        X=sp.csr_matrix(dense),
-        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
-        var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
-    )
 
 
 def _tips(tdata) -> set[str]:
@@ -52,28 +42,28 @@ def test_both_thresholds_must_pass():
     assert list(out.var_names) == ["f4"]
 
 
-def test_decimal_prevalence_boundary_is_kept():
+def test_decimal_prevalence_boundary_is_kept(make_adata):
     # 7 / 25 == 0.28 in floating point, while 0.28 * 25 is just above 7.
     dense = np.ones((25, 2), dtype=np.int64)
     dense[7:, 0] = 0
-    assert list(bt.pp.filter_features(_adata(dense), min_prevalence=0.28).var_names) == ["f0", "f1"]
+    assert list(bt.pp.filter_features(make_adata(dense), min_prevalence=0.28).var_names) == ["f0", "f1"]
 
 
-def test_explicit_zeros_do_not_count_as_present():
-    adata = _adata(np.array([[1, 3], [2, 4]]))
+def test_explicit_zeros_do_not_count_as_present(make_adata):
+    adata = make_adata(np.array([[1, 3], [2, 4]]))
     adata.X.data[0] = 0  # a stored zero: still 4 stored entries
     assert adata.X.nnz == 4
     assert list(bt.pp.filter_features(adata, min_prevalence=1.0).var_names) == ["f1"]
 
 
-def test_all_zero_feature_and_sample():
+def test_all_zero_feature_and_sample(make_adata):
     dense = np.array([[0, 0, 0], [1, 0, 2], [3, 0, 0]])
-    out = bt.pp.filter_features(_adata(dense), min_prevalence=0.1)
+    out = bt.pp.filter_features(make_adata(dense), min_prevalence=0.1)
     assert list(out.var_names) == ["f0", "f2"] and out.n_obs == 3
 
 
-def test_single_sample():
-    assert list(bt.pp.filter_features(_adata(np.array([[0, 4, 1]])), min_total=1).var_names) == ["f1", "f2"]
+def test_single_sample(make_adata):
+    assert list(bt.pp.filter_features(make_adata(np.array([[0, 4, 1]])), min_total=1).var_names) == ["f1", "f2"]
 
 
 def test_keeps_missing_ranks_and_prunes_the_tree():
@@ -120,17 +110,17 @@ def test_nothing_passing_raises():
 
 
 @given(
-    arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 8)), elements=st.integers(0, 20)),
-    st.sampled_from([0.0, 0.25, 0.5, 1.0]),
-    st.integers(0, 30),
+    dense=arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 8)), elements=st.integers(0, 20)),
+    prevalence=st.sampled_from([0.0, 0.25, 0.5, 1.0]),
+    total=st.integers(0, 30),
 )
-def test_keeps_exactly_the_features_passing_both(dense, prevalence, total):
+def test_keeps_exactly_the_features_passing_both(make_adata, *, dense, prevalence, total):
     passing = ((dense > 0).mean(axis=0) >= prevalence) & (dense.sum(axis=0) >= total)
     if not passing.any():
         with pytest.raises(ValueError, match="no feature passes"):
-            bt.pp.filter_features(_adata(dense), min_prevalence=prevalence, min_total=total)
+            bt.pp.filter_features(make_adata(dense), min_prevalence=prevalence, min_total=total)
         return
-    out = bt.pp.filter_features(_adata(dense), min_prevalence=prevalence, min_total=total)
+    out = bt.pp.filter_features(make_adata(dense), min_prevalence=prevalence, min_total=total)
     assert list(out.var_names) == [f"f{i}" for i in np.flatnonzero(passing)]
     np.testing.assert_array_equal(out.X.toarray(), dense[:, passing])
 
@@ -153,8 +143,8 @@ def test_filter_samples_keeps_every_slot():
     assert json.loads(out.uns["biotapy"]["provenance"][-1])["step"] == "pp.filter_samples"
 
 
-def test_filter_samples_drops_an_all_zero_sample_and_keeps_all_zero_features():
-    out = bt.pp.filter_samples(_adata(np.array([[0, 0], [0, 3]])), 1)
+def test_filter_samples_drops_an_all_zero_sample_and_keeps_all_zero_features(make_adata):
+    out = bt.pp.filter_samples(make_adata(np.array([[0, 0], [0, 3]])), 1)
     assert list(out.obs_names) == ["s1"] and out.n_vars == 2
 
 
@@ -167,8 +157,8 @@ def test_filter_samples_accepts_a_numpy_threshold():
     assert json.loads(out.uns["biotapy"]["provenance"][-1])["params"] == {"min_depth": 60}
 
 
-def test_filter_samples_single_sample():
-    assert bt.pp.filter_samples(_adata(np.array([[2, 3]])), 5).n_obs == 1
+def test_filter_samples_single_sample(make_adata):
+    assert bt.pp.filter_samples(make_adata(np.array([[2, 3]])), 5).n_obs == 1
 
 
 def test_filter_samples_input_unchanged(assert_unchanged):
@@ -186,10 +176,10 @@ def test_filter_samples_nothing_passing_raises():
 @given(
     arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 5)), elements=st.integers(0, 10)), st.integers(0, 20)
 )
-def test_filter_samples_keeps_exactly_the_deep_samples(dense, depth):
+def test_filter_samples_keeps_exactly_the_deep_samples(make_adata, dense, depth):
     deep = dense.sum(axis=1) >= depth
     if not deep.any():
         with pytest.raises(ValueError, match="min_depth"):
-            bt.pp.filter_samples(_adata(dense), depth)
+            bt.pp.filter_samples(make_adata(dense), depth)
         return
-    assert list(bt.pp.filter_samples(_adata(dense), depth).obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]
+    assert list(bt.pp.filter_samples(make_adata(dense), depth).obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]

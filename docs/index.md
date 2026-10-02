@@ -16,6 +16,7 @@ tutorials/index.md
 :caption: User guide
 
 guide/index.md
+coming_from_r.md
 ```
 
 ```{toctree}

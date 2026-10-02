@@ -93,8 +93,7 @@ def load_phyloseq(path: Path, *, name: str | None) -> dict[str, Any]:
             # extension only steers rdata's own suffix-consistency UserWarnings, never what
             # gets parsed (rdata.parser._parser.parse_data, confirmed empirically, R2.2):
             # this reader tells RDS from RDATA by content below, so a mismatched or
-            # upper-case suffix must never warn (ruling 2026-09-27). Only those three
-            # messages are hidden, never every UserWarning (ruling 2026-09-27, R7.4).
+            # upper-case suffix must never warn (ruling 2026-09-27).
             warnings.filterwarnings("ignore", message=_SUFFIX_WARNING, category=UserWarning)
             parsed = rdata.parser.parse_file(path)
         converted = rdata.conversion.convert(parsed, _PHYLOSEQ)

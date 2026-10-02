@@ -5,8 +5,8 @@ description: Every function with an R equivalent is tested against gzip CSV gold
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T16:28:13Z }
-commit: 79402e2
+generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T07:47:57Z }
+commit: 806bede
 sources:
   - id: spec
     resource: ../../plan.md
@@ -46,6 +46,9 @@ sources:
    nonzero proportion of GlobalPatterns, AGPL-3 via phyloseq); the user
    accepted this for this BSD-3 repository on 2026-09-27. Test fixtures under
    `tests/data/` stay synthetic.
+7. `pl` functions have an R equivalent but no golden test. They draw numbers
+   that `tl` stores, and `tl`'s golden tests check those numbers (controller
+   ruling 2026-09-27; rules.md R11.2).
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match

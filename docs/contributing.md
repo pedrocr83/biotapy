@@ -37,8 +37,9 @@ uvx prek run --all-files
 ```
 
 This runs the same hooks as CI's `lint` job: ruff lint and format (including
-the size/complexity limits in rules.md R5), `mypy --strict` on `src/biotapy`,
-import-linter (the module-layer contract), and pyproject-fmt.
+the size/complexity limits in rules.md R5), `mypy --strict` on `src/biotapy`
+and `docs/extensions`, import-linter (the module-layer contract), and
+pyproject-fmt.
 
 ## Running tests
 

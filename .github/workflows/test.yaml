@@ -156,6 +156,31 @@ jobs:
           BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
         run: uv run --group test pytest -m "network or golden"
 
+  # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
+  # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network
+  # job's pooch cache.
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.13"
+      - name: Cache pooch downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.pooch
+          key: pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}
+      - name: Build the docs, executing every notebook
+        env:
+          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
+        run: uvx hatch run docs:build
+
   # Informational: lists knowledge concepts whose code changed in this PR (playbooks/maintain-knowledge).
   # Flagged concepts go to the job summary; the job fails only when the script cannot diff (exit 2).
   knowledge-touched:
@@ -187,6 +212,7 @@ jobs:
       - lint
       - import-without-extras
       - network
+      - docs
     runs-on: ubuntu-latest
     steps:
         - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0

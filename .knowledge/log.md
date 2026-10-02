@@ -1,6 +1,106 @@
 # Knowledge bundle log
 
+## 2026-10-02
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 now
+  lists only the README changes that need the release itself: the user asked
+  for the README to be brought up to date ahead of it, so its Status bullets,
+  datasets, data model, pure-by-default and Coming from R text already
+  describe slices 1C and 1D.
+
+## 2026-09-28
+* **Update**: Task 1.20 done: two MyST text notebooks,
+  `docs/tutorials/getting_started.md` (GlobalPatterns, one ordination and one
+  richness plot) and `docs/tutorials/phyloseq_analysis.md` (the phyloseq
+  analysis vignette redone on GlobalPatterns, enterotype and esophagus
+  through `bt.datasets.*`/pooch - no golden CSV read), added to
+  `docs/tutorials/index.md`'s toctree. `docs/conf.py` now sets
+  `nb_execution_mode = "cache"` and `nb_execution_raise_on_error = True`
+  globally (myst-nb 1.4.0/jupyter-cache 1.0.1, already in the doc group);
+  `quick_tour.md` dropped its page-level `execution_mode: force` override.
+  A new CI job `docs` builds the docs with `uvx hatch run docs:build`
+  (Read the Docs' command) against the `network` job's pooch cache and is
+  now required by `check`; `tests/test_ci.py` gained
+  `test_docs_job_builds_the_docs_with_the_pooch_cache` and
+  `test_docs_job_blocks_merges` (RED: `KeyError: 'docs'`; GREEN: 8 passed).
+  A clean `uvx hatch run docs:build` executed all three notebooks (7.0 s,
+  16.2 s, 2.6 s) and `sphinx-build -W` succeeded with 8 `<img>` in the
+  vignette page, checked by eye against the R vignette's figures. A probe
+  cell (`bt.pl.scree(bt.datasets.esophagus())`) confirmed the gate bites:
+  the build exited 2 with `WARNING: Executing notebook failed:
+  CellExecutionError [mystnb.exec]` and a `KeyError` naming `bt.tl.pcoa`;
+  the cell was removed and the build re-verified green. Ticked Task 1.20 in
+  [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.19b done: `[tool.coverage].report.fail_under = 90` in
+  `pyproject.toml`, so CI's `test` job's `cov-report` step (hatch-test's
+  `coverage report`) fails below 90% total line coverage - the proxy for
+  R11.6, since coverage.py has no per-function view. `tests/test_ci.py`
+  gained `test_coverage_below_90_percent_fails_the_test_job`, asserting the
+  config key and that a `test` job step names `cov-report`. Measured: 560
+  tests, `TOTAL` 99%; every `pl` file 100%; only
+  `src/biotapy/datasets/_remote.py` (89%, downloads run only in the network
+  job) is under 90%. Ticked Task 1.19b in
+  [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.19 done: a local Sphinx extension,
+  `docs/extensions/coming_from_r.py`, parses each public function's
+  docstring `Notes` section - `r_equivalents(doc)` raises `ValueError`
+  unless there is exactly one `R equivalent:` line naming ```` ``pkg::fn`` ````
+  items or `none` - and writes the Coming-from-R table
+  (`docs/generated/coming_from_r_table.md`, git-ignored) from `rows()`/
+  `render()` at the `builder-inited` hook, `write_table`. `rows()` also reads
+  `docs/_data/r_idioms.toml` (stdlib `tomllib`, no new dependency) for the 19
+  phyloseq accessors that are plain AnnData/TreeData code plus the 5 "not in
+  0.1" rows, and raises if a call is mapped by both a docstring and the
+  idioms file. `tests/test_docstrings.py` uses the same parser to check
+  every public function across `datasets`, `io`, `pl`, `pp`, `tl` (25
+  functions: 18 with one R item, 5 with two, 2 with `none`) has a parseable
+  `R equivalent:` line, a `Guide:` link on the next line, and an `Examples`
+  section; `tests/test_coming_from_r.py` checks the table covers all 31
+  phyloseq functions from the phase's exit-gate list and marks the 5
+  uncovered ones. The committed page `docs/coming_from_r.md` `{include}`s
+  the generated fragment; `docs/conf.py`'s `exclude_patterns` excludes the
+  fragment so `-W` does not fail on an unincluded document, and
+  `docs/index.md`'s "User guide" toctree gains it. Built table: 48 rows (49
+  `<tr>` with the header); the `{func}` roles resolved under `nitpicky`.
+  Updated [function-shape](contracts/function-shape.md)'s "Enforced by" to
+  describe the parser instead of only naming the test file. Ticked Task 1.19
+  in [phase-1-core](roadmap/phase-1-core.md).
+* **Update**: Task 1.18 done (slice 1D's first task): new top-layer package
+  `bt.pl`, computing nothing and reading only slots `tl`/`pp` already write.
+  `bt.pl.bar(adata, fill, *, x=None, layer=None, ax=None) -> Axes` sums the
+  features of each `fill` group before drawing stacked bars (`phyloseq::plot_bar`
+  without the per-feature outlines); `bt.pl.heatmap(adata, *, layer=None,
+  ax=None) -> Axes` draws the table in `obs`/`var` order on phyloseq's
+  `#000033`-`#66CCFF` log colour scale, zeros black
+  (`phyloseq::plot_heatmap`); `bt.pl.richness(adata, metric, *, x=None,
+  color=None, ax=None) -> Axes` scatters a stored `obs['alpha_<metric>']`
+  (`phyloseq::plot_richness`); `bt.pl.ordination(adata, *, basis="pcoa",
+  components=(1, 2), color=None, ax=None) -> Axes` scatters a stored PCoA or
+  NMDS with axis-label percentages or a stress note
+  (`phyloseq::plot_ordination`); `bt.pl.scree(adata, *, ax=None) -> Axes`
+  bars the stored `proportion_explained` (`phyloseq::plot_scree`). A missing
+  slot raises `KeyError` naming the `tl`/`pp` call that writes it; a numeric
+  grouping column raises `TypeError` with the `.astype("category")` hint, as
+  `tl.permanova` does. matplotlib (`>=3.8`, resolved 3.11.2) is now a runtime
+  dependency, approved 2026-09-27; `pl` imports it only inside its functions
+  (pyplot only when it must make a figure), so `import biotapy` still does not
+  load it (`tests/pl/test_init.py` pins this; import time unchanged at
+  1.2-1.3 s). rules.md R11.2 now excepts `pl` from the golden-test
+  requirement (controller ruling 2026-09-27), recorded in
+  [r-golden-parity](contracts/r-golden-parity.md) (Statement 7) and
+  [add-a-function](playbooks/add-a-function.md) (Step 4). Corrected
+  [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md):
+  matplotlib was listed as already added in "Phase 0-1" but was not a
+  dependency until this task; the Consequences section now names
+  `import-without-extras` instead of an all-extras CI job, which does not
+  exist yet. Refreshed `commit` to `806bede` on those two contracts/decisions
+  and on [add-a-function](playbooks/add-a-function.md). Ticked Task 1.18 in
+  [phase-1-core](roadmap/phase-1-core.md).
+
 ## 2026-09-27
+* **Update**: Checkpoint C closed in [phase-1-core](roadmap/phase-1-core.md):
+  the user approved pushing `phase-1c`, PR #8 merged on green CI (19/19,
+  including the network job and Python 3.14) as `5f57d27`, and the user
+  chose to continue to slice 1D, which is now being planned (R1.2a).
 * **Update**: [pure-by-default](decisions/pure-by-default.md) re-verified by
   the user as amended in Task 1.17 (no `key_added`; `tl.permanova` has no
   `inplace`); `verified.at` updated. The user also chose to keep

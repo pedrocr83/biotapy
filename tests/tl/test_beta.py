@@ -11,32 +11,24 @@ import biotapy as bt
 from biotapy._core import get_tree, make_treedata, tree_from_edges
 
 
-def _adata(dense) -> ad.AnnData:
-    return ad.AnnData(
-        X=sp.csr_matrix(dense),
-        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
-        var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
-    )
-
-
-def test_braycurtis_by_hand():
-    out = bt.tl.beta(_adata(np.array([[1, 2, 3], [3, 2, 1]])))
+def test_braycurtis_by_hand(make_adata):
+    out = bt.tl.beta(make_adata(np.array([[1, 2, 3], [3, 2, 1]])))
     assert out.loc["s0", "s1"] == pytest.approx(4 / 12)
     assert list(out.index) == list(out.columns) == ["s0", "s1"]
 
 
-def test_jaccard_is_presence_absence():
-    out = bt.tl.beta(_adata(np.array([[1, 0, 30], [5, 5, 0]])), metric="jaccard")
+def test_jaccard_is_presence_absence(make_adata):
+    out = bt.tl.beta(make_adata(np.array([[1, 0, 30], [5, 5, 0]])), metric="jaccard")
     assert out.loc["s0", "s1"] == pytest.approx(2 / 3)
 
 
-def test_all_zero_sample_and_feature():
-    out = bt.tl.beta(_adata(np.array([[0, 0, 0], [1, 2, 0], [0, 0, 0]])))
+def test_all_zero_sample_and_feature(make_adata):
+    out = bt.tl.beta(make_adata(np.array([[0, 0, 0], [1, 2, 0], [0, 0, 0]])))
     assert out.loc["s0", "s1"] == 1.0 and np.isnan(out.loc["s0", "s2"])
 
 
-def test_single_sample():
-    assert bt.tl.beta(_adata(np.array([[1, 2]]))).to_numpy().tolist() == [[0.0]]
+def test_single_sample(make_adata):
+    assert bt.tl.beta(make_adata(np.array([[1, 2]]))).to_numpy().tolist() == [[0.0]]
 
 
 def test_missing_rank_is_irrelevant():
@@ -68,8 +60,8 @@ def test_unknown_metric_raises():
     arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 20)),
     st.sampled_from(["braycurtis", "jaccard"]),
 )
-def test_beta_is_symmetric_with_zero_diagonal(dense, metric):
-    out = bt.tl.beta(_adata(dense), metric=metric).to_numpy()
+def test_beta_is_symmetric_with_zero_diagonal(make_adata, dense, metric):
+    out = bt.tl.beta(make_adata(dense), metric=metric).to_numpy()
     np.testing.assert_array_equal(out, out.T)
     np.testing.assert_array_equal(np.diag(out), 0.0)
 
@@ -175,9 +167,9 @@ def test_unifrac_input_unchanged(assert_unchanged):
     assert_unchanged(before, tdata)
 
 
-def test_unifrac_without_a_tree_names_it():
+def test_unifrac_without_a_tree_names_it(make_adata):
     with pytest.raises(TypeError, match="needs a TreeData"):
-        bt.tl.unifrac(_adata(np.array([[1, 2]])))
+        bt.tl.unifrac(make_adata(np.array([[1, 2]])))
     tdata = bt.datasets.toy()
     del tdata.vart["phylo"]
     with pytest.raises(KeyError, match="phylo"):
