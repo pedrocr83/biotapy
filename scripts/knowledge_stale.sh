@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Knowledge-map freshness checks.
 #
-#   ./stale.sh [bundle]                  Are concepts stale vs the shared trunk?
-#   ./stale.sh [bundle] --touched        Does this branch change code whose
-#                                        concepts it did not update?
+#   scripts/knowledge_stale.sh [bundle]            Are concepts stale vs the shared trunk?
+#   scripts/knowledge_stale.sh [bundle] --touched  Does this branch change code whose
+#                                                  concepts it did not update?
 #
 # Options:
-#   --against <ref>   Trunk ref. Default: origin/main, then main, then HEAD.
+#   --against <ref>   Trunk ref. Default: the first of origin/main, origin/master,
+#                     main and master that exists, else HEAD.
 #
 # Exit 1 if anything is reported, so both modes work as CI gates; exit 2 when
 # --touched cannot diff against the trunk ref.
