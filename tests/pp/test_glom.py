@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 import biotapy as bt
 
 RANKS = ["kingdom", "phylum", "class", "order", "family", "genus"]
-# Small taxonomy used only by test_matches_naive_phyloseq_reference (F1); kept separate
+# Small taxonomy used only by test_matches_naive_phyloseq_reference; kept separate
 # from RANKS above, which mirrors the toy() dataset's six real rank columns.
 _LINEAGE_RANKS = ("kingdom", "phylum", "class", "genus")
 _TAXA_VALUES = st.sampled_from(["x", "y", None])
