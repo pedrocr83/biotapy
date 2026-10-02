@@ -1,5 +1,12 @@
 # Knowledge bundle log
 
+## 2026-10-02
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 now
+  lists only the README changes that need the release itself: the user asked
+  for the README to be brought up to date ahead of it, so its Status bullets,
+  datasets, data model, pure-by-default and Coming from R text already
+  describe slices 1C and 1D.
+
 ## 2026-09-28
 * **Update**: Task 1.20 done: two MyST text notebooks,
   `docs/tutorials/getting_started.md` (GlobalPatterns, one ordination and one

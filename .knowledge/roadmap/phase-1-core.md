@@ -9136,25 +9136,19 @@ for the user's explicit approval of that step (R13.3).
   - Rename `## [Unreleased]` to `## [0.1.0] - ` followed by `date -u +%F`.
     Insert a new empty `## [Unreleased]` above it, as Keep a Changelog does.
 - [ ] **Step 5: README.** The README is PyPI's project page. It still says
-  0.0.1 is a placeholder and that 0.1 is coming.
-  - Replace the Status section's first line and its two closing paragraphs:
+  0.0.1 is a placeholder and that 0.1 is coming. The parts true before the
+  release were done on 2026-10-02 (the Datasets, Preprocessing, Tools and
+  Plots bullets, `esophagus` in Example datasets and licensing, the data
+  model and pure-by-default paragraphs, and the Coming from R paragraph with
+  its two links); check that they still hold, then change only:
+  - The Status section's first line and its closing paragraph:
     - "**biotapy is pre-release.** The API can still change without notice."
       becomes "**biotapy 0.1 is an early release.** The API can still change
       between minor versions."
     - "What works today" becomes "What 0.1 does".
-    - The Datasets bullet names `bt.datasets.esophagus` too.
-    - The Preprocessing bullet becomes: "**Preprocessing**: `bt.pp.relative`,
-      `bt.pp.tax_glom`, `bt.pp.filter_features`, `bt.pp.filter_samples` and
-      `bt.pp.rarefy`."
-    - Add two bullets:
-      - "**Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`,
-        `bt.tl.pcoa`, `bt.tl.nmds` and `bt.tl.permanova`, each checked
-        against R on real data."
-      - "**Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
-        `bt.pl.scree` and `bt.pl.heatmap`."
-    - The "What comes next, in release 0.1: ..." paragraph becomes: "Next, in
-      0.2: functional profiles from HUMAnN, PICRUSt2 and MetaPhlAn. See the
-      [roadmap][roadmap]; no dates are promised."
+    - The "Release 0.1 will publish all of this on PyPI. ..." paragraph
+      becomes: "Next, in 0.2: functional profiles from HUMAnN, PICRUSt2 and
+      MetaPhlAn. See the [roadmap][roadmap]; no dates are promised."
     - Its link definition becomes
       `[roadmap]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/roadmap/index.md`.
   - Installation: replace everything from "biotapy is not functional on PyPI
@@ -9173,21 +9167,6 @@ for the user's explicit approval of that step (R13.3).
     The development version installs straight from GitHub:
     `pip install git+https://github.com/pedrocr83/biotapy.git`.
     ````
-  - Example datasets and licensing: name `bt.datasets.esophagus()` next to
-    the other two, in both sections.
-  - The data model paragraph: "(including the ones diversity and ordination
-    will use once they ship)" becomes "(including the ones diversity and
-    ordination write)".
-  - Coming from R: replace the paragraph with: "Every function's docstring
-    names its R equivalent (`phyloseq::tax_glom`, `mia::agglomerateByRank`,
-    and so on) in its `Notes` section, and the [Coming from R][coming-from-r]
-    page lists them all, with the phyloseq accessors that are plain AnnData
-    code. The [phyloseq analysis vignette][vignette] is redone with biotapy in
-    the tutorials."
-    - Add the link definitions
-      `[coming-from-r]: https://biotapy.readthedocs.io/page/coming_from_r.html`
-      and
-      `[vignette]: https://biotapy.readthedocs.io/page/tutorials/phyloseq_analysis.html`.
 - [ ] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
     print `PASSED` (0.0.1's sdist and wheel did).

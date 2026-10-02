@@ -24,15 +24,18 @@ What works today (full signatures in the [API reference][api]):
   (`.rds`/`.RData`, no R needed) all read into one `TreeData`.
 - **Writer**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out.
 - **Datasets**: `bt.datasets.toy` (in-memory, for examples and tests),
-  `bt.datasets.global_patterns` and `bt.datasets.enterotype`
-  (phyloseq's example datasets, downloaded and cached on first use).
-- **Preprocessing**: `bt.pp.relative` (per-sample relative abundance)
-  and `bt.pp.tax_glom` (aggregate to a taxonomic rank).
+  `bt.datasets.global_patterns`, `bt.datasets.enterotype` and
+  `bt.datasets.esophagus` (phyloseq's example datasets, downloaded and cached
+  on first use).
+- **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
+  `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`.
+- **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
+  `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
+- **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
+  `bt.pl.scree` and `bt.pl.heatmap`.
 
-What comes next, in release 0.1: filtering (`filter_features`/`filter_samples`),
-rarefaction, alpha and beta diversity, UniFrac, PCoA/NMDS ordination,
-PERMANOVA, plots, and a generated Coming-from-R table. See the
-[Phase 1 roadmap][roadmap] for the full list; no dates are promised.
+Release 0.1 will publish all of this on PyPI. See the
+[Phase 1 roadmap][roadmap] for what remains; no dates are promised.
 
 ## Installation
 
@@ -114,10 +117,11 @@ Write back out to BIOM with `bt.io.write_biom(tdata, "table.biom")`.
 
 ### Example datasets
 
-`bt.datasets.global_patterns()` and `bt.datasets.enterotype()` download
-phyloseq's example datasets once and cache them on disk with [pooch][]; later
-calls reuse the cache with no network access, as long as the hash still
-matches. Set `BIOTAPY_DATA_DIR` to change the cache directory:
+`bt.datasets.global_patterns()`, `bt.datasets.enterotype()` and
+`bt.datasets.esophagus()` download phyloseq's example datasets once and cache
+them on disk with [pooch][]; later calls reuse the cache with no network
+access, as long as the hash still matches. Set `BIOTAPY_DATA_DIR` to change
+the cache directory:
 
 ```python
 import biotapy as bt
@@ -156,24 +160,29 @@ AnnData that also carries a phylogeny):
 | `uns["biotapy"]` | `x_kind` (what `X` currently holds: counts, relative, ...) and `provenance` (which biotapy functions produced this object, in order) |
 
 See the [data model guide][data-model] for the full slot list (including the
-ones diversity and ordination will use once they ship) and the
+ones diversity and ordination write) and the
 [data-model-slots contract][data-model-contract] for the exact rules.
 
-Every function is **pure by default**: it returns a new object and never
-changes the one you passed in.
+Every function is pure by default: it returns a new object or its result and
+leaves the one you passed in unchanged. Only a `tl` function called with
+`inplace=True` writes its result into it (`obs`, `obsp`, `obsm` and
+`uns["biotapy"]`).
 
 ## Coming from R
 
 Every function's docstring names its R equivalent (`phyloseq::tax_glom`,
-`mia::agglomerateByRank`, and so on) in its `Notes` section. A generated,
-searchable Coming-from-R table arrives with release 0.1.
+`mia::agglomerateByRank`, and so on) in its `Notes` section, and the
+[Coming from R][coming-from-r] page lists them all, with the phyloseq accessors
+that are plain AnnData code. The [phyloseq analysis vignette][vignette] is
+redone with biotapy in the tutorials.
 
 ## Example data and licensing
 
-`bt.datasets.global_patterns` and `bt.datasets.enterotype` download example
-data from [phyloseq's repository][phyloseq-data] at runtime; biotapy ships
-none of it. That data stays licensed to phyloseq's authors under AGPL-3.
-biotapy itself is [BSD-3-Clause][license].
+`bt.datasets.global_patterns`, `bt.datasets.enterotype` and
+`bt.datasets.esophagus` download example data from
+[phyloseq's repository][phyloseq-data] at runtime; biotapy ships none of it.
+That data stays licensed to phyloseq's authors under AGPL-3. biotapy itself is
+[BSD-3-Clause][license].
 
 ## Documentation
 
@@ -234,3 +243,5 @@ Questions, bug reports and feature requests all go to the [issue tracker][].
 [guide]: https://biotapy.readthedocs.io/page/guide/index.html
 [data-model]: https://biotapy.readthedocs.io/page/guide/data_model.html
 [biom-format-1004]: https://github.com/biocore/biom-format/pull/1004
+[coming-from-r]: https://biotapy.readthedocs.io/page/coming_from_r.html
+[vignette]: https://biotapy.readthedocs.io/page/tutorials/phyloseq_analysis.html
