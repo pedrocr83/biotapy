@@ -1,9 +1,7 @@
 import json
 import warnings
 
-import anndata as ad
 import numpy as np
-import pandas as pd
 import pytest
 import scipy.sparse as sp
 from hypothesis import given
@@ -12,14 +10,6 @@ from hypothesis.extra.numpy import arrays
 
 import biotapy as bt
 from biotapy._core import get_tree
-
-
-def _adata(dense) -> ad.AnnData:
-    return ad.AnnData(
-        X=sp.csr_matrix(dense),
-        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
-        var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
-    )
 
 
 def _depths(adata) -> list[int]:
@@ -52,9 +42,9 @@ def test_same_seed_same_result_and_generator_accepted():
     assert (first.X != again.X).nnz == 0
 
 
-def test_features_left_all_zero_are_dropped():
+def test_features_left_all_zero_are_dropped(make_adata):
     dense = np.array([[5, 1, 0], [6, 0, 1]])
-    out = bt.pp.rarefy(_adata(dense), depth=5, seed=0)
+    out = bt.pp.rarefy(make_adata(dense), depth=5, seed=0)
     assert out.X.toarray().sum(axis=0).min() > 0
 
 
@@ -64,14 +54,14 @@ def test_toy_tree_is_pruned_to_kept_features():
     assert {n for n in tree.nodes if tree.out_degree(n) == 0} == set(out.var_names)
 
 
-def test_all_zero_sample_is_dropped_by_default():
+def test_all_zero_sample_is_dropped_by_default(make_adata):
     with pytest.warns(UserWarning, match=r"\['s0'\]"):
-        out = bt.pp.rarefy(_adata(np.array([[0, 0], [3, 4], [5, 5]])), seed=0)
+        out = bt.pp.rarefy(make_adata(np.array([[0, 0], [3, 4], [5, 5]])), seed=0)
     assert list(out.obs_names) == ["s1", "s2"] and _depths(out) == [7, 7]
 
 
-def test_single_sample():
-    assert _depths(bt.pp.rarefy(_adata(np.array([[3, 9, 2]])), depth=10, seed=0)) == [10]
+def test_single_sample(make_adata):
+    assert _depths(bt.pp.rarefy(make_adata(np.array([[3, 9, 2]])), depth=10, seed=0)) == [10]
 
 
 def test_drops_derived_slots_keeps_counts_and_records_provenance():
@@ -122,15 +112,15 @@ def test_depth_above_every_sample_raises():
 @given(
     arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 30)), st.integers(1, 40)
 )
-def test_kept_rows_sum_to_depth_and_never_exceed_the_original(dense, depth):
+def test_kept_rows_sum_to_depth_and_never_exceed_the_original(make_adata, dense, depth):
     deep = dense.sum(axis=1) >= depth
     if not deep.any():
         with pytest.raises(ValueError, match="depth="):
-            bt.pp.rarefy(_adata(dense), depth=depth, seed=0)
+            bt.pp.rarefy(make_adata(dense), depth=depth, seed=0)
         return
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)  # shallow samples are dropped with a warning
-        out = bt.pp.rarefy(_adata(dense), depth=depth, seed=0)
+        out = bt.pp.rarefy(make_adata(dense), depth=depth, seed=0)
     assert list(out.obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]
     assert _depths(out) == [depth] * int(deep.sum())
     kept = dense[deep][:, [int(name[1:]) for name in out.var_names]]

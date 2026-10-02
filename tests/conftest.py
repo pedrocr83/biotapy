@@ -1,8 +1,10 @@
 from collections.abc import Callable
 
 import matplotlib
+import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse as sp
 from anndata import AnnData
 
 from biotapy._core import as_csr
@@ -34,3 +36,18 @@ def _assert_unchanged(before: AnnData, after: AnnData) -> None:
 def assert_unchanged() -> Callable[[AnnData, AnnData], None]:
     """Fail if a biotapy call mutated its input (rules.md R3.3)."""
     return _assert_unchanged
+
+
+def _make_adata(dense: np.ndarray) -> AnnData:
+    return AnnData(
+        X=sp.csr_matrix(dense),
+        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+        var=pd.DataFrame(index=[f"f{i}" for i in range(dense.shape[1])]),
+    )
+
+
+# Session scope: Hypothesis rejects function-scoped fixtures in @given tests.
+@pytest.fixture(scope="session")
+def make_adata() -> Callable[[np.ndarray], AnnData]:
+    """AnnData from a dense samples x features array, with samples ``s0..`` and features ``f0..``."""
+    return _make_adata
