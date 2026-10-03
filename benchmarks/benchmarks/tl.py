@@ -38,9 +38,13 @@ class Beta:
         """Build the table once; asv pickles it for every benchmark."""
         return synthetic()
 
+    def setup(self, tdata: TreeData, n_obs: int) -> None:
+        """Subset outside the timed call: copying the 100,006-node tree took about 3.3 s."""
+        self.subset = tdata[:n_obs].copy()
+
     def time_beta(self, tdata: TreeData, n_obs: int) -> None:
         """The first ``n_obs`` samples, all 50,000 features."""
-        bt.tl.beta(tdata[:n_obs].copy())
+        bt.tl.beta(self.subset)
 
 
 class BetaFullSize:
