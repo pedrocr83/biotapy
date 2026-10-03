@@ -1,10 +1,9 @@
 """Per-sample transforms: add one layer, keep everything else."""
 
 import numpy as np
-import scipy.sparse as sp
 from anndata import AnnData
 
-from biotapy._core import add_provenance, as_csr
+from biotapy._core import add_provenance, as_csr, divide_rows
 
 
 def relative(adata: AnnData) -> AnnData:
@@ -37,8 +36,7 @@ def relative(adata: AnnData) -> AnnData:
     """
     X = as_csr(adata.X)
     sums = np.asarray(X.sum(axis=1), dtype=np.float64).ravel()
-    scale = np.divide(1.0, sums, out=np.zeros_like(sums), where=sums > 0)
     out = adata.copy()
-    out.layers["relative"] = sp.csr_matrix(sp.diags(scale) @ X)
+    out.layers["relative"] = divide_rows(X, sums)
     add_provenance(out, "pp.relative")
     return out

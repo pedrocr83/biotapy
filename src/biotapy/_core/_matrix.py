@@ -20,6 +20,15 @@ def as_csr(X: object) -> sp.csr_matrix:
     return sp.csr_matrix(cast(Any, X))
 
 
+def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_matrix:
+    """A float64 copy of ``X`` with each stored value divided by its row's total; zero-total rows stay zero."""
+    out = X.astype(np.float64)
+    row_totals = np.repeat(totals, np.diff(out.indptr))
+    # Divide each value, never multiply by 1 / total: the reciprocal of a subnormal total overflows to inf.
+    out.data = np.divide(out.data, row_totals, out=np.zeros_like(out.data), where=row_totals > 0)
+    return out
+
+
 def sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix:
     """Sum the columns of ``X`` that share a group code; negative codes are dropped."""
     rows = np.flatnonzero(codes >= 0)

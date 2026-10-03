@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from biotapy._core import argmax_by, as_csr, sum_by, sum_pairs
+from biotapy._core import argmax_by, as_csr, divide_rows, sum_by, sum_pairs
 
 X = sp.csr_matrix(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64))
 
@@ -106,3 +106,27 @@ def test_sum_pairs_keeps_float_dtype():
 def test_sum_pairs_with_no_samples_gives_no_rows():
     out = sum_pairs(sp.csr_matrix((0, 3), dtype=np.int64), np.array([0, 1]), np.array([0, 1]), n_groups=2)
     assert out.shape == (0, 2) and out.nnz == 0
+
+
+def test_divide_rows_divides_each_value_by_its_row_total():
+    X = sp.csr_matrix(np.array([[1, 3], [2, 0]]))
+    out = divide_rows(X, np.array([4.0, 2.0]))
+    np.testing.assert_array_equal(out.toarray(), [[0.25, 0.75], [1.0, 0.0]])
+    assert out.dtype == np.float64
+
+
+def test_divide_rows_leaves_zero_total_rows_zero():
+    out = divide_rows(sp.csr_matrix(np.array([[0.0, 0.0], [1.0, 1.0]])), np.array([0.0, 2.0]))
+    np.testing.assert_array_equal(out.toarray(), [[0.0, 0.0], [0.5, 0.5]])
+
+
+def test_divide_rows_with_a_subnormal_total_stays_finite():
+    tiny = np.nextafter(0.0, 1.0)
+    out = divide_rows(sp.csr_matrix(np.array([[tiny, 0.0]])), np.array([tiny]))
+    np.testing.assert_array_equal(out.toarray(), [[1.0, 0.0]])
+
+
+def test_divide_rows_does_not_change_its_input():
+    X = sp.csr_matrix(np.array([[1.0, 3.0]]))
+    divide_rows(X, np.array([4.0]))
+    np.testing.assert_array_equal(X.toarray(), [[1.0, 3.0]])

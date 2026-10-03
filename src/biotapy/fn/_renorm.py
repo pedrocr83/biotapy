@@ -12,6 +12,7 @@ from biotapy._core import (
     SPECIAL_FEATURES,
     add_provenance,
     as_csr,
+    divide_rows,
     feature_subset,
     warn_user,
 )
@@ -130,11 +131,8 @@ def _kept(adata: AnnData, *, special: bool) -> AnnData:
 
 
 def _rescaled(adata: AnnData, totals: np.ndarray, *, units: str, special: bool) -> AnnData:
-    """Divide each stored value by its sample's total (not by a reciprocal, which overflows for tiny totals)."""
-    X = as_csr(adata.X).astype(np.float64)
-    row_totals = np.repeat(totals, np.diff(X.indptr))
-    X.data = np.divide(X.data, row_totals, out=np.zeros_like(X.data), where=row_totals > 0) * _SCALE[units]
-    adata.X = X
+    """Divide each stored value by its sample's total, then scale to ``units``."""
+    adata.X = divide_rows(as_csr(adata.X), totals) * _SCALE[units]
     adata.uns["biotapy"]["x_kind"] = _X_KIND[units]
     add_provenance(adata, "fn.renorm", units=units, special=special)
     return adata
