@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:13:23Z }
-commit: 3b36423
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:21:00Z }
+commit: 28a9ede
 sources:
   - id: spec
     resource: ../../plan.md
@@ -71,8 +71,9 @@ sources:
    `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
    leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
    profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
-   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` has no
-   R equivalent; invariants on synthetic files check it.
+   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` and
+   `io.read_picrust2_traits` have no R equivalent; invariants on synthetic
+   files check them.
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match

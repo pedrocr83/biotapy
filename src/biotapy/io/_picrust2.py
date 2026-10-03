@@ -1,4 +1,4 @@
-"""PICRUSt2 predictions: metagenome and pathway tables and their contributions."""
+"""PICRUSt2 predictions: metagenome and pathway tables, their contributions, and per-ASV trait tables."""
 
 from pathlib import Path
 
@@ -141,6 +141,66 @@ def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tup
     matrix = sp.csr_matrix((values, (rows, codes)), shape=(len(samples), len(keys)))
     matrix.eliminate_zeros()
     return matrix, pd.Index(keys)
+
+
+def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
+    r"""Read PICRUSt2's predicted gene copy numbers per ASV.
+
+    Parameters
+    ----------
+    path
+        A per-sequence trait table, such as ``EC_predicted.tsv.gz`` or
+        ``KO_predicted.tsv.gz``: one row per ASV, one column per function.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ASVs x functions, ``float64`` copy numbers, indexed by the ASV ids as
+        written (``0042`` stays ``0042``). ``EC:`` is removed from EC numbers,
+        as in ``bt.io.read_picrust2``; a ``metadata_NSTI`` column is dropped.
+
+    Raises
+    ------
+    ValueError
+        The file is empty or malformed (a value that is not a number, a
+        missing value or id, a negative value, a data row with more cells than
+        the header, repeated column names), or an ASV id repeats. Messages name
+        ``path``.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/reading_data`
+
+    The table describes genomes, not samples, so it is a DataFrame rather
+    than a modality of the samples' MuData. It is read into one dense
+    ASVs x functions ``float64`` array.
+
+    References
+    ----------
+    Douglas GM et al. (2020) PICRUSt2 for prediction of metagenome functions. Nature Biotechnology 38:685-688.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> path = Path(tempfile.mkdtemp()) / "EC_predicted.tsv"
+    >>> _ = path.write_text("sequence\tEC:1.1.1.1\tEC:2.7.1.1\tmetadata_NSTI\nASV1\t1\t2\t0.03\n")
+    >>> bt.io.read_picrust2_traits(path)
+          1.1.1.1  2.7.1.1
+    ASV1      1.0      2.0
+    """
+    path = Path(path)
+    argument = f"path={str(path)!r}"
+    table = _read(path, argument=argument)
+    table = table.drop(columns=[column for column in table.columns if column == "metadata_NSTI"])
+    repeated = table.index[table.index.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"{argument} repeats ASV ids: {repeated[:3]}"
+        raise ValueError(msg)
+    values = _numbers(table, argument=argument, nonnegative=True)
+    return pd.DataFrame(values, index=table.index.rename(None), columns=table.columns.str.removeprefix(_EC_PREFIX))
 
 
 def _read(path: Path, *, argument: str, text: int = 1) -> pd.DataFrame:

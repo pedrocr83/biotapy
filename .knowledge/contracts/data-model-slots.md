@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:13:23Z }
-commit: 3b36423
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:21:00Z }
+commit: 28a9ede
 sources:
   - id: spec
     resource: ../../plan.md
@@ -108,8 +108,9 @@ In a PICRUSt2 table the stratified rows come from the long contribution
 table (`taxon_function_abun`), and the modality has 0 features when no
 contribution table is read. `taxon` is the ASV id as written, or `RARE`
 (PICRUSt2's group of rare ASVs: an ordinary stratum, not `special`), so
-`genus` and `species` are NaN. `EC:` is removed from EC numbers in both
-modalities, so ids match ENZYME's and HUMAnN's.
+`genus` and `species` are NaN. `EC:` is removed from EC numbers, in both
+modalities and in `io.read_picrust2_traits`' columns, so ids match ENZYME's
+and HUMAnN's.
 
 ## Taxonomic profiles (MetaPhlAn)
 `io.read_metaphlan` keeps one feature per leaf clade: a row that no other

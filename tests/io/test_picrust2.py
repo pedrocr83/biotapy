@@ -234,3 +234,46 @@ def test_an_na_taxon_is_read_as_missing(tmp_path):
     contrib = CONTRIB + "S1\tEC:4.1.1.1\tNA\t1\t1\t1\t1.0\t1\t1\n"
     with pytest.raises(ValueError, match=r"c\.tsv.*no function or taxon"):
         bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))
+
+
+TRAITS = (
+    "sequence\tEC:1.1.1.1\tEC:2.7.1.1\tEC:3.2.1.1\tmetadata_NSTI\n"
+    "ASV1\t1\t2\t0\t0.03\n"
+    "0042\t0\t1\t1\t0.12\n"
+    "ASV9\t0\t0\t0\t1.5\n"
+)
+
+
+def test_traits_are_asvs_by_functions(tmp_path):
+    traits = bt.io.read_picrust2_traits(write(tmp_path, TRAITS, "EC_predicted.tsv"))
+    assert traits.index.tolist() == ["ASV1", "0042", "ASV9"]
+    assert traits.columns.tolist() == ["1.1.1.1", "2.7.1.1", "3.2.1.1"]
+    assert traits.dtypes.eq(np.float64).all() and traits.loc["ASV9"].eq(0).all()
+
+
+def test_traits_read_gzip_and_keep_ko_ids(tmp_path):
+    path = tmp_path / "KO_predicted.tsv.gz"
+    path.write_bytes(gzip.compress(b"sequence\tK00001\tK00002\nASV1\t1\t0\n"))
+    assert bt.io.read_picrust2_traits(path).columns.tolist() == ["K00001", "K00002"]
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        (TRAITS + "ASV1\t1\t1\t1\t0.1\n", r"repeats ASV ids: \['ASV1'\]"),
+        (TRAITS + "ASV2\t1\tx\t1\t0.1\n", "not a number"),
+        (TRAITS + "ASV2\t1\t1\n", "missing or NaN"),
+        (TRAITS + "ASV2\t1\t-1\t1\t0.1\n", "negative"),
+        ("", "is empty"),
+    ],
+    ids=["repeated-asv", "non-number", "short-row", "negative", "empty-file"],
+)
+def test_malformed_traits_raise_naming_the_path(tmp_path, text, message):
+    with pytest.raises(ValueError, match=rf"traits\.tsv.*{message}"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+
+
+def test_an_extra_text_column_raises_naming_the_path(tmp_path):
+    text = "sequence\tEC:1.1.1.1\tnote\nASV1\t1\thello\n"
+    with pytest.raises(ValueError, match=r"traits\.tsv.*not a number"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))

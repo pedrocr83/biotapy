@@ -367,7 +367,7 @@ not exist yet.
 - [ ] Checkpoint A
 - [x] 2.2a io/_table.py: strict table reading shared by the readers
 - [x] 2.2 io.read_metaphlan(path) -> TreeData
-- [ ] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame (2.4 done, 2.4b pending)
+- [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
 - [ ] 2.7 `fn.contributions(mdata, function, *, top=None) -> pd.DataFrame` (outline)
 - [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame` (outline)
@@ -4812,7 +4812,7 @@ would add the ASVs to the sample index.
 
 **Will not touch:** `read_picrust2`.
 
-- [ ] **Step 1: Failing tests.** Append to `tests/io/test_picrust2.py`:
+- [x] **Step 1: Failing tests.** Append to `tests/io/test_picrust2.py`:
 
 ```python
 TRAITS = (
@@ -4851,9 +4851,9 @@ def test_malformed_traits_raise_naming_the_path(tmp_path, text, message):
         bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
 ```
 
-- [ ] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q -k traits`
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q -k traits`
   -> `6 failed`: `AttributeError: module 'biotapy.io' has no attribute 'read_picrust2_traits'`.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - In `src/biotapy/io/_picrust2.py`, change the module docstring to
     `"""PICRUSt2 predictions: metagenome and pathway tables, their contributions, and per-ASV trait tables."""`.
   - Insert this function before `def _first_line`:
@@ -4942,10 +4942,10 @@ __all__ = [
 ]
 ```
 
-- [ ] **Step 4: Run, expect pass.** `uv run --group test pytest tests/io/test_picrust2.py -q`
+- [x] **Step 4: Run, expect pass.** `uv run --group test pytest tests/io/test_picrust2.py -q`
   gives `30 passed`. The doctests
   `uv run --group test pytest src/biotapy/io/_picrust2.py -q` give `2 passed`.
-- [ ] **Step 5: Docs and contracts.**
+- [x] **Step 5: Docs and contracts.**
   - `docs/api.md`: add `io.read_picrust2_traits` after `io.read_picrust2`.
   - `docs/guide/reading_data.md`: append the paragraph below to the PICRUSt2
     section.
@@ -5011,12 +5011,12 @@ index b91f760..2f41546 100644
 ````
 
   Build the docs -> `build succeeded.`
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - Tick this task's boxes and the rest of its checklist line.
   - Bump `generated` and `commit` in both contracts.
   - Add to `.knowledge/log.md`:
     `- **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables and [r-golden-parity](contracts/r-golden-parity.md) statement 8 name io.read_picrust2_traits (EC: removed from its columns; no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4b done.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 uvx prek run --all-files

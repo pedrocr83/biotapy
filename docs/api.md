@@ -17,6 +17,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     io.read_metaphlan
     io.read_phyloseq
     io.read_picrust2
+    io.read_picrust2_traits
     io.read_qiime2
     io.write_biom
 ```

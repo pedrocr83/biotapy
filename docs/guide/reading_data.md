@@ -347,3 +347,7 @@ pathways = bt.io.read_picrust2("pathways_out/path_abun_unstrat.tsv.gz")
   `ValueError`; pass the table without descriptions. PICRUSt2's pathway
   coverage tables have the same layout as its abundance tables and cannot be
   told apart, so pass only abundance tables.
+
+`bt.io.read_picrust2_traits` reads the predicted gene copy numbers per ASV
+(`EC_predicted.tsv.gz`, `KO_predicted.tsv.gz`) into an ASVs x functions
+`DataFrame`. It describes genomes, not samples, so it is not a modality.
