@@ -58,7 +58,8 @@ def test_all_zero_sample_stays_zero():
         dense = mdata[key].X.toarray()
         dense[0] = 0
         mdata.mod[key].X = sp.csr_matrix(dense)
-    out = bt.fn.renorm(mdata, "relab")
+    with pytest.warns(UserWarning, match="no community abundance"):
+        out = bt.fn.renorm(mdata, "relab")
     assert out["function"].X[0].nnz == 0 and np.isfinite(out["function_by_taxon"].X.toarray()).all()
 
 
@@ -86,10 +87,34 @@ def test_stratified_only_table_raises():
         bt.fn.renorm(mdata, "relab")
 
 
-@given(arrays(np.float64, st.tuples(st.integers(1, 4), st.integers(1, 5)), elements=st.floats(0, 1e6)))
-def test_community_totals_are_one_or_zero(dense):
-    obs = pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])])
-    ids = pd.Index([f"K{j}" for j in range(dense.shape[1])] + [f"K{j}|unclassified" for j in range(dense.shape[1])])
-    mdata = make_function_mudata(np.hstack([dense, dense]), obs=obs, row_ids=ids, x_kind="rpk", source="test")
-    totals = _row_totals(bt.fn.renorm(mdata, "relab")["function"])
-    np.testing.assert_allclose(totals, np.where(dense.sum(axis=1) > 0, 1.0, 0.0), rtol=1e-12)
+@st.composite
+def _community_and_strata(draw):
+    n_samples, n_features = draw(st.integers(1, 4)), draw(st.integers(1, 5))
+    community = draw(arrays(np.float64, (n_samples, n_features), elements=st.floats(1, 1e6)))
+    strata = draw(arrays(np.float64, (n_samples, n_features), elements=st.floats(0, 1e6)))
+    return community, strata
+
+
+@given(_community_and_strata())
+def test_strata_are_raw_values_over_the_community_total(tables):
+    community, strata = tables
+    obs = pd.DataFrame(index=[f"s{i}" for i in range(community.shape[0])])
+    n = community.shape[1]
+    ids = pd.Index([f"K{j}" for j in range(n)] + [f"K{j}|unclassified" for j in range(n)])
+    mdata = make_function_mudata(np.hstack([community, strata]), obs=obs, row_ids=ids, x_kind="rpk", source="test")
+    out = bt.fn.renorm(mdata, "relab")
+    np.testing.assert_allclose(_row_totals(out["function"]), 1.0, rtol=1e-12)
+    totals = community.sum(axis=1, keepdims=True)
+    np.testing.assert_allclose(out["function_by_taxon"].X.toarray(), strata / totals, rtol=1e-12)
+
+
+def test_zero_total_sample_warns_once_naming_it():
+    mdata = bt.datasets.toy_humann()
+    for key in ("function", "function_by_taxon"):
+        dense = mdata[key].X.toarray()
+        dense[0] = 0
+        mdata.mod[key].X = sp.csr_matrix(dense)
+    name = mdata.obs_names[0]
+    with pytest.warns(UserWarning, match=rf"1 sample.*{name}") as record:
+        bt.fn.renorm(mdata, "relab")
+    assert len(record) == 1 and record[0].filename == __file__

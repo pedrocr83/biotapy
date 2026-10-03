@@ -86,3 +86,6 @@ the special rows before totalling, as `--special n` does.
 
 HUMAnN's `--mode levelwise`, where each modality is scaled by its own total,
 is `bt.pp.relative` applied to each modality.
+
+A sample whose community total is zero stays all zero, and `renorm` warns
+once, naming up to three such samples and how many there are, as HUMAnN does.

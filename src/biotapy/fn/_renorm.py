@@ -6,7 +6,15 @@ import numpy as np
 from anndata import AnnData
 from mudata import MuData
 
-from biotapy._core import BY_TAXON_KEY, FUNCTION_KEY, SPECIAL_FEATURES, add_provenance, as_csr, feature_subset
+from biotapy._core import (
+    BY_TAXON_KEY,
+    FUNCTION_KEY,
+    SPECIAL_FEATURES,
+    add_provenance,
+    as_csr,
+    feature_subset,
+    warn_user,
+)
 
 _SCALE = {"relab": 1.0, "cpm": 1e6}
 _X_KIND: dict[str, Literal["relative", "cpm"]] = {"relab": "relative", "cpm": "cpm"}
@@ -45,6 +53,12 @@ def renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = Tru
         ``units`` is not ``"relab"`` or ``"cpm"``; the ``"function"``
         modality has no feature.
 
+    Warns
+    -----
+    UserWarning
+        Some samples have a zero community total; the warning names up to
+        three of them and the count. They stay zero, as in HUMAnN.
+
     Notes
     -----
     R equivalent: none
@@ -76,6 +90,9 @@ def renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = Tru
         msg = f"mdata[{FUNCTION_KEY!r}] has no feature to total; renorm needs the community (unstratified) rows"
         raise ValueError(msg)
     totals = np.asarray(as_csr(community.X).sum(axis=1), dtype=np.float64).ravel()
+    empty = community.obs_names[totals == 0]
+    if len(empty) > 0:
+        warn_user(f"fn.renorm: {len(empty)} sample(s) have no community abundance and stay zero: {list(empty[:3])}")
     out = mdata.copy()
     # ModDict is a dict; mudata types the property as a read-only Mapping.
     mods = cast("dict[str, AnnData | MuData]", out.mod)

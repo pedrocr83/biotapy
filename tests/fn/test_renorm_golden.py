@@ -22,7 +22,10 @@ CASES = {
 def test_renorm_matches_humann_renorm_table(golden_name):
     source, units, special = CASES[golden_name]
     golden = pd.read_csv(TESTS / "golden" / "humann" / f"{golden_name}.csv.gz", index_col="sample_id")
-    out = bt.fn.renorm(bt.io.read_humann(TESTS / "data" / "humann" / source), units, special=special)
+    mdata = bt.io.read_humann(TESTS / "data" / "humann" / source)
+    # The fixture's S3 has no abundance, so HUMAnN and renorm both warn and keep it zero.
+    with pytest.warns(UserWarning, match="S3"):
+        out = bt.fn.renorm(mdata, units, special=special)
     mods = [out[key] for key in ("function", "function_by_taxon")]
     table = pd.concat([pd.DataFrame(m.X.toarray(), index=m.obs_names, columns=m.var_names) for m in mods], axis=1)
     assert sorted(table.columns) == sorted(golden.columns)
