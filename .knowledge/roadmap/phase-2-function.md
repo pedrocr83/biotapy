@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T21:48:23Z }
-commit: e34b6e9
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T21:51:51Z }
+commit: 28b037e
 sources:
   - id: spec
     resource: ../../plan.md
@@ -370,7 +370,7 @@ not exist yet.
 - [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
 - [x] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
-- [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
+- [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
 - [ ] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
 - [ ] 2.10 `datasets.hmp2()` and the tutorial (outline)
@@ -6006,7 +6006,7 @@ d(A,C) = 1 - 0/4 = 1, d(B,C) = 1 - 1/5 = 0.8.
   FR = 0.25, nFR = 0.5.
 - Two taxa with no gene, p = (1/2, 1/2): d = 1, so TD = FD = 0.5, FR = 0.
 
-- [ ] **Step 1: Failing tests.** Create `tests/fn/test_redundancy.py`:
+- [x] **Step 1: Failing tests.** Create `tests/fn/test_redundancy.py`:
 
 ```python
 import anndata as ad
@@ -6231,10 +6231,10 @@ def test_disjoint_genomes_have_no_redundancy(case):
     assert (out["redundancy"].dropna() == 0).all()
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/fn/test_redundancy.py -q`
   -> `29 failed`: `AttributeError: module 'biotapy.fn' has no attribute 'functional_redundancy'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/fn/_redundancy.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/fn/_redundancy.py`:
 
 ```python
 """Functional redundancy of each sample from taxon abundances and genome contents (Tian et al. 2020)."""
@@ -6433,12 +6433,12 @@ from ._renorm import renorm
 __all__ = ["contributions", "func_glom", "functional_redundancy", "load_hierarchy", "renorm"]
 ```
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `uv run --group test pytest tests/fn/test_redundancy.py src/biotapy/fn/_redundancy.py -q -W error`
   -> `30 passed` (29 tests and the doctest), no warning. Then
   `uv run --group test pytest tests/fn/test_redundancy.py tests/fn/test_contributions.py -q -W error --hypothesis-seed=1`
   (and seeds 2 and 3) -> `51 passed` each.
-- [ ] **Step 5: Docs.** In `docs/api.md`, add `fn.functional_redundancy`
+- [x] **Step 5: Docs.** In `docs/api.md`, add `fn.functional_redundancy`
   after `fn.func_glom`. Append to `docs/guide/function.md`:
 
 ````markdown
@@ -6513,13 +6513,13 @@ only. A MetaPhlAn profile is already in organism abundances.
 ````
 
   Build the docs -> `build succeeded.`
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line becomes
     `- [x] 2.8 \`fn.functional_redundancy(adata, *, traits) -> pd.DataFrame\``;
     tick this task's step boxes; bump `generated` and `commit`.
   - Add under the slice 2C log heading:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 done: \`fn.functional_redundancy\` computes Tian et al. 2020's TD, FD, FR and nFR per sample.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add src/biotapy/fn/_redundancy.py src/biotapy/fn/__init__.py tests/fn/test_redundancy.py docs/api.md \

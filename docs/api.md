@@ -66,6 +66,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     fn.contributions
     fn.func_glom
+    fn.functional_redundancy
     fn.load_hierarchy
     fn.renorm
 ```

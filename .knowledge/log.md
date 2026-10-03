@@ -2,6 +2,7 @@
 
 ## 2026-10-03 (Phase 2, slice 2C)
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.7 done: `fn.contributions` returns one function's strata as a samples x taxa table.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 done: `fn.functional_redundancy` computes Tian et al. 2020's TD, FD, FR and nFR per sample.
 
 ## 2026-10-03 (slice 2C plan)
 * **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2C plan in full TDD steps (2.7 fn.contributions, 2.8 fn.functional_redundancy, 2.9 pl.contributions, Checkpoint C) and its decisions, with the pp.relative subnormal fix approved as a separate commit; checklist signatures, header note, decision 11 and the 2.14 outline updated.
