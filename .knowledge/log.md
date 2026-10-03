@@ -3,6 +3,7 @@
 ## 2026-10-03 (Phase 2, Checkpoint A fix pass)
 - **Update**: [data-model-slots](contracts/data-model-slots.md) `func_glom` section: a mean, or a sum with a feature in several parents, sets `x_kind` to `abundance` (review I2).
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) design note 2: the nothing-maps guard applies to unstratified input only (review Minor 2).
+- **Update**: [function-shape](contracts/function-shape.md) Examples bullet: "a function that reads a file may write a small temp file in its example" replaces "a reader's example", matching rules.md R8.2 (user-approved; review Minor 13).
 
 ## 2026-10-03 (Phase 2, task 2.12)
 - **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.renorm` as feature-changing and notes in convention 2 that renormalised stratified rows are shares of the community total; roadmap `phase-2-function` ticks task 2.12.
