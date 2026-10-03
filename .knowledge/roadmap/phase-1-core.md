@@ -9167,6 +9167,8 @@ for the user's explicit approval of that step (R13.3).
     The development version installs straight from GitHub:
     `pip install git+https://github.com/pedrocr83/biotapy.git`.
     ````
+  - `docs/tutorials/getting_started.md`: its install sentence names the GitHub
+    install line until now; replace it with `pip install biotapy`.
 - [ ] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
     print `PASSED` (0.0.1's sdist and wheel did).

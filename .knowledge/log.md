@@ -1,5 +1,11 @@
 # Knowledge bundle log
 
+## 2026-10-03
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 gained a
+  bullet: the release also switches `docs/tutorials/getting_started.md` from the
+  GitHub install line to `pip install biotapy`. PyPI only has the 0.0.1
+  placeholder, so the page says the GitHub line until then.
+
 ## 2026-10-02
 * **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 now
   lists only the README changes that need the release itself: the user asked
