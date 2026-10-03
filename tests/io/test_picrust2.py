@@ -230,6 +230,27 @@ def test_negative_values_raise_naming_their_argument(tmp_path, argument):
         bt.io.read_picrust2(write(tmp_path, unstrat, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))
 
 
+def test_a_sample_with_a_nonzero_total_missing_from_contrib_raises(tmp_path):
+    # PICRUSt2 drops zero rows only, so a sample with abundance always has contribution rows.
+    only_s1 = "".join(line + "\n" for line in CONTRIB.splitlines()[:5])
+    with pytest.raises(ValueError, match=r"contrib=.*c\.tsv.*no rows for samples.*\['S2'\]"):
+        bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, only_s1, "c.tsv"))
+
+
+def test_an_all_zero_sample_may_be_missing_from_contrib(tmp_path):
+    assert "S3" not in CONTRIB
+    mdata = bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, CONTRIB, "c.tsv"))
+    assert mdata["function_by_taxon"].X[2].nnz == 0
+
+
+def test_contrib_may_cover_a_subset_of_functions(tmp_path):
+    # A pathway can be present at the community level with no contribution row for it.
+    contrib = CONTRIB.replace("S1\tEC:3.2.1.1\t0042\t4.0\t28.57\t1\t4.0\t28.57\t1.0\n", "")
+    contrib = contrib.replace("S2\tEC:3.2.1.1\t0042\t5.5\t73.33\t1\t5.5\t73.33\t1.0\n", "")
+    mdata = bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))
+    assert "3.2.1.1" not in set(mdata["function_by_taxon"].var["function"])
+
+
 def test_an_na_taxon_is_read_as_missing(tmp_path):
     contrib = CONTRIB + "S1\tEC:4.1.1.1\tNA\t1\t1\t1\t1.0\t1\t1\n"
     with pytest.raises(ValueError, match=r"c\.tsv.*no function or taxon"):

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from mudata import MuData
@@ -55,7 +56,8 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
         column names); ``path`` has a ``description`` column; ``contrib``
         lacks a ``sample``, ``function``, ``taxon`` or
         ``taxon_function_abun`` column, repeats a sample, function and taxon,
-        or names a sample or function that ``path`` lacks; a value is negative;
+        names a sample or function that ``path`` lacks, or has no rows for a
+        sample whose total in ``path`` is nonzero; a value is negative;
         a taxon written ``NA`` (read as missing: "no function or taxon").
         Messages name the file's argument.
 
@@ -104,7 +106,8 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
     X = sp.csr_matrix(_numbers(table, argument=argument, nonnegative=True).T)
     row_ids = table.index.str.removeprefix(_EC_PREFIX)
     if contrib is not None:
-        by_taxon, keys = _contributions(Path(contrib), samples=table.columns, functions=row_ids)
+        nonzero = table.columns[np.diff(X.indptr) > 0]
+        by_taxon, keys = _contributions(Path(contrib), samples=table.columns, functions=row_ids, nonzero=nonzero)
         X, row_ids = sp.hstack([X, by_taxon], format="csr"), row_ids.append(keys)
     try:
         return make_function_mudata(
@@ -115,8 +118,14 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
         raise ValueError(msg) from error
 
 
-def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
-    """The long contribution table as a samples x (function, taxon) matrix, and its ``function|taxon`` ids."""
+def _contributions(
+    path: Path, *, samples: pd.Index, functions: pd.Index, nonzero: pd.Index
+) -> tuple[sp.csr_matrix, pd.Index]:
+    """The long contribution table as a samples x (function, taxon) matrix, and its ``function|taxon`` ids.
+
+    Every sample in ``nonzero`` (a nonzero total in ``path``) must have rows:
+    PICRUSt2 drops only zero rows. Functions may be a subset of ``path``'s.
+    """
     argument = f"contrib={str(path)!r}"
     table = _read(path, argument=argument, text=3)
     missing = [column for column in _CONTRIB_COLUMNS if column not in table.columns]
@@ -134,6 +143,10 @@ def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tup
         if len(unknown):
             msg = f"{argument} names {name} that path lacks: {sorted(set(unknown))[:3]}"
             raise ValueError(msg)
+    absent = nonzero.difference(table.index)
+    if len(absent):
+        msg = f"{argument} has no rows for samples with a nonzero total in path: {sorted(absent)[:3]}"
+        raise ValueError(msg)
     codes, keys = pd.factorize(function + "|" + ids["taxon"])
     if pd.Series(rows * len(keys) + codes).duplicated().any():
         msg = f"{argument} repeats a sample, function and taxon"
