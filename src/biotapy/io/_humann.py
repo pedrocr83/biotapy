@@ -118,7 +118,11 @@ def read_humann(path: str | Path) -> MuData:
     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
     unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)
     x_kind = unit or "abundance"
-    return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")
+    try:
+        return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")
+    except ValueError as error:  # repeated sample or row ids, or a row id with two "|"
+        msg = f"path={str(path)!r}: {error}"
+        raise ValueError(msg) from error
 
 
 def _read_table(path: Path, header: str, skiprows: int) -> tuple[pd.DataFrame, np.ndarray]:

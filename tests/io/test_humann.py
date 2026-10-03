@@ -175,3 +175,20 @@ def test_ragged_or_missing_cells_raise_naming_the_path(tmp_path, rows):
     path.write_text("# Pathway\tS1\n" + rows)
     with pytest.raises(ValueError, match=r"ragged\.tsv"):
         bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize(
+    ("text", "error"),
+    [
+        ("# Gene Family\tS1_Abundance-RPKs\tS1-RPKs\nK1\t1.0\t2.0\n", "duplicate obs ids"),
+        ("# Gene Family\tS1_Abundance-RPKs\nK1\t1.0\nK1\t2.0\n", "duplicate var ids"),
+        ("# Gene Family\tS1_Abundance-RPKs\nK1|g__A.s__A_b|x\t1.0\n", r"one '\|'"),
+    ],
+    ids=["repeated samples", "repeated rows", "two bars"],
+)
+def test_id_errors_name_the_path(tmp_path, text, error):
+    path = tmp_path / "ids.tsv"
+    path.write_text(text)
+    with pytest.raises(ValueError, match=rf"path='.*ids\.tsv': .*{error}") as info:
+        bt.io.read_humann(path)
+    assert isinstance(info.value.__cause__, ValueError)
