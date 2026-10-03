@@ -155,7 +155,7 @@ MALFORMED = {
     "missing-taxon": (UNSTRAT, CONTRIB + "S1\tEC:1.1.1.1\t" + ROW, r"c\.tsv.*no function or taxon"),
     "non-number": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tASV1\t1\t1\t1\tx\t1\t1\n", r"c\.tsv.*not a number"),
     "bar-in-taxon": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tA|B" + ROW, r"path=.*u\.tsv.*contrib=.*c\.tsv.*one '\|'"),
-    "repeated-sample": (UNSTRAT.replace("S3", "S2"), CONTRIB, r"path=.*u\.tsv.*repeats column names \['S2'\]"),
+    "repeated-sample": (UNSTRAT.replace("S3", "S2"), CONTRIB, r"path=.*u\.tsv.*repeats column names: \['S2'\]"),
     "description": (
         "function\tdescription\tS1\nEC:1.1.1.1\tAlcohol dehydrogenase\t1.0\n",
         CONTRIB,
@@ -353,3 +353,9 @@ def test_read_picrust2_rejects_another_kind_of_table(tmp_path, text, cell):
 def test_read_picrust2_traits_rejects_another_kind_of_table(tmp_path, text):
     with pytest.raises(ValueError, match=r"wrong\.tsv.*'sequence'.*read_picrust2\b"):
         bt.io.read_picrust2_traits(write(tmp_path, text, "wrong.tsv"))
+
+
+def test_an_error_without_contrib_does_not_mention_it(tmp_path):
+    with pytest.raises(ValueError, match=r"u\.tsv.*duplicate var ids") as info:
+        bt.io.read_picrust2(write(tmp_path, "function\tS1\nEC:1.1.1.1\t1\n1.1.1.1\t2\n", "u.tsv"))
+    assert "contrib=" not in str(info.value)

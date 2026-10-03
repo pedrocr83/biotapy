@@ -198,7 +198,7 @@ def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
     # pandas would rename the second "S1" to "S1.1" and read two samples.
     path = tmp_path / "twice.tsv"
     path.write_text("# Pathway\tS1\tS1\nPWY-1\t1.0\t2.0\n")
-    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names \['S1'\]"):
+    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names: \['S1'\]"):
         bt.io.read_humann(path)
 
 
@@ -254,4 +254,18 @@ def test_a_damaged_gzip_raises_naming_the_path(tmp_path, damage):
     path = tmp_path / "broken.tsv.gz"
     path.write_bytes(data)
     with pytest.raises(ValueError, match=r"broken\.tsv\.gz"):
+        bt.io.read_humann(path)
+
+
+def test_a_blank_first_line_is_not_called_empty(tmp_path):
+    path = tmp_path / "blank_first.tsv"
+    path.write_text("\n# Pathway\tS1\nPWY-1\t1\n")
+    with pytest.raises(ValueError, match=r"blank_first\.tsv' has a blank line where its header should be"):
+        bt.io.read_humann(path)
+
+
+def test_an_na_id_raises_saying_na(tmp_path):
+    path = tmp_path / "na_id.tsv"
+    path.write_text("# Pathway\tS1\nNA\t1\n")
+    with pytest.raises(ValueError, match=r"na_id\.tsv.*no id \(an empty or NA first cell\)"):
         bt.io.read_humann(path)

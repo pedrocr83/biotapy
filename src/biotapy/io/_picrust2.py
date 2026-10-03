@@ -120,7 +120,7 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
             X, obs=pd.DataFrame(index=table.columns), row_ids=row_ids, x_kind="abundance", source="io.read_picrust2"
         )
     except ValueError as error:  # repeated functions, or a function or taxon id holding "|"
-        msg = f"{argument}, contrib={None if contrib is None else str(contrib)!r}: {error}"
+        msg = f"{argument}{'' if contrib is None else f', contrib={str(contrib)!r}'}: {error}"
         raise ValueError(msg) from error
 
 

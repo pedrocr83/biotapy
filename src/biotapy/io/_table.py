@@ -54,7 +54,8 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     caller to check in the columns it reads (``_numbers``).
     """
     if header.strip() == "":
-        msg = f"{argument} is empty (it has no header line)"
+        blank = f"{argument} has a blank line where its header should be"
+        msg = blank if header else f"{argument} is empty (it has no header line)"
         raise ValueError(msg)
     names = header.rstrip("\r\n").split("\t")
     # The first cell names the id column and is never used: pandas and R's write.table(col.names=NA) leave it empty.
@@ -63,7 +64,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
         raise ValueError(msg)
     repeated = sorted(name for name, count in Counter(names).items() if count > 1)
     if repeated:
-        msg = f"{argument} repeats column names {repeated[:3]}"
+        msg = f"{argument} repeats column names: {repeated[:3]}"
         raise ValueError(msg)
     try:
         table = pd.read_csv(
@@ -89,7 +90,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
         msg = f"{argument} has a data row with more cells than the header"
         raise ValueError(msg)
     if np.any(table.index.isna() | (table.index.str.strip() == "")):
-        msg = f"{argument} has a data row with no id (an empty first cell)"
+        msg = f"{argument} has a data row with no id (an empty or NA first cell)"
         raise ValueError(msg)
     return table
 
