@@ -33,6 +33,7 @@ api.md
 :caption: Project
 
 design.md
+performance.md
 contributing.md
 changelog.md
 references.md

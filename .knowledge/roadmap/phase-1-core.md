@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T17:30:00Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T13:00:00Z }
 commit: 43d6efb
 sources:
   - id: spec
@@ -8585,7 +8585,7 @@ non-zero below 90% total line coverage (ruling 18).
   - the baseline table in `docs/performance.md`, which ticks the exit gate's
     "asv baselines recorded".
 
-- [ ] **Step 1: Dependency.**
+- [x] **Step 1: Dependency.**
   - In `[dependency-groups] dev`, add `"asv>=0.6.6",` before
     `"import-linter>=2.15",`.
   - 0.6.6 is the version prototyped: it ships the `uv` environment plugin
@@ -8594,7 +8594,7 @@ non-zero below 90% total line coverage (ruling 18).
   - Run `uv sync --group dev --group test --group doc`, then confirm that
     `uv run --group dev python -c "import asv; print(asv.__version__)"`
     prints `0.6.6` or later.
-- [ ] **Step 2: Failing test.** Append to `tests/test_ci.py`:
+- [x] **Step 2: Failing test.** Append to `tests/test_ci.py`:
   ```python
 
 
@@ -8604,7 +8604,7 @@ non-zero below 90% total line coverage (ruling 18).
       assert check and check[0]["working-directory"] == "benchmarks"
   ```
   It fails: `check` is empty.
-- [ ] **Step 3: The suite.**
+- [x] **Step 3: The suite.**
   - `benchmarks/asv.conf.json`, as plain JSON:
     - asv 0.6 would accept JSON5 comments, but the repo's biome-format hook
       rejects them; it failed the prototype's first draft.
@@ -8793,7 +8793,7 @@ non-zero below 90% total line coverage (ruling 18).
     staging `pyproject.toml`, the five `benchmarks/` files,
     `.github/workflows/test.yaml`, `tests/test_ci.py`, the concept and the log.
     The baseline is measured on this commit.
-- [ ] **Step 4: Run the baseline.** It takes about 11 minutes and 3 GB of free
+- [x] **Step 4: Run the baseline.** It takes about 11 minutes and 3 GB of free
   memory. Close other heavy work first, since the numbers are the record.
   With `git status --short` empty, from the repository root:
   ```bash
@@ -8808,7 +8808,7 @@ non-zero below 90% total line coverage (ruling 18).
     section's asv facts; a result more than twice those, or a failure, is
     reported before it is recorded (R14.1).
   - `git status --short` must show nothing new: `.asv/` is ignored.
-- [ ] **Step 5: The performance page.**
+- [x] **Step 5: The performance page.**
   - Create `docs/performance.md` from the prototype's page below. Replace the
     commit, date, machine line and every number with Step 4's `asv show`
     output: the page records this run, not the prototype's.
@@ -8861,7 +8861,7 @@ non-zero below 90% total line coverage (ruling 18).
     ````
   - `docs/index.md`: in the "Project" toctree, add `performance.md` after
     `design.md`.
-- [ ] **Step 6: Knowledge.**
+- [x] **Step 6: Knowledge.**
   - `modules/tl.md`, add a Gotcha: "`faith_pd` on 5,000 x 50,000 takes about
     45 s (asv, Task 1.21). scikit-bio re-indexes and re-validates the tree on
     every `alpha_diversity` call, once per chunk of `2**20 // n_vars` samples,
@@ -8869,7 +8869,7 @@ non-zero below 90% total line coverage (ruling 18).
     (`get_skbio_tree`) takes 0.46 s. A fix needs a profile-driven perf task
     (rules.md R10.1), not a change here."
   - Add a log line. Tick 1.21 here.
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   - The three gates.
   - Commit `docs: record the asv baselines for 0.1`, staging
     `docs/performance.md`, `docs/index.md`, `.knowledge/modules/tl.md`, the
@@ -9297,7 +9297,7 @@ for the user's explicit approval of that step (R13.3).
   `plot_tree`, `plot_net`, CCA, DPCoA.
 - [ ] All `golden` tests pass per [r-golden-parity](/contracts/r-golden-parity.md).
 - [ ] The generated Coming-from-R table maps all 31 functions below.
-- [ ] asv baselines recorded.
+- [x] asv baselines recorded.
 - [ ] Coverage >= 90% on public functions (rules.md R11.6).
 - [ ] `biotapy 0.1.0` on PyPI; Phase 1 `phase_state: done`; Phase 2 active.
 

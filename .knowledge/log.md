@@ -1,6 +1,11 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: [tl](modules/tl.md) gained a Gotcha: `faith_pd` at 5,000 x 50,000
+  takes about 48 s, nearly all of it scikit-bio re-indexing the tree per chunk
+  (asv baseline, Task 1.21; `docs/performance.md`). Task 1.21 is ticked in
+  [phase-1-core](roadmap/phase-1-core.md), with its exit-gate item "asv
+  baselines recorded".
 * **Update**: [engine-parity](contracts/engine-parity.md) statement 5 now names
   the benchmark dataset (`benchmarks/benchmarks/_data.py:synthetic`) and where
   the baselines are recorded (`docs/performance.md`). Task 1.21 added the asv

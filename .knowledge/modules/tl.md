@@ -5,7 +5,7 @@ description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, 
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:30:01Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T13:00:00Z }
 commit: 8f26269
 status: stable
 ---
@@ -103,6 +103,11 @@ cache: `BIOTAPY_DATA_DIR=<cache> uv run --group test pytest -m golden tests/tl -
   NMDS on planar points (`tests/tl/test_ordination.py:test_nmds_recovers_a_planar_configuration`).
 - The PERMANOVA golden test takes 10-20 s at 9,999 permutations (18 s at
   Checkpoint C).
+- `faith_pd` on 5,000 x 50,000 takes about 48 s (asv, Task 1.21). scikit-bio
+  re-indexes and re-validates the tree on every `alpha_diversity` call, once per
+  chunk of `2**20 // n_vars` samples, and that is about 97% of the time;
+  converting the tree once (`get_skbio_tree`) takes 0.46 s. A fix needs a
+  profile-driven perf task (rules.md R10.1), not a change here.
 - scikit-bio 0.7.4's tree code, `skbio.diversity._phylogenetic._nodes_by_counts`,
   casts abundances to int64. Faith PD and both UniFrac engines (Cython and
   numba) share it, so fractions are truncated silently. This is why
