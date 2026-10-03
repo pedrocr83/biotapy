@@ -4,9 +4,9 @@ title: Data-model slots
 description: Which AnnData/TreeData slot holds what, the exact result keys, the x_kind and provenance conventions, and which slots feature-changing operations drop.
 tags: [data-model, api]
 status: stable
-paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:00:57Z }
-commit: 7b13f1d
+paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
+commit: 8e0442b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -123,8 +123,10 @@ path lengths, and therefore Faith PD and UniFrac, unchanged.[^treedata]
 Matches `humann_regroup_table` (HUMAnN 3.9, `--ungrouped Y --protected Y`):
 a feature counts in full toward every parent it has at the level; features
 with none are summed into `UNGROUPED` (per taxon when `var` has `taxon`);
-`UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED` pass through; `agg="mean"`
-divides by the members present. Groups are sorted by name. `var` holds
+`UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED` pass through
+(`READS_UNMAPPED` as in HUMAnN master; 3.9 sums it into `UNGROUPED`);
+`agg="mean"` divides by the members present. Groups are sorted by name.
+`var` holds
 `name` (from the hierarchy's `parent_name`) and `special`, plus `function`,
 `taxon` and rank columns for a stratified input. The input's `x_kind` is
 kept only for a sum in which every feature has at most one parent at the
