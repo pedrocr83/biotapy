@@ -5,8 +5,8 @@ description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, 
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 status: stable
 ---
 
@@ -66,6 +66,11 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   scikit-learn 1.9/1.10 change the defaults of `n_init` and `init`.
 - `permanova` has no `inplace`: it returns a test result, not per-sample or
   per-pair values.
+- `permanova` runs scikit-bio's OpenMP F-statistic on one thread
+  (`threadpoolctl.threadpool_limits(1, user_api="openmp")`, which restores the
+  previous limit on exit). With one thread per core it took about 24 s on the
+  toy table on a busy machine, against 0.01 s. `_permanova.py:permanova`,
+  `tests/tl/test_permanova.py`.
 - `faith_pd` runs on presence/absence (`(dense > 0)` as int64, per chunk),
   which is exact because Faith PD depends on presence only, so it runs on
   any abundance. `_alpha.py:alpha`
@@ -82,6 +87,7 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   `permanova`.
 - scikit-learn: `sklearn.manifold.MDS`, with an `int` seed drawn from
   `as_generator`, because its `random_state` rejects a `np.random.Generator`.
+- threadpoolctl: `threadpool_limits` around scikit-bio's `permanova`.
 
 # Verification
 

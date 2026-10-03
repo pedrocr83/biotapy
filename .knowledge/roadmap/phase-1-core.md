@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 sources:
   - id: spec
     resource: ../../plan.md
@@ -9034,7 +9034,7 @@ non-zero below 90% total line coverage (ruling 18).
   staging the concepts, `modules/index.md`, the roadmap and the log.
 
 ### Checkpoint D - review slice 1D
-- [ ] Review the whole slice (superpowers:requesting-code-review) against:
+- [x] Review the whole slice (superpowers:requesting-code-review) against:
   - every contract: function-shape, data-model-slots, module-boundaries,
     tree-access and r-golden-parity;
   - the pure-by-default decision;
@@ -9043,7 +9043,7 @@ non-zero below 90% total line coverage (ruling 18).
 
   Then a fix pass, one commit per finding, each with a test. Also read the
   per-file coverage table from 1.19b's command, and report any file under 90%.
-- [ ] Knowledge after the fix pass: run
+- [x] Knowledge after the fix pass: run
   `bash scripts/knowledge_stale.sh --against HEAD`.
   - For each concept a fix made stale: check it against the fix, then bump its
     `commit` to the new `HEAD`, in one commit

@@ -5,8 +5,8 @@ description: Every function with an R equivalent is tested against gzip CSV gold
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 sources:
   - id: spec
     resource: ../../plan.md

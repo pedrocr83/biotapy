@@ -5,8 +5,8 @@ description: Plots of what tl and pp stored - stacked bars, heatmap, richness, o
 resource: /src/biotapy/pl/
 paths: ["src/biotapy/pl/**"]
 tags: [pl, plots, matplotlib]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:20Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 status: stable
 ---
 
@@ -21,14 +21,17 @@ Owns the `bt.pl.*` verbs that draw stored results:
 
 It computes no diversity, distance or ordination; those are
 [tl](/modules/tl.md)'s. A missing slot is a `KeyError` naming the `tl` or
-`pp` call that writes it.
+`pp` call that writes it; for a `pp` layer it names the assignment
+(`adata = bt.pp.relative(adata)`), because `pp` returns a new object.
 
 # Entry points
 - `_abundance.py:bar` - stacked bars. `_segments` sums features per `fill`
   group (a `var` or an `obs` column); `_by_x` sums samples per `x` group.
 - `_abundance.py:heatmap` - `imshow` of the table densified once, features x
   samples, on a `LogNorm` scale with phyloseq's colours.
-- `_richness.py:richness` - one point per sample; NaN values are left out.
+- `_richness.py:richness` - one point per sample; NaN values are left out,
+  and a `color` group left with no point gets no legend entry
+  (`_common.py:scatter` skips empty groups).
 - `_ordination.py:ordination` and `_ordination.py:scree` - both read through
   `_ordination.py:_stored`.
 - `_common.py` - helpers the topic files share: `new_axes`, `table`,
@@ -51,7 +54,8 @@ It computes no diversity, distance or ordination; those are
 - `bar` heights equal the sample (or `x` group) totals of the plotted table:
   features with a missing rank are a group, not dropped (a Hypothesis test).
 - `heatmap` keeps `obs`/`var` order and densifies the table once (rules.md
-  R6.2); it raises `ValueError` when nothing is positive.
+  R6.2); it raises `ValueError` naming `adata` (for `X`) or `layer=` when
+  nothing is positive.
 - Past 250 names an axis gets no tick labels (`_common.py:MAX_LABELS`,
   phyloseq's `max.label`).
 

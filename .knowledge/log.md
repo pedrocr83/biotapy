@@ -1,6 +1,23 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: refreshed the 14 concepts the Checkpoint D fixes made stale,
+  against 2b9fc24, after checking each against the fixes. Content edits:
+  [tl](modules/tl.md) (`permanova` runs OpenMP on one thread through
+  threadpoolctl), [pl](modules/pl.md) (a missing layer names
+  `adata = bt.pp.relative(adata)`; `heatmap`'s `ValueError` names `adata` or
+  `layer=`; a richness group with no point gets no legend entry),
+  [phase-1-core](roadmap/phase-1-core.md) (Checkpoint D review and knowledge
+  boxes ticked). Commit and `generated` only: [core](modules/core.md),
+  [io](modules/io.md), [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [phase-2-function](roadmap/phase-2-function.md),
+  [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md),
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [r-golden-parity](contracts/r-golden-parity.md),
+  [tree-access](contracts/tree-access.md),
+  [add-a-function](playbooks/add-a-function.md),
+  [cut-a-release](playbooks/cut-a-release.md).
 * **Update**: three concept errors from the Checkpoint D review (M2):
   [function-shape](contracts/function-shape.md) says each public `pp`, `tl`
   and `pl` function has a purity test, not every test;
