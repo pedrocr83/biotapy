@@ -9,7 +9,7 @@
 biotapy is a microbiome analysis toolkit for Python, in the style of R's [mia][]
 and [phyloseq][], built on [AnnData][]/[TreeData][]. Samples are always rows,
 the count matrix stays sparse, the phylogenetic tree sits alongside the data
-as a first-class object, and every function with an R equivalent is checked
+as a first-class object, and every computation with an R equivalent is checked
 against R on real data.
 
 ## Status

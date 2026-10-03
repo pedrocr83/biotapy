@@ -22,7 +22,8 @@ the groups you need:
 uv sync --group dev --group test --group doc
 ```
 
-- `dev`: ruff, mypy, import-linter, prek - linting and type-checking.
+- `dev`: ruff, mypy, import-linter, prek, asv - linting, type-checking and
+  benchmarks.
 - `test`: pytest, hypothesis, coverage.
 - `doc`: sphinx, myst-nb, sphinx-book-theme and the other packages that build
   this site.
