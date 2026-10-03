@@ -1,5 +1,19 @@
 # Knowledge bundle log
 
+## 2026-10-03 (release 0.1.0)
+* **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [phase-1-core](roadmap/phase-1-core.md),
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [tree-access](contracts/tree-access.md) and
+  [add-a-function](playbooks/add-a-function.md), commit and `generated` only,
+  against 695507e; the changes under their paths (version bump, license and
+  classifier metadata, sdist excludes, benchmark docstring figure) contradict
+  nothing they state.
+* **Update**: [cut-a-release](playbooks/cut-a-release.md) gains Step 2b (update
+  the README) and an sdist `pytest` check; phase-1-core ticks Task 1.23
+  Steps 3-8 and its first five exit-gate items.
+
 ## 2026-10-03
 * **Refresh**: [phase-1-core](roadmap/phase-1-core.md) and
   [engine-parity](contracts/engine-parity.md), commit and `generated` only,

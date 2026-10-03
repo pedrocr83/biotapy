@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:56:36Z }
-commit: 809c508
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T10:08:36Z }
+commit: 695507e
 sources:
   - id: spec
     resource: ../../plan.md
@@ -9109,9 +9109,9 @@ for the user's explicit approval of that step (R13.3).
     pin failed 0.0.1 on Metadata-Version 2.5 (the playbook's Common
     mistakes), so the Dependabot update must merge first.
   - On 2026-09-27 the research found v1.14.2 to be the latest.
-- [ ] **Step 3: Branch.**
+- [x] **Step 3: Branch.**
   `git switch master && git pull --ff-only && git switch -c release-0.1.0`.
-- [ ] **Step 4: Version and changelog.**
+- [x] **Step 4: Version and changelog.**
   - `pyproject.toml`: `version = "0.0.1"` becomes `version = "0.1.0"`.
   - `CHANGELOG.md`: append to the `### Added` list under `## [Unreleased]`:
     ```markdown
@@ -9134,7 +9134,7 @@ for the user's explicit approval of that step (R13.3).
     ```
   - Rename `## [Unreleased]` to `## [0.1.0] - ` followed by `date -u +%F`.
     Insert a new empty `## [Unreleased]` above it, as Keep a Changelog does.
-- [ ] **Step 5: README.** The README is PyPI's project page. It still says
+- [x] **Step 5: README.** The README is PyPI's project page. It still says
   0.0.1 is a placeholder and that 0.1 is coming. The parts true before the
   release were done on 2026-10-02 (the Datasets, Preprocessing, Tools and
   Plots bullets, `esophagus` in Example datasets and licensing, the data
@@ -9168,17 +9168,17 @@ for the user's explicit approval of that step (R13.3).
     ````
   - `docs/tutorials/getting_started.md`: its install sentence names the GitHub
     install line until now; replace it with `pip install biotapy`.
-- [ ] **Step 6: Build check.**
+- [x] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
     print `PASSED` (0.0.1's sdist and wheel did).
   - `tar tzf dist/biotapy-0.1.0.tar.gz | grep -c benchmarks` prints `0`.
   - `unzip -p dist/biotapy-0.1.0-py3-none-any.whl 'biotapy-0.1.0.dist-info/METADATA' | grep -E "^(Version|Requires-Dist): (0.1.0|matplotlib)"`
     prints `Version: 0.1.0` and `Requires-Dist: matplotlib>=3.8`.
   - `rm -rf dist`.
-- [ ] **Step 7: Gate and commit.** Run the three gates. Commit
+- [x] **Step 7: Gate and commit.** Run the three gates. Commit
   `chore: release 0.1.0`, staging `pyproject.toml`, `CHANGELOG.md` and
   `README.md`.
-- [ ] **Step 8: Knowledge, second commit.**
+- [x] **Step 8: Knowledge, second commit.**
   - Run `bash scripts/knowledge_stale.sh --against HEAD`. The version bump
     re-stales the concepts whose `paths` hold `pyproject.toml` or
     `CHANGELOG.md`: `module-boundaries`, `tree-access`, `phase-0-foundation`
@@ -9289,15 +9289,15 @@ for the user's explicit approval of that step (R13.3).
 ---
 
 # Exit gate
-- [ ] `docs/tutorials/phyloseq_analysis.md` (a MyST notebook; slice 1D ruling 13) executes in CI and reproduces the
+- [x] `docs/tutorials/phyloseq_analysis.md` (a MyST notebook; slice 1D ruling 13) executes in CI and reproduces the
   vignette's in-scope sections on GlobalPatterns, enterotype and esophagus:
   bar plots, richness, UniFrac + PCoA with scree, NMDS, heatmap, `distance()`
   examples. Out-of-scope sections are listed in the notebook as "not in 0.1":
   `plot_tree`, `plot_net`, CCA, DPCoA.
-- [ ] All `golden` tests pass per [r-golden-parity](/contracts/r-golden-parity.md).
-- [ ] The generated Coming-from-R table maps all 31 functions below.
+- [x] All `golden` tests pass per [r-golden-parity](/contracts/r-golden-parity.md).
+- [x] The generated Coming-from-R table maps all 31 functions below.
 - [x] asv baselines recorded.
-- [ ] Coverage >= 90% on public functions (rules.md R11.6).
+- [x] Coverage >= 90% on public functions (rules.md R11.6).
 - [ ] `biotapy 0.1.0` on PyPI; Phase 1 `phase_state: done`; Phase 2 active.
 
 ## The 31 phyloseq functions the table must cover
