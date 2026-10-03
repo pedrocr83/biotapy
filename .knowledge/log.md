@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.3b fix round 1)
+* **Update**: [function-shape](contracts/function-shape.md) Examples bullet now also allows a reader's example to write a small temp file, matching rules.md R8.2.
+
 ## 2026-10-03 (Phase 2, task 2.3b)
 * **Update**: [function-shape](contracts/function-shape.md) lets examples use `bt.datasets.toy_humann()` for function tables (rules.md R8.2 widened to match, user-approved); ticked task 2.3b in [phase-2-function](roadmap/phase-2-function.md).
 

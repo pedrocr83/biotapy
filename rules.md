@@ -152,8 +152,7 @@ Full contract: [.knowledge/contracts/data-model-slots.md](.knowledge/contracts/d
   `R equivalent: ``pkg::fn``` line (or `R equivalent: none`) and a `Guide:`
   link, a runnable `Examples` section using `bt.datasets.toy()` (or
   `bt.datasets.toy_humann()` for function tables; a reader's example may write
-  a small temp file), and
-  References where a method is cited.
+  a small temp file), and References where a method is cited.
 - **R8.3** Where documentation goes
   ([docs-okf-and-sphinx](.knowledge/decisions/docs-okf-and-sphinx.md)):
 

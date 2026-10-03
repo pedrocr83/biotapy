@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:55:00Z }
-commit: cdfe31b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:58:00Z }
+commit: 4b0f2bc
 sources:
   - id: spec
     resource: ../../plan.md
@@ -55,8 +55,8 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
    - Exactly one line starting `R equivalent:`; comma-separated
      ``pkg::fn`` items, or `none`. The "Coming from R" page is generated from it.
    - Examples use `bt.datasets.toy()`, or `bt.datasets.toy_humann()` for
-     function tables (both built in memory, no download), and run under
-     doctest in CI.
+     function tables (both built in memory, no download; a reader's example
+     may write a small temp file), and run under doctest in CI.
 
 # Why
 - Keyword-only options let parameters be added without breaking callers.
