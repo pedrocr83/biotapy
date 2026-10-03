@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (slice 2B start)
+* **Refresh**: phase-0-foundation, phase-1-core, r-golden-parity, add-a-function, commit and `generated` only, against 4ef5314; the renorm warn-once test fix (2d47f8d) and the Hypothesis deadline (4ef5314) contradict nothing they state.
+
 ## 2026-10-03 (Phase 2, Checkpoint A knowledge)
 - **Create**: [fn](modules/fn.md) (`load_hierarchy`, `func_glom`, `renorm`; HUMAnN 3.9 semantics, the final `x_kind`, guard and alignment rules) and [function-tables-as-mudata](decisions/function-tables-as-mudata.md) (options weighed, h5mu tree loss, mudata dependency, the Phase 4 task 4.1 forward note); both added to their `index.md`.
 - **Update**: [core](modules/core.md): `_function.py`, `sum_pairs`, `replace_features` as a second Propagation implementer, `warn_user`'s third caller, and mudata among the third-party imports (review: three statements were false).
