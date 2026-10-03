@@ -47,3 +47,9 @@ def test_docs_job_builds_the_docs_with_the_pooch_cache():
 
 def test_docs_job_blocks_merges():
     assert "docs" in WORKFLOW["jobs"]["check"]["needs"]
+
+
+def test_lint_job_imports_the_benchmarks():
+    steps = WORKFLOW["jobs"]["lint"]["steps"]
+    check = [step for step in steps if step.get("run", "").strip() == "uv run --group dev asv check --python=same"]
+    assert check and check[0]["working-directory"] == "benchmarks"

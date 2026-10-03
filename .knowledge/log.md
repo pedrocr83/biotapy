@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: [engine-parity](contracts/engine-parity.md) statement 5 now names
+  the benchmark dataset (`benchmarks/benchmarks/_data.py:synthetic`) and where
+  the baselines are recorded (`docs/performance.md`). Task 1.21 added the asv
+  suite.
 * **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 gained a
   bullet: the release also switches `docs/tutorials/getting_started.md` from the
   GitHub install line to `pip install biotapy`. PyPI only has the 0.0.1

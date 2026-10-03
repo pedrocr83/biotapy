@@ -5,7 +5,7 @@ description: A compiled kernel is a drop-in behind an existing public function v
 tags: [performance, testing]
 status: stable
 paths: ["src/biotapy/**/*.py", "rust/**", "benchmarks/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T12:00:00Z }
 commit: 0fdbd4d
 sources:
   - id: spec
@@ -23,7 +23,9 @@ sources:
    (`@pytest.mark.parametrize("engine", available_engines())`) with an explicit
    `rtol`/`atol` written in the test.
 5. Merge requires an `asv` benchmark on the 5,000 x 50,000 sparse synthetic
-   dataset showing >= 5x speedup, plus a note on the function's docs page.
+   dataset (`benchmarks/benchmarks/_data.py:synthetic`, baselines in
+   `docs/performance.md`) showing >= 5x speedup, plus a note on the function's
+   docs page.
 6. An engine whose optional dependency is missing raises `ImportError` naming
    the extra; it never silently falls back to another engine.
 

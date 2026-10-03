@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "project": "biotapy",
+    "project_url": "https://github.com/pedrocr83/biotapy",
+    "repo": "..",
+    "branches": ["master"],
+    "environment_type": "uv",
+    "pythons": ["3.13"],
+    "benchmark_dir": "benchmarks",
+    "env_dir": "../.asv/env",
+    "results_dir": "../.asv/results",
+    "html_dir": "../.asv/html"
+}
