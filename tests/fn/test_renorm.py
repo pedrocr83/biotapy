@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import mudata
@@ -119,9 +120,12 @@ def test_zero_total_sample_warns_once_naming_it():
         dense[0] = 0
         mdata.mod[key].X = sp.csr_matrix(dense)
     name = mdata.obs_names[0]
-    with pytest.warns(UserWarning, match=rf"1 sample.*{name}") as record:
+    message = rf"1 sample.*{name}"
+    with pytest.warns(UserWarning, match=message) as record:
         bt.fn.renorm(mdata, "relab")
-    assert len(record) == 1 and record[0].filename == __file__
+    # Count only biotapy's warning: pre-release pandas makes anndata emit its own deprecation warnings.
+    own = [w for w in record if issubclass(w.category, UserWarning) and re.search(message, str(w.message))]
+    assert len(own) == 1 and own[0].filename == __file__
 
 
 @pytest.mark.parametrize(
