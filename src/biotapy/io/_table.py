@@ -1,0 +1,58 @@
+"""Strict reading of the tab-separated tables HUMAnN, MetaPhlAn and PICRUSt2 write."""
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+
+def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: int = 1) -> pd.DataFrame:
+    """The table whose header line is ``header``, indexed by its first column.
+
+    ``skiprows`` lines precede the header. The first ``text`` columns are read
+    as text, so ids such as ``0042`` stay as written. ``argument`` names the
+    input in messages, e.g. ``"path='table.tsv'"``. An empty file, repeated
+    column names, a data row with more cells than the header or a row with no
+    id raise ``ValueError``; a short row's missing cells are NaN, for the
+    caller to check in the columns it reads (``_numbers``).
+    """
+    names = header.rstrip("\r\n").split("\t")
+    repeated = sorted(name for name, count in Counter(names).items() if count > 1)
+    if repeated:
+        msg = f"{argument} repeats column names {repeated[:3]}"
+        raise ValueError(msg)
+    try:
+        table = pd.read_csv(
+            path,
+            sep="\t",
+            skiprows=skiprows,
+            index_col=0,
+            dtype=dict.fromkeys(range(text), str),
+            quoting=csv.QUOTE_NONE,
+        )
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
+        msg = f"{argument} is not a valid tab-separated table: {error}"
+        raise ValueError(msg) from error
+    # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.
+    if table.shape[1] != len(names) - 1:
+        msg = f"{argument} has a data row with more cells than the header"
+        raise ValueError(msg)
+    if np.any(table.index.isna()):
+        msg = f"{argument} has a data row with no id (an empty first cell)"
+        raise ValueError(msg)
+    return table
+
+
+def _numbers(frame: pd.DataFrame, *, argument: str) -> np.ndarray:
+    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number or a gap."""
+    try:
+        values = frame.to_numpy(dtype=np.float64)
+    except ValueError as error:
+        msg = f"{argument} has a value that is not a number: {error}"
+        raise ValueError(msg) from error
+    if np.isnan(values).any():
+        msg = f"{argument} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+        raise ValueError(msg)
+    return values

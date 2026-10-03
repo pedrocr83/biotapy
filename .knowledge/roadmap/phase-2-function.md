@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T17:54:04Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T17:56:00Z }
+commit: 731617d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -365,7 +365,7 @@ not exist yet.
 - [x] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [x] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A
-- [ ] 2.2a io/_table.py: strict table reading shared by the readers
+- [x] 2.2a io/_table.py: strict table reading shared by the readers
 - [ ] 2.2 io.read_metaphlan(path) -> TreeData
 - [ ] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
@@ -3337,7 +3337,7 @@ file.
 messages other than the shared ones, or any other reader (BIOM, QIIME 2,
 DADA2 and phyloseq parse differently and are not changed, R1.4).
 
-- [ ] **Step 1: Failing tests.** Append to `tests/io/test_humann.py`:
+- [x] **Step 1: Failing tests.** Append to `tests/io/test_humann.py`:
 
 ```python
 def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
@@ -3355,13 +3355,13 @@ def test_row_without_an_id_raises_naming_the_path(tmp_path):
         bt.io.read_humann(path)
 ```
 
-- [ ] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_humann.py -q`
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_humann.py -q`
   -> `2 failed, 29 passed`:
   - `test_repeated_sample_columns_raise_naming_the_path` fails with
     `DID NOT RAISE`;
   - the no-id test fails on its message, because today's text is `var ids
     must not be missing`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/io/_table.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/io/_table.py`:
 
 ```python
 """Strict reading of the tab-separated tables HUMAnN, MetaPhlAn and PICRUSt2 write."""
@@ -3524,15 +3524,15 @@ index af5b6f4..6cec334 100644
 -    return table, values.T
 ```
 
-- [ ] **Step 4: Run, expect pass.** The same command gives `31 passed`. The
+- [x] **Step 4: Run, expect pass.** The same command gives `31 passed`. The
   doctest `uv run --group test pytest src/biotapy/io/_humann.py -q` gives `1 passed`.
-- [ ] **Step 5: Bookkeeping.**
+- [x] **Step 5: Bookkeeping.**
   - Tick this task's boxes and its line under "# Tasks (checklist)".
   - Add to `.knowledge/log.md`, under a new
     `## <date> (Phase 2, slice 2B)` heading at the top:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.2a done: io/_table.py holds the strict TSV reading shared by the HUMAnN, MetaPhlAn and PICRUSt2 readers; read_humann now rejects repeated column names.`
   - No contract changes. `modules/io.md` is refreshed at Checkpoint B.
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
 
 ```bash
 uvx prek run --all-files

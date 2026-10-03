@@ -1,15 +1,15 @@
 """HUMAnN 3 and 4 tables: gene families, reactions, pathway abundance, and their regrouped or renormalised forms."""
 
-import csv
 import gzip
 import re
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from mudata import MuData
 
 from biotapy._core import XKind, make_function_mudata
+
+from ._table import _numbers, _read_table
 
 # Sample-column suffixes: HUMAnN's own ("_Abundance-RPKs", "_Abundance"), renorm --update-snames'
 # ("-CPM", "-RELAB"), and the file names humann_join_tables uses when every file names its
@@ -56,11 +56,11 @@ def read_humann(path: str | Path) -> MuData:
     Raises
     ------
     ValueError
-        The file is empty or a pathway coverage table; a value is not a
-        number; a data row has more cells than the header, fewer cells, or an
-        empty cell (any missing value); a row id holds more than one ``|``;
-        or sample names repeat once their suffix is removed. Messages name
-        ``path``.
+        The file is empty or a pathway coverage table; the header repeats a
+        column name; a value is not a number; a data row has more cells than
+        the header, fewer cells, an empty cell (any missing value) or no id;
+        a row id holds more than one ``|``; or sample names repeat once their
+        suffix is removed. Messages name ``path``.
 
     Notes
     -----
@@ -101,6 +101,7 @@ def read_humann(path: str | Path) -> MuData:
     (['UNMAPPED', 'K1'], ['K1|g__A.s__A_b'])
     """
     path = Path(path)
+    argument = f"path={str(path)!r}"
     # HUMAnN's rule: the last "#" line is the header; with none, the first line is.
     header, n_comments = "", 0
     opener = gzip.open if path.suffix == ".gz" else open
@@ -111,9 +112,10 @@ def read_humann(path: str | Path) -> MuData:
                 break
             header, n_comments = line, n_comments + 1
     if _COVERAGE.search(header):
-        msg = f"path={str(path)!r} is a pathway coverage table; read_humann reads abundance tables"
+        msg = f"{argument} is a pathway coverage table; read_humann reads abundance tables"
         raise ValueError(msg)
-    table, X = _read_table(path, header, max(n_comments - 1, 0))
+    table = _read_table(path, header, skiprows=max(n_comments - 1, 0), argument=argument)
+    X = _numbers(table, argument=argument).T
     obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
     unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)
@@ -121,27 +123,5 @@ def read_humann(path: str | Path) -> MuData:
     try:
         return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")
     except ValueError as error:  # repeated sample or row ids, or a row id with two "|"
-        msg = f"path={str(path)!r}: {error}"
+        msg = f"{argument}: {error}"
         raise ValueError(msg) from error
-
-
-def _read_table(path: Path, header: str, skiprows: int) -> tuple[pd.DataFrame, np.ndarray]:
-    """Read the table and its values, raising ``ValueError`` that names ``path`` on a malformed file."""
-    try:
-        table = pd.read_csv(path, sep="\t", skiprows=skiprows, index_col=0, dtype={0: str}, quoting=csv.QUOTE_NONE)
-    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
-        msg = f"path={str(path)!r} is not a valid HUMAnN table: {error}"
-        raise ValueError(msg) from error
-    # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.
-    if table.shape[1] != header.rstrip("\n").count("\t"):
-        msg = f"path={str(path)!r} has a data row with more cells than the header"
-        raise ValueError(msg)
-    try:
-        values = table.to_numpy(dtype=np.float64)
-    except ValueError as error:
-        msg = f"path={str(path)!r} has a value that is not a number: {error}"
-        raise ValueError(msg) from error
-    if np.isnan(values).any():
-        msg = f"path={str(path)!r} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
-        raise ValueError(msg)
-    return table, values.T

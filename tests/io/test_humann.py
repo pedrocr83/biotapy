@@ -192,3 +192,18 @@ def test_id_errors_name_the_path(tmp_path, text, error):
     with pytest.raises(ValueError, match=rf"path='.*ids\.tsv': .*{error}") as info:
         bt.io.read_humann(path)
     assert isinstance(info.value.__cause__, ValueError)
+
+
+def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
+    # pandas would rename the second "S1" to "S1.1" and read two samples.
+    path = tmp_path / "twice.tsv"
+    path.write_text("# Pathway\tS1\tS1\nPWY-1\t1.0\t2.0\n")
+    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names \['S1'\]"):
+        bt.io.read_humann(path)
+
+
+def test_row_without_an_id_raises_naming_the_path(tmp_path):
+    path = tmp_path / "no_id.tsv"
+    path.write_text("# Pathway\tS1\nPWY-1\t1.0\n\t2.0\n")
+    with pytest.raises(ValueError, match=r"no_id\.tsv.*no id"):
+        bt.io.read_humann(path)
