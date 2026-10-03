@@ -14,11 +14,14 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     ``skiprows`` lines precede the header. The first ``text`` columns are read
     as text, so ids such as ``0042`` stay as written. ``argument`` names the
     input in messages, e.g. ``"path='table.tsv'"``. An empty file, repeated
-    column names, a data row with more cells than the header or a row with no
-    id raise ``ValueError``; a short row's missing cells are NaN, for the
+    column names, an empty column name, a data row with more cells than the
+    header or a row with no (or a blank) id raise ``ValueError``; a short row's missing cells are NaN, for the
     caller to check in the columns it reads (``_numbers``).
     """
     names = header.rstrip("\r\n").split("\t")
+    if any(not name.strip() for name in names):
+        msg = f"{argument} has an empty column name in its header (a trailing tab?)"
+        raise ValueError(msg)
     repeated = sorted(name for name, count in Counter(names).items() if count > 1)
     if repeated:
         msg = f"{argument} repeats column names {repeated[:3]}"
@@ -39,7 +42,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     if table.shape[1] != len(names) - 1:
         msg = f"{argument} has a data row with more cells than the header"
         raise ValueError(msg)
-    if np.any(table.index.isna()):
+    if np.any(table.index.isna() | (table.index.str.strip() == "")):
         msg = f"{argument} has a data row with no id (an empty first cell)"
         raise ValueError(msg)
     return table

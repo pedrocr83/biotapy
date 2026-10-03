@@ -207,3 +207,18 @@ def test_row_without_an_id_raises_naming_the_path(tmp_path):
     path.write_text("# Pathway\tS1\nPWY-1\t1.0\n\t2.0\n")
     with pytest.raises(ValueError, match=r"no_id\.tsv.*no id"):
         bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize("blank", [" ", "  "])
+def test_row_with_a_blank_id_raises_naming_the_path(tmp_path, blank):
+    path = tmp_path / "blank_id.tsv"
+    path.write_text(f"# P\tS1\nA\t1\n{blank}\t2\n")
+    with pytest.raises(ValueError, match=r"blank_id\.tsv.*no id"):
+        bt.io.read_humann(path)
+
+
+def test_header_with_an_empty_column_name_raises_naming_the_path(tmp_path):
+    path = tmp_path / "trailing_tab.tsv"
+    path.write_text("# P\tS1\t\nA\t1\t2\n")
+    with pytest.raises(ValueError, match=r"trailing_tab\.tsv.*empty column name"):
+        bt.io.read_humann(path)
