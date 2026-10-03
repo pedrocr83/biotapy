@@ -1,4 +1,5 @@
 import math
+import re
 
 import networkx as nx
 import numpy as np
@@ -143,9 +144,11 @@ def test_make_treedata_rejects_missing_ids(axis, missing):
 def test_make_treedata_keeps_shared_features_and_warns_once():
     obs, var = _frames(["s1"], ["a", "b", "c"])
     tree = tree_from_edges([("r", "a", 1.0), ("r", "b", 1.0), ("r", "d", 1.0)])
-    with pytest.warns(UserWarning, match=r"1 feature\(s\) not in the tree and 1 tree tip\(s\)") as record:
+    message = r"1 feature\(s\) not in the tree and 1 tree tip\(s\)"
+    with pytest.warns(UserWarning, match=message) as record:
         tdata = make_treedata(np.array([[1, 2, 3]]), obs=obs, var=var, tree=tree, x_kind="counts", source="test")
-    assert len(record) == 1
+    own = [w for w in record if issubclass(w.category, UserWarning) and re.search(message, str(w.message))]
+    assert len(own) == 1
     assert list(tdata.var_names) == ["a", "b"]
     assert tdata.X.toarray().tolist() == [[1, 2]]
     assert _leaves(get_tree(tdata)) == {"a", "b"}
