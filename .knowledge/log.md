@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Fix**: [io](modules/io.md) no longer quotes `untyped_calls_exclude = ["biom"]`
+  (the real list has four entries); [r-golden-parity](contracts/r-golden-parity.md)
+  description now says "computation", since `pl` functions are exempt. Checked
+  against 2d0cab6.
 * **Update**: refreshed the 14 concepts the Checkpoint D fixes made stale,
   against 2b9fc24, after checking each against the fixes. Content edits:
   [tl](modules/tl.md) (`permanova` runs OpenMP on one thread through

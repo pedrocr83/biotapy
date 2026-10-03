@@ -5,8 +5,8 @@ description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:55:56Z }
+commit: 2d0cab6
 status: stable
 ---
 
@@ -121,8 +121,9 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   itself does. `_qiime2.py:_typed`.
 - biom-format ships no `py.typed`; rather than a blanket
   `disallow_untyped_calls = false`, mypy strict mode is narrowed with
-  `untyped_calls_exclude = ["biom"]` (`[tool.mypy]` in `pyproject.toml`), so
-  only calls into biom-format itself are exempt, not the rest of `io`.
+  `untyped_calls_exclude` (`[tool.mypy]` in `pyproject.toml`, which lists
+  `"biom"` among a few other untyped libraries), so only calls into
+  biom-format itself are exempt, not the rest of `io`.
 - A populated phyloseq `refseq` slot (Biostrings sequences) raises
   `ValueError` naming the R fix, rather than being read or skipped: rdata
   1.1.0's parser has no `RAW` branch, so the whole file fails to parse
