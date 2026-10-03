@@ -15,6 +15,9 @@ from ._table import _header, _numbers, _read_table
 _EC_PREFIX = "EC:"
 # The contribution columns read_picrust2 uses; the long table's first column is "sample".
 _CONTRIB_COLUMNS = ("function", "taxon", "taxon_function_abun")
+# First header cells: PICRUSt2's prediction tables, the same after biom convert --to-tsv, and its trait tables.
+_PREDICTION_FIRST = ("function", "pathway", "#OTU ID", "OTU ID")
+_TRAIT_FIRST = ("sequence",)
 
 
 def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuData:
@@ -53,7 +56,9 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
     ValueError
         A file is empty or malformed (a value that is not a number, a missing
         value or id, a data row with more cells than the header, repeated
-        column names); ``path`` has a ``description`` column; ``contrib``
+        column names); ``path``'s first header cell is not ``function``,
+        ``pathway`` or (from ``biom convert``) ``#OTU ID``, as in a trait
+        table; ``path`` has a ``description`` column; ``contrib``
         lacks a ``sample``, ``function``, ``taxon`` or
         ``taxon_function_abun`` column, repeats a sample, function and taxon,
         names a sample or function that ``path`` lacks, or has no rows for a
@@ -100,6 +105,7 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
     path = Path(path)
     argument = f"path={str(path)!r}"
     table = _read(path, argument=argument)
+    _check_first_cell(table, _PREDICTION_FIRST, argument=argument, other="read_picrust2_traits")
     if "description" in table.columns:
         msg = f"{argument} has a 'description' column (add_descriptions.py output); pass the table without it"
         raise ValueError(msg)
@@ -178,7 +184,8 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
         The file is empty or malformed (a value that is not a number, a
         missing value or id, a negative value, a data row with more cells than
         the header, repeated column names, or function ids that coincide once ``EC:`` is
-        removed), or an ASV id repeats. Messages name
+        removed); the first header cell is not ``sequence``, as in a
+        metagenome or pathway table; or an ASV id repeats. Messages name
         ``path``.
 
     Notes
@@ -208,6 +215,7 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
     path = Path(path)
     argument = f"path={str(path)!r}"
     table = _read(path, argument=argument)
+    _check_first_cell(table, _TRAIT_FIRST, argument=argument, other="read_picrust2")
     table = table.drop(columns=[column for column in table.columns if column == "metadata_NSTI"])
     repeated = table.index[table.index.duplicated()].unique().tolist()
     if repeated:
@@ -226,3 +234,11 @@ def _read(path: Path, *, argument: str, text: int = 1) -> pd.DataFrame:
     """A PICRUSt2 table, or one converted from BIOM, whose header is a ``#OTU ID`` line."""
     header, skiprows, _ = _header(path, argument=argument)
     return _read_table(path, header, skiprows=skiprows, argument=argument, text=text)
+
+
+def _check_first_cell(table: pd.DataFrame, accepted: tuple[str, ...], *, argument: str, other: str) -> None:
+    """Raise ``ValueError`` when the header's first cell shows ``table`` is another kind of PICRUSt2 table."""
+    cell = table.index.name or ""
+    if cell not in accepted:
+        msg = f"{argument} has {cell!r} as its first header cell, not {' or '.join(map(repr, accepted))}; is it a table for {other}?"
+        raise ValueError(msg)

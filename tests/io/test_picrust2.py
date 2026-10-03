@@ -323,7 +323,33 @@ def test_a_biom_converted_table_reads_its_hash_header(tmp_path):
     np.testing.assert_array_equal(mdata["function"].X.toarray(), [[10.0, 24.0, 4.0], [2.0, 5.5, 5.5]])
 
 
-def test_traits_read_a_hash_header(tmp_path):
+def test_a_biom_converted_trait_table_raises_naming_its_first_cell(tmp_path):
+    # q2-picrust2 exports only sample tables, so a trait table never has a "#OTU ID" header; before the shared
+    # header rule this text was misread (functions '1' and '2'), with no error.
     text = "# Constructed from biom file\n#OTU ID\tEC:1.1.1.1\tEC:2.7.1.1\nASV1\t1\t2\nASV2\t0\t1\n"
-    traits = bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
-    assert traits.index.tolist() == ["ASV1", "ASV2"] and traits.columns.tolist() == ["1.1.1.1", "2.7.1.1"]
+    with pytest.raises(ValueError, match=r"traits\.tsv.*'#OTU ID'.*'sequence'.*read_picrust2\b"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+
+
+@pytest.mark.parametrize("first", ["function", "pathway", "#OTU ID", "OTU ID"])
+def test_read_picrust2_accepts_picrust2_and_biom_headers(tmp_path, first):
+    mdata = bt.io.read_picrust2(write(tmp_path, f"{first}\tS1\nEC:1.1.1.1\t1.0\n", "u.tsv"))
+    assert mdata["function"].var_names.tolist() == ["1.1.1.1"]
+
+
+@pytest.mark.parametrize(
+    ("text", "cell"),
+    [(TRAITS, "sequence"), ("\tS1\nEC:1.1.1.1\t1.0\n", ""), ("feature\tS1\nEC:1.1.1.1\t1.0\n", "feature")],
+    ids=["trait-table", "empty-corner", "other"],
+)
+def test_read_picrust2_rejects_another_kind_of_table(tmp_path, text, cell):
+    with pytest.raises(ValueError, match=rf"wrong\.tsv.*'{cell}'.*'function'.*read_picrust2_traits"):
+        bt.io.read_picrust2(write(tmp_path, text, "wrong.tsv"))
+
+
+@pytest.mark.parametrize(
+    "text", [UNSTRAT, PATH_UNSTRAT, "\tEC:1.1.1.1\nASV1\t1\n"], ids=["ec", "pathway", "empty-corner"]
+)
+def test_read_picrust2_traits_rejects_another_kind_of_table(tmp_path, text):
+    with pytest.raises(ValueError, match=r"wrong\.tsv.*'sequence'.*read_picrust2\b"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "wrong.tsv"))
