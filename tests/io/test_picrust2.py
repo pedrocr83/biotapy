@@ -277,3 +277,17 @@ def test_an_extra_text_column_raises_naming_the_path(tmp_path):
     text = "sequence\tEC:1.1.1.1\tnote\nASV1\t1\thello\n"
     with pytest.raises(ValueError, match=r"traits\.tsv.*not a number"):
         bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+
+
+def test_functions_that_collide_after_the_ec_strip_raise_naming_the_path(tmp_path):
+    text = "sequence\tEC:1.1.1.1\t1.1.1.1\nA\t1\t2\n"
+    with pytest.raises(ValueError, match=r"traits\.tsv.*repeats function ids.*1\.1\.1\.1"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+
+
+@pytest.mark.parametrize("value", ["inf", "-inf"])
+def test_non_finite_values_raise_naming_the_path(tmp_path, value):
+    with pytest.raises(ValueError, match=r"traits\.tsv.*not finite"):
+        bt.io.read_picrust2_traits(write(tmp_path, f"sequence\tEC:1.1.1.1\nA\t{value}\n", "traits.tsv"))
+    with pytest.raises(ValueError, match=r"unstrat\.tsv.*not finite"):
+        bt.io.read_picrust2(write(tmp_path, f"function\tS1\nEC:1.1.1.1\t{value}\n", "unstrat.tsv"))

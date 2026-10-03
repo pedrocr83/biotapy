@@ -164,7 +164,8 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
     ValueError
         The file is empty or malformed (a value that is not a number, a
         missing value or id, a negative value, a data row with more cells than
-        the header, repeated column names), or an ASV id repeats. Messages name
+        the header, repeated column names, or function ids that coincide once ``EC:`` is
+        removed), or an ASV id repeats. Messages name
         ``path``.
 
     Notes
@@ -200,7 +201,12 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
         msg = f"{argument} repeats ASV ids: {repeated[:3]}"
         raise ValueError(msg)
     values = _numbers(table, argument=argument, nonnegative=True)
-    return pd.DataFrame(values, index=table.index.rename(None), columns=table.columns.str.removeprefix(_EC_PREFIX))
+    functions = table.columns.str.removeprefix(_EC_PREFIX)
+    repeated_functions = functions[functions.duplicated()].unique().tolist()
+    if repeated_functions:
+        msg = f"{argument} repeats function ids after removing 'EC:': {repeated_functions[:3]}"
+        raise ValueError(msg)
+    return pd.DataFrame(values, index=table.index.rename(None), columns=functions)
 
 
 def _read(path: Path, *, argument: str, text: int = 1) -> pd.DataFrame:

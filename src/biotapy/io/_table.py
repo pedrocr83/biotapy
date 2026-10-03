@@ -72,7 +72,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
 
 
 def _numbers(frame: pd.DataFrame, *, argument: str, nonnegative: bool = False) -> np.ndarray:
-    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number or a gap.
+    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number, a gap or an infinite value.
 
     With ``nonnegative``, a negative value raises too (abundances cannot be negative).
     """
@@ -83,6 +83,9 @@ def _numbers(frame: pd.DataFrame, *, argument: str, nonnegative: bool = False) -
         raise ValueError(msg) from error
     if np.isnan(values).any():
         msg = f"{argument} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+        raise ValueError(msg)
+    if not np.isfinite(values).all():
+        msg = f"{argument} has a value that is not finite (inf)"
         raise ValueError(msg)
     if nonnegative and (values < 0).any():
         msg = f"{argument} has a negative value; abundances cannot be negative"
