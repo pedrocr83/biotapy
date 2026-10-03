@@ -31,6 +31,37 @@ flagged in `var["special"]`, so a sample's total keeps what HUMAnN could not
 assign. Read one table per call: a gene family table and a pathway table both
 hold `UNMAPPED`.
 
+## Aggregating along a hierarchy
+
+`bt.fn.func_glom` sums functions into their parents at one level of a
+hierarchy, with `humann_regroup_table`'s rules:
+
+- **Many-to-many.** A function with two parents counts in full toward both,
+  so a level's total can exceed the input's.
+- **`UNGROUPED`.** Functions with no parent at that level are summed into
+  `UNGROUPED`, per taxon in a stratified table.
+- **Specials pass through.** `UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED`
+  keep their own rows.
+- **`agg="mean"`** divides by the members present in the table, not by the
+  group's size in the hierarchy.
+
+Apply it to each modality to keep the pair together:
+
+```python
+import mudata
+
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+edges = bt.datasets.enzyme()
+by_class = mudata.MuData({key: bt.fn.func_glom(mod, "class", hierarchy=edges) for key, mod in mdata.mod.items()})
+```
+
+A hierarchy is an edge table with columns `child`, `parent`, `level` and,
+optionally, `parent_name`, which becomes `var["name"]`. Every ancestor is a
+row, not only the direct parent, so a table already grouped one level up
+still reaches the levels above.
+
 ## Where hierarchies come from
 
 - **EC numbers:** `bt.datasets.enzyme()` downloads the open ENZYME hierarchy

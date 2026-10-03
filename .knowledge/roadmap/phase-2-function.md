@@ -357,7 +357,7 @@ not exist yet.
 - [x] 2.3b `datasets.toy_humann() -> MuData`
 - [x] 2.5a `datasets.enzyme() -> pd.DataFrame`
 - [x] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
-- [ ] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
+- [x] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [ ] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A
 - [ ] 2.2 `io.read_metaphlan(path) -> TreeData` (outline)
@@ -2188,7 +2188,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
 `bt.fn.func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Literal["sum", "mean"] = "sum") -> AnnData`
 (design note 2). 2.7 and 2.10 consume its output.
 
-- [ ] **Step 1: Failing tests** - `tests/fn/test_glom.py`:
+- [x] **Step 1: Failing tests** - `tests/fn/test_glom.py`:
   ```python
   import anndata as ad
   import numpy as np
@@ -2435,9 +2435,9 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
       assert out.var_names.tolist() == ["1.-.-.-", "2.-.-.-", "3.-.-.-", "UNGROUPED", "UNMAPPED"]
       assert out.var.loc["2.-.-.-", "name"] == "Transferases"
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn tests/datasets/test_enzyme.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn tests/datasets/test_enzyme.py -q`
   -> `AttributeError: module 'biotapy.fn' has no attribute 'func_glom'`.
-- [ ] **Step 3: Implement** - `src/biotapy/fn/_glom.py`:
+- [x] **Step 3: Implement** - `src/biotapy/fn/_glom.py`:
   ```python
   """Aggregation along a function hierarchy, with humann_regroup_table's semantics."""
 
@@ -2600,11 +2600,11 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   ```
   `src/biotapy/fn/__init__.py`: `from ._glom import func_glom` first;
   `__all__ = ["func_glom", "load_hierarchy"]`.
-- [ ] **Step 4: Run, expect pass** - same command -> all pass (18 in
+- [x] **Step 4: Run, expect pass** - same command -> all pass (18 in
   `test_glom.py`, 3 golden, 8 in `test_hierarchy.py`, 6 in `test_enzyme.py`;
   the `network` test deselected).
   Doctest: `uv run --group test pytest src/biotapy/fn -q`.
-- [ ] **Step 5: Docs.** `docs/api.md`: `fn.func_glom` before
+- [x] **Step 5: Docs.** `docs/api.md`: `fn.func_glom` before
   `fn.load_hierarchy`. In `docs/guide/function.md`, insert before
   `## Where hierarchies come from`:
   ````markdown
@@ -2640,7 +2640,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   still reaches the levels above.
   ````
   Build docs -> `build succeeded.`
-- [ ] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`
+- [x] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`
   (user-approved):
   - Propagation table, "Feature-changing" row: add `fn.func_glom` to the
     operations.
@@ -2660,7 +2660,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
     `name` (from the hierarchy's `parent_name`) and `special`, plus `function`,
     `taxon` and rank columns for a stratified input.
     ````
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/fn/_glom.py src/biotapy/fn/__init__.py tests/fn/test_glom.py tests/fn/test_glom_golden.py \

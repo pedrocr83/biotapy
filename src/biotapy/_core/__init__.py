@@ -5,6 +5,7 @@ from ._function import (
     FUNCTION_KEY,
     PROTECTED_FEATURES,
     SPECIAL_FEATURES,
+    UNGROUPED,
     function_var,
     make_function_mudata,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "PROTECTED_FEATURES",
     "RANKS",
     "SPECIAL_FEATURES",
+    "UNGROUPED",
     "TreeData",
     "XKind",
     "add_provenance",

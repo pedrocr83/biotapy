@@ -61,6 +61,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 .. autosummary::
     :toctree: generated
 
+    fn.func_glom
     fn.load_hierarchy
 ```
 

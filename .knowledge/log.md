@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.6)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.func_glom` as feature-changing, names `_core.replace_features` beside `feature_subset`, and gains the "Aggregation semantics (`func_glom`)" section; roadmap `phase-2-function` ticks task 2.6.
+
 ## 2026-10-03 (Phase 2, task 2.5 fix round 1)
 * **Update**: no concept changed; `fn.load_hierarchy` now rejects empty files and lines with an empty cell, skips `#` lines, reads a UTF-8 BOM.
 

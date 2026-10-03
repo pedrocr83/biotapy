@@ -100,3 +100,9 @@ def test_long_line_lists_say_they_are_truncated(tmp_path):
     path.write_text("P1\tK1\n" + "P\n" * 7)
     with pytest.raises(ValueError, match=r"lines 2, 3, 4 \(and 4 more\)"):
         bt.fn.load_hierarchy(path, "pathway")
+
+
+def test_round_trips_through_func_glom():
+    edges = bt.fn.load_hierarchy(DATA / "regroup_map.tsv", "group")
+    out = bt.fn.func_glom(bt.io.read_humann(DATA / "genefamilies.tsv")["function"], "group", hierarchy=edges)
+    assert out.var_names.tolist() == ["G1", "G2", "UNGROUPED", "UNMAPPED"]

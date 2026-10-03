@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T14:10:00Z }
-commit: 5848747
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:00:00Z }
+commit: c1be712
 sources:
   - id: spec
     resource: ../../plan.md
@@ -101,12 +101,13 @@ the sum of their strata for pathways, which is why there are two.
 ## Propagation
 | Operation | Keeps | Drops |
 |---|---|---|
-| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
 | Layer-adding (`pp.relative`; `pp.clr` in Phase 3) | everything | nothing; adds one layer |
 
-Feature-changing operations go through `_core.feature_subset`, the single place
-that implements the "Drops" column.
+Feature-changing operations go through `_core.feature_subset`, or `_core.replace_features` when the new
+features are groups rather than a subset; both keep only `KEPT_META`, the
+single definition of the "Drops" column.
 
 ## Aggregation semantics (`tax_glom`)
 Matches phyloseq:[^phyloseq-glom] features are grouped by the full lineage up
@@ -115,6 +116,15 @@ families stay separate); the representative ("archetype") is the most abundant
 feature, first on ties; ranks below the target become `NaN`. The kept tree is
 the archetypes' subtree; TreeData keeps unary nodes, which leaves root-to-tip
 path lengths, and therefore Faith PD and UniFrac, unchanged.[^treedata]
+
+## Aggregation semantics (`func_glom`)
+Matches `humann_regroup_table` (HUMAnN 3.9, `--ungrouped Y --protected Y`):
+a feature counts in full toward every parent it has at the level; features
+with none are summed into `UNGROUPED` (per taxon when `var` has `taxon`);
+`UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED` pass through; `agg="mean"`
+divides by the members present. Groups are sorted by name. `var` holds
+`name` (from the hierarchy's `parent_name`) and `special`, plus `function`,
+`taxon` and rank columns for a stratified input.
 
 # Why
 A slot whose meaning depends on which function wrote it cannot be trusted by

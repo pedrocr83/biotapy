@@ -13,7 +13,8 @@ from ._tree import _with_str_ids
 FUNCTION_KEY = "function"
 BY_TAXON_KEY = "function_by_taxon"
 # Rows HUMAnN writes for what it could not map or integrate; humann_renorm_table's --special list.
-SPECIAL_FEATURES = ("UNMAPPED", "READS_UNMAPPED", "UNINTEGRATED", "UNGROUPED")
+UNGROUPED = "UNGROUPED"
+SPECIAL_FEATURES = ("UNMAPPED", "READS_UNMAPPED", "UNINTEGRATED", UNGROUPED)
 # The specials humann_regroup_table passes through as themselves (master; 3.9 lacks READS_UNMAPPED).
 PROTECTED_FEATURES = ("UNMAPPED", "READS_UNMAPPED", "UNINTEGRATED")
 # HUMAnN strata: g__Genus.s__Species, optionally .t__SGB<id> (HUMAnN 4), or "unclassified".
