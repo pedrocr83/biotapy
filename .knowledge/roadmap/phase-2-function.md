@@ -356,7 +356,7 @@ not exist yet.
 - [x] 2.3 `io.read_humann(path) -> MuData`
 - [x] 2.3b `datasets.toy_humann() -> MuData`
 - [x] 2.5a `datasets.enzyme() -> pd.DataFrame`
-- [ ] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
+- [x] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
 - [ ] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [ ] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A

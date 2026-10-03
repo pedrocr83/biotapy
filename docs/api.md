@@ -52,6 +52,18 @@ Public functions are listed here as they ship, from Phase 1 onward.
     pp.tax_glom
 ```
 
+## Function
+
+```{eval-rst}
+.. module:: biotapy.fn
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    fn.load_hierarchy
+```
+
 ## Tools
 
 ```{eval-rst}

@@ -30,3 +30,16 @@ mdata["function_by_taxon"]  # samples x (pathway, taxon) pairs
 flagged in `var["special"]`, so a sample's total keeps what HUMAnN could not
 assign. Read one table per call: a gene family table and a pathway table both
 hold `UNMAPPED`.
+
+## Where hierarchies come from
+
+- **EC numbers:** `bt.datasets.enzyme()` downloads the open ENZYME hierarchy
+  (CC BY 4.0) once and caches it; see the [datasets guide](datasets.md).
+- **Your own mapping files:** `bt.fn.load_hierarchy(path, level)` reads
+  `humann_regroup_table --custom` files and PICRUSt2 mapping files
+  (`parent<TAB>child<TAB>...`, the default `layout="parent_first"`), or
+  `child<TAB>parent...` tables with `layout="child_first"`.
+
+biotapy ships and downloads no KEGG or MetaCyc mapping: their licences do not
+allow it to. If you hold a KEGG or MetaCyc licence, export the mapping you
+need and read it with `load_hierarchy`.

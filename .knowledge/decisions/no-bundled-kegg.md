@@ -1,11 +1,11 @@
 ---
 type: Decision
 title: No bundled KEGG mapping files
-description: Functional hierarchy mappings are downloaded on first use from user-provided or open sources (MetaCyc, eggNOG), never shipped in the wheel.
+description: Function hierarchies come from the user's local files or from ENZYME (CC BY 4.0, `bt.datasets.enzyme`); KEGG and MetaCyc are never shipped or fetched.
 tags: [fn, licensing, datasets]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T17:00:00Z }
+commit: 8830258
 sources:
   - id: spec
     resource: ../../plan.md
@@ -17,12 +17,15 @@ sources:
 KEGG licensing restricts redistribution of its mapping files.[^spec]
 
 # Decision
-- `fn` hierarchy loaders take a path or URL; open sources are fetched and
-  cached with pooch (same mechanism as `datasets`).
-- No mapping file is committed to the repo or packaged in the wheel.
-- Tests use a tiny synthetic hierarchy fixture, not real KEGG data.
+- `fn.load_hierarchy` reads local files only, no URL. The one built-in
+  download is ENZYME's EC hierarchy, in `datasets` with the other pooch
+  fetches. No KEGG or MetaCyc mapping is committed, packaged, downloaded or
+  used as a fixture: MetaCyc has been subscription-only since 2024, and KEGG's
+  REST API is for academic users only. Test fixtures are synthetic maps and a
+  CC BY 4.0 ENZYME excerpt.
 
 # Consequences
-- First use needs network access or a user-supplied file; docs say so.
+- KEGG and MetaCyc users point `load_hierarchy` at files they are licensed to
+  use.
 
 [^spec]: Python Microbiome Toolkit development report, section Risks

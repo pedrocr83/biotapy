@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.5)
+* **Update**: ticked task 2.5 in [phase-2-function](roadmap/phase-2-function.md); `fn.load_hierarchy` reads local mapping files. Changed [no-bundled-kegg](decisions/no-bundled-kegg.md) (and its `decisions/index.md` entry): loaders read local files only, ENZYME is the one built-in download, KEGG and MetaCyc are never shipped or fetched.
+
 ## 2026-10-03 (Phase 2, task 2.5a fix round 1)
 * **Update**: no concept changed; `datasets.enzyme` now checks that `enzyme.dat` and `enzclass.txt` are the same release and that `enzclass.txt` has class lines.
 
