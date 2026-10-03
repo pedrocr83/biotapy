@@ -1,6 +1,11 @@
 # Knowledge bundle log
 
 ## 2026-10-03 (release 0.1.0)
+* **Update**: Phase 1 closed after biotapy 0.1.0 reached PyPI (tag v0.1.0,
+  release workflow run 37118911248). [phase-1-core](roadmap/phase-1-core.md)
+  is `phase_state: done` with every Task 1.23 step and exit-gate item ticked;
+  [phase-2-function](roadmap/phase-2-function.md) is `phase_state:
+  in-progress`; the [roadmap index](roadmap/index.md) lists Phase 2 as active.
 * **Update**: [phase-1-core](roadmap/phase-1-core.md) records the approved
   build floor `hatchling>=1.27` in its dependency table. Refreshed
   [phase-0-foundation](roadmap/phase-0-foundation.md),

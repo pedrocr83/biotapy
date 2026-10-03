@@ -5,11 +5,11 @@ description: HUMAnN 4, PICRUSt2 and MetaPhlAn readers; KO -> module -> pathway h
 tags: [roadmap, fn, io]
 status: stable
 release: "0.2"
-phase_state: not-started
+phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T11:14:15Z }
 commit: 2b9fc24
 sources:
   - id: spec
