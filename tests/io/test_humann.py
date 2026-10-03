@@ -154,7 +154,7 @@ def test_header_only_table_has_no_features(tmp_path):
 def test_empty_file_raises_naming_the_path(tmp_path):
     path = tmp_path / "empty_file.tsv"
     path.write_text("")
-    with pytest.raises(ValueError, match="empty_file.tsv"):
+    with pytest.raises(ValueError, match=r"empty_file\.tsv.*is empty"):
         bt.io.read_humann(path)
 
 
@@ -192,3 +192,88 @@ def test_id_errors_name_the_path(tmp_path, text, error):
     with pytest.raises(ValueError, match=rf"path='.*ids\.tsv': .*{error}") as info:
         bt.io.read_humann(path)
     assert isinstance(info.value.__cause__, ValueError)
+
+
+def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
+    # pandas would rename the second "S1" to "S1.1" and read two samples.
+    path = tmp_path / "twice.tsv"
+    path.write_text("# Pathway\tS1\tS1\nPWY-1\t1.0\t2.0\n")
+    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names: \['S1'\]"):
+        bt.io.read_humann(path)
+
+
+def test_row_without_an_id_raises_naming_the_path(tmp_path):
+    path = tmp_path / "no_id.tsv"
+    path.write_text("# Pathway\tS1\nPWY-1\t1.0\n\t2.0\n")
+    with pytest.raises(ValueError, match=r"no_id\.tsv.*no id"):
+        bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize("blank", [" ", "  "])
+def test_row_with_a_blank_id_raises_naming_the_path(tmp_path, blank):
+    path = tmp_path / "blank_id.tsv"
+    path.write_text(f"# P\tS1\nA\t1\n{blank}\t2\n")
+    with pytest.raises(ValueError, match=r"blank_id\.tsv.*no id"):
+        bt.io.read_humann(path)
+
+
+def test_header_with_an_empty_column_name_raises_naming_the_path(tmp_path):
+    path = tmp_path / "trailing_tab.tsv"
+    path.write_text("# P\tS1\t\nA\t1\t2\n")
+    with pytest.raises(ValueError, match=r"trailing_tab\.tsv.*empty column name"):
+        bt.io.read_humann(path)
+
+
+def test_an_empty_corner_cell_is_read_as_an_unnamed_index(tmp_path):
+    # pandas to_csv(sep="\t") and R write.table(col.names=NA) leave the header's first cell empty.
+    path = tmp_path / "corner.tsv"
+    path.write_text("\tS1_Abundance-RPKs\nUNMAPPED\t1.0\nK1|g__A.s__A_b\t2.0\n")
+    mdata = bt.io.read_humann(path)
+    assert mdata.obs_names.tolist() == ["S1"] and mdata["function"].uns["biotapy"]["x_kind"] == "rpk"
+    assert mdata["function"].var_names.tolist() == ["UNMAPPED"]
+    assert mdata["function_by_taxon"].var_names.tolist() == ["K1|g__A.s__A_b"]
+
+
+def test_negative_abundance_raises_naming_the_path(tmp_path):
+    path = tmp_path / "neg.tsv"
+    path.write_text("# P\tS1\nA\t-1\n")
+    with pytest.raises(ValueError, match=r"neg\.tsv.*negative"):
+        bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize("damage", ["truncated-header", "truncated-body", "corrupt-body"])
+def test_a_damaged_gzip_raises_naming_the_path(tmp_path, damage):
+    data = gzip.compress(("# Pathway\tS1\n" + "".join(f"PWY-{i}\t{i}.5\n" for i in range(2000))).encode())
+    if damage == "truncated-header":
+        data = data[:12]  # fails while the header is found
+    elif damage == "truncated-body":
+        data = data[: len(data) // 2]  # fails while the table is read
+    else:
+        middle = len(data) // 2
+        data = data[:middle] + bytes(byte ^ 0xFF for byte in data[middle : middle + 2]) + data[middle + 2 :]
+    path = tmp_path / "broken.tsv.gz"
+    path.write_bytes(data)
+    with pytest.raises(ValueError, match=r"broken\.tsv\.gz"):
+        bt.io.read_humann(path)
+
+
+def test_a_blank_first_line_is_not_called_empty(tmp_path):
+    path = tmp_path / "blank_first.tsv"
+    path.write_text("\n# Pathway\tS1\nPWY-1\t1\n")
+    with pytest.raises(ValueError, match=r"blank_first\.tsv' has a blank line where its header should be"):
+        bt.io.read_humann(path)
+
+
+def test_an_na_id_raises_saying_na(tmp_path):
+    path = tmp_path / "na_id.tsv"
+    path.write_text("# Pathway\tS1\nNA\t1\n")
+    with pytest.raises(ValueError, match=r"na_id\.tsv.*no id \(an empty or NA first cell\)"):
+        bt.io.read_humann(path)
+
+
+def test_a_byte_order_mark_before_the_comments_is_ignored(tmp_path):
+    # Windows editors save UTF-8 with a byte-order mark; it must not hide the leading "#".
+    path = tmp_path / "bom.tsv"
+    path.write_bytes("﻿# comment\n# Pathway\tS1_Abundance-RPKs\nPWY-1\t1.0\n".encode())
+    mdata = bt.io.read_humann(path)
+    assert mdata.obs_names.tolist() == ["S1"] and mdata["function"].var_names.tolist() == ["PWY-1"]

@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 sources:
   - id: spec
     resource: ../../plan.md
@@ -294,7 +294,7 @@ repeated under "Decisions for the user".
 |---|---|---|---|
 | 2.1b | runtime | mudata `>=0.4` | two-modality function tables; pure Python, BSD-3; its `scverse-misc[settings]` needs are already installed through anndata - approved 2026-10-03 |
 | 2.0 | none (tool run, not installed) | humann `==3.9`, pandas `==3.0.6` via `uv run --no-project --with` | golden files - ruling 2026-10-03 |
-| 2.2 | R image (only if chosen) | Bioconductor `mia` | golden test against `mia::importMetaPhlAn`; decide at 2.2 (Part 3) |
+| 2.2 | none | - | mia not added to the R image (user, 2026-10-03); parity from MetaPhlAn's own rows (r-golden-parity statement 8) |
 | 2.8 | none | - | weighted Jaccard comes from SciPy's `braycurtis` (identity checked) |
 | 2.10 | none | - | the cohort loader uses pooch, already a dependency |
 
@@ -342,9 +342,11 @@ hand in 2A's tests would duplicate the reader and test the wrong thing.
 | Slice | Delivers | Tasks | Ends with |
 |---|---|---|---|
 | **2A - HUMAnN path** | read, regroup and renormalise HUMAnN tables, equal to HUMAnN 3.9 | 2.0 goldens and fixtures · 2.1 `sum_pairs`, `replace_features` · 2.1b function tables in `_core` (+ mudata) · 2.3 `io.read_humann` · 2.3b `datasets.toy_humann` · 2.5a `datasets.enzyme` · 2.5 `fn.load_hierarchy` · 2.6 `fn.func_glom` · 2.12 `fn.renorm` | Checkpoint A |
-| **2B - Other readers** | MetaPhlAn and PICRUSt2 into the same data model | 2.2 `io.read_metaphlan` · 2.4 `io.read_picrust2` · 2.4b `io.read_picrust2_traits` | Checkpoint B |
+| **2B - Other readers** | MetaPhlAn and PICRUSt2 into the same data model | 2.2a shared table reading · 2.2 `io.read_metaphlan` · 2.4 `io.read_picrust2` · 2.4b `io.read_picrust2_traits` | Checkpoint B |
 | **2C - Analysis** | the taxa-to-function link, redundancy, the plot | 2.7 `fn.contributions` · 2.8 `fn.functional_redundancy` · 2.9 `pl.contributions` | Checkpoint C |
 | **2D - Cohort, docs, release** | the HMP2 tutorial in CI, knowledge, benchmarks, 0.2 | 2.10 `datasets.hmp2` + tutorial · 2.11 knowledge · 2.13 Coming-from-R check · 2.14 benchmarks · 2.15 release 0.2 | exit gate |
+
+Execution order inside 2B: **2.2a -> 2.2 -> 2.4 -> 2.4b -> Checkpoint B.**
 
 Execution order inside 2A: **2.0 -> 2.1 -> 2.1b -> 2.3 -> 2.3b -> 2.5a -> 2.5
 -> 2.6 -> 2.12 -> Checkpoint A.** The golden export (2.0) needs no biotapy
@@ -363,8 +365,9 @@ not exist yet.
 - [x] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [x] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A
-- [ ] 2.2 `io.read_metaphlan(path) -> TreeData` (outline)
-- [ ] 2.4 `io.read_picrust2(...) -> MuData` and 2.4b `io.read_picrust2_traits(path) -> pd.DataFrame` (outline)
+- [x] 2.2a io/_table.py: strict table reading shared by the readers
+- [x] 2.2 io.read_metaphlan(path) -> TreeData
+- [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
 - [ ] 2.7 `fn.contributions(mdata, function, *, top=None) -> pd.DataFrame` (outline)
 - [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame` (outline)
@@ -3013,133 +3016,2225 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
 - [ ] Ask the user to review slice 2A before slice 2B.
 
 ---
-## Slice 2B - Other readers (outline; expand with superpowers:writing-plans when reached)
+## Slice 2B - Other readers
 
-Builds on 2A's `_core.make_function_mudata` and the data-model "Function
-tables" section. No new dependency is expected, except possibly Bioconductor
-`mia` in the R image (2.2, question 6).
+
+**Goal:** a MetaPhlAn user reads a profile, or a merged table, into a
+`TreeData` whose rows sum to 1 with nothing counted twice. A PICRUSt2 user
+reads a prediction and its contributions into the same two-modality `MuData`
+as HUMAnN, and reads the per-ASV copy numbers that 2.8 needs.
+
+**How this slice was checked.** Every file below was written into a scratch
+clone of the repository at `2d47f8d`, the `phase-2a` tip. The clone was then
+replayed as one commit per task (2.2a, 2.2, 2.4, 2.4b), and each committed
+state was gated:
+
+| Task state | `uvx prek run --all-files` | `uv run --group test pytest -q -W error::UserWarning` | `sphinx-build -W` |
+|---|---|---|---|
+| 2.2a | passed | 752 passed, 22 deselected | (no docs change) |
+| 2.2 | passed | 784 passed, 22 deselected | build succeeded |
+| 2.4 | passed | 810 passed, 22 deselected | build succeeded |
+| 2.4b | passed | 818 passed, 22 deselected | build succeeded |
+
+- prek covers ruff 0.16.9 check and format, `mypy --strict`, import-linter
+  and pyproject-fmt.
+- Coverage on the final state: `_table.py`, `_humann.py`, `_metaphlan.py` and
+  `_picrust2.py` are each 100%; overall 99%.
+- The new property tests also passed under Hypothesis seeds 1, 2 and 3.
+- The RED counts in each Step 2 were reproduced by unexporting the new
+  readers.
+- Real data: HMP2's `taxonomic_profiles_3.tsv.gz` (MetaPhlAn, merged, 933 rows
+  x 1,638 samples) reads to 1,638 x 579 in 0.5 s. Its leaf sums run
+  0.9999993-1.0000008. All 1,638 sample names equal those `read_humann` gives
+  for HMP2's `pathabundances_3.tsv.gz`.
+- APIs were checked in the installed versions: pandas 3.0.6, numpy 2.5.3,
+  scipy 1.18.1, anndata 0.13.4, mudata 0.4.1, treedata 0.3.1.
+
+### Slice 2B design
+
+- **Where the code goes.**
+
+  | File | Holds |
+  |---|---|
+  | `io/_table.py` (new, 2.2a) | `_leading_lines`, `_header` (moved here from `_metaphlan.py` in the Checkpoint B fix pass), `_read_table`, `_numbers`: the strict TSV reading every function-table reader shares |
+  | `io/_humann.py` (2.2a) | `read_humann`, now on `_table.py`; its own `_read_table` is removed; it keeps its own header rule |
+  | `io/_metaphlan.py` (2.2) | `read_metaphlan`, `_sample_columns` |
+  | `io/_picrust2.py` (2.4, 2.4b) | `read_picrust2`, `_contributions`, `read_picrust2_traits`, `_read`, `_check_first_cell` |
+  | `_core/__init__.py` (2.2) | exports `RELATIVE_TOLERANCE` (already defined in `_slots.py`) |
+
+- **Shared parsing (brief question 7).** The three readers need the same
+  strict checks: an empty file, a row longer than the header, a gap, a
+  non-number, and every message naming the file. Those checks are
+  `_humann.py:_read_table` today, so they move to `io/_table.py` rather than
+  being copied (R4.3). They stay in `io`, not `_core`, because one
+  subpackage uses them: module-boundaries rule 2 sends a helper to `_core`
+  only when two subpackages use it. `io/_join.py` is the precedent, a private
+  topic file shared by `io` readers. The split into `_read_table` (structure)
+  and `_numbers` (values) exists for two readers:
+  - a MetaPhlAn profile has text columns it does not read (taxids, `-`
+    coverage, `additional_species`);
+  - a PICRUSt2 contribution table has three id columns.
+
+  Both parse only the columns they use as numbers.
+
+  `_read_table` gained checks over `_humann.py`'s old one (final code, after
+  the fix pass):
+  - repeated column names. pandas renames a second `S1` to `S1.1` without a
+    word (measured: `read_humann` read two samples, `S1` and `S1.1`);
+  - an empty name after the first header cell (the first, the index name, is
+    never used and may be empty: pandas and R write it so);
+  - a blank id, and a blank or empty first line (two different messages);
+  - decode, gzip, zlib and EOF errors, which become `ValueError`s naming the
+    argument (`_leading_lines` raises them too);
+  - `_numbers` also rejects non-finite values, and negative ones when called
+    with `nonnegative=True`, which every reader does.
+
+  Both functions read `utf-8-sig`, so a byte-order mark never hides a leading
+  `#`.
+
+- **MetaPhlAn leaf rule (brief question 1).** A row becomes a feature when no
+  other row descends from it through any ancestor. That is the deepest row of
+  each lineage: SGBs (`t__`) in MetaPhlAn 4, species in MetaPhlAn 3 and HMP2,
+  or the one rank of a `--tax_lev` table. Reasons:
+  - **No double counting, nothing lost.** MetaPhlAn computes a clade's
+    coverage as the sum of its children's (`metaphlan.py:compute_coverage`)
+    and each row's abundance as coverage over the leaves' total. So every
+    internal row is the sum of its leaves, and the leaves alone hold every
+    read once.
+  - **Parity with MetaPhlAn.** `pp.tax_glom` of the leaves to any rank gives
+    back MetaPhlAn's own rows for that rank. The fixture test checks this at
+    all seven ranks.
+  - **"Any ancestor", not "direct parent".** The real 4.0.6 fixture has no
+    `o__Corynebacteriales` row. With a direct-parent rule,
+    `c__Actinomycetia` would be a leaf and 52.86% would be counted twice.
+  - **"Only `t__` rows" (the roadmap's first idea) fails** on MetaPhlAn 3 and
+    HMP2, which have no `t__` rows.
+  - **No `rank=` parameter (R2.3).** `pp.tax_glom` already gives any higher
+    rank, and equals MetaPhlAn's rows when it does.
+
+  The guard is a check, not a warning. Each sample's leaves (and
+  `UNCLASSIFIED`) must sum to 1 within `_core.RELATIVE_TOLERANCE` (1e-3, the
+  data model's own definition of `relative`); otherwise the reader raises a
+  `ValueError` naming the samples. The check catches:
+  - rows removed by hand;
+  - lineages the rule cannot read (GTDB-style `;`, which would sum to
+    n_ranks x 100%);
+  - tables that are not profiles (marker tables).
+
+  It replaces the outline's proposed warning (R7.4: a table whose label would
+  be false must not load). All-zero samples are allowed, as `infer_x_kind`
+  ignores them.
+
+- **Feature ids and `var["sgb"]` (brief question 2).**
+  - `var_names` are the leaf's last name without its prefix: `SGB1871`,
+    `Bacteroides_ovatus`, `UNCLASSIFIED`. Repeats raise, naming `path`.
+  - Ranks `kingdom`..`species` come from `_core.split_lineage`. It already
+    ignores `t__`, which sits at position 7, past `RANKS`.
+  - **No `sgb` column (R2.3).** The SGB id is already the feature id.
+    MetaPhlAn 2 and 3 used `t__` for strains, not SGBs, so a column named
+    `sgb` would mislabel them. Nothing in 0.2 reads it: 2.10 uses MetaPhlAn
+    3 species.
+
+- **Formats (brief question 3).**
+
+  | Input | Header | Samples | Handled by |
+  |---|---|---|---|
+  | Per-sample profile, `-t rel_ab` (3.x, 4.x) | last `#` line, `#clade_name ... relative_abundance ...` | one, named after the file | the `relative_abundance` column |
+  | `-t rel_ab_w_read_stats` | the same, with `clade_taxid`, `coverage`, `estimated_number_of_reads_from_the_clade` | one | the same column; `-` coverage never parsed |
+  | Merged by `merge_metaphlan_tables.py` (4.x) | a `#mpa_v...` line (no tab), then `clade_name<TAB>samples` | columns | first line after the `#` lines |
+  | Merged MetaPhlAn 3 | the same, with `NCBI_tax_id` second | columns | `NCBI_tax_id` / `clade_taxid` dropped |
+  | HMP2 `taxonomic_profiles_3` | no `#`; `Feature\Sample` corner; CRLF; `UNKNOWN` row | columns | same rule |
+
+  - **The header rule** is HUMAnN's (the last `#` line), except that a `#`
+    line with no tab is never the header. That excludes the database line.
+  - **Sample names:** `_profile` is removed, as `merge_metaphlan_tables.py`
+    removes it from file names. So a profile read alone and the same profile
+    in a merged table get one name. HMP2's taxonomic and functional tables
+    then share all 1,638 names, which 2.10 needs.
+  - **Empty taxids** are never read. **Short rows** (before 4.2.3 MetaPhlAn
+    could drop the empty `additional_species` cell, CHANGELOG 4.2.3) are
+    fine; only the columns read must be complete.
+  - **Values:** percentages divided by 100, so `x_kind="relative"` (design
+    note 3).
+  - **`UNCLASSIFIED` and `UNKNOWN`** stay features with every rank NaN.
+    `pp.tax_glom` drops them unless `dropna=False`; the guide says so.
+
+- **PICRUSt2's `EC:` prefix (brief question 4). Strip it.** PICRUSt2 writes
+  `EC:1.1.1.1`; ENZYME, HUMAnN and `bt.datasets.enzyme` write `1.1.1.1`.
+  - Keeping it would make `func_glom` against ENZYME raise its nothing-maps
+    error (good), but the fix would fall on the user. They would have to
+    rewrite `var_names` and `var["function"]` in two modalities. Stripping a
+    hierarchy's `child` column is one line on one table.
+  - It is stripped in both modalities and in the trait table's columns. KO
+    and pathway ids are untouched.
+  - No provenance parameter records the strip (R2.3); the docstring and the
+    guide state it.
+
+- **PICRUSt2 inputs and signature (brief question 5).**
+  `read_picrust2(path, *, contrib=None) -> MuData`.
+  - `path` is the unstratified table (`pred_metagenome_unstrat`,
+    `path_abun_unstrat`).
+  - `contrib` is its long contribution table (`pred_metagenome_contrib`,
+    `path_abun_contrib`).
+  - **One call takes both files.** PICRUSt2 writes the community and
+    stratified rows to two files, which are one table split in two.
+    `read_humann`'s one-table-per-call rule was about not mixing a gene
+    family table with a pathway table in one modality, and still holds: a
+    `contrib` naming a function or sample that `path` lacks raises.
+  - **Accepted:** unstratified tables alone (the per-taxon modality then has 0
+    features, like a HUMAnN table without strata), and the long contribution
+    format, located by the column names `sample`, `function`, `taxon`,
+    `taxon_function_abun`. It therefore takes both the 9-column gene-family
+    file and the pathway file, whose column count the sources disagree on (8
+    or 9).
+  - **Rejected with a `ValueError`:**
+    - the legacy wide stratified table (`--wide_table`; deprecated by
+      PICRUSt2 as memory-hungry);
+    - an `add_descriptions.py` `description` column;
+    - the 4-column pathway coverage contributions.
+  - **Dropped from the outline: `taxa=` (`seqtab_norm`, R2.3).** 2.8 takes any
+    samples x ASVs `AnnData`, such as the user's ASV table through
+    `read_biom`, `read_dada2` or `read_qiime2`. Whether Tian's `p` should be
+    16S-copy-corrected is a 2.8 question; if it should, 2.8 adds the reader.
+
+- **`x_kind` and additivity (brief question 6).** Both modalities are
+  `"abundance"`, so `pp.rarefy` refuses them.
+  - **Gene families are additive.** Per research B section 1.4, read from
+    PICRUSt2's source (not re-read here: GPL): a gene family's unstratified
+    value is sum over ASVs of `seqtab_norm x copies`, and a contribution's
+    `taxon_function_abun` is `taxon_abun x genome_function_count` on the same
+    rounded `seqtab_norm`. So a sample's contributions sum to its
+    unstratified value, up to float rounding.
+  - **Pathways are not.** Pathway abundances come from MinPath/HUMAnN-style
+    key-reaction means (FAQ), as in HUMAnN.
+  - **So the reader checks nothing about additivity.** It reads both tables
+    as written, and the test pins that pathway strata are kept unchanged.
+
+- **`RARE`.** PICRUSt2 groups ASVs under `--min_reads`/`--min_samples` as
+  taxon `RARE` (seen in its own test data's `taxon` column). It is an
+  ordinary stratum, not `special`. Marking it special, as the outline
+  proposed, would make `fn.renorm(special=False)` drop real abundance.
+
+- **`read_picrust2_traits(path) -> pd.DataFrame`** (2.4b) reads ASVs x
+  functions copy numbers. Ids are read as text (PICRUSt2's own test data uses
+  `2593338844` and `2568526487.0`), `EC:` is stripped, and `metadata_NSTI`
+  (the last column when `hsp.py -n` ran) is dropped. Repeated ASV ids raise.
+  It is a DataFrame because its rows are genomes, not samples, so it cannot
+  be a modality.
+
+- **Facts the tasks rely on** (checked 2026-10-03; re-check any API you call,
+  R2.2).
+  - **MetaPhlAn** (`metaphlan.py` and `merge_metaphlan_tables.py` from
+    MetaPhlAn master, MIT, read in research A's copy):
+    - `relative_abundances()` divides each clade's coverage by the leaves'
+      total, and internal coverage is the children's sum;
+    - `UNCLASSIFIED` is `(1 - fraction_mapped) x 100`, first, with taxid
+      `-1`;
+    - values are rounded to 5-7 decimals;
+    - `merge_metaphlan_tables.py` writes the first input's database line,
+      then `clade_name<TAB>samples`, keeps only `relative_abundance`, and
+      names samples `splitext(basename)[0].replace('_profile', '')`.
+  - **The fixture** `demo_metaphlan_bugs_list.tsv`: HUMAnN e07b3a3
+    `humann/tests/data/`, 3,679 bytes, SHA-256
+    `5b5ea7d9a86e481346c2fd9622a04ff172d0d91e9b8ceeb3f9df1f57b959fbc3`. It is
+    `-t rel_ab_w_read_stats` with five `#` lines and has no
+    `o__Corynebacteriales` row.
+  - **PICRUSt2** (header lines only, read from `picrust/picrust2` master
+    `tests/test_data/`; no data copied):
+
+    | File | Header |
+    |---|---|
+    | `pred_metagenome_unstrat` | `function<TAB>samples` |
+    | `path_abun_unstrat` | `pathway<TAB>samples` |
+    | contributions | `sample, function, taxon, taxon_abun, taxon_rel_abun, genome_function_count, taxon_function_abun, taxon_rel_function_abun, norm_taxon_function_contrib` |
+    | pathway coverage contributions | 4 columns: `sample, function, taxon, genome_function_count` |
+    | `hsp.py` output | `sequence<TAB>EC:...<TAB>metadata_NSTI` |
+    | `add_descriptions.py` output | `function<TAB>description<TAB>samples` |
+    | legacy wide | `function<TAB>sequence<TAB>samples` |
+
+    The `taxon` column holds `RARE` in `expected_metagenome_contrib_rare`.
+  - **pandas 3.0.6:**
+    - `read_csv` renames a repeated header cell (`S1` -> `S1.1`);
+    - with `usecols`, it silently drops the extra cells of a longer row,
+      which is why `_read_table` reads every column;
+    - its default float parser keeps about 15 significant digits.
+  - **anndata 0.13.4** turns `str` columns into categoricals when writing
+    h5mu, in place. Round-trip tests compare values, not dtypes.
+
+### Slice 2B global constraints (in addition to the Phase 2 list)
+- No new dependency. `mia` stays out of the R image (user, 2026-10-03), so the
+  readers get no R golden: parity comes from invariants and the tools' own
+  output (r-golden-parity statement 8).
+- PICRUSt2 (GPL-3) is never installed, imported or copied. Its test tables
+  are synthetic strings in `tests/io/test_picrust2.py`, written from the
+  documented headers, and no file is committed for it. The MetaPhlAn fixture
+  is the one copied file, with its `NOTICE.txt`.
+- Every error a user can hit names the file through its argument
+  (`path='...'` or `contrib='...'`). That includes errors raised in `_core`,
+  which are re-raised with the argument and the original as `__cause__`.
+- Tests call `bt.io.*` only; `_table.py` is tested through the readers
+  (R4.9).
+- Diff blocks below are for reading, not `git apply`: their blank context
+  lines have lost their leading space, which prek's trailing-whitespace hook
+  would strip anyway.
+- Run commands: `uv run --group test pytest <path> -q`. Gate before every
+  commit: `uvx prek run --all-files`. With docs changes, also run
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
+  The tutorials download phyloseq datasets: this plan's own check wrote
+  `~/.cache/biotapy` once without the variable, and that directory was
+  removed.
+- Branch: `phase-2b` from `master` once PR #15 has merged, else from
+  `phase-2a`'s tip. Push, PR and merge-commit on green are approved for Phase
+  2 slice branches (user, 2026-10-03).
+
+### Slice 2B review focus
+The five ways real users are most likely to get a wrong answer from these
+readers without an error, each pinned by a test in its task:
+
+1. **Abundance counted twice, or lost**, from internal rows (including a rank
+   MetaPhlAn skipped) or from a table the leaf rule cannot read. Expected:
+   leaves only; a sample whose leaves do not sum to 100% raises. Tests (2.2):
+   - `test_reads_the_leaf_clades_of_a_metaphlan_4_profile` (the skipped
+     order);
+   - `test_glom_to_each_rank_matches_metaphlans_own_rows`;
+   - `test_leaves_that_do_not_sum_to_100_raise_naming_the_path`.
+2. **Percentages taken as counts, or `UNCLASSIFIED` dropped**, so samples sum
+   to less than 1. Expected: `x_kind == "relative"` and `UNCLASSIFIED` kept
+   with no rank. Tests (2.2): `test_reads_the_leaf_clades_of_a_metaphlan_4_profile`,
+   `test_unclassified_is_kept_with_every_rank_missing`.
+3. **PICRUSt2's `EC:` ids never match a hierarchy.** Expected: ids stripped,
+   and `func_glom` against an ENZYME-style edge table maps. Test (2.4):
+   `test_ec_ids_match_enzyme_style_hierarchies`.
+4. **Mismatched PICRUSt2 files** (an EC unstratified table with a KO
+   contribution table, a pathway table with gene contributions, or a
+   different sample set) silently give a stratified modality that does not
+   belong to the community one. Expected: a `ValueError` naming `contrib` and
+   up to three unknown ids. Test (2.4):
+   `test_malformed_inputs_raise_naming_the_file[unknown-function]` and
+   `[unknown-sample]`.
+5. **Ids rewritten by parsing**: numeric-looking ASV ids (`0042`,
+   `2593338844`), a repeated sample header, or MetaPhlAn's `_profile` suffix
+   breaking the join with HUMAnN sample names. Expected: ids as written,
+   repeats raise, `_profile` removed. Tests:
+   - 2.4 `test_var_matches_the_humann_layout` (`0042`);
+   - 2.4b `test_traits_are_asvs_by_functions`;
+   - 2.2a `test_repeated_sample_columns_raise_naming_the_path`;
+   - 2.2 `test_reads_an_hmp2_style_table`.
+
+Execution order: **2.2a -> 2.2 -> 2.4 -> 2.4b -> Checkpoint B.** 2.2a comes
+first because both new readers import `io/_table.py`. 2.4b extends 2.4's
+file.
+
+---
+
+### Task 2.2a: shared strict table reading in `io`
+
+**Files:** create `src/biotapy/io/_table.py`; modify
+`src/biotapy/io/_humann.py`, `tests/io/test_humann.py`.
+
+**Interfaces:**
+- Consumes nothing new.
+- Produces:
+  - `_read_table(path: Path, header: str, *, skiprows: int, argument: str, text: int = 1) -> pd.DataFrame`
+    (indexed by the first column; raises `ValueError` starting with
+    `argument`);
+  - `_numbers(frame: pd.DataFrame, *, argument: str, nonnegative: bool = False) -> np.ndarray`
+    (float64, same shape as `frame`; the final code also rejects non-finite values).
+
+  Both are private to `io`; 2.2, 2.4 and 2.4b import them with
+  `from ._table import _numbers, _read_table`.
+
+**Will not touch:** `read_humann`'s header rule, `_SUFFIX`, `_UNITS`, its
+messages other than the shared ones, or any other reader (BIOM, QIIME 2,
+DADA2 and phyloseq parse differently and are not changed, R1.4).
+
+- [x] **Step 1: Failing tests.** Append to `tests/io/test_humann.py`:
+
+```python
+def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
+    # pandas would rename the second "S1" to "S1.1" and read two samples.
+    path = tmp_path / "twice.tsv"
+    path.write_text("# Pathway\tS1\tS1\nPWY-1\t1.0\t2.0\n")
+    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names: \['S1'\]"):
+        bt.io.read_humann(path)
+
+
+def test_row_without_an_id_raises_naming_the_path(tmp_path):
+    path = tmp_path / "no_id.tsv"
+    path.write_text("# Pathway\tS1\nPWY-1\t1.0\n\t2.0\n")
+    with pytest.raises(ValueError, match=r"no_id\.tsv.*no id"):
+        bt.io.read_humann(path)
+```
+
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_humann.py -q`
+  -> `2 failed, 29 passed`:
+  - `test_repeated_sample_columns_raise_naming_the_path` fails with
+    `DID NOT RAISE`;
+  - the no-id test fails on its message, because today's text is `var ids
+    must not be missing`.
+- [x] **Step 3: Implement.** Create `src/biotapy/io/_table.py`:
+
+```python
+"""Strict reading of the tab-separated tables HUMAnN, MetaPhlAn and PICRUSt2 write."""
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+
+def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: int = 1) -> pd.DataFrame:
+    """The table whose header line is ``header``, indexed by its first column.
+
+    ``skiprows`` lines precede the header. The first ``text`` columns are read
+    as text, so ids such as ``0042`` stay as written. ``argument`` names the
+    input in messages, e.g. ``"path='table.tsv'"``. An empty file, repeated
+    column names, a data row with more cells than the header or a row with no
+    id raise ``ValueError``; a short row's missing cells are NaN, for the
+    caller to check in the columns it reads (``_numbers``).
+    """
+    names = header.rstrip("\r\n").split("\t")
+    repeated = sorted(name for name, count in Counter(names).items() if count > 1)
+    if repeated:
+        msg = f"{argument} repeats column names: {repeated[:3]}"
+        raise ValueError(msg)
+    try:
+        table = pd.read_csv(
+            path,
+            sep="\t",
+            skiprows=skiprows,
+            index_col=0,
+            dtype=dict.fromkeys(range(text), str),
+            quoting=csv.QUOTE_NONE,
+        )
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
+        msg = f"{argument} is not a valid tab-separated table: {error}"
+        raise ValueError(msg) from error
+    # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.
+    if table.shape[1] != len(names) - 1:
+        msg = f"{argument} has a data row with more cells than the header"
+        raise ValueError(msg)
+    if np.any(table.index.isna()):
+        msg = f"{argument} has a data row with no id (an empty first cell)"
+        raise ValueError(msg)
+    return table
+
+
+def _numbers(frame: pd.DataFrame, *, argument: str) -> np.ndarray:
+    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number or a gap."""
+    try:
+        values = frame.to_numpy(dtype=np.float64)
+    except ValueError as error:
+        msg = f"{argument} has a value that is not a number: {error}"
+        raise ValueError(msg) from error
+    if np.isnan(values).any():
+        msg = f"{argument} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+        raise ValueError(msg)
+    return values
+```
+
+  Then change `src/biotapy/io/_humann.py` exactly as this diff does:
+  - imports;
+  - one `argument` string for every message;
+  - the two calls;
+  - the `Raises` text;
+  - the old `_read_table` deleted.
+
+```diff
+diff --git a/src/biotapy/io/_humann.py b/src/biotapy/io/_humann.py
+index af5b6f4..6cec334 100644
+--- a/src/biotapy/io/_humann.py
++++ b/src/biotapy/io/_humann.py
+@@ -1,16 +1,16 @@
+ """HUMAnN 3 and 4 tables: gene families, reactions, pathway abundance, and their regrouped or renormalised forms."""
+
+-import csv
+ import gzip
+ import re
+ from pathlib import Path
+
+-import numpy as np
+ import pandas as pd
+ from mudata import MuData
+
+ from biotapy._core import XKind, make_function_mudata
+
++from ._table import _numbers, _read_table
++
+ # Sample-column suffixes: HUMAnN's own ("_Abundance-RPKs", "_Abundance"), renorm --update-snames'
+ # ("-CPM", "-RELAB"), and the file names humann_join_tables uses when every file names its
+ # sample alike ("<sample>_pathabundance_cpm", as in the HMP2 merged tables).
+@@ -56,11 +56,11 @@ def read_humann(path: str | Path) -> MuData:
+     Raises
+     ------
+     ValueError
+-        The file is empty or a pathway coverage table; a value is not a
+-        number; a data row has more cells than the header, fewer cells, or an
+-        empty cell (any missing value); a row id holds more than one ``|``;
+-        or sample names repeat once their suffix is removed. Messages name
+-        ``path``.
++        The file is empty or a pathway coverage table; the header repeats a
++        column name; a value is not a number; a data row has more cells than
++        the header, fewer cells, an empty cell (any missing value) or no id;
++        a row id holds more than one ``|``; or sample names repeat once their
++        suffix is removed. Messages name ``path``.
+
+     Notes
+     -----
+@@ -101,6 +101,7 @@ def read_humann(path: str | Path) -> MuData:
+     (['UNMAPPED', 'K1'], ['K1|g__A.s__A_b'])
+     """
+     path = Path(path)
++    argument = f"path={str(path)!r}"
+     # HUMAnN's rule: the last "#" line is the header; with none, the first line is.
+     header, n_comments = "", 0
+     opener = gzip.open if path.suffix == ".gz" else open
+@@ -111,9 +112,10 @@ def read_humann(path: str | Path) -> MuData:
+                 break
+             header, n_comments = line, n_comments + 1
+     if _COVERAGE.search(header):
+-        msg = f"path={str(path)!r} is a pathway coverage table; read_humann reads abundance tables"
++        msg = f"{argument} is a pathway coverage table; read_humann reads abundance tables"
+         raise ValueError(msg)
+-    table, X = _read_table(path, header, max(n_comments - 1, 0))
++    table = _read_table(path, header, skiprows=max(n_comments - 1, 0), argument=argument)
++    X = _numbers(table, argument=argument).T
+     obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
+     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
+     unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)
+@@ -121,27 +123,5 @@ def read_humann(path: str | Path) -> MuData:
+     try:
+         return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")
+     except ValueError as error:  # repeated sample or row ids, or a row id with two "|"
+-        msg = f"path={str(path)!r}: {error}"
+-        raise ValueError(msg) from error
+-
+-
+-def _read_table(path: Path, header: str, skiprows: int) -> tuple[pd.DataFrame, np.ndarray]:
+-    """Read the table and its values, raising ``ValueError`` that names ``path`` on a malformed file."""
+-    try:
+-        table = pd.read_csv(path, sep="\t", skiprows=skiprows, index_col=0, dtype={0: str}, quoting=csv.QUOTE_NONE)
+-    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
+-        msg = f"path={str(path)!r} is not a valid HUMAnN table: {error}"
++        msg = f"{argument}: {error}"
+         raise ValueError(msg) from error
+-    # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.
+-    if table.shape[1] != header.rstrip("\n").count("\t"):
+-        msg = f"path={str(path)!r} has a data row with more cells than the header"
+-        raise ValueError(msg)
+-    try:
+-        values = table.to_numpy(dtype=np.float64)
+-    except ValueError as error:
+-        msg = f"path={str(path)!r} has a value that is not a number: {error}"
+-        raise ValueError(msg) from error
+-    if np.isnan(values).any():
+-        msg = f"path={str(path)!r} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+-        raise ValueError(msg)
+-    return table, values.T
+```
+
+- [x] **Step 4: Run, expect pass.** The same command gives `31 passed`. The
+  doctest `uv run --group test pytest src/biotapy/io/_humann.py -q` gives `1 passed`.
+- [x] **Step 5: Bookkeeping.**
+  - Tick this task's boxes and its line under "# Tasks (checklist)".
+  - Add to `.knowledge/log.md`, under a new
+    `## <date> (Phase 2, slice 2B)` heading at the top:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.2a done: io/_table.py holds the strict TSV reading shared by the HUMAnN, MetaPhlAn and PICRUSt2 readers; read_humann now rejects repeated column names.`
+  - No contract changes. `modules/io.md` is refreshed at Checkpoint B.
+- [x] **Step 6: Gate and commit.**
+
+```bash
+uvx prek run --all-files
+git add src/biotapy/io/_table.py src/biotapy/io/_humann.py tests/io/test_humann.py \
+  .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "refactor(io): share read_humann's strict table reading; reject repeated column names"
+uv run --group test pytest -q -W error::UserWarning   # 752 passed, 22 deselected
+```
 
 ### Task 2.2: `io.read_metaphlan`
-**Interface:** `bt.io.read_metaphlan(path: str | Path) -> TreeData`. It reads
-a per-sample MetaPhlAn 3/4 profile, or a table merged by
-`merge_metaphlan_tables.py`. Samples become rows, leaf clades become
-features, and `var` holds rank columns `kingdom`..`species`. It goes through
-`make_treedata` (no tree), with `x_kind="relative"`. R equivalent:
-`mia::importMetaPhlAn`.
 
-**Design questions to resolve:**
-1. **Leaf rule.** The roadmap says "only `t__` rows". Alternative: a row is a
-   leaf when no other row's lineage extends it. That works for MetaPhlAn 3,
-   whose HMP2 profiles stop at `s__`, as well as 4 (`t__SGB…`). Proposed: the
-   structural rule, plus a check that warns when a dropped parent row
-   exceeds the sum of its kept children in any sample (abundance that would
-   be lost). Verify the rule on HMP2's `taxonomic_profiles_3.tsv.gz` (933
-   rows x 1,638 samples) before choosing.
-2. **`UNCLASSIFIED`.** MetaPhlAn writes this row by default since 4.2.0 and
-   omits it with `--skip_unclassified_estimation`. Proposed: keep it as a
-   feature with all ranks NaN, so rows sum to 1. Alternative: drop it and
-   record the fraction in `obs`.
-3. **Units.** Values are percentages. Proposed: divide by 100 and set
-   `relative` (design note 3); the docstring says so. A table whose rows do
-   not sum to ~100 (one rank only, `--tax_lev`) is rejected with a
-   `ValueError`.
-4. **Feature ids.**
-   - MetaPhlAn 4 leaves are SGBs (`t__SGB1871`); MetaPhlAn 3 leaves are
-     species. Proposed `var_names`: the leaf's last component without its
-     prefix (`SGB1871`, `Bacteroides_ovatus`); duplicates raise.
-   - `t__` has no rank in `RANKS`. Proposed: a `var["sgb"]` column. That is
-     a data-model contract addition (user).
-5. **Formats in scope.**
-   - Proposed: default `-t rel_ab` and `rel_ab_w_read_stats` (detected by
-     the header); per-sample (4-5 `#` lines, header on the last) and merged
-     (`clade_name` header without `#`, MetaPhlAn 3 merged with an
-     `NCBI_tax_id` column).
-   - Other `-t` modes raise.
-   - Taxids, `additional_species`, `coverage` and read counts are not read
-     (R2.3).
-6. **Golden test.** Two options:
-   - add `mia` to the R image and compare with `mia::importMetaPhlAn` on the
-     fixture (a dependency, so ask, R9.1);
-   - test invariants only: leaf rows sum to 1, ranks parsed.
+**Files:**
+- Create:
+  - `src/biotapy/io/_metaphlan.py`;
+  - `tests/io/test_metaphlan.py`;
+  - `tests/data/metaphlan/demo_metaphlan_bugs_list.tsv`;
+  - `tests/data/metaphlan/NOTICE.txt`.
+- Modify:
+  - `src/biotapy/io/__init__.py`, `src/biotapy/_core/__init__.py`;
+  - `docs/api.md`, `docs/guide/reading_data.md`;
+  - `.knowledge/contracts/data-model-slots.md`,
+    `.knowledge/contracts/r-golden-parity.md`.
 
-   Proposed: invariants, plus a hand-checked expected table, unless the user
-   wants `mia`.
-7. **Tree.** MetaPhlAn ships a Newick tree with SGB tips (in its database,
-   not its output). A `tree=` option like `read_dada2`'s would enable UniFrac.
-   Not in 2.2 unless the user asks (R2.3).
+**Interfaces:**
+- Consumes:
+  - 2.2a's `_read_table` and `_numbers`;
+  - `_core.make_treedata(X, *, obs, var, tree, x_kind, source)`,
+    `_core.split_lineage(lineage: pd.Series) -> pd.DataFrame`, `_core.RANKS`;
+  - `_core.RELATIVE_TOLERANCE` (exported here).
+- Produces: `bt.io.read_metaphlan(path: str | Path) -> TreeData`. 2.10 reads
+  HMP2's taxonomic table with it.
 
-**Fixtures:**
-- `tests/data/metaphlan/demo_metaphlan_bugs_list.tsv`: HUMAnN repo,
-  e07b3a3, MIT, 3,679 B. MetaPhlAn 4.0.6 `rel_ab_w_read_stats`, 4 SGBs, empty
-  taxid fields, no `UNCLASSIFIED`. With `NOTICE.txt`.
-- Synthetic: a default 4.2 profile with `UNCLASSIFIED`; a merged 4.x table; a
-  MetaPhlAn 3 merged table with `NCBI_tax_id` and species leaves; a
-  single-rank table (rejected).
+**Will not touch:** `split_lineage` and `normalize_ranks` (they already
+ignore `t__`), `pp.tax_glom`'s `dropna` behaviour, and `RANKS` (no `strain`
+or `sgb` rank).
 
-**Review focus:** double counting from non-leaf rows; percentages read as
-counts; `UNCLASSIFIED` silently dropped.
+- [x] **Step 1: Fixture and notice.** Copy the file from HUMAnN's repository
+  at the pinned commit and check its hash:
+
+```bash
+mkdir -p tests/data/metaphlan
+curl -sfL https://raw.githubusercontent.com/biobakery/humann/e07b3a3/humann/tests/data/demo_metaphlan_bugs_list.tsv \
+  -o tests/data/metaphlan/demo_metaphlan_bugs_list.tsv
+sha256sum tests/data/metaphlan/demo_metaphlan_bugs_list.tsv
+# 5b5ea7d9a86e481346c2fd9622a04ff172d0d91e9b8ceeb3f9df1f57b959fbc3
+```
+
+  Create `tests/data/metaphlan/NOTICE.txt`:
+
+```text
+demo_metaphlan_bugs_list.tsv is copied unchanged from HUMAnN's test data,
+https://github.com/biobakery/humann/tree/e07b3a3/humann/tests/data
+(commit e07b3a3, 2026-07-10). It is a MetaPhlAn 4.0.6 profile
+(-t rel_ab_w_read_stats, database mpa_vOct22_CHOCOPhlAnSGB_202212), used under
+HUMAnN's MIT licence:
+
+The HUMAnN software is licensed under the MIT license.
+
+Copyright (c) 2014 Harvard School of Public Health
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+The other MetaPhlAn tables in tests/io/test_metaphlan.py are synthetic,
+written for biotapy (BSD-3-Clause) from the formats in MetaPhlAn's source.
+```
+
+- [x] **Step 2: Failing tests.** Create `tests/io/test_metaphlan.py`:
+
+```python
+import gzip
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+import treedata as td
+from hypothesis import given
+from hypothesis import strategies as st
+
+import biotapy as bt
+from biotapy._core import RANKS
+
+# tests/data/metaphlan/NOTICE.txt: a real MetaPhlAn 4.0.6 profile from HUMAnN's test data (MIT).
+DEMO = Path(__file__).parents[1] / "data" / "metaphlan" / "demo_metaphlan_bugs_list.tsv"
+LINEAGE = "k__Bacteria|p__Bacteroidetes|c__Bacteroidia|o__Bacteroidales|f__Bacteroidaceae"
+# A default MetaPhlAn 4.2 profile (synthetic): four "#" lines, the header, UNCLASSIFIED first.
+PROFILE_4_2 = (
+    "#mpa_vJan25_CHOCOPhlAnSGB_202503\n#metaphlan s1.fastq -o s1_profile.tsv\n#1000 reads processed\n"
+    "#SampleID\tMetaphlan_Analysis\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n"
+    "UNCLASSIFIED\t-1\t20.0\t\n"
+    "k__Bacteria\t2\t80.0\t\n"
+    f"{LINEAGE}\t2|976|200643|171549|815\t80.0\t\n"
+    f"{LINEAGE}|g__Bacteroides\t2|976|200643|171549|815|816\t80.0\t\n"
+    f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus\t2|976|200643|171549|815|816|28116\t50.0\t\n"
+    f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus|t__SGB1871\t2|976|200643|171549|815|816|28116|\t50.0\t\n"
+    f"{LINEAGE}|g__Bacteroides|s__Bacteroides_SGB1\t2|976|200643|171549|815|816|\t30.0\ts__Bacteroides_x\n"
+    f"{LINEAGE}|g__Bacteroides|s__Bacteroides_SGB1|t__SGB1\t2|976|200643|171549|815|816||\t30.0\t\n"
+)
+
+
+def write(tmp_path, text, name="table.tsv"):
+    path = tmp_path / name
+    path.write_text(text)
+    return path
+
+
+def test_reads_the_leaf_clades_of_a_metaphlan_4_profile():
+    # The file skips o__Corynebacteriales; its parent c__Actinomycetia must still not count as a leaf.
+    tdata = bt.io.read_metaphlan(DEMO)
+    assert tdata.obs_names.tolist() == ["demo_metaphlan_bugs_list"]
+    assert tdata.var_names.tolist() == ["SGB2091", "SGB1871", "SGB2301", "SGB1814"]
+    np.testing.assert_allclose(tdata.X.toarray(), [[0.5285687, 0.346816, 0.1214543, 0.0031609]], rtol=1e-12)
+    assert tdata.uns["biotapy"]["x_kind"] == "relative"
+
+
+def test_var_holds_the_ranks_of_each_leaf():
+    var = bt.io.read_metaphlan(DEMO).var
+    assert var.columns.tolist() == list(RANKS)
+    assert var.loc["SGB1871"].tolist() == [
+        "Bacteria",
+        "Bacteroidetes",
+        "Bacteroidia",
+        "Bacteroidales",
+        "Bacteroidaceae",
+        "Bacteroides",
+        "Bacteroides_ovatus",
+    ]
+    assert var.loc["SGB2091", "species"] == "Corynebacterium_SGB2091"
+
+
+@pytest.mark.parametrize("rank", RANKS)
+def test_glom_to_each_rank_matches_metaphlans_own_rows(rank):
+    # MetaPhlAn's parity check (contracts/r-golden-parity, statement 8): a clade's row is the sum of its leaves.
+    rows = pd.read_csv(DEMO, sep="\t", skiprows=5, index_col=0)["relative_abundance"]
+    last = rows.index.str.split("|").str[-1]
+    at_rank = last.str.startswith(f"{rank[0]}__")
+    expected = (rows[at_rank] / 100).set_axis(last[at_rank].str[3:])
+    out = bt.pp.tax_glom(bt.io.read_metaphlan(DEMO), rank)
+    # MetaPhlAn 4.0.6 printed no o__Corynebacteriales row, so compare the clades it printed.
+    got = pd.Series(out.X.toarray()[0], index=out.var[rank].to_numpy())[expected.index]
+    # MetaPhlAn prints each percentage rounded to 5 decimals, so a parent and the sum of its leaves differ by up to
+    # (number of leaves) x 5e-6 % (1.1e-5 % measured for Bacteroidaceae).
+    pd.testing.assert_series_equal(got.sort_index(), expected.sort_index(), check_names=False, rtol=0, atol=1e-6)
+
+
+def test_unclassified_is_kept_with_every_rank_missing(tmp_path):
+    tdata = bt.io.read_metaphlan(write(tmp_path, PROFILE_4_2, "s1_profile.tsv"))
+    assert tdata.obs_names.tolist() == ["s1"]
+    assert tdata.var_names.tolist() == ["UNCLASSIFIED", "SGB1871", "SGB1"]
+    assert tdata.var.loc["UNCLASSIFIED"].isna().all()
+    np.testing.assert_allclose(tdata.X.toarray(), [[0.2, 0.5, 0.3]])
+
+
+def test_reads_a_merged_metaphlan_4_table(tmp_path):
+    text = (
+        "#mpa_vJan25_CHOCOPhlAnSGB_202503\nclade_name\ts1\ts2_profile\n"
+        "UNCLASSIFIED\t20.0\t0.0\nk__Bacteria\t80.0\t100.0\n"
+        f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus\t80.0\t100.0\n"
+        f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus|t__SGB1871\t80.0\t100.0\n"
+    )
+    tdata = bt.io.read_metaphlan(write(tmp_path, text))
+    assert tdata.obs_names.tolist() == ["s1", "s2"]
+    np.testing.assert_allclose(tdata.X.toarray(), [[0.2, 0.8], [0.0, 1.0]])
+
+
+def test_reads_a_merged_metaphlan_3_table_and_drops_its_taxids(tmp_path):
+    # MetaPhlAn 3 leaves are species; a leaf may stop above species, which is then NaN.
+    text = (
+        "#mpa_v30_CHOCOPhlAn_201901\nclade_name\tNCBI_tax_id\tA\tB\n"
+        "k__Bacteria\t2\t100.0\t100.0\n"
+        "k__Bacteria|p__Firmicutes|c__Clostridia|o__Clostridiales|f__Lachnospiraceae\t2|1239|186801|186802|186803\t100.0\t100.0\n"
+        "k__Bacteria|p__Firmicutes|c__Clostridia|o__Clostridiales|f__Lachnospiraceae|g__Roseburia\t2|1239|186801|186802|186803|841\t40.0\t0.0\n"
+        "k__Bacteria|p__Firmicutes|c__Clostridia|o__Clostridiales|f__Lachnospiraceae|g__Blautia\t2|1239|186801|186802|186803|572511\t60.0\t100.0\n"
+        "k__Bacteria|p__Firmicutes|c__Clostridia|o__Clostridiales|f__Lachnospiraceae|g__Blautia|s__Blautia_obeum\t2|1239|186801|186802|186803|572511|40520\t60.0\t100.0\n"
+    )
+    tdata = bt.io.read_metaphlan(write(tmp_path, text))
+    assert tdata.obs_names.tolist() == ["A", "B"]
+    assert tdata.var_names.tolist() == ["Roseburia", "Blautia_obeum"]
+    assert pd.isna(tdata.var.loc["Roseburia", "species"]) and tdata.var.loc["Roseburia", "genus"] == "Roseburia"
+
+
+def test_reads_an_hmp2_style_table(tmp_path):
+    # HMP2's taxonomic_profiles_3.tsv.gz: no "#" line, a "Feature\Sample" corner, UNKNOWN, CRLF line ends.
+    text = (
+        "Feature\\Sample\tCSM5FZ3N_P_profile\tCSM5FZ4M_profile\r\n"
+        "UNKNOWN\t0\t100\r\nk__Bacteria\t100\t0\r\nk__Bacteria|p__Firmicutes\t100\t0\r\n"
+    )
+    tdata = bt.io.read_metaphlan(write(tmp_path, text, "taxonomic_profiles_3.tsv"))
+    assert tdata.obs_names.tolist() == ["CSM5FZ3N_P", "CSM5FZ4M"]
+    assert tdata.var_names.tolist() == ["UNKNOWN", "Firmicutes"]
+    np.testing.assert_array_equal(tdata.X.toarray(), [[0.0, 1.0], [1.0, 0.0]])
+
+
+def test_a_single_rank_table_reads_that_rank(tmp_path):
+    # metaphlan --tax_lev s writes species rows only.
+    text = "#mpa_v\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n"
+    text += f"{LINEAGE}|g__B|s__B_a\t\t70.0\t\n{LINEAGE}|g__B|s__B_b\t\t30.0\t\n"
+    assert bt.io.read_metaphlan(write(tmp_path, text)).var_names.tolist() == ["B_a", "B_b"]
+
+
+def test_reads_read_stats_profiles_and_short_rows(tmp_path):
+    # -t rel_ab_w_read_stats has a "-" coverage for UNCLASSIFIED; before 4.2.3 some rows lacked additional_species.
+    text = (
+        "#mpa_v\n#clade_name\tclade_taxid\trelative_abundance\tcoverage\testimated_number_of_reads_from_the_clade\n"
+        "UNCLASSIFIED\t-1\t10.0\t-\t50\nk__Bacteria\t2\t90.0\n"
+    )
+    np.testing.assert_allclose(bt.io.read_metaphlan(write(tmp_path, text)).X.toarray(), [[0.1, 0.9]])
+
+
+def test_reads_gzip(tmp_path):
+    path = tmp_path / "demo_profile.tsv.gz"
+    path.write_bytes(gzip.compress(DEMO.read_bytes()))
+    tdata = bt.io.read_metaphlan(path)
+    assert tdata.obs_names.tolist() == ["demo"] and tdata.n_vars == 4
+
+
+def test_all_zero_sample_and_feature_are_kept(tmp_path):
+    text = "clade_name\tA\tB\nk__Bacteria\t100.0\t0.0\nk__Bacteria|p__F\t100.0\t0.0\nk__Bacteria|p__G\t0.0\t0.0\n"
+    tdata = bt.io.read_metaphlan(write(tmp_path, text))
+    assert tdata.shape == (2, 2) and tdata.X[1].nnz == 0
+    assert tdata.var_names.tolist() == ["F", "G"]
+
+
+def test_an_empty_profile_has_no_features(tmp_path):
+    text = "#mpa_v\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n"
+    assert bt.io.read_metaphlan(write(tmp_path, text, "empty_profile.tsv")).shape == (1, 0)
+
+
+@pytest.mark.parametrize(
+    ("rows", "total"),
+    [
+        (f"k__Bacteria\t100.0\n{LINEAGE}|g__B\t60.0\n", 60.0),  # a leaf row removed
+        ("d__Bacteria\t100.0\nd__Bacteria;p__Firmicutes\t100.0\n", 200.0),  # GTDB-style ";" lineages
+    ],
+    ids=["rows-removed", "semicolon-lineages"],
+)
+def test_leaves_that_do_not_sum_to_100_raise_naming_the_path(tmp_path, rows, total):
+    path = write(tmp_path, "clade_name\tS1\n" + rows, "partial.tsv")
+    with pytest.raises(ValueError, match=rf"partial\.tsv.*1 sample\(s\) do not sum to 100%: \{{'S1': {total}\}}"):
+        bt.io.read_metaphlan(path)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "clade_name\tS1\nk__Bacteria\tabc\n",
+        "#mpa\n#clade_name\tNCBI_tax_id\trelative_abundance\nk__Bacteria\t2\t\n",
+        "clade_name\tS1\nk__Bacteria\t50.0\t50.0\n",
+        "clade_name\tS1\tS1\nk__Bacteria\t100.0\t100.0\n",
+        "",
+    ],
+    ids=["not-a-number", "missing-value", "longer-row", "repeated-sample", "empty-file"],
+)
+def test_malformed_tables_raise_naming_the_path(tmp_path, text):
+    with pytest.raises(ValueError, match=r"bad\.tsv"):
+        bt.io.read_metaphlan(write(tmp_path, text, "bad.tsv"))
+
+
+def test_repeated_leaf_names_raise_naming_the_path(tmp_path):
+    text = "clade_name\tS1\nk__A|g__X\t50.0\nk__B|g__X\t50.0\n"
+    with pytest.raises(ValueError, match=r"twice\.tsv.*duplicate var ids: \['X'\]"):
+        bt.io.read_metaphlan(write(tmp_path, text, "twice.tsv"))
+
+
+def test_round_trips_through_h5td(tmp_path):
+    tdata = bt.io.read_metaphlan(DEMO)
+    tdata.write_h5td(tmp_path / "m.h5td")
+    back = td.read_h5td(tmp_path / "m.h5td")
+    pd.testing.assert_frame_equal(back.var, tdata.var)
+
+
+@given(st.lists(st.floats(0.01, 100, allow_nan=False), min_size=1, max_size=6))
+def test_leaves_keep_every_percentage(weights):
+    leaves = [round(100 * weight / sum(weights), 5) for weight in weights]
+    clades = {f"{LINEAGE}|g__G{i % 2}|s__G{i % 2}_s{i}|t__SGB{i}": value for i, value in enumerate(leaves)}
+    rows = dict(clades)
+    for clade, value in clades.items():
+        parts = clade.split("|")
+        for depth in range(1, len(parts)):
+            rows["|".join(parts[:depth])] = rows.get("|".join(parts[:depth]), 0) + value
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "t.tsv"
+        path.write_text("clade_name\tS1\n" + "".join(f"{clade}\t{value!r}\n" for clade, value in rows.items()))
+        tdata = bt.io.read_metaphlan(path)
+    assert tdata.var_names.tolist() == [f"SGB{i}" for i in range(len(leaves))]
+    np.testing.assert_allclose(tdata.X.toarray().ravel(), np.array(leaves) / 100, rtol=1e-12)
+```
+
+- [x] **Step 3: Run, expect failure.** `uv run --group test pytest tests/io/test_metaphlan.py -q`
+  -> `28 failed`: `AttributeError: module 'biotapy.io' has no attribute 'read_metaphlan'`.
+- [x] **Step 4: Implement.**
+  - In `src/biotapy/_core/__init__.py`, import `RELATIVE_TOLERANCE` from
+    `._slots`, before `XKind`, and add `"RELATIVE_TOLERANCE"` to `__all__`
+    after `"RANKS"`:
+
+```diff
+diff --git a/src/biotapy/_core/__init__.py b/src/biotapy/_core/__init__.py
+index dec9722..c466b8f 100644
+--- a/src/biotapy/_core/__init__.py
++++ b/src/biotapy/_core/__init__.py
+@@ -13,6 +13,7 @@ from ._matrix import argmax_by, as_csr, sum_by, sum_pairs
+ from ._optional import import_optional
+ from ._rng import as_generator
+ from ._slots import (
++    RELATIVE_TOLERANCE,
+     XKind,
+     add_provenance,
+     feature_subset,
+@@ -43,6 +44,7 @@ __all__ = [
+     "PHYLO_KEY",
+     "PROTECTED_FEATURES",
+     "RANKS",
++    "RELATIVE_TOLERANCE",
+     "SPECIAL_FEATURES",
+     "UNGROUPED",
+     "TreeData",
+```
+
+  - Create `src/biotapy/io/_metaphlan.py`. `_header` is a single-use helper
+    that R4.4 allows: inlined, `read_metaphlan` has 36 statements, over
+    `PLR0915`'s 30. The leaf rule is inlined, because it fits.
+
+```python
+"""MetaPhlAn 3 and 4 taxonomic profiles, per sample or merged by merge_metaphlan_tables.py."""
+
+import gzip
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from biotapy._core import RELATIVE_TOLERANCE, TreeData, make_treedata, split_lineage
+
+from ._table import _numbers, _read_table
+
+# NCBI taxid columns: a MetaPhlAn 3 merged table keeps one beside its samples.
+_TAXID_COLUMNS = ("NCBI_tax_id", "clade_taxid")
+
+
+def read_metaphlan(path: str | Path) -> TreeData:
+    r"""Read a MetaPhlAn profile, or several merged, into a samples x clades table.
+
+    Parameters
+    ----------
+    path
+        A MetaPhlAn 3 or 4 profile (``-t rel_ab``, the default, or
+        ``-t rel_ab_w_read_stats``), or a table of several merged by
+        ``merge_metaphlan_tables.py`` or with one column per sample. Gzip
+        (``.gz``) is read directly.
+
+    Returns
+    -------
+    TreeData
+        Relative abundances in ``X`` (MetaPhlAn's percentages divided by
+        100), one feature per leaf clade: the deepest row of each lineage,
+        such as MetaPhlAn 4's SGBs (``t__SGB1871``) or MetaPhlAn 3's species.
+        ``var_names`` are the leaf's last name without its rank prefix
+        (``SGB1871``, ``Bacteroides_ovatus``); ``var`` holds the rank columns
+        ``kingdom`` to ``species``. ``UNCLASSIFIED`` (``UNKNOWN`` in older
+        tables) stays a feature with every rank NaN, so each sample sums to 1.
+        A single profile's sample is named after its file, and ``_profile``
+        is removed from sample names, as ``merge_metaphlan_tables.py`` does.
+        There is no tree.
+
+    Raises
+    ------
+    ValueError
+        The file is empty or malformed (a value that is not a number, a
+        missing value, a data row with more cells than the header, repeated
+        column names); the leaf clades of a sample do not sum to 100 (rows
+        removed, or a table that is not a profile, such as one with ``;``
+        lineages); or leaf names or sample names repeat. Messages name
+        ``path``.
+
+    Notes
+    -----
+    R equivalent: ``mia::importMetaPhlAn``
+    Guide: :doc:`/guide/reading_data`
+
+    A profile lists every rank, and a clade's abundance is the sum of its
+    children's, so keeping only the leaves keeps all the abundance once.
+    ``bt.pp.tax_glom`` gives back the higher ranks; it drops
+    ``UNCLASSIFIED`` unless ``dropna=False``. ``uns['biotapy']['x_kind']`` is
+    ``"relative"``. NCBI taxids, ``additional_species``, coverage and read
+    estimates are not read.
+
+    References
+    ----------
+    Blanco-Míguez A et al. (2023) Extending and improving metagenomic taxonomic profiling with
+    uncharacterized species using MetaPhlAn 4. Nature Biotechnology 41:1633-1644.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> path = Path(tempfile.mkdtemp()) / "S1_profile.tsv"
+    >>> rows = ["k__Bacteria\t2\t90.0\t", "k__Bacteria|g__Bacteroides\t2|816\t90.0\t", "UNCLASSIFIED\t-1\t10.0\t"]
+    >>> _ = path.write_text(
+    ...     "#mpa_vJan25\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n" + "\n".join(rows)
+    ... )
+    >>> tdata = bt.io.read_metaphlan(path)
+    >>> tdata.obs_names.tolist(), tdata.var_names.tolist(), tdata.X.toarray().tolist()
+    (['S1'], ['Bacteroides', 'UNCLASSIFIED'], [[0.9, 0.1]])
+    """
+    path = Path(path)
+    argument = f"path={str(path)!r}"
+    header, skiprows = _header(path)
+    table = _read_table(path, header, skiprows=skiprows, argument=argument)
+    if "relative_abundance" in table.columns:
+        values = table[["relative_abundance"]].set_axis([Path(path.name.removesuffix(".gz")).stem], axis=1)
+    else:
+        values = table.drop(columns=[column for column in _TAXID_COLUMNS if column in table.columns])
+    # A leaf is a clade no other clade descends from, through any ancestor: MetaPhlAn can omit an
+    # intermediate rank's row (the 4.0.6 fixture has no o__Corynebacteriales), so direct parents are not enough.
+    lineages = [clade.split("|") for clade in table.index]
+    ancestors = {"|".join(lineage[:depth]) for lineage in lineages for depth in range(1, len(lineage))}
+    leaf = np.array([clade not in ancestors for clade in table.index], dtype=bool)
+    X = _numbers(values, argument=argument)[leaf].T / 100
+    totals = X.sum(axis=1)
+    bad = (totals != 0) & (np.abs(totals - 1) > RELATIVE_TOLERANCE)
+    if bad.any():
+        shown = {
+            name: round(float(total) * 100, 3)
+            for name, total in zip(values.columns[bad][:3], totals[bad][:3], strict=True)
+        }
+        msg = (
+            f"{argument}: the leaf clades of {int(bad.sum())} sample(s) do not sum to 100%: {shown}; "
+            "read_metaphlan reads whole MetaPhlAn profiles with '|'-separated lineages"
+        )
+        raise ValueError(msg)
+    clades = table.index[leaf]
+    # A clade lineage is "k__A|p__B|..."; UNCLASSIFIED and UNKNOWN have none, so every rank is NaN.
+    lineage = pd.Series(clades.str.replace("|", ";"), index=clades).where(clades.str.contains("__", regex=False))
+    var = split_lineage(lineage).set_axis(clades.str.split("|").str[-1].str.replace(r"^[a-z]__", "", regex=True))
+    obs = pd.DataFrame(index=values.columns.str.replace("_profile", "", regex=False))
+    try:
+        return make_treedata(X, obs=obs, var=var, tree=None, x_kind="relative", source="io.read_metaphlan")
+    except ValueError as error:  # repeated leaf or sample names
+        msg = f"{argument}: {error}"
+        raise ValueError(msg) from error
+
+
+def _header(path: Path) -> tuple[str, int]:
+    """The header line and how many lines precede it.
+
+    A profile's header is its last ``#`` line (``#clade_name...``); a merged
+    table's is the first line after its ``#`` lines, the first of which names
+    the database and holds no tab.
+    """
+    comments: list[str] = []
+    header = ""
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.startswith("#"):
+                header = line
+                break
+            comments.append(line)
+    if comments and "\t" in comments[-1]:
+        return comments[-1], len(comments) - 1
+    return header, len(comments)
+```
+
+  - `src/biotapy/io/__init__.py` becomes:
+
+```python
+from ._biom import read_biom, write_biom
+from ._dada2 import read_dada2
+from ._humann import read_humann
+from ._metaphlan import read_metaphlan
+from ._phyloseq import read_phyloseq
+from ._qiime2 import read_qiime2
+
+__all__ = ["read_biom", "read_dada2", "read_humann", "read_metaphlan", "read_phyloseq", "read_qiime2", "write_biom"]
+```
+
+- [x] **Step 5: Run, expect pass.** The same command gives `28 passed`. The
+  doctest `uv run --group test pytest src/biotapy/io/_metaphlan.py -q` gives
+  `1 passed`.
+- [x] **Step 6: Docs.**
+  - `docs/api.md`: add `io.read_metaphlan` after `io.read_humann`.
+  - `docs/guide/reading_data.md`: replace the introduction's second
+    paragraph, which says every reader infers `x_kind` (false since
+    `read_humann`), and append the MetaPhlAn section:
+
+````diff
+diff --git a/docs/guide/reading_data.md b/docs/guide/reading_data.md
+index 1c08141..fdeab8b 100644
+--- a/docs/guide/reading_data.md
++++ b/docs/guide/reading_data.md
+@@ -3,11 +3,13 @@
+ Readers turn a file format into a `TreeData` that follows the one
+ [data model](data_model.md) every biotapy function relies on.
+
+-No format below records whether its table holds counts or proportions, so
+-every reader infers `uns["biotapy"]["x_kind"]` from the values: whole numbers
+-are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
+-(within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
+-that need raw counts check this and refuse proportions.
++BIOM, QIIME 2, DADA2 and phyloseq tables do not record whether they hold
++counts or proportions, so their readers infer `uns["biotapy"]["x_kind"]` from
++the values: whole numbers are `"counts"`; otherwise, if every sample with a
++nonzero total sums to 1 (within `1e-3`), `"relative"`; anything else is
++`"abundance"`. The HUMAnN, MetaPhlAn and PICRUSt2 readers take it from the
++format instead, as their sections say. Functions that need raw counts check
++`x_kind` and refuse anything else.
+
+ ## Example datasets
+
+@@ -282,3 +284,37 @@ mdata = bt.io.read_humann("sample_genefamilies.tsv")
+   `--update-snames` so the header names the new unit.
+ - **Not read.** Pathway coverage tables (HUMAnN 3 only) raise a
+   `ValueError`: they are not abundances.
++
++## MetaPhlAn
++
++`bt.io.read_metaphlan` reads a MetaPhlAn 3 or 4 profile, or a table of
++several merged by `merge_metaphlan_tables.py`, into a `TreeData` of relative
++abundances.
++
++```python
++import biotapy as bt
++
++tdata = bt.io.read_metaphlan("merged_abundance_table.tsv")
++```
++
++- **Leaf clades.** A profile lists every rank, kingdom to SGB, and a clade's
++  abundance is the sum of its children's. The reader keeps the leaves - the
++  rows no other row descends from: SGBs (`t__SGB1871`) in MetaPhlAn 4,
++  species in MetaPhlAn 3 - so every read is counted once. Use
++  `bt.pp.tax_glom` for higher ranks; its sums equal MetaPhlAn's own rows.
++- **Ids and ranks.** A leaf's last name without its prefix becomes the
++  feature id (`SGB1871`, `Bacteroides_ovatus`), and its lineage fills
++  `kingdom` to `species` in `var`.
++- **Units.** Percentages are divided by 100, so `x_kind` is `"relative"`.
++- **`UNCLASSIFIED`.** MetaPhlAn 4.2 estimates the share of reads from
++  unknown organisms (`UNKNOWN` in older tables). It stays a feature with no
++  rank, so each sample sums to 1. `bt.pp.tax_glom` drops it unless you pass
++  `dropna=False`.
++- **Samples.** A single profile's sample is named after its file;
++  `_profile` is removed from sample names, as `merge_metaphlan_tables.py`
++  does when it names columns.
++- **Checked.** Each sample's leaves must sum to 100%. A table with rows
++  removed, or one that is not a MetaPhlAn profile (GTDB-style `;` lineages,
++  marker tables), raises a `ValueError` instead of double counting.
++- **Not read.** NCBI taxids, `additional_species`, coverage and estimated
++  read counts.
+````
+
+  - Build: `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
+    -> `build succeeded.`
+- [x] **Step 7: Contracts** (user-approved as decisions 1, 2 and 7).
+  - `data-model-slots.md`: one sentence in convention 2, and a new section
+    "Taxonomic profiles (MetaPhlAn)" before "Propagation".
+  - `r-golden-parity.md`: statements 6 and 8.
+
+  The exact text (ignore the `docs/api.md` hunk, which is Step 6's):
+
+```diff
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index 1e2ab00..3785146 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -59,6 +59,8 @@ Extends the spec's data-model table with exact keys.[^spec]
+    The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
+    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
+    `relative`) and labels a header without a unit `abundance`, never `counts`.
++   `io.read_metaphlan` divides MetaPhlAn's percentages by 100 and sets `relative`, after
++   checking that every sample's leaf clades sum to 1 within `1e-3` (`_core.RELATIVE_TOLERANCE`).
+    `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
+    its `relative` stratified rows do not sum to 1: they are shares of the community total.
+    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+@@ -100,6 +102,16 @@ columns use the pandas `str` dtype, as rank columns do. Both modalities
+ always exist; either may have 0 features. The community values are not
+ the sum of their strata for pathways, which is why there are two.
+
++## Taxonomic profiles (MetaPhlAn)
++`io.read_metaphlan` keeps one feature per leaf clade: a row that no other
++row descends from through any ancestor (MetaPhlAn can omit an intermediate
++rank's row; the real 4.0.6 fixture has no `o__Corynebacteriales`). A clade's
++row is the sum of its leaves', so every read counts once and `pp.tax_glom`
++rebuilds the higher ranks. `var_names` are the leaf's last name without its
++rank prefix (`SGB1871` from `t__SGB1871`); `t__` has no rank column. Rank
++columns run `kingdom` to `species`. `UNCLASSIFIED` (`UNKNOWN` in older
++tables) stays a feature with every rank NaN, so samples sum to 1.
++
+ ## Propagation
+ | Operation | Keeps | Drops |
+ |---|---|---|
+diff --git a/.knowledge/contracts/r-golden-parity.md b/.knowledge/contracts/r-golden-parity.md
+index 324ce0d..05c6d53 100644
+--- a/.knowledge/contracts/r-golden-parity.md
++++ b/.knowledge/contracts/r-golden-parity.md
+@@ -55,7 +55,8 @@ sources:
+    accepted this for this BSD-3 repository on 2026-09-27. Test fixtures under `tests/data/`
+    stay synthetic, except small files copied under a permissive licence
+    with a `NOTICE.txt` beside them (`tests/data/humann`: HUMAnN's MIT test
+-   data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
++   data; `tests/data/metaphlan`: a MetaPhlAn 4.0.6 profile from HUMAnN's MIT
++   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
+ 7. `pl` functions have an R equivalent but no golden test. They draw numbers
+    that `tl` stores, and `tl`'s golden tests check those numbers (controller
+    ruling 2026-09-27; rules.md R11.2).
+@@ -64,7 +65,11 @@ sources:
+    `io.read_humann` (R equivalent `mia::importHUMAnN`) is checked this way:
+    the HUMAnN golden tests of `fn.func_glom` and `fn.renorm` read their
+    inputs through it and compare with HUMAnN's own output. mia is not added
+-   to the R image (user-approved 2026-10-03).
++   to the R image (user-approved 2026-10-03). `io.read_metaphlan` (R equivalent
++   `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
++   leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
++   profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
++   MetaPhlAn rounds each percentage to 5 decimals).
+
+ # Why
+ R and NumPy random generators differ, so stochastic outputs can never match
+diff --git a/docs/api.md b/docs/api.md
+index 8da4273..4d5008a 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -14,6 +14,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+     io.read_biom
+     io.read_dada2
+     io.read_humann
++    io.read_metaphlan
+     io.read_phyloseq
+     io.read_qiime2
+     io.write_biom
+```
+
+- [x] **Step 8: Bookkeeping.**
+  - Tick this task's boxes and its checklist line.
+  - In `data-model-slots.md` and `r-golden-parity.md`, set
+    `generated: { by: claude-code/<your model id>, at: <UTC now> }` and
+    `commit:` to `git rev-parse --short HEAD`. Their `description`s do not
+    change.
+  - Add to `.knowledge/log.md`:
+    `- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (MetaPhlAn percentages / 100, checked to sum to 1) and new section "Taxonomic profiles (MetaPhlAn)"; [r-golden-parity](contracts/r-golden-parity.md) statement 6 lists tests/data/metaphlan and statement 8 gives read_metaphlan's parity (tax_glom equals MetaPhlAn's own rows); [phase-2-function](roadmap/phase-2-function.md) task 2.2 done.`
+- [x] **Step 9: Gate and commit.**
+
+```bash
+uvx prek run --all-files
+git add src/biotapy/io/_metaphlan.py src/biotapy/io/__init__.py src/biotapy/_core/__init__.py \
+  tests/io/test_metaphlan.py tests/data/metaphlan/demo_metaphlan_bugs_list.tsv tests/data/metaphlan/NOTICE.txt \
+  docs/api.md docs/guide/reading_data.md .knowledge/contracts/data-model-slots.md \
+  .knowledge/contracts/r-golden-parity.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(io): read MetaPhlAn 3 and 4 profiles and merged tables as leaf clades"
+uv run --group test pytest -q -W error::UserWarning   # 784 passed, 22 deselected
+```
 
 ### Task 2.4: `io.read_picrust2`
-**Interface (proposed):**
-`bt.io.read_picrust2(unstrat: str | Path, *, contrib: str | Path | None = None, taxa: str | Path | None = None) -> MuData`.
-- `unstrat`: `pred_metagenome_unstrat.tsv.gz` or `path_abun_unstrat.tsv.gz`
-  -> `"function"`.
-- `contrib`: the long-format `pred_metagenome_contrib.tsv.gz` (9 columns) or
-  `path_abun_contrib.tsv.gz` (8 columns) -> `"function_by_taxon"`, valued by
-  `taxon_function_abun`, `taxon` = the ASV id.
-- `taxa`: `seqtab_norm.tsv.gz` -> a `"taxa"` modality (samples x ASVs, the
-  copy-number-corrected abundances that redundancy needs).
-- Everything is built through `make_function_mudata`, plus the `taxa`
-  modality. `x_kind="abundance"`. R equivalent: none.
 
-**Design questions:**
-1. **One directory argument or explicit files.** PICRUSt2 writes
-   `EC_metagenome_out/`, `KO_metagenome_out/` and `pathways_out/`. Explicit
-   files avoid guessing which trait the user means; a directory argument
-   reads more naturally. Proposed: explicit files.
-2. **The `EC:` prefix.** PICRUSt2 writes `EC:1.1.1.1`; ENZYME and HUMAnN
-   write `1.1.1.1`. Options:
-   - strip the prefix at read (ids change from the file);
-   - keep it (then `func_glom` against `enzyme()` raises, Review focus 1,
-     and the user strips it).
+**Files:**
+- Create: `src/biotapy/io/_picrust2.py`, `tests/io/test_picrust2.py`.
+- Modify:
+  - `src/biotapy/io/__init__.py`;
+  - `docs/api.md`, `docs/guide/reading_data.md`, `docs/guide/function.md`;
+  - `.knowledge/contracts/data-model-slots.md`,
+    `.knowledge/contracts/r-golden-parity.md`.
 
-   Proposed: strip it and record it in `uns["biotapy"]` provenance params
-   (user).
-3. **The taxon `RARE`** (rare ASVs collapsed by `--min_reads/--min_samples`).
-   Proposed: a normal stratum, flagged `special`. That adds `RARE` to
-   `SPECIAL_FEATURES` for PICRUSt2 tables only, so it needs a separate
-   constant.
-4. **Pathway contributions** are not additive (as with HUMAnN) - same
-   two-modality reason. Gene-family contributions are: test that the per-ASV
-   sum equals `unstrat` within the rounding of `seqtab_norm` (2 decimals).
-5. **Column names unverified on a real file** (research B: read from code
-   and wiki, PICRUSt2 never run). First check: the PICRUSt2 repository's own
-   test data, reading only the column header lines (GPL: never copy data).
+**Interfaces:**
+- Consumes:
+  - 2.2a's `_read_table(..., text=3)` and `_numbers`;
+  - `_core.make_function_mudata(X, *, obs, row_ids, x_kind, source) -> MuData`,
+    which splits `function|taxon` ids into the two modalities.
+- Produces:
+  - `bt.io.read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuData`.
+    Modalities `"function"` and `"function_by_taxon"`; `var` exactly as
+    `read_humann`'s; `taxon` = ASV id or `RARE`.
+  - `fn.contributions` (2.7) and `pl.contributions` (2.9) read this layout.
 
-**Fixtures:** synthetic only (ruling). `pred_metagenome_unstrat`,
-`pred_metagenome_contrib` (9 columns, one `RARE` row, one zero-count row
-absent as PICRUSt2 drops them), `path_abun_unstrat`, `path_abun_contrib`
-(8 columns), `seqtab_norm`; gzip, as PICRUSt2 writes them.
+**Will not touch:** `_core/_function.py` (`function_var` already gives NaN
+genus and species for ASV ids), `SPECIAL_FEATURES` (`RARE` is not special),
+and `fn.func_glom`.
+
+- [x] **Step 1: Failing tests.** Create `tests/io/test_picrust2.py`:
+
+```python
+import gzip
+import tempfile
+from pathlib import Path
+
+import mudata
+import numpy as np
+import pandas as pd
+import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+
+import biotapy as bt
+
+# Synthetic PICRUSt2 2.6 outputs (PICRUSt2 is GPL-3: nothing is copied from it). Column names follow its
+# documented headers. Abundances: S1 holds ASV1 (10) and 0042 (4), S2 holds 0042 (5.5) and RARE (2), S3 is empty.
+# Copy numbers: ASV1 has EC:1.1.1.1 x1 and EC:2.7.1.1 x2; 0042 has EC:2.7.1.1 x1 and EC:3.2.1.1 x1; RARE has
+# EC:1.1.1.1 x1. Each unstratified value is the sum of its contributions; EC:4.1.1.1 is predicted nowhere.
+UNSTRAT = (
+    "function\tS1\tS2\tS3\n"
+    "EC:1.1.1.1\t10.0\t2.0\t0.0\n"
+    "EC:2.7.1.1\t24.0\t5.5\t0.0\n"
+    "EC:3.2.1.1\t4.0\t5.5\t0.0\n"
+    "EC:4.1.1.1\t0.0\t0.0\t0.0\n"
+)
+CONTRIB_COLUMNS = (
+    "sample\tfunction\ttaxon\ttaxon_abun\ttaxon_rel_abun\tgenome_function_count"
+    "\ttaxon_function_abun\ttaxon_rel_function_abun\tnorm_taxon_function_contrib\n"
+)
+CONTRIB = CONTRIB_COLUMNS + (
+    "S1\tEC:1.1.1.1\tASV1\t10.0\t71.43\t1\t10.0\t71.43\t1.0\n"
+    "S1\tEC:2.7.1.1\tASV1\t10.0\t71.43\t2\t20.0\t142.86\t0.833\n"
+    "S1\tEC:2.7.1.1\t0042\t4.0\t28.57\t1\t4.0\t28.57\t0.167\n"
+    "S1\tEC:3.2.1.1\t0042\t4.0\t28.57\t1\t4.0\t28.57\t1.0\n"
+    "S2\tEC:1.1.1.1\tRARE\t2.0\t26.67\t1\t2.0\t26.67\t1.0\n"
+    "S2\tEC:2.7.1.1\t0042\t5.5\t73.33\t1\t5.5\t73.33\t1.0\n"
+    "S2\tEC:3.2.1.1\t0042\t5.5\t73.33\t1\t5.5\t73.33\t1.0\n"
+)
+# Pathways (8 columns): a pathway's contributions need not sum to its unstratified value.
+PATH_UNSTRAT = "pathway\tS1\tS2\nPWY-1\t3.5\t1.0\nPWY-2\t0.5\t2.0\n"
+PATH_CONTRIB = (
+    "sample\tfunction\ttaxon\ttaxon_abun\ttaxon_rel_abun\tgenome_function_count\ttaxon_function_abun\ttaxon_rel_function_abun\n"
+    "S1\tPWY-1\tASV1\t10.0\t71.43\t0.5\t5.0\t35.71\n"
+    "S1\tPWY-1\t0042\t4.0\t28.57\t0.25\t1.0\t7.14\n"
+    "S2\tPWY-2\t0042\t5.5\t73.33\t0.5\t2.75\t36.67\n"
+)
+
+
+def write(tmp_path, text, name):
+    path = tmp_path / name
+    path.write_text(text)
+    return path
+
+
+@pytest.fixture
+def mdata(tmp_path):
+    unstrat = write(tmp_path, UNSTRAT, "pred_metagenome_unstrat.tsv")
+    return bt.io.read_picrust2(unstrat, contrib=write(tmp_path, CONTRIB, "pred_metagenome_contrib.tsv"))
+
+
+def test_reads_community_and_per_taxon_modalities(mdata):
+    function, by_taxon = mdata["function"], mdata["function_by_taxon"]
+    assert mdata.obs_names.tolist() == ["S1", "S2", "S3"]
+    assert function.var_names.tolist() == ["1.1.1.1", "2.7.1.1", "3.2.1.1", "4.1.1.1"]
+    assert by_taxon.var_names.tolist() == [
+        "1.1.1.1|ASV1",
+        "2.7.1.1|ASV1",
+        "2.7.1.1|0042",
+        "3.2.1.1|0042",
+        "1.1.1.1|RARE",
+    ]
+    np.testing.assert_array_equal(by_taxon.X.toarray()[1], [0.0, 0.0, 5.5, 5.5, 2.0])
+
+
+def test_var_matches_the_humann_layout(mdata):
+    assert mdata["function"].var.columns.tolist() == ["name", "special"]
+    var = mdata["function_by_taxon"].var
+    assert var.columns.tolist() == ["function", "name", "taxon", "genus", "species", "special"]
+    assert var["taxon"].tolist() == ["ASV1", "ASV1", "0042", "0042", "RARE"]
+    assert var[["name", "genus", "species"]].isna().all().all() and not var["special"].any()
+
+
+def test_x_kind_is_abundance_so_rarefy_refuses_it(mdata):
+    assert mdata["function"].uns["biotapy"]["x_kind"] == "abundance"
+    assert mdata["function_by_taxon"].uns["biotapy"]["x_kind"] == "abundance"
+    with pytest.raises(ValueError, match="raw counts"):
+        bt.pp.rarefy(mdata["function"], depth=5, seed=0)
+
+
+def test_gene_family_contributions_sum_to_the_community_values(mdata):
+    by_taxon = mdata["function_by_taxon"]
+    summed = pd.DataFrame(by_taxon.X.toarray(), columns=by_taxon.var["function"]).T.groupby(level=0).sum().T
+    community = pd.DataFrame(mdata["function"].X.toarray(), columns=mdata["function"].var_names)
+    pd.testing.assert_frame_equal(summed, community[summed.columns], check_names=False)
+
+
+def test_pathway_contributions_are_kept_as_written(tmp_path):
+    unstrat = write(tmp_path, PATH_UNSTRAT, "path_abun_unstrat.tsv")
+    mdata = bt.io.read_picrust2(unstrat, contrib=write(tmp_path, PATH_CONTRIB, "path_abun_contrib.tsv"))
+    np.testing.assert_array_equal(mdata["function"].X.toarray(), [[3.5, 0.5], [1.0, 2.0]])
+    np.testing.assert_array_equal(mdata["function_by_taxon"].X.toarray(), [[5.0, 1.0, 0.0], [0.0, 0.0, 2.75]])
+
+
+def test_without_contrib_the_per_taxon_modality_is_empty(tmp_path):
+    mdata = bt.io.read_picrust2(write(tmp_path, UNSTRAT, "unstrat.tsv"))
+    assert mdata["function"].shape == (3, 4) and mdata["function_by_taxon"].shape == (3, 0)
+
+
+def test_ec_ids_match_enzyme_style_hierarchies(mdata):
+    edges = pd.DataFrame({"child": ["1.1.1.1", "2.7.1.1"], "parent": ["1.-.-.-", "2.-.-.-"], "level": "class"})
+    out = bt.fn.func_glom(mdata["function"], "class", hierarchy=edges)
+    assert out.var_names.tolist() == ["1.-.-.-", "2.-.-.-", "UNGROUPED"]
+
+
+def test_ko_ids_are_kept(tmp_path):
+    mdata = bt.io.read_picrust2(write(tmp_path, "function\tS1\nK00001\t1.5\n", "ko.tsv"))
+    assert mdata["function"].var_names.tolist() == ["K00001"]
+
+
+def test_all_zero_sample_and_feature_are_kept(mdata):
+    assert mdata["function"].X[2].nnz == 0 and mdata["function_by_taxon"].X[2].nnz == 0
+    assert mdata["function"].X[:, 3].nnz == 0
+
+
+def test_single_sample(tmp_path):
+    columns = CONTRIB_COLUMNS
+    mdata = bt.io.read_picrust2(
+        write(tmp_path, "function\tS1\nEC:1.1.1.1\t6.0\n", "u.tsv"),
+        contrib=write(tmp_path, columns + "S1\tEC:1.1.1.1\tASV1\t3\t100\t2\t6.0\t200\t1\n", "c.tsv"),
+    )
+    assert mdata["function"].shape == (1, 1) and mdata["function_by_taxon"].shape == (1, 1)
+
+
+def test_reads_gzip(tmp_path):
+    unstrat, contrib = tmp_path / "u.tsv.gz", tmp_path / "c.tsv.gz"
+    unstrat.write_bytes(gzip.compress(UNSTRAT.encode()))
+    contrib.write_bytes(gzip.compress(CONTRIB.encode()))
+    assert bt.io.read_picrust2(unstrat, contrib=contrib)["function_by_taxon"].n_vars == 5
+
+
+def test_round_trips_through_h5mu(tmp_path, mdata):
+    mdata.write_h5mu(tmp_path / "p.h5mu")
+    back = mudata.read_h5mu(tmp_path / "p.h5mu")
+    assert (back["function_by_taxon"].X != mdata["function_by_taxon"].X).nnz == 0
+    assert back["function_by_taxon"].var["taxon"].tolist() == ["ASV1", "ASV1", "0042", "0042", "RARE"]
+
+
+ROW = "\t1\t1\t1\t1.0\t1\t1\n"  # the six numeric contribution cells, taxon_function_abun = 1.0
+# case -> (unstrat text, contrib text, the message expected)
+MALFORMED = {
+    "contrib-columns": (UNSTRAT, CONTRIB.replace("taxon_function_abun", "abun"), r"contrib=.*c\.tsv.*long-format"),
+    "legacy-wide-contrib": (UNSTRAT, "function\tsequence\tS1\nEC:1.1.1.1\tASV1\t1.0\n", r"c\.tsv.*long-format"),
+    "unknown-sample": (UNSTRAT, CONTRIB + "S9\tEC:1.1.1.1\tASV1" + ROW, r"c\.tsv.*samples that path lacks: \['S9'\]"),
+    "unknown-function": (UNSTRAT, CONTRIB + "S1\tK00001\tASV1" + ROW, r"functions that path lacks: \['K00001'\]"),
+    "repeated-row": (UNSTRAT, CONTRIB + "S1\tEC:1.1.1.1\tASV1" + ROW, r"c\.tsv.*repeats a sample, function and taxon"),
+    "missing-taxon": (UNSTRAT, CONTRIB + "S1\tEC:1.1.1.1\t" + ROW, r"c\.tsv.*no function or taxon"),
+    "non-number": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tASV1\t1\t1\t1\tx\t1\t1\n", r"c\.tsv.*not a number"),
+    "bar-in-taxon": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tA|B" + ROW, r"path=.*u\.tsv.*contrib=.*c\.tsv.*one '\|'"),
+    "repeated-sample": (UNSTRAT.replace("S3", "S2"), CONTRIB, r"path=.*u\.tsv.*repeats column names: \['S2'\]"),
+    "description": (
+        "function\tdescription\tS1\nEC:1.1.1.1\tAlcohol dehydrogenase\t1.0\n",
+        CONTRIB,
+        r"u\.tsv.*'description'",
+    ),
+    "short-row": (UNSTRAT + "EC:1.1.1.1\t1\t1\n", CONTRIB, r"u\.tsv.*missing or NaN"),
+}
+
+
+@pytest.mark.parametrize("case", MALFORMED)
+def test_malformed_inputs_raise_naming_the_file(tmp_path, case):
+    unstrat, contrib, message = MALFORMED[case]
+    with pytest.raises(ValueError, match=message):
+        bt.io.read_picrust2(write(tmp_path, unstrat, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))
+
+
+@given(
+    st.lists(
+        st.tuples(st.integers(0, 2), st.integers(0, 2), st.integers(0, 3), st.floats(0.01, 1e6, allow_nan=False)),
+        min_size=1,
+        max_size=12,
+        unique_by=lambda row: row[:3],
+    )
+)
+def test_each_contribution_lands_in_its_cell(rows):
+    # (sample, function, taxon, value) rows in any order; each must appear once, at (sample, function|taxon).
+    contrib = CONTRIB_COLUMNS + "".join(
+        f"S{s}\tEC:{f}.1.1.1\tASV{t}\t1\t1\t1\t{value!r}\t1\t1\n" for s, f, t, value in rows
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        unstrat = Path(tmp) / "u.tsv"
+        unstrat.write_text("function\tS0\tS1\tS2\n" + "".join(f"EC:{f}.1.1.1\t0\t0\t0\n" for f in range(3)))
+        (Path(tmp) / "c.tsv").write_text(contrib)
+        by_taxon = bt.io.read_picrust2(unstrat, contrib=Path(tmp) / "c.tsv")["function_by_taxon"]
+    X = pd.DataFrame(by_taxon.X.toarray(), index=by_taxon.obs_names, columns=by_taxon.var_names)
+    got = [X.loc[f"S{s}", f"{f}.1.1.1|ASV{t}"] for s, f, t, _ in rows]
+    # Looser than exact: pandas' default C float parser keeps about 15 significant digits (as in test_humann.py).
+    np.testing.assert_allclose(got, [value for *_, value in rows], rtol=1e-12)
+    assert by_taxon.X.nnz == len(rows)
+```
+
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q`
+  -> `17 failed, 7 errors`, all `AttributeError: module 'biotapy.io' has no attribute 'read_picrust2'`.
+  The 7 errors are the tests that use the `mdata` fixture.
+- [x] **Step 3: Implement.** Create `src/biotapy/io/_picrust2.py`.
+  `_contributions` is the single-use helper R4.4 allows: inlined,
+  `read_picrust2` has 37 statements and complexity 9. `_first_line` serves
+  both files here, and the trait reader in 2.4b.
+
+```python
+"""PICRUSt2 predictions: metagenome and pathway tables and their contributions."""
+
+import gzip
+from pathlib import Path
+
+import pandas as pd
+import scipy.sparse as sp
+from mudata import MuData
+
+from biotapy._core import make_function_mudata
+
+from ._table import _numbers, _read_table
+
+# PICRUSt2 writes EC numbers as "EC:1.1.1.1"; ENZYME, HUMAnN and bt.datasets.enzyme write "1.1.1.1".
+_EC_PREFIX = "EC:"
+# The contribution columns read_picrust2 uses; the long table's first column is "sample".
+_CONTRIB_COLUMNS = ("function", "taxon", "taxon_function_abun")
+
+
+def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuData:
+    r"""Read a PICRUSt2 prediction, and optionally its contributions, into community and per-taxon modalities.
+
+    Parameters
+    ----------
+    path
+        An unstratified PICRUSt2 table: ``pred_metagenome_unstrat.tsv.gz``
+        (EC, KO or another trait) or ``path_abun_unstrat.tsv.gz``.
+    contrib
+        The matching long-format contributions, written with
+        ``--stratified``: ``pred_metagenome_contrib.tsv.gz`` or
+        ``path_abun_contrib.tsv.gz``. Its ``taxon_function_abun`` column
+        becomes the per-taxon modality.
+
+    Returns
+    -------
+    MuData
+        Two modalities over ``path``'s samples, as ``bt.io.read_humann``
+        returns them:
+
+        - ``"function"``: one feature per function, ``var`` columns ``name``
+          and ``special``;
+        - ``"function_by_taxon"``: one feature per function and taxon
+          (``1.1.1.1|ASV1``), ``var`` columns ``function``, ``name``,
+          ``taxon``, ``genus``, ``species`` and ``special``; no features
+          without ``contrib``.
+
+        ``taxon`` is the ASV id (or ``RARE``, PICRUSt2's group of rare
+        ASVs), so ``genus`` and ``species`` are NaN. ``EC:`` is removed from
+        EC numbers. ``uns['biotapy']['x_kind']`` is ``"abundance"``.
+
+    Raises
+    ------
+    ValueError
+        A file is empty or malformed (a value that is not a number, a missing
+        value or id, a data row with more cells than the header, repeated
+        column names); ``path`` has a ``description`` column; ``contrib``
+        lacks a ``sample``, ``function``, ``taxon`` or
+        ``taxon_function_abun`` column, repeats a sample, function and taxon,
+        or names a sample or function that ``path`` lacks. Messages name the
+        file's argument.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/reading_data`
+
+    PICRUSt2's predictions are marker-normalised read counts weighted by
+    predicted gene copy numbers, not counts, so ``bt.pp.rarefy`` refuses
+    them. A sample's gene-family contributions sum to its unstratified value;
+    a pathway's need not, so neither modality is derived from the other.
+
+    ``EC:`` is removed so the ids match ENZYME's and HUMAnN's
+    (``bt.datasets.enzyme``); remove it from a PICRUSt2 mapping file too
+    before regrouping with ``bt.fn.func_glom``.
+
+    The unstratified table is read into one dense functions x samples
+    ``float64`` array, and ``contrib`` into one pandas table of all its rows,
+    before the result is stored sparse.
+
+    References
+    ----------
+    Douglas GM et al. (2020) PICRUSt2 for prediction of metagenome functions. Nature Biotechnology 38:685-688.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> folder = Path(tempfile.mkdtemp())
+    >>> _ = (folder / "unstrat.tsv").write_text("function\tS1\nEC:1.1.1.1\t6.0\n")
+    >>> columns = "sample\tfunction\ttaxon\ttaxon_abun\ttaxon_rel_abun\tgenome_function_count"
+    >>> columns += "\ttaxon_function_abun\ttaxon_rel_function_abun\tnorm_taxon_function_contrib\n"
+    >>> _ = (folder / "contrib.tsv").write_text(columns + "S1\tEC:1.1.1.1\tASV1\t3.0\t100.0\t2\t6.0\t200.0\t1.0\n")
+    >>> mdata = bt.io.read_picrust2(folder / "unstrat.tsv", contrib=folder / "contrib.tsv")
+    >>> mdata["function"].var_names.tolist(), mdata["function_by_taxon"].var_names.tolist()
+    (['1.1.1.1'], ['1.1.1.1|ASV1'])
+    """
+    path = Path(path)
+    argument = f"path={str(path)!r}"
+    table = _read_table(path, _first_line(path), skiprows=0, argument=argument)
+    if "description" in table.columns:
+        msg = f"{argument} has a 'description' column (add_descriptions.py output); pass the table without it"
+        raise ValueError(msg)
+    X = sp.csr_matrix(_numbers(table, argument=argument).T)
+    row_ids = table.index.str.removeprefix(_EC_PREFIX)
+    if contrib is not None:
+        by_taxon, keys = _contributions(Path(contrib), samples=table.columns, functions=row_ids)
+        X, row_ids = sp.hstack([X, by_taxon], format="csr"), row_ids.append(keys)
+    try:
+        return make_function_mudata(
+            X, obs=pd.DataFrame(index=table.columns), row_ids=row_ids, x_kind="abundance", source="io.read_picrust2"
+        )
+    except ValueError as error:  # repeated functions, or a function or taxon id holding "|"
+        msg = f"{argument}, contrib={None if contrib is None else str(contrib)!r}: {error}"
+        raise ValueError(msg) from error
+
+
+def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
+    """The long contribution table as a samples x (function, taxon) matrix, and its ``function|taxon`` ids."""
+    argument = f"contrib={str(path)!r}"
+    table = _read_table(path, _first_line(path), skiprows=0, argument=argument, text=3)
+    missing = [column for column in _CONTRIB_COLUMNS if column not in table.columns]
+    if table.index.name != "sample" or missing:
+        msg = f"{argument} needs PICRUSt2's long-format columns sample, {', '.join(_CONTRIB_COLUMNS)}; found {[table.index.name, *table.columns]}"
+        raise ValueError(msg)
+    values = _numbers(table[["taxon_function_abun"]], argument=argument).ravel()
+    ids = table[["function", "taxon"]]
+    if ids.isna().any().any():
+        msg = f"{argument} has a row with no function or taxon"
+        raise ValueError(msg)
+    function = ids["function"].str.removeprefix(_EC_PREFIX)
+    rows = samples.get_indexer(table.index)
+    for name, unknown in (("samples", table.index[rows < 0]), ("functions", function[~function.isin(functions)])):
+        if len(unknown):
+            msg = f"{argument} names {name} that path lacks: {sorted(set(unknown))[:3]}"
+            raise ValueError(msg)
+    codes, keys = pd.factorize(function + "|" + ids["taxon"])
+    if pd.Series(rows * len(keys) + codes).duplicated().any():
+        msg = f"{argument} repeats a sample, function and taxon"
+        raise ValueError(msg)
+    matrix = sp.csr_matrix((values, (rows, codes)), shape=(len(samples), len(keys)))
+    return matrix, pd.Index(keys)
+
+
+def _first_line(path: Path) -> str:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        return handle.readline()
+```
+
+  `src/biotapy/io/__init__.py` becomes (ruff format wraps `__all__`):
+
+```python
+from ._biom import read_biom, write_biom
+from ._dada2 import read_dada2
+from ._humann import read_humann
+from ._metaphlan import read_metaphlan
+from ._phyloseq import read_phyloseq
+from ._picrust2 import read_picrust2
+from ._qiime2 import read_qiime2
+
+__all__ = [
+    "read_biom",
+    "read_dada2",
+    "read_humann",
+    "read_metaphlan",
+    "read_phyloseq",
+    "read_picrust2",
+    "read_qiime2",
+    "write_biom",
+]
+```
+
+- [x] **Step 4: Run, expect pass.** The same command gives `24 passed`. The
+  doctest `uv run --group test pytest src/biotapy/io/_picrust2.py -q` gives
+  `1 passed`.
+- [x] **Step 5: Docs and contracts.**
+  - `docs/api.md`: add `io.read_picrust2` after `io.read_phyloseq`.
+  - `docs/guide/reading_data.md`: append the PICRUSt2 section.
+  - `docs/guide/function.md`: add "PICRUSt2 tables" before "Aggregating
+    along a hierarchy".
+  - `data-model-slots.md`: convention 2 and the Function tables section.
+  - `r-golden-parity.md`: statements 6 and 8.
+
+  The exact text:
+
+````diff
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index 3785146..a15e4bf 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -61,6 +61,8 @@ Extends the spec's data-model table with exact keys.[^spec]
+    `relative`) and labels a header without a unit `abundance`, never `counts`.
+    `io.read_metaphlan` divides MetaPhlAn's percentages by 100 and sets `relative`, after
+    checking that every sample's leaf clades sum to 1 within `1e-3` (`_core.RELATIVE_TOLERANCE`).
++   `io.read_picrust2` sets `abundance`: PICRUSt2's values are read counts divided by predicted
++   marker copies and multiplied by gene copies.
+    `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
+    its `relative` stratified rows do not sum to 1: they are shares of the community total.
+    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+@@ -87,9 +89,9 @@ Extends the spec's data-model table with exact keys.[^spec]
+    ids) never collide silently.
+
+ ## Function tables
+-`io.read_humann` (and, from Phase 2 slice 2B, `io.read_picrust2`) returns a
+-`MuData` built by `_core.make_function_mudata` with two modalities over the
+-same samples, each an `AnnData` with its own copy of `obs`:
++`io.read_humann` and `io.read_picrust2` return a `MuData` built by
++`_core.make_function_mudata` with two modalities over the same samples, each
++an `AnnData` with its own copy of `obs`:
+
+ | Modality | Features | `var` columns |
+ |---|---|---|
+@@ -102,6 +104,13 @@ columns use the pandas `str` dtype, as rank columns do. Both modalities
+ always exist; either may have 0 features. The community values are not
+ the sum of their strata for pathways, which is why there are two.
+
++In a PICRUSt2 table the stratified rows come from the long contribution
++table (`taxon_function_abun`), and the modality has 0 features when no
++contribution table is read. `taxon` is the ASV id as written, or `RARE`
++(PICRUSt2's group of rare ASVs: an ordinary stratum, not `special`), so
++`genus` and `species` are NaN. `EC:` is removed from EC numbers in both
++modalities, so ids match ENZYME's and HUMAnN's.
++
+ ## Taxonomic profiles (MetaPhlAn)
+ `io.read_metaphlan` keeps one feature per leaf clade: a row that no other
+ row descends from through any ancestor (MetaPhlAn can omit an intermediate
+diff --git a/.knowledge/contracts/r-golden-parity.md b/.knowledge/contracts/r-golden-parity.md
+index 05c6d53..ba1e738 100644
+--- a/.knowledge/contracts/r-golden-parity.md
++++ b/.knowledge/contracts/r-golden-parity.md
+@@ -56,7 +56,9 @@ sources:
+    stay synthetic, except small files copied under a permissive licence
+    with a `NOTICE.txt` beside them (`tests/data/humann`: HUMAnN's MIT test
+    data; `tests/data/metaphlan`: a MetaPhlAn 4.0.6 profile from HUMAnN's MIT
+-   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
++   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0). PICRUSt2
++   (GPL-3) fixtures are always synthetic, written from its documented
++   column headers.
+ 7. `pl` functions have an R equivalent but no golden test. They draw numbers
+    that `tl` stores, and `tl`'s golden tests check those numbers (controller
+    ruling 2026-09-27; rules.md R11.2).
+@@ -69,7 +71,8 @@ sources:
+    `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
+    leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
+    profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
+-   MetaPhlAn rounds each percentage to 5 decimals).
++   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` has no
++   R equivalent; invariants on synthetic files check it.
+
+ # Why
+ R and NumPy random generators differ, so stochastic outputs can never match
+diff --git a/docs/api.md b/docs/api.md
+index 4d5008a..ec1787b 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -16,6 +16,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+     io.read_humann
+     io.read_metaphlan
+     io.read_phyloseq
++    io.read_picrust2
+     io.read_qiime2
+     io.write_biom
+ ```
+diff --git a/docs/guide/function.md b/docs/guide/function.md
+index 8df302f..9703b28 100644
+--- a/docs/guide/function.md
++++ b/docs/guide/function.md
+@@ -31,6 +31,26 @@ flagged in `var["special"]`, so a sample's total keeps what HUMAnN could not
+ assign. Read one table per call: a gene family table and a pathway table both
+ hold `UNMAPPED`.
+
++## PICRUSt2 tables
++
++`bt.io.read_picrust2` gives PICRUSt2 predictions the same two modalities. Its
++`"function_by_taxon"` features are functions per ASV (`2.7.1.1|ASV1`), read
++from the long contribution table. For gene families a sample's
++contributions sum to its community value; for pathways they need not, as in
++HUMAnN. EC numbers lose PICRUSt2's `EC:` prefix, so they match
++`bt.datasets.enzyme()`:
++
++```python
++import biotapy as bt
++
++mdata = bt.io.read_picrust2("pred_metagenome_unstrat.tsv.gz", contrib="pred_metagenome_contrib.tsv.gz")
++by_class = bt.fn.func_glom(mdata["function"], "class", hierarchy=bt.datasets.enzyme())
++```
++
++PICRUSt2's own mapping files write `EC:1.1.1.1`; remove the prefix from the
++edge table's `child` column before regrouping with them, or `func_glom`
++raises because nothing maps.
++
+ ## Aggregating along a hierarchy
+
+ `bt.fn.func_glom` sums functions into their parents at one level of a
+diff --git a/docs/guide/reading_data.md b/docs/guide/reading_data.md
+index fdeab8b..b91f760 100644
+--- a/docs/guide/reading_data.md
++++ b/docs/guide/reading_data.md
+@@ -318,3 +318,32 @@ tdata = bt.io.read_metaphlan("merged_abundance_table.tsv")
+   marker tables), raises a `ValueError` instead of double counting.
+ - **Not read.** NCBI taxids, `additional_species`, coverage and estimated
+   read counts.
++
++## PICRUSt2
++
++`bt.io.read_picrust2` reads a PICRUSt2 prediction into the same two-modality
++`MuData` as `bt.io.read_humann`: the unstratified table becomes
++`"function"`, and the long-format contributions written with `--stratified`
++become `"function_by_taxon"`, one feature per function and ASV.
++
++```python
++import biotapy as bt
++
++mdata = bt.io.read_picrust2(
++    "EC_metagenome_out/pred_metagenome_unstrat.tsv.gz",
++    contrib="EC_metagenome_out/pred_metagenome_contrib.tsv.gz",
++)
++pathways = bt.io.read_picrust2("pathways_out/path_abun_unstrat.tsv.gz")
++```
++
++- **Ids.** `EC:1.1.1.1` becomes `1.1.1.1`, the form ENZYME, HUMAnN and
++  `bt.datasets.enzyme` use. KO and pathway ids are kept.
++- **Taxa.** A stratified feature's `taxon` is the ASV id as written (`0042`
++  stays `0042`), or `RARE` for the rare ASVs PICRUSt2 groups together.
++- **Units.** `x_kind` is `"abundance"`: the values are read counts divided by
++  predicted marker copies and multiplied by gene copies, not counts.
++- **Not read.** The deprecated wide stratified table (`--wide_table`) and
++  tables with an `add_descriptions.py` `description` column raise a
++  `ValueError`; pass the table without descriptions. PICRUSt2's pathway
++  coverage tables have the same layout as its abundance tables and cannot be
++  told apart, so pass only abundance tables.
+````
+
+  Build the docs as in 2.2 Step 6 -> `build succeeded.`
+- [x] **Step 6: Bookkeeping.**
+  - Tick this task's boxes and the 2.4 part of its checklist line.
+  - Bump `generated` and `commit` in `data-model-slots.md` and
+    `r-golden-parity.md`.
+  - Add to `.knowledge/log.md`:
+    `- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (PICRUSt2 is abundance) and Function tables (read_picrust2: stratified rows from the contribution table, taxon = ASV id or RARE, EC: removed); [r-golden-parity](contracts/r-golden-parity.md) statements 6 and 8 (synthetic PICRUSt2 fixtures, no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4 done.`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+uvx prek run --all-files
+git add src/biotapy/io/_picrust2.py src/biotapy/io/__init__.py tests/io/test_picrust2.py \
+  docs/api.md docs/guide/reading_data.md docs/guide/function.md .knowledge/contracts/data-model-slots.md \
+  .knowledge/contracts/r-golden-parity.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(io): read PICRUSt2 predictions and contributions into community and per-taxon modalities"
+uv run --group test pytest -q -W error::UserWarning   # 810 passed, 22 deselected
+```
 
 ### Task 2.4b: `io.read_picrust2_traits`
-**Why a separate function:** the per-ASV copy-number table
-(`EC_predicted.tsv.gz` / `KO_predicted.tsv.gz`: ASVs x functions, the genome
-content matrix G that Tian 2020 needs) has taxa, not samples, as rows. It
-cannot be a modality of a samples MuData (mudata's `axis=0` would add ASVs to
-the sample index). The brief's "read_picrust2 also reads the per-taxon gene
-table" is therefore met by a sibling reader. **(user: new public function)**
 
-**Interface (proposed):** `bt.io.read_picrust2_traits(path: str | Path) -> pd.DataFrame`.
-Index = ASV ids, columns = function ids (prefix rule as 2.4), float copy
-numbers; the `metadata_NSTI` column, if present, is dropped (check the
-header).
+**Why a separate function (user-approved new public function, Phase 2
+decision 4):** the per-ASV copy-number table has taxa, not samples, as rows.
+It cannot be a modality of the samples' MuData, because mudata's `axis=0`
+would add the ASVs to the sample index.
 
-**Fixtures:** synthetic `EC_predicted.tsv.gz` (4 ASVs x 5 ECs, one ASV with
-all zeros).
+**Files:** modify `src/biotapy/io/_picrust2.py`, `src/biotapy/io/__init__.py`,
+`tests/io/test_picrust2.py`, `docs/api.md`, `docs/guide/reading_data.md`,
+`.knowledge/contracts/data-model-slots.md`, `.knowledge/contracts/r-golden-parity.md`.
 
-### Checkpoint B
-Review against the contracts (data-model-slots gains the MetaPhlAn and
-PICRUSt2 rules); update `modules/io.md`; ask the user to review before 2C.
+**Interfaces:**
+- Consumes `_read_table`, `_numbers` and 2.4's `_first_line`, `_EC_PREFIX`.
+- Produces `bt.io.read_picrust2_traits(path: str | Path) -> pd.DataFrame`:
+  - ASVs x functions, `float64`;
+  - index = ASV ids as text, unnamed; columns = function ids with `EC:`
+    removed;
+  - no `metadata_NSTI`.
+
+  2.8 calls `fn.functional_redundancy(adata, *, traits=read_picrust2_traits(...))`.
+
+**Will not touch:** `read_picrust2`.
+
+- [x] **Step 1: Failing tests.** Append to `tests/io/test_picrust2.py`:
+
+```python
+TRAITS = (
+    "sequence\tEC:1.1.1.1\tEC:2.7.1.1\tEC:3.2.1.1\tmetadata_NSTI\n"
+    "ASV1\t1\t2\t0\t0.03\n"
+    "0042\t0\t1\t1\t0.12\n"
+    "ASV9\t0\t0\t0\t1.5\n"
+)
+
+
+def test_traits_are_asvs_by_functions(tmp_path):
+    traits = bt.io.read_picrust2_traits(write(tmp_path, TRAITS, "EC_predicted.tsv"))
+    assert traits.index.tolist() == ["ASV1", "0042", "ASV9"]
+    assert traits.columns.tolist() == ["1.1.1.1", "2.7.1.1", "3.2.1.1"]
+    assert traits.dtypes.eq(np.float64).all() and traits.loc["ASV9"].eq(0).all()
+
+
+def test_traits_read_gzip_and_keep_ko_ids(tmp_path):
+    path = tmp_path / "KO_predicted.tsv.gz"
+    path.write_bytes(gzip.compress(b"sequence\tK00001\tK00002\nASV1\t1\t0\n"))
+    assert bt.io.read_picrust2_traits(path).columns.tolist() == ["K00001", "K00002"]
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        (TRAITS + "ASV1\t1\t1\t1\t0.1\n", r"repeats ASV ids: \['ASV1'\]"),
+        (TRAITS + "ASV2\t1\tx\t1\t0.1\n", "not a number"),
+        (TRAITS + "ASV2\t1\t1\n", "missing or NaN"),
+        ("", "not a valid tab-separated table"),
+    ],
+    ids=["repeated-asv", "non-number", "short-row", "empty-file"],
+)
+def test_malformed_traits_raise_naming_the_path(tmp_path, text, message):
+    with pytest.raises(ValueError, match=rf"traits\.tsv.*{message}"):
+        bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+```
+
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q -k traits`
+  -> `6 failed`: `AttributeError: module 'biotapy.io' has no attribute 'read_picrust2_traits'`.
+- [x] **Step 3: Implement.**
+  - In `src/biotapy/io/_picrust2.py`, change the module docstring to
+    `"""PICRUSt2 predictions: metagenome and pathway tables, their contributions, and per-ASV trait tables."""`.
+  - Insert this function before `def _first_line`:
+
+```python
+def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
+    r"""Read PICRUSt2's predicted gene copy numbers per ASV.
+
+    Parameters
+    ----------
+    path
+        A per-sequence trait table, such as ``EC_predicted.tsv.gz`` or
+        ``KO_predicted.tsv.gz``: one row per ASV, one column per function.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ASVs x functions, ``float64`` copy numbers, indexed by the ASV ids as
+        written (``0042`` stays ``0042``). ``EC:`` is removed from EC numbers,
+        as in ``bt.io.read_picrust2``; a ``metadata_NSTI`` column is dropped.
+
+    Raises
+    ------
+    ValueError
+        The file is empty or malformed (a value that is not a number, a
+        missing value or id, a data row with more cells than the header,
+        repeated column names), or an ASV id repeats. Messages name ``path``.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/reading_data`
+
+    The table describes genomes, not samples, so it is a DataFrame rather
+    than a modality of the samples' MuData. It is read into one dense
+    ASVs x functions ``float64`` array.
+
+    References
+    ----------
+    Douglas GM et al. (2020) PICRUSt2 for prediction of metagenome functions. Nature Biotechnology 38:685-688.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> path = Path(tempfile.mkdtemp()) / "EC_predicted.tsv"
+    >>> _ = path.write_text("sequence\tEC:1.1.1.1\tEC:2.7.1.1\tmetadata_NSTI\nASV1\t1\t2\t0.03\n")
+    >>> bt.io.read_picrust2_traits(path)
+          1.1.1.1  2.7.1.1
+    ASV1      1.0      2.0
+    """
+    path = Path(path)
+    argument = f"path={str(path)!r}"
+    table = _read_table(path, _first_line(path), skiprows=0, argument=argument)
+    table = table.drop(columns=[column for column in table.columns if column == "metadata_NSTI"])
+    repeated = table.index[table.index.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"{argument} repeats ASV ids: {repeated[:3]}"
+        raise ValueError(msg)
+    values = _numbers(table, argument=argument)
+    return pd.DataFrame(values, index=table.index.rename(None), columns=table.columns.str.removeprefix(_EC_PREFIX))
+```
+
+  - `src/biotapy/io/__init__.py` becomes:
+
+```python
+from ._biom import read_biom, write_biom
+from ._dada2 import read_dada2
+from ._humann import read_humann
+from ._metaphlan import read_metaphlan
+from ._phyloseq import read_phyloseq
+from ._picrust2 import read_picrust2, read_picrust2_traits
+from ._qiime2 import read_qiime2
+
+__all__ = [
+    "read_biom",
+    "read_dada2",
+    "read_humann",
+    "read_metaphlan",
+    "read_phyloseq",
+    "read_picrust2",
+    "read_picrust2_traits",
+    "read_qiime2",
+    "write_biom",
+]
+```
+
+- [x] **Step 4: Run, expect pass.** `uv run --group test pytest tests/io/test_picrust2.py -q`
+  gives `30 passed`. The doctests
+  `uv run --group test pytest src/biotapy/io/_picrust2.py -q` give `2 passed`.
+- [x] **Step 5: Docs and contracts.**
+  - `docs/api.md`: add `io.read_picrust2_traits` after `io.read_picrust2`.
+  - `docs/guide/reading_data.md`: append the paragraph below to the PICRUSt2
+    section.
+  - Make the two contract edits shown.
+
+````diff
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index a15e4bf..d3aac34 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -108,8 +108,9 @@ In a PICRUSt2 table the stratified rows come from the long contribution
+ table (`taxon_function_abun`), and the modality has 0 features when no
+ contribution table is read. `taxon` is the ASV id as written, or `RARE`
+ (PICRUSt2's group of rare ASVs: an ordinary stratum, not `special`), so
+-`genus` and `species` are NaN. `EC:` is removed from EC numbers in both
+-modalities, so ids match ENZYME's and HUMAnN's.
++`genus` and `species` are NaN. `EC:` is removed from EC numbers, in both
++modalities and in `io.read_picrust2_traits`' columns, so ids match ENZYME's
++and HUMAnN's.
+
+ ## Taxonomic profiles (MetaPhlAn)
+ `io.read_metaphlan` keeps one feature per leaf clade: a row that no other
+diff --git a/.knowledge/contracts/r-golden-parity.md b/.knowledge/contracts/r-golden-parity.md
+index ba1e738..2422543 100644
+--- a/.knowledge/contracts/r-golden-parity.md
++++ b/.knowledge/contracts/r-golden-parity.md
+@@ -71,8 +71,9 @@ sources:
+    `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
+    leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
+    profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
+-   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` has no
+-   R equivalent; invariants on synthetic files check it.
++   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` and
++   `io.read_picrust2_traits` have no R equivalent; invariants on synthetic
++   files check them.
+
+ # Why
+ R and NumPy random generators differ, so stochastic outputs can never match
+diff --git a/docs/api.md b/docs/api.md
+index ec1787b..41a2c83 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -17,6 +17,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+     io.read_metaphlan
+     io.read_phyloseq
+     io.read_picrust2
++    io.read_picrust2_traits
+     io.read_qiime2
+     io.write_biom
+ ```
+diff --git a/docs/guide/reading_data.md b/docs/guide/reading_data.md
+index b91f760..2f41546 100644
+--- a/docs/guide/reading_data.md
++++ b/docs/guide/reading_data.md
+@@ -347,3 +347,7 @@ pathways = bt.io.read_picrust2("pathways_out/path_abun_unstrat.tsv.gz")
+   `ValueError`; pass the table without descriptions. PICRUSt2's pathway
+   coverage tables have the same layout as its abundance tables and cannot be
+   told apart, so pass only abundance tables.
++
++`bt.io.read_picrust2_traits` reads the predicted gene copy numbers per ASV
++(`EC_predicted.tsv.gz`, `KO_predicted.tsv.gz`) into an ASVs x functions
++`DataFrame`. It describes genomes, not samples, so it is not a modality.
+````
+
+  Build the docs -> `build succeeded.`
+- [x] **Step 6: Bookkeeping.**
+  - Tick this task's boxes and the rest of its checklist line.
+  - Bump `generated` and `commit` in both contracts.
+  - Add to `.knowledge/log.md`:
+    `- **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables and [r-golden-parity](contracts/r-golden-parity.md) statement 8 name io.read_picrust2_traits (EC: removed from its columns; no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4b done.`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+uvx prek run --all-files
+git add src/biotapy/io/_picrust2.py src/biotapy/io/__init__.py tests/io/test_picrust2.py docs/api.md \
+  docs/guide/reading_data.md .knowledge/contracts/data-model-slots.md .knowledge/contracts/r-golden-parity.md \
+  .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(io): read PICRUSt2 per-ASV copy numbers"
+uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselected
+```
+
+### Checkpoint B - review slice 2B
+- [x] **Review the whole slice** with superpowers:requesting-code-review,
+  against:
+  - data-model-slots, function-shape, module-boundaries and r-golden-parity;
+  - no-bundled-kegg and function-tables-as-mudata;
+  - the slice 2B review focus above.
+
+  Then a fix pass, one commit per finding, each with a test. Reviewers may
+  run the readers on real files they hold. Never commit those files, and
+  never copy a PICRUSt2 output into `tests/` (GPL).
+- [x] **Run the gates** on the committed tree:
+  - `uvx prek run --all-files`;
+  - `uv run --group test pytest -q -W error::UserWarning`;
+  - `uv run --group test pytest -m golden tests/fn -q`;
+  - `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
+
+  Confirm `~/.cache/biotapy` does not exist.
+- [x] **Knowledge** (codebase-map templates; R12.2-R12.4).
+  - **Update `.knowledge/modules/io.md`.**
+    - Responsibility: add `read_metaphlan` (TreeData), `read_picrust2`
+      (MuData) and `read_picrust2_traits` (DataFrame).
+    - Entry points:
+      - `_metaphlan.py:read_metaphlan`, `_metaphlan.py:_sample_columns`;
+      - `_picrust2.py:read_picrust2`, `_picrust2.py:_contributions`,
+        `_picrust2.py:read_picrust2_traits`, `_picrust2.py:_read`,
+        `_picrust2.py:_check_first_cell`;
+      - `_table.py:_leading_lines`, `_table.py:_header`,
+        `_table.py:_read_table`, `_table.py:_numbers`, replacing the
+        `_humann.py:_read_table` entry.
+      - (Written before the fix pass and corrected after it: `_first_line`
+        does not exist, and `_header` lives in `_table.py`.)
+    - Invariants:
+      - the leaf rule (any ancestor) and the 100% check;
+      - `x_kind` set by the reader, never inferred, for MetaPhlAn
+        (`relative`) and PICRUSt2 (`abundance`);
+      - `EC:` removed;
+      - `RARE` not special;
+      - every message names its argument;
+      - `_read_table` rejects repeated column names and an empty name after
+        the first; `_numbers` rejects non-finite values and, with
+        `nonnegative=True`, negative ones;
+      - `read_metaphlan` always gives the seven rank columns;
+      - the PICRUSt2 readers check the header's first cell
+        (`_picrust2.py:_check_first_cell`);
+      - `read_picrust2` raises when `contrib` lacks a sample whose total in
+        `path` is nonzero.
+    - Gotchas:
+      - MetaPhlAn may omit an intermediate rank's row (4.0.6 fixture);
+      - pandas renames repeated header cells and drops extra cells under
+        `usecols`;
+      - PICRUSt2 coverage tables look like abundance tables;
+      - the contribution table is held whole in memory;
+      - `pp.tax_glom` drops `UNCLASSIFIED` by default;
+      - the h5mu writer turns `str` columns into categoricals in place.
+    - Update its `description`, and the copy in `modules/index.md`.
+  - **Update `.knowledge/modules/core.md`:** `RELATIVE_TOLERANCE` is
+    exported, with `io/_metaphlan.py` as its second consumer; and
+    `make_function_mudata` is also used by `io.read_picrust2` (found by the
+    review).
+  - **Update `.knowledge/decisions/function-tables-as-mudata.md`:** add
+    `src/biotapy/io/_picrust2.py` to `paths`. In Context, say that PICRUSt2's
+    two files fill the same two modalities.
+  - Add log lines; bump `generated` and `commit` on each changed concept;
+    tick this box.
+- [ ] **Push** `phase-2b`, open the PR, and merge-commit on green (approved
+  2026-10-03). CI must be green, including docs and the network job.
+- [ ] **Ask the user to review slice 2B** before slice 2C.
+
+### Slice 2B decisions for the user
+Each changes a contract, the public surface or an earlier slice, or is a
+judgement call. The recommended answer comes first.
+
+1. **MetaPhlAn leaf rule: structural, any ancestor, with a hard 100% check.**
+   - No `rank=` parameter: `pp.tax_glom` gives higher ranks and matches
+     MetaPhlAn's own rows.
+   - A sample whose leaves do not sum to 100% (1e-3) raises instead of
+     warning, as the outline proposed.
+   - Contract addition: data-model-slots "Taxonomic profiles (MetaPhlAn)".
+2. **No `var["sgb"]` column.** The SGB id is the feature id (`SGB1871`, prefix
+   removed), and `t__` gets no rank column. The roadmap had proposed a
+   contract addition for `sgb`.
+3. **Strip PICRUSt2's `EC:` prefix at read**, in both modalities and in the
+   trait table, so ids match ENZYME, HUMAnN and `bt.datasets.enzyme`. Users
+   regrouping with PICRUSt2's own `EC:`-prefixed mapping files strip their
+   hierarchy's `child` column instead, and `func_glom`'s nothing-maps error
+   tells them to. Not recorded in provenance (R2.3).
+4. **`read_picrust2(path, *, contrib=None)` signature.**
+   - One call reads an unstratified table and its contribution table.
+   - The outline's `taxa=` (`seqtab_norm`) is dropped (R2.3): 2.8 takes any
+     samples x ASVs AnnData.
+   - Rejected with a clear `ValueError`:
+     - the legacy wide stratified table;
+     - `description` columns from `add_descriptions.py` (the alternative is
+       reading them into `var["name"]`);
+     - coverage contributions.
+   - Pathway coverage unstratified tables cannot be detected; the docs say
+     so.
+5. **`RARE` is an ordinary taxon, not `special`.** The outline proposed a
+   special flag, which `fn.renorm(special=False)` would drop as if it were
+   unmapped abundance.
+6. **New task 2.2a changes a slice 2A reader.** `read_humann`'s strict
+   parsing moves to `io/_table.py` (R4.3, three readers), and `read_humann`
+   gains these behaviours (final code, `_table.py:_read_table`,
+   `_table.py:_numbers`, `_table.py:_leading_lines`):
+   - a repeated sample column raises; before, pandas silently read `S1` and
+     `S1.1`;
+   - an empty column name after the first header cell raises (the first,
+     the index name, may be empty);
+   - a row with no (or a blank) id raises "no id" instead of `_core`'s "var
+     ids must not be missing" (both name `path`);
+   - an empty file, and a blank first line, get their own named messages;
+   - a negative value raises (`nonnegative=True`), and so does a non-finite
+     one;
+   - a file that is not UTF-8, or a `.gz` that is not gzip, truncated or
+     corrupt (`gzip.BadGzipFile`, `EOFError`, `zlib.error`), raises
+     `ValueError` naming `path`;
+   - a UTF-8 byte-order mark is read (`utf-8-sig`).
+
+   It does not take the shared `_header`: HUMAnN's rule is the last `#` line
+   even when it holds no tab, and `_header` would then read a HUMAnN table's
+   first data row as its header (`_humann.py:read_humann`, with a comment).
+   The two rules agree on every real file.
+7. **`_core` exports `RELATIVE_TOLERANCE`.** MetaPhlAn's 100% check uses the
+   data model's own definition of `relative`.
+8. **MetaPhlAn sample names.** A single profile is named after its file, and
+   `_profile` is removed from every sample name, as
+   `merge_metaphlan_tables.py` does. The alternative is the profile's
+   `#SampleID` line, which defaults to the useless `Metaphlan_Analysis`. With
+   this rule, HMP2's MetaPhlAn and HUMAnN tables share all 1,638 names.
+9. **Parity without mia.** `read_metaphlan`'s check is MetaPhlAn's own output
+   (`tax_glom` equals the printed rows), and r-golden-parity statement 8
+   grows to say so. The PICRUSt2 readers have no R equivalent and rest on
+   invariants and synthetic tables.
+10. **Forward note for 2.8.** With `taxa=` dropped, 2.8 must decide whether
+    Tian's `p` needs 16S-copy-corrected abundances (`seqtab_norm`). If so, it
+    adds a reader for that file (a new public function to approve then).
+11. **Reported, not fixed (R1.4): a slice 2A flaky test.** Under `--cov`,
+    `tests/fn/test_renorm.py::test_strata_are_raw_values_over_the_community_total`
+    took 205.9 ms once against Hypothesis's 200 ms deadline (`DeadlineExceeded`).
+    It passes without coverage. If CI's coverage job runs Hypothesis tests,
+    this can fail at random. Suggested separate fix: `@settings(deadline=None)`
+    on that test.
+
+### Slice 2B self-review
+Run against the brief, this concept's outline and the writing-plans
+checklist.
+
+1. **Spec coverage.**
+
+   | Brief or outline item | Where it lands |
+   |---|---|
+   | MetaPhlAn leaf rule, `rank=`, additive totals (q1) | design; 2.2 tests "leaf clades", "glom ... own rows", "do not sum to 100" |
+   | `var["sgb"]`, `t__` ranks (q2) | design; decision 2; 2.2 `test_var_holds_the_ranks_of_each_leaf` |
+   | Single vs merged, read stats, empty taxids, `#` lines (q3) | 2.2 tests for 4.2 profile, merged 4.x, merged 3 with taxids, HMP2, read stats with short rows, the 4.0.6 fixture (empty taxids) |
+   | `EC:` prefix (q4) | design; 2.4 `test_ec_ids_match_enzyme_style_hierarchies`; 2.4b column test |
+   | PICRUSt2 inputs and signature (q5) | design; 2.4 tests for unstrat only, contrib, pathways, legacy wide and description rejected |
+   | `x_kind`, additivity (q6) | 2.4 `test_x_kind_is_abundance_so_rarefy_refuses_it`, `test_gene_family_contributions_sum_to_the_community_values`, `test_pathway_contributions_are_kept_as_written` |
+   | Module placement, shared parsing (q7) | design; Task 2.2a |
+   | Binding: no mia, PICRUSt2 never copied, the MetaPhlAn fixture and notice, the same MuData, traits DataFrame, / 100 with `UNCLASSIFIED`, `path` in every error, malformed input rejected | global constraints; 2.2 Step 1; 2.4 and 2.4b; the malformed-input tests in 2.2a, 2.2, 2.4 and 2.4b |
+   | R11.2 edge cases (all-zero sample and feature, missing rank, single sample) and properties | 2.2 `test_all_zero_sample_and_feature_are_kept`, the MetaPhlAn 3 genus leaf (species NaN), the single profiles, `test_leaves_keep_every_percentage`; 2.4 `test_all_zero_sample_and_feature_are_kept`, `test_single_sample`, `test_each_contribution_lands_in_its_cell`; 2.4b the all-zero `ASV9` |
+
+   Purity tests do not apply: readers take paths. No golden test exists,
+   because mia was declined; statement 8's MetaPhlAn parity test takes its
+   place.
+
+   Gaps found and fixed while writing:
+   - the skipped `o__` row in the real fixture (the leaf rule became "any
+     ancestor");
+   - pandas' silent rename of a repeated header cell (2.2a);
+   - numeric-looking ASV ids (`text=3`);
+   - the reading guide's false "every reader infers `x_kind`" paragraph.
+2. **Placeholder scan.** Every step shows the full file, the exact diff or
+   the exact text, rendered from the scratch commits that passed the gates.
+   The only values left to fill at run time are the implementer's model id,
+   the UTC time, the log heading's date, `HEAD`'s short hash in bookkeeping
+   steps, and `<scratchpad>` (the session's scratchpad path).
+3. **Type consistency.**
+   - The shared helpers are used with the same signature in 2.2a, 2.2, 2.4
+     and 2.4b: `_read_table(path, header, *, skiprows, argument, text=1)` and
+     `_numbers(frame, *, argument)` (the final `_numbers` also takes
+     `nonnegative=False`).
+   - `read_picrust2` returns `make_function_mudata`'s layout, so `var`
+     columns match `read_humann`, as 2.7 and 2.9 expect.
+   - `read_picrust2_traits`' index uses the same text ids as
+     `var["taxon"]`.
+4. **Review focus.** Each of the five items names tests that exist in the
+   code above; checked by searching this section for each name.
+5. **Known residual risks.**
+   - PICRUSt2 formats come from its headers and research B, never from a
+     run. The first real user file is the check (Phase 2 risk list).
+   - `path_abun_contrib`'s column count (8 per research B, 9 in PICRUSt2's
+     per-sequence test data) does not matter, because the reader keys on
+     column names.
+   - The additivity formula was not re-read here (GPL source).
+   - `mia::importMetaPhlAn`'s exact behaviour was never seen (its source
+     could not be fetched), so nothing claims equality with it beyond the
+     Coming-from-R mapping.
 
 ---
 
@@ -3191,6 +5286,14 @@ purity.
   4.0 article).
 
 **Design questions:**
+0. **PICRUSt2's `RARE` taxon has no trait row** (forward note from the
+   Checkpoint B review). `read_picrust2` keeps it as an ordinary taxon in
+   `var["taxon"]` (`_picrust2.py:read_picrust2`, decision 5), but a trait
+   table from `read_picrust2_traits` never lists it. On the review's probe, the taxa missing from
+   the traits were exactly `{'RARE'}`. 2.8 must decide what `RARE`'s
+   abundance does: drop it, or keep it in the denominators of `p` without a
+   trait vector. Unknown until 2.8; question 1 (taxa without traits) is the
+   place to settle it.
 1. **Taxa without traits, or with all-zero gene vectors.** BC of zero
    against zero is 0 in SciPy; against non-zero it is 1. Proposed: drop taxa
    absent from `traits` with a `warn_user` count. Keep all-zero taxa
@@ -3353,11 +5456,7 @@ a judgement call. Recommended answer first.
 10. **`_core` placement** of `sum_pairs` and `replace_features`. Each has one
     consumer today, which is in tension with R4.3. They follow roadmap 2.1
     and the `sum_by` precedent.
-11. **2B judgement calls, to settle when 2B is expanded:**
-    - the MetaPhlAn leaf rule (structural) and the `var["sgb"]` column;
-    - golden against `mia::importMetaPhlAn` (R image dependency) or
-      invariants only;
-    - stripping PICRUSt2's `EC:` prefix.
+11. Slice 2B decisions: see the slice's own list.
 12. **Frontmatter `description`** of phase-2-function.md, as proposed in
     design note 7.
 

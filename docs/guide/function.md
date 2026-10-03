@@ -31,6 +31,26 @@ flagged in `var["special"]`, so a sample's total keeps what HUMAnN could not
 assign. Read one table per call: a gene family table and a pathway table both
 hold `UNMAPPED`.
 
+## PICRUSt2 tables
+
+`bt.io.read_picrust2` gives PICRUSt2 predictions the same two modalities. Its
+`"function_by_taxon"` features are functions per ASV (`2.7.1.1|ASV1`), read
+from the long contribution table. For gene families a sample's
+contributions sum to its community value; for pathways they need not, as in
+HUMAnN. EC numbers lose PICRUSt2's `EC:` prefix, so they match
+`bt.datasets.enzyme()`:
+
+```python
+import biotapy as bt
+
+mdata = bt.io.read_picrust2("pred_metagenome_unstrat.tsv.gz", contrib="pred_metagenome_contrib.tsv.gz")
+by_class = bt.fn.func_glom(mdata["function"], "class", hierarchy=bt.datasets.enzyme())
+```
+
+PICRUSt2's own mapping files write `EC:1.1.1.1`; remove the prefix from the
+edge table's `child` column before regrouping with them, or `func_glom`
+raises because nothing maps.
+
 ## Aggregating along a hierarchy
 
 `bt.fn.func_glom` sums functions into their parents at one level of a

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
@@ -100,6 +100,8 @@ def _community_and_strata(draw):
     return community, strata
 
 
+# No deadline: under --cov, building a MuData per example can exceed Hypothesis's 200 ms default.
+@settings(deadline=None)
 @given(_community_and_strata())
 def test_strata_are_raw_values_over_the_community_total(tables):
     community, strata = tables

@@ -3,11 +3,13 @@
 Readers turn a file format into a `TreeData` that follows the one
 [data model](data_model.md) every biotapy function relies on.
 
-No format below records whether its table holds counts or proportions, so
-every reader infers `uns["biotapy"]["x_kind"]` from the values: whole numbers
-are `"counts"`; otherwise, if every sample with a nonzero total sums to 1
-(within `1e-3`), `"relative"`; anything else is `"abundance"`. Functions
-that need raw counts check this and refuse proportions.
+BIOM, QIIME 2, DADA2 and phyloseq tables do not record whether they hold
+counts or proportions, so their readers infer `uns["biotapy"]["x_kind"]` from
+the values: whole numbers are `"counts"`; otherwise, if every sample with a
+nonzero total sums to 1 (within `1e-3`), `"relative"`; anything else is
+`"abundance"`. The HUMAnN, MetaPhlAn and PICRUSt2 readers take it from the
+format instead, as their sections say. Functions that need raw counts check
+`x_kind` and refuse anything else.
 
 ## Example datasets
 
@@ -282,3 +284,70 @@ mdata = bt.io.read_humann("sample_genefamilies.tsv")
   `--update-snames` so the header names the new unit.
 - **Not read.** Pathway coverage tables (HUMAnN 3 only) raise a
   `ValueError`: they are not abundances.
+
+## MetaPhlAn
+
+`bt.io.read_metaphlan` reads a MetaPhlAn 3 or 4 profile, or a table of
+several merged by `merge_metaphlan_tables.py`, into a `TreeData` of relative
+abundances.
+
+```python
+import biotapy as bt
+
+tdata = bt.io.read_metaphlan("merged_abundance_table.tsv")
+```
+
+- **Leaf clades.** A profile lists every rank, kingdom to SGB, and a clade's
+  abundance is the sum of its children's. The reader keeps the leaves - the
+  rows no other row descends from: SGBs (`t__SGB1871`) in MetaPhlAn 4,
+  species in MetaPhlAn 3 - so every read is counted once. Use
+  `bt.pp.tax_glom` for higher ranks; its sums equal MetaPhlAn's own rows.
+- **Ids and ranks.** A leaf's last name without its prefix becomes the
+  feature id (`SGB1871`, `Bacteroides_ovatus`), and its lineage fills
+  `kingdom` to `species` in `var`.
+- **Units.** Percentages are divided by 100, so `x_kind` is `"relative"`.
+- **`UNCLASSIFIED`.** MetaPhlAn 4.2 estimates the share of reads from
+  unknown organisms (`UNKNOWN` in older tables). It stays a feature with no
+  rank, so each sample sums to 1. `bt.pp.tax_glom` drops it unless you pass
+  `dropna=False`.
+- **Samples.** A single profile's sample is named after its file;
+  `_profile` is removed from sample names, as `merge_metaphlan_tables.py`
+  does when it names columns.
+- **Checked.** Each sample's leaves must sum to 100%. A table with rows
+  removed, or one that is not a MetaPhlAn profile (GTDB-style `;` lineages,
+  marker tables), raises a `ValueError` instead of double counting.
+- **Not read.** NCBI taxids, `additional_species`, coverage and estimated
+  read counts.
+
+## PICRUSt2
+
+`bt.io.read_picrust2` reads a PICRUSt2 prediction into the same two-modality
+`MuData` as `bt.io.read_humann`: the unstratified table becomes
+`"function"`, and the long-format contributions written with `--stratified`
+become `"function_by_taxon"`, one feature per function and ASV.
+
+```python
+import biotapy as bt
+
+mdata = bt.io.read_picrust2(
+    "EC_metagenome_out/pred_metagenome_unstrat.tsv.gz",
+    contrib="EC_metagenome_out/pred_metagenome_contrib.tsv.gz",
+)
+pathways = bt.io.read_picrust2("pathways_out/path_abun_unstrat.tsv.gz")
+```
+
+- **Ids.** `EC:1.1.1.1` becomes `1.1.1.1`, the form ENZYME, HUMAnN and
+  `bt.datasets.enzyme` use. KO and pathway ids are kept.
+- **Taxa.** A stratified feature's `taxon` is the ASV id as written (`0042`
+  stays `0042`), or `RARE` for the rare ASVs PICRUSt2 groups together.
+- **Units.** `x_kind` is `"abundance"`: the values are read counts divided by
+  predicted marker copies and multiplied by gene copies, not counts.
+- **Not read.** The deprecated wide stratified table (`--wide_table`) and
+  tables with an `add_descriptions.py` `description` column raise a
+  `ValueError`; pass the table without descriptions. PICRUSt2's pathway
+  coverage tables have the same layout as its abundance tables and cannot be
+  told apart, so pass only abundance tables.
+
+`bt.io.read_picrust2_traits` reads the predicted gene copy numbers per ASV
+(`EC_predicted.tsv.gz`, `KO_predicted.tsv.gz`) into an ASVs x functions
+`DataFrame`. It describes genomes, not samples, so it is not a modality.

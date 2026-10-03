@@ -1,12 +1,12 @@
 ---
 type: Module
 title: io
-description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables and phyloseq objects (each a TreeData through _core.make_treedata) and HUMAnN tables (a MuData through _core.make_function_mudata).
+description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables, phyloseq objects and MetaPhlAn profiles (each a TreeData through _core.make_treedata), HUMAnN and PICRUSt2 tables (a MuData through _core.make_function_mudata) and PICRUSt2 per-ASV trait tables (a DataFrame).
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 status: stable
 ---
 
@@ -15,8 +15,12 @@ status: stable
 Owns the `bt.io.*` verbs that move data between files and a TreeData (or, for
 a function table, a MuData):
 `read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`),
-`read_dada2` (`_dada2.py`), `read_phyloseq` (`_phyloseq.py`, `_rdata.py`) and
-`read_humann` (`_humann.py`), plus the private checked-join helper shared across readers (`_join.py`). Does
+`read_dada2` (`_dada2.py`), `read_phyloseq` (`_phyloseq.py`, `_rdata.py`),
+`read_humann` (`_humann.py`, a MuData), `read_metaphlan` (`_metaphlan.py`, a
+TreeData with no tree), `read_picrust2` (`_picrust2.py`, a MuData) and
+`read_picrust2_traits` (`_picrust2.py`, a DataFrame), plus two private helpers shared across
+readers: the checked join (`_join.py`) and the strict TSV reading of the three
+function-table readers (`_table.py`). Does
 NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 [datasets](/modules/datasets.md), Task 1.11): those call `read_phyloseq`.
 
@@ -42,9 +46,21 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   reactions, pathway abundance; per sample or joined; `.gz` allowed) to a
   two-modality MuData, `function` and `function_by_taxon`, through
   `_core.make_function_mudata`. Reads one table per call.
-- `_humann.py:_read_table` - private; the pandas read plus the malformed-file
-  checks (more or fewer cells than the header, a non-number, a missing value),
-  each raising `ValueError` naming `path`.
+- `_metaphlan.py:read_metaphlan` - one MetaPhlAn 3 or 4 profile, or several
+  merged, to a samples x leaf-clades TreeData; `_metaphlan.py:_sample_columns`
+  picks the abundance columns.
+- `_picrust2.py:read_picrust2` - an unstratified PICRUSt2 table, plus
+  optionally its long contribution table (`contrib=`,
+  `_picrust2.py:_contributions`), to the same two-modality MuData as
+  `read_humann`. `_picrust2.py:read_picrust2_traits` - a per-ASV copy-number
+  table to an ASVs x functions DataFrame. `_picrust2.py:_read` and
+  `_picrust2.py:_check_first_cell` are their private header reading and
+  wrong-table check.
+- `_table.py:_leading_lines` / `_table.py:_header` / `_table.py:_read_table` /
+  `_table.py:_numbers` - private; the one strict reading of the tab-separated
+  tables, shared by the three readers above (the structure in `_read_table`,
+  the values in `_numbers`). Every rejection raises `ValueError` naming the
+  argument.
 - `_join.py:_join_to` - private; the one checked reindex-join for a side file
   (taxonomy, metadata, taxa) onto a table's ids, used by every reader above
   that joins a side file.
@@ -52,7 +68,8 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 # Invariants
 
 - Every TreeData reader builds its result only through `_core.make_treedata`;
-  `read_humann` builds its MuData only through `_core.make_function_mudata`.
+  `read_humann` and `read_picrust2` build their MuData only through
+  `_core.make_function_mudata`.
   `_biom.py:read_biom`, `_qiime2.py:read_qiime2` and `_dada2.py:read_dada2`
   set `x_kind` by calling `_core.infer_x_kind` on the freshly parsed matrix,
   never a literal; `_phyloseq.py:read_phyloseq` does the same.
@@ -65,12 +82,47 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   (`_humann.py:read_humann`); the first cell can be stale after
   `humann_renorm_table --update-snames`, so a `-RELAB` or `-CPM` sample column
   outranks it (`_humann.py:_UNITS` order).
+- `read_metaphlan` and `read_picrust2` also set `x_kind` themselves, never
+  inferring it: `relative` after dividing percentages by 100, and
+  `abundance` (PICRUSt2's values are not counts)
+  (`_metaphlan.py:read_metaphlan`, `_picrust2.py:read_picrust2`).
+- `read_metaphlan` keeps one feature per leaf: a clade no other clade
+  descends from through *any* ancestor, not just its direct parent
+  (`_metaphlan.py:read_metaphlan`). A sample whose leaves do not sum to 100%
+  (`_core.RELATIVE_TOLERANCE`) raises, unless its whole column is zero; there
+  is no `rank=`. It always gives all seven rank columns, whatever the deepest
+  rank in the file (`_metaphlan.py:read_metaphlan`, via `_core.RANKS`).
+- `read_picrust2` removes the `EC:` prefix in both modalities and in
+  `read_picrust2_traits`; `RARE` is an ordinary taxon, not `special`
+  (`_picrust2.py:_EC_PREFIX`, `_core/_function.py:SPECIAL_FEATURES`). It
+  raises when `contrib` has no rows for a sample whose total in `path` is
+  nonzero, but accepts a function subset (`_picrust2.py:_contributions`).
+- Both PICRUSt2 readers check the first header cell and name the other reader
+  when it is wrong: `function`, `pathway`, `#OTU ID` or `OTU ID` for
+  `read_picrust2`; `sequence` for `read_picrust2_traits`
+  (`_picrust2.py:_PREDICTION_FIRST`, `_picrust2.py:_TRAIT_FIRST`,
+  `_picrust2.py:_check_first_cell`).
+- `_table.py` reads `utf-8-sig`, so a byte-order mark never hides a leading
+  `#`. It accepts an empty first (index-name) cell, and raises on: an empty
+  file; repeated column names; an empty name after the first; a row with
+  more cells than the header; a blank or missing id; a non-number or missing
+  value; a non-finite value; a negative value when `_numbers` is called with
+  `nonnegative=` (every reader does); and a decode, gzip, zlib or EOF error
+  (`_table.py:_read_table`, `_table.py:_numbers`, `_table.py:_leading_lines`).
+- Header rules: `read_metaphlan` and the PICRUSt2 readers use
+  `_table.py:_header` (the last `#` line when it holds a tab, else the first
+  line after the `#` lines). `read_humann` keeps its own, which takes the
+  last `#` line whether or not it holds a tab: the shared rule would read a
+  HUMAnN table's first data row as the header. They agree on every real file
+  (`_humann.py:read_humann`, `_table.py:_header`).
 - Sample names lose HUMAnN's suffixes (`_Abundance-RPKs`, `-CPM`, `-RELAB`, a
   joined file's `_pathabundance_cpm`) (`_humann.py:_SUFFIX`). Pathway coverage
   tables are refused (`_humann.py:_COVERAGE`).
-- Every `read_humann` error names `path`, including the ones raised in `_core`
-  (repeated sample or row ids, a row id with two `|`), which it re-raises with
-  the path and the original as `__cause__`. `_humann.py:read_humann`.
+- Every reader's error names its file argument, including the ones raised in
+  `_core` (repeated sample or row ids, a row id with two `|`), which
+  `read_humann`, `read_metaphlan` and `read_picrust2` re-raise with the path
+  and the original as `__cause__`. `_humann.py:read_humann`,
+  `_metaphlan.py:read_metaphlan`, `_picrust2.py:read_picrust2`.
 - biom-format stores observations (features) x samples; `_biom_parts`
   transposes exactly once so biotapy's samples-as-rows convention holds from
   there on. `_biom.py:_biom_parts`.
@@ -111,7 +163,7 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 # Dependencies
 
 - [core](/modules/core.md): `make_function_mudata`, `XKind`, `make_treedata`, `infer_x_kind`, `split_lineage`,
-  `normalize_ranks`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
+  `normalize_ranks`, `RELATIVE_TOLERANCE`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
   `relabel_tips`, `warn_user`, `TreeData`, `RANKS`, `as_csr`.
 - Third-party: `biom-format` (`_biom.py`, and `_qiime2.py` via
   `_biom_parts`). No CPython 3.14 wheels yet (biocore/biom-format#1004): on
@@ -128,8 +180,35 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 
 - `read_humann` reads the whole table into one dense rows x samples
   `float64` array before converting to CSR (about 290 MB for HMP2's 22,113 x
-  1,638 pathway table); `_humann.py:_read_table`. R6.2's no-densify rule is
-  met by the docstring `Notes` stating the cost, not by avoiding the array.
+  1,638 pathway table); `_humann.py:read_humann`. `read_metaphlan` and
+  `read_picrust2` build a dense array too (`_metaphlan.py:read_metaphlan`,
+  `_picrust2.py:read_picrust2`), and `read_picrust2` holds the contribution
+  table whole in memory (`_picrust2.py:_contributions`). R6.2's no-densify
+  rule is met by each docstring `Notes` stating the cost, not by avoiding the
+  array.
+- MetaPhlAn may omit an intermediate rank's row (the 4.0.6 fixture has no
+  `o__Corynebacteriales`), which is why the leaf rule looks at any ancestor
+  (`_metaphlan.py:read_metaphlan`). `pp.tax_glom` drops `UNCLASSIFIED` by
+  default (`pp/_glom.py:tax_glom`, `dropna=True`); pass `dropna=False` to keep
+  it.
+- PICRUSt2 coverage tables look like abundance tables, so `read_picrust2`
+  cannot tell them apart; the docs say so, nothing detects it (slice 2B
+  decision 4 in [phase-2-function](/roadmap/phase-2-function.md)). The
+  Checkpoint B review's silent misreads (a `#OTU ID` table read from its
+  first data row, an `EC_predicted` table read as a metagenome) are why
+  `_picrust2.py:_read` uses the shared header rule and
+  `_picrust2.py:_check_first_cell` exists.
+- pandas renames a repeated header cell (`S1` -> `S1.1`) and, under
+  `usecols`, silently drops the extra cells of a longer row, so
+  `_table.py:_read_table` reads every column and compares the header's own
+  cells.
+- anndata 0.13.4 turns `str` columns into categoricals when writing h5mu, in
+  place; the round-trip tests compare values, not dtypes
+  (`tests/io/test_picrust2.py:test_round_trips_through_h5mu`).
+- `read_picrust2` has no R golden; `read_metaphlan`'s parity is MetaPhlAn's
+  own rows (`pp.tax_glom` equals what the profile prints,
+  `tests/io/test_metaphlan.py`), see
+  [r-golden-parity](/contracts/r-golden-parity.md), statement 8.
 - `read_humann` has no R golden. Its R equivalent (`mia::importHUMAnN`) is named
   for the Coming-from-R table, and its parity comes from the HUMAnN goldens of
   `fn.func_glom` and `fn.renorm` that read through it

@@ -13,6 +13,7 @@ from ._matrix import argmax_by, as_csr, sum_by, sum_pairs
 from ._optional import import_optional
 from ._rng import as_generator
 from ._slots import (
+    RELATIVE_TOLERANCE,
     XKind,
     add_provenance,
     feature_subset,
@@ -43,6 +44,7 @@ __all__ = [
     "PHYLO_KEY",
     "PROTECTED_FEATURES",
     "RANKS",
+    "RELATIVE_TOLERANCE",
     "SPECIAL_FEATURES",
     "UNGROUPED",
     "TreeData",

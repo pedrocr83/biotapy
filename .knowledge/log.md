@@ -1,5 +1,25 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, Checkpoint B)
+- **Update**: [io](modules/io.md) documents `read_metaphlan`, `read_picrust2` and `read_picrust2_traits` and the shared `_table.py` (header rule, strict checks, `utf-8-sig`, first-cell check, contribution-sample check, seven rank columns), replacing the removed `_humann.py:_read_table`; its description is copied into [modules/index.md](modules/index.md).
+- **Update**: [core](modules/core.md) lists `RELATIVE_TOLERANCE` as exported (second consumer `io.read_metaphlan`), `make_function_mudata` also used by `io.read_picrust2`, and `normalize_ranks` used by `io.read_phyloseq` and `io.read_metaphlan`.
+- **Update**: [function-tables-as-mudata](decisions/function-tables-as-mudata.md) adds `_picrust2.py` to `paths` and says PICRUSt2's two files fill the same two modalities.
+- **Update**: [data-model-slots](contracts/data-model-slots.md): three readers set `x_kind` themselves; an all-zero sample is exempt from the MetaPhlAn 100% check; rank columns are always the seven.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md): slice 2B design, decision 6 and the Checkpoint B box describe the final code (no `_first_line`; `_header` in `_table.py`; `read_humann`'s own header rule), the stale `repeats column names` quotes gain their colon, `_numbers` gains `nonnegative=`, Task 2.8 gets the `RARE` forward note, and the Checkpoint B review, gates and Knowledge boxes are ticked.
+- **Verification**: re-checked against HEAD with no content change needed, and bumped `commit`: [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md), [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md) and [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md).
+
+## 2026-10-03 (Phase 2, slice 2B)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables and [r-golden-parity](contracts/r-golden-parity.md) statement 8 name io.read_picrust2_traits (EC: removed from its columns; no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4b done.
+- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (PICRUSt2 is abundance) and Function tables (read_picrust2: stratified rows from the contribution table, taxon = ASV id or RARE, EC: removed); [r-golden-parity](contracts/r-golden-parity.md) statements 6 and 8 (synthetic PICRUSt2 fixtures, no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4 done.
+- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (MetaPhlAn percentages / 100, checked to sum to 1) and new section "Taxonomic profiles (MetaPhlAn)"; [r-golden-parity](contracts/r-golden-parity.md) statement 6 lists tests/data/metaphlan and statement 8 gives read_metaphlan's parity (tax_glom equals MetaPhlAn's own rows); [phase-2-function](roadmap/phase-2-function.md) task 2.2 done.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.2a done: io/_table.py holds the strict TSV reading shared by the HUMAnN, MetaPhlAn and PICRUSt2 readers; read_humann now rejects repeated column names.
+
+## 2026-10-03 (slice 2B plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2B plan in full TDD steps (2.2a shared strict table reading, 2.2 read_metaphlan, 2.4 read_picrust2, 2.4b read_picrust2_traits, Checkpoint B) and its decisions; checklist, slices table, dependency row 2.2 and decision 11 updated.
+
+## 2026-10-03 (slice 2B start)
+* **Refresh**: phase-0-foundation, phase-1-core, r-golden-parity, add-a-function, commit and `generated` only, against 4ef5314; the renorm warn-once test fix (2d47f8d) and the Hypothesis deadline (4ef5314) contradict nothing they state.
+
 ## 2026-10-03 (Phase 2, Checkpoint A knowledge)
 - **Create**: [fn](modules/fn.md) (`load_hierarchy`, `func_glom`, `renorm`; HUMAnN 3.9 semantics, the final `x_kind`, guard and alignment rules) and [function-tables-as-mudata](decisions/function-tables-as-mudata.md) (options weighed, h5mu tree loss, mudata dependency, the Phase 4 task 4.1 forward note); both added to their `index.md`.
 - **Update**: [core](modules/core.md): `_function.py`, `sum_pairs`, `replace_features` as a second Propagation implementer, `warn_user`'s third caller, and mudata among the third-party imports (review: three statements were false).

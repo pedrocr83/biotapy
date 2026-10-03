@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
-commit: 8e0442b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 sources:
   - id: spec
     resource: ../../plan.md
@@ -53,12 +53,17 @@ Extends the spec's data-model table with exact keys.[^spec]
    dtype (`pp/_glom.py:tax_glom`, `out.var[below] = np.nan`) - a known,
    deferred inconsistency, not a second convention.
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
-   Readers always set it, inferred from the values by `_core.infer_x_kind`
+   Readers always set it; most infer it from the values by `_core.infer_x_kind`
    (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
-   The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
+   Three readers are exceptions. `io.read_humann` reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
    `relative`) and labels a header without a unit `abundance`, never `counts`.
+   `io.read_metaphlan` divides MetaPhlAn's percentages by 100 and sets `relative`, after
+   checking that every sample's leaf clades sum to 1 within `1e-3` (`_core.RELATIVE_TOLERANCE`);
+   a sample whose whole column is zero is exempt and stays all zero.
+   `io.read_picrust2` sets `abundance`: PICRUSt2's values are read counts divided by predicted
+   marker copies and multiplied by gene copies.
    `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
    its `relative` stratified rows do not sum to 1: they are shares of the community total.
    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
@@ -85,9 +90,9 @@ Extends the spec's data-model table with exact keys.[^spec]
    ids) never collide silently.
 
 ## Function tables
-`io.read_humann` (and, from Phase 2 slice 2B, `io.read_picrust2`) returns a
-`MuData` built by `_core.make_function_mudata` with two modalities over the
-same samples, each an `AnnData` with its own copy of `obs`:
+`io.read_humann` and `io.read_picrust2` return a `MuData` built by
+`_core.make_function_mudata` with two modalities over the same samples, each
+an `AnnData` with its own copy of `obs`:
 
 | Modality | Features | `var` columns |
 |---|---|---|
@@ -99,6 +104,25 @@ same samples, each an `AnnData` with its own copy of `obs`:
 columns use the pandas `str` dtype, as rank columns do. Both modalities
 always exist; either may have 0 features. The community values are not
 the sum of their strata for pathways, which is why there are two.
+
+In a PICRUSt2 table the stratified rows come from the long contribution
+table (`taxon_function_abun`), and the modality has 0 features when no
+contribution table is read. `taxon` is the ASV id as written, or `RARE`
+(PICRUSt2's group of rare ASVs: an ordinary stratum, not `special`), so
+`genus` and `species` are NaN. `EC:` is removed from EC numbers, in both
+modalities and in `io.read_picrust2_traits`' columns, so ids match ENZYME's
+and HUMAnN's.
+
+## Taxonomic profiles (MetaPhlAn)
+`io.read_metaphlan` keeps one feature per leaf clade: a row that no other
+row descends from through any ancestor (MetaPhlAn can omit an intermediate
+rank's row; the real 4.0.6 fixture has no `o__Corynebacteriales`). A clade's
+row is the sum of its leaves', so every read counts once and `pp.tax_glom`
+rebuilds the higher ranks. `var_names` are the leaf's last name without its
+rank prefix (`SGB1871` from `t__SGB1871`); `t__` has no rank column. Rank
+columns are always the seven, `kingdom` to `species`, even for a genus-level table or an all-`UNCLASSIFIED`
+profile (the missing ranks are NaN, `io/_metaphlan.py:read_metaphlan`). `UNCLASSIFIED` (`UNKNOWN` in older
+tables) stays a feature with every rank NaN, so every non-empty sample sums to 1.
 
 ## Propagation
 | Operation | Keeps | Drops |
