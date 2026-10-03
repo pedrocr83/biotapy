@@ -5,11 +5,11 @@ description: TreeData conventions in _core; io for phyloseq, BIOM, QIIME 2 and D
 tags: [roadmap, core, io, pp, tl, pl]
 status: stable
 release: "0.1"
-phase_state: in-progress
+phase_state: done
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T10:20:23Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T11:14:15Z }
 commit: 659f5a0
 sources:
   - id: spec
@@ -9050,7 +9050,7 @@ non-zero below 90% total line coverage (ruling 18).
     `commit` to the new `HEAD`, in one commit
     `docs(knowledge): refresh concepts after the Checkpoint D fixes`.
   - The script must again print `21 current, 0 stale, 12 uncheckable`.
-- [ ] Push `phase-1d` and open the PR, each after the user approves it
+- [x] Push `phase-1d` and open the PR, each after the user approves it
   (R13.3).
   - The PR's CI must be green: every hatch-test job (Python 3.12-3.14 on
     three OSes, the coverage gate included), `lint` (with `asv check`),
@@ -9058,7 +9058,7 @@ non-zero below 90% total line coverage (ruling 18).
     `docs` job.
   - The `docs` job is the exit gate's "executes in CI". Read its log for the
     three `Executed notebook` lines.
-- [ ] After the user approves, merge with a merge commit, not a squash
+- [x] After the user approves, merge with a merge commit, not a squash
   (maintain-knowledge: a squash drops the branch SHAs that concepts cite).
   Then:
   - `git switch master && git pull --ff-only && bash scripts/knowledge_stale.sh`
@@ -9070,7 +9070,7 @@ non-zero below 90% total line coverage (ruling 18).
       builders have network access, which this confirms.
     - If the page is missing, read the build log on readthedocs.org and report
       it; do not work around it.
-- [ ] Ask the user to review slice 1D before the release.
+- [x] Ask the user to review slice 1D before the release.
 
 ### Task 1.23: Release 0.1
 
@@ -9096,7 +9096,7 @@ for the user's explicit approval of that step (R13.3).
 - **Produces:** `biotapy 0.1.0` on PyPI, Phase 1 `phase_state: done`, and
   Phase 2 active.
 
-- [ ] **Step 1: User action - trusted publisher.** Claude cannot see PyPI's
+- [x] **Step 1: User action - trusted publisher.** Claude cannot see PyPI's
   settings. Ask the user to confirm, and stop until they do:
   - on pypi.org, project `biotapy`, Publishing lists a trusted publisher with
     owner `pedrocr83`, repository `biotapy`, workflow `release.yaml` and
@@ -9104,7 +9104,7 @@ for the user's explicit approval of that step (R13.3).
     and no longer be pending;
   - on GitHub, Settings > Environments has `pypi`. If it requires a reviewer,
     the user approves the deployment in the Actions run at Step 9.
-- [ ] **Step 2: Check the publish action.** Run
+- [x] **Step 2: Check the publish action.** Run
   `gh api repos/pypa/gh-action-pypi-publish/releases/latest --jq .tag_name`.
   - If it prints anything newer than `v1.14.2`, stop and report it. A stale
     pin failed 0.0.1 on Metadata-Version 2.5 (the playbook's Common
@@ -9201,11 +9201,11 @@ for the user's explicit approval of that step (R13.3).
   - `bash scripts/knowledge_stale.sh --against HEAD` prints
     `21 current, 0 stale, 12 uncheckable`.
   - Commit `docs(knowledge): refresh concepts for the 0.1.0 release`.
-- [ ] **Step 9: PR and merge.**
+- [x] **Step 9: PR and merge.**
   - After the user approves: push `release-0.1.0` and open the PR.
   - CI must be green.
   - After the user approves: merge it with a merge commit.
-- [ ] **Step 10: STOP AND ASK.**
+- [x] **Step 10: STOP AND ASK.**
   - Tagging and releasing publishes to PyPI, and that cannot be undone. Ask
     the user, in one message, for explicit approval to:
     1. tag the merged `master` commit `v0.1.0`;
@@ -9213,7 +9213,7 @@ for the user's explicit approval of that step (R13.3).
     3. create the GitHub release, which triggers the upload.
   - Wait for a yes that names this release. An earlier approval does not
     count.
-- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+- [x] **Step 11: Tag and release**, only after Step 10's approval:
   ```bash
   git switch master && git pull --ff-only
   git log -1 --format=%s   # the merge of release-0.1.0
@@ -9233,13 +9233,13 @@ for the user's explicit approval of that step (R13.3).
     user's approval.
   - If the run fails after the upload, report it. The version is spent, and
     the fix is 0.1.1.
-- [ ] **Step 12: Verify** (playbook Verification). Both print `0.1.0`:
+- [x] **Step 12: Verify** (playbook Verification). Both print `0.1.0`:
   ```bash
   curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
   uv run --no-project --with biotapy==0.1.0 python -c "import biotapy as bt; print(bt.__version__, bt.pl.__all__)"
   ```
   The second also prints `['bar', 'heatmap', 'ordination', 'richness', 'scree']`.
-- [ ] **Step 13: Proposals, not submitted.** Write both into the scratchpad,
+- [x] **Step 13: Proposals, not submitted.** Write both into the scratchpad,
   show them to the user, and submit neither.
   - **conda-forge.**
     - A `recipe/recipe.yaml` draft: `noarch: python`, source from the PyPI
@@ -9268,7 +9268,7 @@ for the user's explicit approval of that step (R13.3).
     - Answer the README's mandatory checklist item by item, from facts:
       BSD-3 license, 0.1.0 on PyPI, tests and CI, the API docs, and
       AnnData/TreeData throughout.
-- [ ] **Step 14: Close Phase 1.** On a branch `close-phase-1` from `master`:
+- [x] **Step 14: Close Phase 1.** On a branch `close-phase-1` from `master`:
   - `roadmap/phase-1-core.md`:
     - tick the last exit-gate item;
     - set `phase_state: done`;
@@ -9299,7 +9299,7 @@ for the user's explicit approval of that step (R13.3).
 - [x] The generated Coming-from-R table maps all 31 functions below.
 - [x] asv baselines recorded.
 - [x] Coverage >= 90% on public functions (rules.md R11.6).
-- [ ] `biotapy 0.1.0` on PyPI; Phase 1 `phase_state: done`; Phase 2 active.
+- [x] `biotapy 0.1.0` on PyPI; Phase 1 `phase_state: done`; Phase 2 active.
 
 ## The 31 phyloseq functions the table must cover
 | phyloseq | biotapy |
