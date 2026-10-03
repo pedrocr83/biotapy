@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
-commit: 6ceec29
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -246,11 +246,11 @@ repeated under "Decisions for the user".
      a caveat and the citation (Lloyd-Price et al., Nature 2019).
    - **2.3:** `read_humann(path) -> MuData` reads one table per call;
      `pathcoverage` is dropped (HUMAnN 4 no longer writes it).
-   - **Frontmatter** (not edited by this draft): `description` should read
-     "HUMAnN 3/4, PICRUSt2 and MetaPhlAn readers; user-supplied and ENZYME
-     hierarchies with func_glom; HUMAnN-parity renorm; stratified
-     taxa-to-function links; functional redundancy (Tian 2020)." HUMAnN 4
-     is still an alpha (4.0.0a2), so "HUMAnN 4" alone overstates it.
+   - **Frontmatter**: `description` reads "HUMAnN 3/4, PICRUSt2 and MetaPhlAn
+     readers; user-supplied and ENZYME hierarchies with func_glom;
+     HUMAnN-parity renorm; stratified taxa-to-function links; functional
+     redundancy (Tian 2020)." HUMAnN 4 is still an alpha (4.0.0a2), so
+     "HUMAnN 4" alone overstates it.
 
 # Global constraints
 - Python >= 3.12; `mudata>=0.4` (runtime, approved 2026-10-03); everything
@@ -2973,7 +2973,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   each with a test.
 - [ ] Run the exit-gate check now: `uv run --group test pytest -m golden tests/fn -q`
   (all HUMAnN goldens pass) and the full `uv run --group test pytest`.
-- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+- [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Create `.knowledge/modules/fn.md`** (`type: Module`, `paths:
     ["src/biotapy/fn/**"]`).
     - **Responsibility:** function hierarchies, aggregation and

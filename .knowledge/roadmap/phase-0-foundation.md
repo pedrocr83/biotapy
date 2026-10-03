@@ -9,8 +9,8 @@ phase_state: done
 effort: ~1 week part-time
 depends_on: []
 paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T11:43:11Z }
-commit: 45d0946
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -325,7 +325,7 @@ Everything else comes with the template (pytest, coverage, mypy, sphinx stack), 
   addopts = ["--import-mode=importlib", "--doctest-modules", "--strict-markers", "-m", "not network and not r"]
   testpaths = ["tests", "src/biotapy"]
   markers = [
-      "golden: compares against R golden files (contracts/r-golden-parity)",
+      "golden: compares against R or HUMAnN golden files (contracts/r-golden-parity)",
       "network: downloads data; runs only in the dedicated CI job",
       "r: needs R and rpy2 (extra `r`)",
   ]

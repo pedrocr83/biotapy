@@ -20,4 +20,4 @@ okf_version: "0.2"
 
 # Modules
 
-* [modules](modules/index.md) - Code areas with a public function: the private `_core` kernel, `io` readers and writers, `datasets` example data, `pp` preprocessing, `tl` tools and `pl` plots.
+* [modules](modules/index.md) - Code areas with a public function: the private `_core` kernel, `io` readers and writers, `datasets` example data, `pp` preprocessing, `fn` function hierarchies, `tl` tools and `pl` plots.

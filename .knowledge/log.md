@@ -1,5 +1,14 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, Checkpoint A knowledge)
+- **Create**: [fn](modules/fn.md) (`load_hierarchy`, `func_glom`, `renorm`; HUMAnN 3.9 semantics, the final `x_kind`, guard and alignment rules) and [function-tables-as-mudata](decisions/function-tables-as-mudata.md) (options weighed, h5mu tree loss, mudata dependency, the Phase 4 task 4.1 forward note); both added to their `index.md`.
+- **Update**: [core](modules/core.md): `_function.py`, `sum_pairs`, `replace_features` as a second Propagation implementer, `warn_user`'s third caller, and mudata among the third-party imports (review: three statements were false).
+- **Update**: [io](modules/io.md): `read_humann`, its header unit rule, `path` in every error, no R golden; the "every reader goes through `make_treedata`" invariant and the Responsibility line now cover the MuData reader. `modules/index.md` entry reworded.
+- **Update**: [datasets](modules/datasets.md): `toy_humann`, `enzyme` and its unpinned hash; description and `modules/index.md` entry no longer say "TreeData objects" only.
+- **Update**: [pure-by-default](decisions/pure-by-default.md) table: `datasets.enzyme` returns a `pd.DataFrame`; the root `index.md` Modules line names `fn`.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) design note 7 (frontmatter now edited) and the Checkpoint A Knowledge box; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.1 notes `function` + `function_by_taxon`.
+- **Recheck**: phase-0, phase-1, engine-parity, module-boundaries, tree-access, add-a-function and cut-a-release flagged stale by the slice's `src/` and `pyproject.toml` changes; nothing they state was false, so only `commit` and `generated` moved. phase-0's pytest marker snippet now reads "R or HUMAnN golden files", as `pyproject.toml` does.
+
 ## 2026-10-03 (Phase 2, Checkpoint A fix pass)
 - **Update**: [data-model-slots](contracts/data-model-slots.md) `func_glom` section: a mean, or a sum with a feature in several parents, sets `x_kind` to `abundance` (review I2).
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) design note 2: the nothing-maps guard applies to unstratified input only (review Minor 2).
