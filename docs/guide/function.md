@@ -41,7 +41,8 @@ hierarchy, with `humann_regroup_table`'s rules:
 - **`UNGROUPED`.** Functions with no parent at that level are summed into
   `UNGROUPED`, per taxon in a stratified table.
 - **Specials pass through.** `UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED`
-  keep their own rows.
+  keep their own rows. (HUMAnN 3.9 sums `READS_UNMAPPED` into `UNGROUPED`;
+  biotapy follows HUMAnN master, which keeps it.)
 - **`agg="mean"`** divides by the members present in the table, not by the
   group's size in the hierarchy.
 
