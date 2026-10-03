@@ -14,9 +14,9 @@ against R on real data.
 
 ## Status
 
-**biotapy is pre-release.** The API can still change without notice.
+**biotapy 0.1 is an early release.** The API can still change between minor versions.
 
-What works today (full signatures in the [API reference][api]):
+What 0.1 does (full signatures in the [API reference][api]):
 
 - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
@@ -34,39 +34,25 @@ What works today (full signatures in the [API reference][api]):
 - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
   `bt.pl.scree` and `bt.pl.heatmap`.
 
-Release 0.1 will publish all of this on PyPI. See the
-[Phase 1 roadmap][roadmap] for what remains; no dates are promised.
+Next, in 0.2: functional profiles from HUMAnN, PICRUSt2 and MetaPhlAn. See the
+[roadmap][roadmap]; no dates are promised.
 
 ## Installation
 
 You need Python 3.12 or newer.
 
-biotapy is not functional on PyPI yet: `biotapy` 0.0.1 there is a name
-placeholder with no public functions, reserved ahead of the first real
-release. The first functional PyPI release will be 0.1. Until then, install
-the development version straight from GitHub:
-
 ```bash
-pip install git+https://github.com/pedrocr83/biotapy.git
+pip install biotapy
 ```
 
 or, with [uv][]:
 
 ```bash
-uv add git+https://github.com/pedrocr83/biotapy.git
-```
-
-<!--
-Once 0.1 is on PyPI:
-
-```bash
 uv add biotapy
 ```
 
-```bash
-pip install biotapy
-```
--->
+The development version installs straight from GitHub:
+`pip install git+https://github.com/pedrocr83/biotapy.git`.
 
 On Python 3.14, the `biom-format` dependency has no wheels yet, so it is built
 from source and needs a C compiler until biom-format publishes 3.14 wheels
@@ -232,7 +218,7 @@ Questions, bug reports and feature requests all go to the [issue tracker][].
 [rules]: https://github.com/pedrocr83/biotapy/blob/master/rules.md
 [knowledge]: https://github.com/pedrocr83/biotapy/tree/master/.knowledge
 [golden-playbook]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/playbooks/regenerate-golden-files.md
-[roadmap]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/roadmap/phase-1-core.md
+[roadmap]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/roadmap/index.md
 [data-model-contract]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/contracts/data-model-slots.md
 [uv]: https://github.com/astral-sh/uv
 [issue tracker]: https://github.com/pedrocr83/biotapy/issues

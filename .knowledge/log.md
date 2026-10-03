@@ -1,5 +1,28 @@
 # Knowledge bundle log
 
+## 2026-10-03 (release 0.1.0)
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) records the approved
+  build floor `hatchling>=1.27` in its dependency table. Refreshed
+  [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [tree-access](contracts/tree-access.md),
+  [add-a-function](playbooks/add-a-function.md) and
+  [cut-a-release](playbooks/cut-a-release.md), commit and `generated` only,
+  against 659f5a0; the hatchling floor and the performance page's suite time
+  contradict nothing they state.
+* **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [phase-1-core](roadmap/phase-1-core.md),
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [tree-access](contracts/tree-access.md) and
+  [add-a-function](playbooks/add-a-function.md), commit and `generated` only,
+  against 695507e; the changes under their paths (version bump, license and
+  classifier metadata, sdist excludes, benchmark docstring figure) contradict
+  nothing they state.
+* **Update**: [cut-a-release](playbooks/cut-a-release.md) gains Step 2b (update
+  the README) and an sdist `pytest` check; phase-1-core ticks Task 1.23
+  Steps 3-8 and its first five exit-gate items.
+
 ## 2026-10-03
 * **Refresh**: [phase-1-core](roadmap/phase-1-core.md) and
   [engine-parity](contracts/engine-parity.md), commit and `generated` only,

@@ -1,13 +1,14 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatchling>=1.27" ]
 
 [project]
 name = "biotapy"
-version = "0.0.1"
+version = "0.1.0"
 description = "mia-style microbiome toolkit for Python on AnnData/TreeData"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = [ "LICENSE" ]
 maintainers = [
   { name = "Pedro Ribeiro", email = "pedrocasalribeiro@gmail.com" },
 ]
@@ -16,10 +17,13 @@ authors = [
 ]
 requires-python = ">=3.12"
 classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
   "anndata",
@@ -80,7 +84,8 @@ doc = [
 
 [tool.hatch]
 # Development-only files (rules.md, plan.md, .knowledge/, tests/r/, scripts/, .github/)
-# stay in the GitHub repo but are not part of what ships to PyPI.
+# stay in the GitHub repo but are not part of what ships to PyPI. So do the tests that check
+# the repository itself (CI config, knowledge bundle, staleness script): they read those files.
 build.targets.sdist.include = [
   "/CHANGELOG.md",
   "/docs",
@@ -92,6 +97,9 @@ build.targets.sdist.exclude = [
   "/docs/generated",
   "/docs/jupyter_execute",
   "/tests/r",
+  "/tests/test_ci.py",
+  "/tests/test_knowledge_bundle.py",
+  "/tests/test_knowledge_stale.py",
 ]
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]

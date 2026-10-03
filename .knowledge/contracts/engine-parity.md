@@ -5,8 +5,8 @@ description: A compiled kernel is a drop-in behind an existing public function v
 tags: [performance, testing]
 status: stable
 paths: ["src/biotapy/**/*.py", "rust/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:56:36Z }
-commit: 809c508
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T10:08:36Z }
+commit: 695507e
 sources:
   - id: spec
     resource: ../../plan.md
