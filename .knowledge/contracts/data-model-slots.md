@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T20:00:00Z }
-commit: 9479792
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:00:57Z }
+commit: 7b13f1d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -126,7 +126,11 @@ with none are summed into `UNGROUPED` (per taxon when `var` has `taxon`);
 `UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED` pass through; `agg="mean"`
 divides by the members present. Groups are sorted by name. `var` holds
 `name` (from the hierarchy's `parent_name`) and `special`, plus `function`,
-`taxon` and rank columns for a stratified input.
+`taxon` and rank columns for a stratified input. The input's `x_kind` is
+kept only for a sum in which every feature has at most one parent at the
+level; a mean, or a sum with a feature in several parents, sets it to
+`abundance`, so `require_counts` refuses it (a read would count once per
+parent, and proportions would no longer sum to 1).
 
 # Why
 A slot whose meaning depends on which function wrote it cannot be trusted by

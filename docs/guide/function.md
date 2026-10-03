@@ -45,6 +45,11 @@ hierarchy, with `humann_regroup_table`'s rules:
   biotapy follows HUMAnN master, which keeps it.)
 - **`agg="mean"`** divides by the members present in the table, not by the
   group's size in the hierarchy.
+- **Units.** The output keeps `uns["biotapy"]["x_kind"]` only for a sum in
+  which every function has at most one parent at the level. A mean, or a
+  sum in which a function counts toward several parents, is labelled
+  `"abundance"`: its values are no longer counts of reads or proportions that
+  sum to 1, so `bt.pp.rarefy` refuses it.
 
 Apply it to each modality to keep the pair together:
 

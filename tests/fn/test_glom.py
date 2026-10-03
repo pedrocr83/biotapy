@@ -101,6 +101,31 @@ def test_keeps_obs_and_x_kind_and_drops_derived_slots():
     assert '"step": "fn.func_glom"' in out.uns["biotapy"]["provenance"][-1]
 
 
+def _counts(make_adata):
+    # The review's probe: a KO count table from another reader, x_kind "counts".
+    return make_adata(np.array([[1, 2], [3, 4]]))
+
+
+def test_counts_keep_their_label_when_each_feature_has_one_parent(make_adata):
+    hierarchy = pd.DataFrame({"child": ["f0", "f1"], "parent": "P1", "level": "p"})
+    assert bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy).uns["biotapy"]["x_kind"] == "counts"
+
+
+def test_a_mean_is_labelled_abundance(make_adata):
+    hierarchy = pd.DataFrame({"child": ["f0", "f1"], "parent": "P1", "level": "p"})
+    out = bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy, agg="mean")
+    assert out.uns["biotapy"]["x_kind"] == "abundance"
+
+
+def test_a_feature_in_two_parents_makes_the_sum_abundance(make_adata):
+    # f0 counts once per parent, so a read is no longer one count.
+    hierarchy = pd.DataFrame({"child": ["f0", "f1", "f0"], "parent": ["P1", "P1", "P2"], "level": "p"})
+    out = bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy)
+    assert out.uns["biotapy"]["x_kind"] == "abundance"
+    with pytest.raises(ValueError, match="x_kind"):
+        bt.pp.rarefy(out, depth=3, seed=0)
+
+
 def test_output_round_trips_through_h5ad(tmp_path):
     out = bt.fn.func_glom(_by_taxon(), "role", hierarchy=EC)
     out.write_h5ad(tmp_path / "glom.h5ad")

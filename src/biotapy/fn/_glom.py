@@ -55,9 +55,13 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
         ``UNMAPPED``, ``READS_UNMAPPED`` and ``UNINTEGRATED`` pass through
         unchanged. ``var`` holds ``name`` (from ``parent_name``) and
         ``special``; a stratified input also keeps ``function``, ``taxon``
-        and its rank columns. ``obs`` and ``uns['biotapy']['x_kind']`` are
-        kept; ``layers``, ``obsm``, ``obsp``, ``varm`` and ``varp`` are
-        dropped because they described the old features.
+        and its rank columns. ``obs`` is kept, and so is
+        ``uns['biotapy']['x_kind']`` for a sum in which every feature has
+        at most one parent at ``level``; a mean, or a sum in which some
+        feature has several parents, sets it to ``"abundance"``, because
+        counts or proportions no longer add up as their kind says.
+        ``layers``, ``obsm``, ``obsp``, ``varm`` and ``varp`` are dropped
+        because they described the old features.
 
     Raises
     ------
@@ -110,6 +114,10 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
     if agg == "mean":
         X = sp.csr_matrix(X @ sp.diags(1.0 / np.bincount(codes, minlength=labels.size)))
     out = replace_features(adata, X, _group_var(var, pairs.assign(code=codes), labels, edges=edges))
+    if agg == "mean" or pairs["feature"].duplicated().any():
+        # A mean, or a feature counted once per parent, is no longer what x_kind said: reads stop being
+        # one count each, proportions stop summing to 1 (contracts/data-model-slots, convention 2).
+        out.uns["biotapy"]["x_kind"] = "abundance"
     add_provenance(out, "fn.func_glom", level=level, agg=agg, hierarchy=hierarchy.attrs.get("source"))
     return out
 
