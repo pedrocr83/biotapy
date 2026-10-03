@@ -49,5 +49,5 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
 ```
 
 `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
-`.asv/results`. The whole suite took about 17 minutes on this run and needs about 3 GB of free memory.
+`.asv/results`. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
 `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
