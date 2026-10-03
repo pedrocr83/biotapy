@@ -8,7 +8,7 @@
 "phyloseq::sample_data" = '`tdata.obs`'
 "phyloseq::tax_table" = '`tdata.var`, one column per rank'
 "phyloseq::phy_tree" = '`tdata.vart["phylo"]`'
-"phyloseq::refseq" = '`tdata.var["sequence"]`'
+"phyloseq::refseq" = '`tdata.var["sequence"]`, which only `bt.io.read_dada2` fills'
 "phyloseq::nsamples" = '`tdata.n_obs`'
 "phyloseq::ntaxa" = '`tdata.n_vars`'
 "phyloseq::sample_names" = '`tdata.obs_names`'
