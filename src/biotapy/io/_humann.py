@@ -56,8 +56,11 @@ def read_humann(path: str | Path) -> MuData:
     Raises
     ------
     ValueError
-        The file is a pathway coverage table, or a row id holds more than
-        one ``|``; sample names repeat once their suffix is removed.
+        The file is empty or a pathway coverage table; a value is not a
+        number; a data row has more cells than the header, fewer cells, or an
+        empty cell (any missing value); a row id holds more than one ``|``;
+        or sample names repeat once their suffix is removed. Messages name
+        ``path``.
 
     Notes
     -----
@@ -73,6 +76,10 @@ def read_humann(path: str | Path) -> MuData:
 
     Read one table per call: a gene family table and a pathway table both
     hold ``UNMAPPED``, so they cannot share a modality.
+
+    The reader builds one dense rows x samples ``float64`` array before
+    converting to CSR (about 290 MB for HMP2's 22,113-row x 1,638-sample
+    pathway table).
 
     The community and stratified rows are kept apart because a pathway's
     community abundance is not the sum of its strata.
@@ -106,12 +113,31 @@ def read_humann(path: str | Path) -> MuData:
     if _COVERAGE.search(header):
         msg = f"path={str(path)!r} is a pathway coverage table; read_humann reads abundance tables"
         raise ValueError(msg)
-    table = pd.read_csv(
-        path, sep="\t", skiprows=max(n_comments - 1, 0), index_col=0, dtype={0: str}, quoting=csv.QUOTE_NONE
-    )
-    X = table.to_numpy(dtype=np.float64).T
+    table, X = _read_table(path, header, max(n_comments - 1, 0))
     obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
     unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)
     x_kind = unit or "abundance"
     return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")
+
+
+def _read_table(path: Path, header: str, skiprows: int) -> tuple[pd.DataFrame, np.ndarray]:
+    """Read the table and its values, raising ``ValueError`` that names ``path`` on a malformed file."""
+    try:
+        table = pd.read_csv(path, sep="\t", skiprows=skiprows, index_col=0, dtype={0: str}, quoting=csv.QUOTE_NONE)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
+        msg = f"path={str(path)!r} is not a valid HUMAnN table: {error}"
+        raise ValueError(msg) from error
+    # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.
+    if table.shape[1] != header.rstrip("\n").count("\t"):
+        msg = f"path={str(path)!r} has a data row with more cells than the header"
+        raise ValueError(msg)
+    try:
+        values = table.to_numpy(dtype=np.float64)
+    except ValueError as error:
+        msg = f"path={str(path)!r} has a value that is not a number: {error}"
+        raise ValueError(msg) from error
+    if np.isnan(values).any():
+        msg = f"path={str(path)!r} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+        raise ValueError(msg)
+    return table, values.T

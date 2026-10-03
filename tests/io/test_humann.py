@@ -149,3 +149,29 @@ def test_header_only_table_has_no_features(tmp_path):
     path.write_text("# Pathway\tS1_Abundance\tS2_Abundance\n")
     mdata = bt.io.read_humann(path)
     assert mdata["function"].shape == (2, 0) and mdata["function_by_taxon"].shape == (2, 0)
+
+
+def test_empty_file_raises_naming_the_path(tmp_path):
+    path = tmp_path / "empty_file.tsv"
+    path.write_text("")
+    with pytest.raises(ValueError, match="empty_file.tsv"):
+        bt.io.read_humann(path)
+
+
+def test_non_numeric_value_raises_naming_the_path(tmp_path):
+    path = tmp_path / "text_value.tsv"
+    path.write_text("# Gene Family\tS1-RPKs\nK1\tabc\nK2\t1.0\n")
+    with pytest.raises(ValueError, match=r"text_value\.tsv.*not a number"):
+        bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize(
+    "rows",
+    ["PWY\t3\t4\n", "K0\t1\nPWY\t3\t4\n", "K0\t1\nPWY\t\n", "K0\t1\nPWY\n", "K0\t1\t\n"],
+    ids=["first-row-longer", "later-row-longer", "empty-cell", "row-shorter", "trailing-empty-cell"],
+)
+def test_ragged_or_missing_cells_raise_naming_the_path(tmp_path, rows):
+    path = tmp_path / "ragged.tsv"
+    path.write_text("# Pathway\tS1\n" + rows)
+    with pytest.raises(ValueError, match=r"ragged\.tsv"):
+        bt.io.read_humann(path)
