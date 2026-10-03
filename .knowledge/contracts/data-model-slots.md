@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
-commit: 8e0442b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:02:00Z }
+commit: 9507159
 sources:
   - id: spec
     resource: ../../plan.md
@@ -59,6 +59,8 @@ Extends the spec's data-model table with exact keys.[^spec]
    The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
    `relative`) and labels a header without a unit `abundance`, never `counts`.
+   `io.read_metaphlan` divides MetaPhlAn's percentages by 100 and sets `relative`, after
+   checking that every sample's leaf clades sum to 1 within `1e-3` (`_core.RELATIVE_TOLERANCE`).
    `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
    its `relative` stratified rows do not sum to 1: they are shares of the community total.
    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
@@ -99,6 +101,16 @@ same samples, each an `AnnData` with its own copy of `obs`:
 columns use the pandas `str` dtype, as rank columns do. Both modalities
 always exist; either may have 0 features. The community values are not
 the sum of their strata for pathways, which is why there are two.
+
+## Taxonomic profiles (MetaPhlAn)
+`io.read_metaphlan` keeps one feature per leaf clade: a row that no other
+row descends from through any ancestor (MetaPhlAn can omit an intermediate
+rank's row; the real 4.0.6 fixture has no `o__Corynebacteriales`). A clade's
+row is the sum of its leaves', so every read counts once and `pp.tax_glom`
+rebuilds the higher ranks. `var_names` are the leaf's last name without its
+rank prefix (`SGB1871` from `t__SGB1871`); `t__` has no rank column. Rank
+columns run `kingdom` to `species`. `UNCLASSIFIED` (`UNKNOWN` in older
+tables) stays a feature with every rank NaN, so samples sum to 1.
 
 ## Propagation
 | Operation | Keeps | Drops |

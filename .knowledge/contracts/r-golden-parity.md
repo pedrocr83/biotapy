@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T17:53:40Z }
-commit: 4ef5314
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:02:00Z }
+commit: 9507159
 sources:
   - id: spec
     resource: ../../plan.md
@@ -55,7 +55,8 @@ sources:
    accepted this for this BSD-3 repository on 2026-09-27. Test fixtures under `tests/data/`
    stay synthetic, except small files copied under a permissive licence
    with a `NOTICE.txt` beside them (`tests/data/humann`: HUMAnN's MIT test
-   data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
+   data; `tests/data/metaphlan`: a MetaPhlAn 4.0.6 profile from HUMAnN's MIT
+   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
 7. `pl` functions have an R equivalent but no golden test. They draw numbers
    that `tl` stores, and `tl`'s golden tests check those numbers (controller
    ruling 2026-09-27; rules.md R11.2).
@@ -64,7 +65,11 @@ sources:
    `io.read_humann` (R equivalent `mia::importHUMAnN`) is checked this way:
    the HUMAnN golden tests of `fn.func_glom` and `fn.renorm` read their
    inputs through it and compare with HUMAnN's own output. mia is not added
-   to the R image (user-approved 2026-10-03).
+   to the R image (user-approved 2026-10-03). `io.read_metaphlan` (R equivalent
+   `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
+   leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
+   profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
+   MetaPhlAn rounds each percentage to 5 decimals).
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match

@@ -366,7 +366,7 @@ not exist yet.
 - [x] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A
 - [x] 2.2a io/_table.py: strict table reading shared by the readers
-- [ ] 2.2 io.read_metaphlan(path) -> TreeData
+- [x] 2.2 io.read_metaphlan(path) -> TreeData
 - [ ] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
 - [ ] 2.7 `fn.contributions(mdata, function, *, top=None) -> pd.DataFrame` (outline)
@@ -3569,7 +3569,7 @@ uv run --group test pytest -q -W error::UserWarning   # 752 passed, 22 deselecte
 ignore `t__`), `pp.tax_glom`'s `dropna` behaviour, and `RANKS` (no `strain`
 or `sgb` rank).
 
-- [ ] **Step 1: Fixture and notice.** Copy the file from HUMAnN's repository
+- [x] **Step 1: Fixture and notice.** Copy the file from HUMAnN's repository
   at the pinned commit and check its hash:
 
 ```bash
@@ -3615,7 +3615,7 @@ The other MetaPhlAn tables in tests/io/test_metaphlan.py are synthetic,
 written for biotapy (BSD-3-Clause) from the formats in MetaPhlAn's source.
 ```
 
-- [ ] **Step 2: Failing tests.** Create `tests/io/test_metaphlan.py`:
+- [x] **Step 2: Failing tests.** Create `tests/io/test_metaphlan.py`:
 
 ```python
 import gzip
@@ -3838,9 +3838,9 @@ def test_leaves_keep_every_percentage(weights):
     np.testing.assert_allclose(tdata.X.toarray().ravel(), np.array(leaves) / 100, rtol=1e-12)
 ```
 
-- [ ] **Step 3: Run, expect failure.** `uv run --group test pytest tests/io/test_metaphlan.py -q`
+- [x] **Step 3: Run, expect failure.** `uv run --group test pytest tests/io/test_metaphlan.py -q`
   -> `28 failed`: `AttributeError: module 'biotapy.io' has no attribute 'read_metaphlan'`.
-- [ ] **Step 4: Implement.**
+- [x] **Step 4: Implement.**
   - In `src/biotapy/_core/__init__.py`, import `RELATIVE_TOLERANCE` from
     `._slots`, before `XKind`, and add `"RELATIVE_TOLERANCE"` to `__all__`
     after `"RANKS"`:
@@ -4027,10 +4027,10 @@ from ._qiime2 import read_qiime2
 __all__ = ["read_biom", "read_dada2", "read_humann", "read_metaphlan", "read_phyloseq", "read_qiime2", "write_biom"]
 ```
 
-- [ ] **Step 5: Run, expect pass.** The same command gives `28 passed`. The
+- [x] **Step 5: Run, expect pass.** The same command gives `28 passed`. The
   doctest `uv run --group test pytest src/biotapy/io/_metaphlan.py -q` gives
   `1 passed`.
-- [ ] **Step 6: Docs.**
+- [x] **Step 6: Docs.**
   - `docs/api.md`: add `io.read_metaphlan` after `io.read_humann`.
   - `docs/guide/reading_data.md`: replace the introduction's second
     paragraph, which says every reader infers `x_kind` (false since
@@ -4102,7 +4102,7 @@ index 1c08141..fdeab8b 100644
 
   - Build: `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
     -> `build succeeded.`
-- [ ] **Step 7: Contracts** (user-approved as decisions 1, 2 and 7).
+- [x] **Step 7: Contracts** (user-approved as decisions 1, 2 and 7).
   - `data-model-slots.md`: one sentence in convention 2, and a new section
     "Taxonomic profiles (MetaPhlAn)" before "Propagation".
   - `r-golden-parity.md`: statements 6 and 8.
@@ -4181,7 +4181,7 @@ index 8da4273..4d5008a 100644
      io.write_biom
 ```
 
-- [ ] **Step 8: Bookkeeping.**
+- [x] **Step 8: Bookkeeping.**
   - Tick this task's boxes and its checklist line.
   - In `data-model-slots.md` and `r-golden-parity.md`, set
     `generated: { by: claude-code/<your model id>, at: <UTC now> }` and
@@ -4189,7 +4189,7 @@ index 8da4273..4d5008a 100644
     change.
   - Add to `.knowledge/log.md`:
     `- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (MetaPhlAn percentages / 100, checked to sum to 1) and new section "Taxonomic profiles (MetaPhlAn)"; [r-golden-parity](contracts/r-golden-parity.md) statement 6 lists tests/data/metaphlan and statement 8 gives read_metaphlan's parity (tax_glom equals MetaPhlAn's own rows); [phase-2-function](roadmap/phase-2-function.md) task 2.2 done.`
-- [ ] **Step 9: Gate and commit.**
+- [x] **Step 9: Gate and commit.**
 
 ```bash
 uvx prek run --all-files
