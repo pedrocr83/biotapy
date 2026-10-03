@@ -84,7 +84,8 @@ doc = [
 
 [tool.hatch]
 # Development-only files (rules.md, plan.md, .knowledge/, tests/r/, scripts/, .github/)
-# stay in the GitHub repo but are not part of what ships to PyPI.
+# stay in the GitHub repo but are not part of what ships to PyPI. So do the tests that check
+# the repository itself (CI config, knowledge bundle, staleness script): they read those files.
 build.targets.sdist.include = [
   "/CHANGELOG.md",
   "/docs",
@@ -96,6 +97,9 @@ build.targets.sdist.exclude = [
   "/docs/generated",
   "/docs/jupyter_execute",
   "/tests/r",
+  "/tests/test_ci.py",
+  "/tests/test_knowledge_bundle.py",
+  "/tests/test_knowledge_stale.py",
 ]
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
