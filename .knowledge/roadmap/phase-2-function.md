@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T21:42:43Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T21:48:23Z }
+commit: e34b6e9
 sources:
   - id: spec
     resource: ../../plan.md
@@ -369,7 +369,7 @@ not exist yet.
 - [x] 2.2 io.read_metaphlan(path) -> TreeData
 - [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
-- [ ] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
+- [x] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
 - [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
 - [ ] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
@@ -5621,7 +5621,7 @@ table; 2.8 is independent of both but shares `docs/guide/function.md` with
 
 **Will not touch:** `fn/_glom.py`, `fn/_renorm.py`, `_core`, any reader.
 
-- [ ] **Step 1: Failing tests.** Create `tests/fn/test_contributions.py`:
+- [x] **Step 1: Failing tests.** Create `tests/fn/test_contributions.py`:
 
 ```python
 import numpy as np
@@ -5782,10 +5782,10 @@ def test_rows_sum_to_the_functions_strata(strata, top):
     assert out.shape[1] == (n_taxa if top is None or top >= n_taxa else top + 1)
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/fn/test_contributions.py -q`
   -> `22 failed`: `AttributeError: module 'biotapy.fn' has no attribute 'contributions'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/fn/_contributions.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/fn/_contributions.py`:
 
 ```python
 """The taxa behind one function: its stratified rows as a samples x taxa table."""
@@ -5915,10 +5915,10 @@ from ._renorm import renorm
 __all__ = ["contributions", "func_glom", "load_hierarchy", "renorm"]
 ```
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `uv run --group test pytest tests/fn/test_contributions.py src/biotapy/fn/_contributions.py -q`
   -> `23 passed` (22 tests and the doctest).
-- [ ] **Step 5: Docs.** In `docs/api.md`, add `fn.contributions` before
+- [x] **Step 5: Docs.** In `docs/api.md`, add `fn.contributions` before
   `fn.func_glom` under "Function". Append to `docs/guide/function.md`:
 
 ````markdown
@@ -5955,7 +5955,7 @@ catches typos and an `EC:` prefix.
 ````
 
   Build the docs -> `build succeeded.`
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - In "# Tasks (checklist)", the line becomes
     `- [x] 2.7 \`fn.contributions(adata, function, *, top=None) -> pd.DataFrame\``;
     tick this task's step boxes. Bump `generated` and `commit` on this
@@ -5963,7 +5963,7 @@ catches typos and an `EC:` prefix.
   - Add to `.knowledge/log.md`, under a new heading
     `## <date> (Phase 2, slice 2C)`:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.7 done: \`fn.contributions\` returns one function's strata as a samples x taxa table.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add src/biotapy/fn/_contributions.py src/biotapy/fn/__init__.py tests/fn/test_contributions.py docs/api.md \

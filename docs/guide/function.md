@@ -124,3 +124,34 @@ is `bt.pp.relative` applied to each modality.
 
 A sample whose community total is zero stays all zero, and `renorm` warns
 once, naming up to three such samples and how many there are, as HUMAnN does.
+
+## Contributions
+
+`bt.fn.contributions` answers "which taxa carry this function?". It takes the
+stratified modality and one function id, and returns a samples x taxa
+`DataFrame` of that function's strata, as stored:
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
+```
+
+- **Raw strata.** Each row sums to the function's strata in that sample. For
+  pathways that is not the community value, because a pathway's strata need
+  not add up to it. Pass the stratified modality of
+  `bt.fn.renorm(mdata, "relab")` to read the values as shares of each
+  sample's community total.
+- **Order.** Taxa are ordered by their total over all samples, largest first
+  (ties by id). `top=5` keeps the five largest and sums the rest into a last
+  column, `"other"`.
+- **Every stratum is a taxon.** `unclassified` (HUMAnN) and `RARE`
+  (PICRUSt2) are columns like any other; special functions such as
+  `UNINTEGRATED` can be queried too.
+- **Regrouped tables work too.** `bt.fn.func_glom`'s output for the
+  stratified modality has the same `var` columns, so
+  `contributions(by_class, "2.-.-.-")` shows the taxa behind an enzyme class.
+
+An unknown id raises a `KeyError` listing up to three close ids, which
+catches typos and an `EC:` prefix.
