@@ -103,3 +103,9 @@ def test_feeds_func_glom(offline):
     assert out.var.loc["2.-.-.-", "name"] == "Transferases"
     params = json.loads(out.uns["biotapy"]["provenance"][-1])["params"]
     assert "02-Sep-2026" in params["hierarchy"] and params["license"] == "CC BY 4.0"
+
+
+def test_edge_table_schema_matches_load_hierarchy(offline):
+    # Both producers feed func_glom; one schema, so a concatenation of the two keeps every column's dtype.
+    hierarchy = bt.fn.load_hierarchy(Path(__file__).parents[1] / "data" / "humann" / "regroup_map.tsv", "group")
+    assert bt.datasets.enzyme().dtypes.to_dict() == hierarchy.dtypes.to_dict()

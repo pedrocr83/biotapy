@@ -38,7 +38,10 @@ def load_hierarchy(
     pandas.DataFrame
         Columns ``child``, ``parent``, ``level`` and ``parent_name`` (NaN:
         mapping files name no parents), one row per distinct pair.
-        ``attrs["source"]`` is the file's path.
+        ``attrs["source"]`` is the file's path. There is no
+        ``attrs["license"]`` (``bt.datasets.enzyme`` sets one): biotapy
+        cannot know your file's licence, so set it yourself if
+        ``func_glom``'s provenance should record it.
 
     Raises
     ------

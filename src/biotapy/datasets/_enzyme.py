@@ -104,9 +104,15 @@ def _ancestors(ids: pd.Series) -> pd.DataFrame:
     """Every (id, ancestor, ancestor's level) row; ``1.1.1.1`` has three, ``1.-.-.-`` none."""
     depth = 4 - ids.str.count(r"\.-")
     parts = ids.str.split(".")
+    # str.join gives object; the str dtype matches load_hierarchy's edge table (contracts/data-model-slots).
+    text = pd.StringDtype(na_value=np.nan)
     frames = [
         pd.DataFrame(
-            {"child": ids[depth > k], "parent": parts[depth > k].str[:k].str.join(".") + ".-" * (4 - k), "level": level}
+            {
+                "child": ids[depth > k],
+                "parent": (parts[depth > k].str[:k].str.join(".") + ".-" * (4 - k)).astype(text),
+                "level": level,
+            }
         )
         for k, level in enumerate(LEVELS, start=1)
     ]
