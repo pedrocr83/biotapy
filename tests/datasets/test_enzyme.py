@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -100,3 +101,5 @@ def test_feeds_func_glom(offline):
     out = bt.fn.func_glom(bt.datasets.toy_humann()["function"], "class", hierarchy=bt.datasets.enzyme())
     assert out.var_names.tolist() == ["1.-.-.-", "2.-.-.-", "3.-.-.-", "UNGROUPED", "UNMAPPED"]
     assert out.var.loc["2.-.-.-", "name"] == "Transferases"
+    params = json.loads(out.uns["biotapy"]["provenance"][-1])["params"]
+    assert "02-Sep-2026" in params["hierarchy"] and params["license"] == "CC BY 4.0"

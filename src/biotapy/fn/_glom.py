@@ -61,7 +61,9 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
         feature has several parents, sets it to ``"abundance"``, because
         counts or proportions no longer add up as their kind says.
         ``layers``, ``obsm``, ``obsp``, ``varm`` and ``varp`` are dropped
-        because they described the old features.
+        because they described the old features. The provenance entry
+        records ``hierarchy.attrs["source"]`` and, when present,
+        ``hierarchy.attrs["license"]``.
 
     Raises
     ------
@@ -121,7 +123,9 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
         # A mean, or a feature counted once per parent, is no longer what x_kind said: reads stop being
         # one count each, proportions stop summing to 1 (contracts/data-model-slots, convention 2).
         out.uns["biotapy"]["x_kind"] = "abundance"
-    add_provenance(out, "fn.func_glom", level=level, agg=agg, hierarchy=hierarchy.attrs.get("source"))
+    # A hierarchy's licence (ENZYME is CC BY 4.0) travels with the parent names it put in var.
+    licence = {"license": hierarchy.attrs["license"]} if "license" in hierarchy.attrs else {}
+    add_provenance(out, "fn.func_glom", level=level, agg=agg, hierarchy=hierarchy.attrs.get("source"), **licence)
     return out
 
 

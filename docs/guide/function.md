@@ -72,7 +72,11 @@ by_class = mudata.MuData({key: bt.fn.func_glom(mod, "class", hierarchy=edges) fo
 A hierarchy is an edge table with columns `child`, `parent`, `level` and,
 optionally, `parent_name`, which becomes `var["name"]`. Every ancestor is a
 row, not only the direct parent, so a table already grouped one level up
-still reaches the levels above.
+still reaches the levels above. The output's provenance records the
+hierarchy's `attrs["source"]` and, when it has one, `attrs["license"]`.
+`pd.concat` keeps `attrs` only when every input has the same ones, so
+`pd.concat([bt.datasets.enzyme(), my_edges])` is recorded with no source or
+licence: set `attrs` on the result yourself.
 
 ## Where hierarchies come from
 

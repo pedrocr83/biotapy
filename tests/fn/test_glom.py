@@ -1,3 +1,5 @@
+import json
+
 import anndata as ad
 import numpy as np
 import pandas as pd
@@ -124,6 +126,14 @@ def test_a_feature_in_two_parents_makes_the_sum_abundance(make_adata):
     assert out.uns["biotapy"]["x_kind"] == "abundance"
     with pytest.raises(ValueError, match="x_kind"):
         bt.pp.rarefy(out, depth=3, seed=0)
+
+
+def test_provenance_names_the_hierarchy_source_and_no_licence_when_it_has_none():
+    hierarchy = EC.copy()
+    hierarchy.attrs["source"] = "my_map.tsv"
+    out = bt.fn.func_glom(_function(), "class", hierarchy=hierarchy)
+    params = json.loads(out.uns["biotapy"]["provenance"][-1])["params"]
+    assert params["hierarchy"] == "my_map.tsv" and "license" not in params
 
 
 def test_output_round_trips_through_h5ad(tmp_path):
