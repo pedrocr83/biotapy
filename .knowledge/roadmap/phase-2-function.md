@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:00:00Z }
-commit: ebede28
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:02:00Z }
+commit: 3012459
 sources:
   - id: spec
     resource: ../../plan.md
@@ -129,9 +129,12 @@ repeated under "Decisions for the user".
    This replaces roadmap 2.1's "unmapped children dropped and counted in a
    warning". No warning on a partial mapping (a real UniRef -> EC regroup
    leaves most abundance in `UNGROUPED`, so a warning would fire on every
-   call). When **no** non-special feature maps, `func_glom` raises
-   `ValueError` naming three features and three hierarchy children, which
-   catches id-format mismatches (`EC:1.1.1.1` vs `1.1.1.1`). `READS_UNMAPPED`
+   call). When **no** non-special feature of an unstratified input maps,
+   `func_glom` raises `ValueError` naming three features and three hierarchy
+   children, which catches id-format mismatches (`EC:1.1.1.1` vs `1.1.1.1`).
+   A stratified input never raises (Checkpoint A ruling): a pathway need not
+   have strata, so its rows go to `UNGROUPED|<taxon>`, as HUMAnN writes them,
+   and the community call already catches a mismatch. `READS_UNMAPPED`
    is protected, as in HUMAnN master; HUMAnN 3.9 and 4.0.0a2 do not know it,
    so no golden input contains it. **(user: semantics change)**
 

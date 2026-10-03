@@ -173,6 +173,17 @@ def test_no_feature_in_the_hierarchy_raises_with_examples():
         bt.fn.func_glom(_function(), "pathway", hierarchy=hierarchy)
 
 
+def test_stratified_rows_with_no_parent_go_to_ungrouped_as_in_humann(tmp_path):
+    # humann_regroup_table 3.9 on this table and map writes UNGROUPED|g__A.s__A_b 4.0: pathways need not have strata,
+    # so only the community call can tell an id mismatch.
+    path = tmp_path / "guard.tsv"
+    path.write_text("# Gene Family\tS1_Abundance-RPKs\nUNMAPPED\t1\nK1\t3\nK2\t4\nK2|g__A.s__A_b\t4\n")
+    hierarchy = pd.DataFrame({"child": ["K1"], "parent": ["P1"], "level": "pathway"})
+    out = bt.fn.func_glom(bt.io.read_humann(path)["function_by_taxon"], "pathway", hierarchy=hierarchy)
+    assert out.var_names.tolist() == ["UNGROUPED|g__A.s__A_b"]
+    np.testing.assert_array_equal(out.X.toarray(), [[4.0]])
+
+
 def test_error_examples_are_distinct_ids():
     hierarchy = pd.DataFrame({"child": ["x", "x", "y"], "parent": ["P", "Q", "P"], "level": "pathway"})
     with pytest.raises(ValueError, match=r"children: \['x', 'y'\]"):

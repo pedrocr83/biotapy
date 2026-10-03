@@ -68,8 +68,11 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
     KeyError
         ``hierarchy`` lacks a required column, or has no row at ``level``.
     ValueError
-        ``agg`` is not ``"sum"`` or ``"mean"``; no feature of ``adata``
-        is a child at ``level``.
+        ``agg`` is not ``"sum"`` or ``"mean"``; no feature of an
+        unstratified ``adata`` is a child at ``level`` (usually an id
+        format mismatch, such as ``EC:1.1.1.1`` against ``1.1.1.1``). A
+        stratified ``adata`` does not raise: its rows go to
+        ``UNGROUPED|<taxon>``, as in HUMAnN.
 
     Notes
     -----
@@ -105,7 +108,7 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
     edges = _edges_at(hierarchy, level)
     var = cast("pd.DataFrame", adata.var)
     function = var["function"] if "function" in var.columns else var.index.to_series()
-    pairs = _pairs(function.astype(str).to_numpy(), edges, level=level)
+    pairs = _pairs(function.astype(str).to_numpy(), edges, level=level, stratified="taxon" in var.columns)
     key = pairs["group"]
     if "taxon" in var.columns:
         key = key + "|" + var["taxon"].astype(str).to_numpy()[pairs["feature"]]
@@ -137,13 +140,17 @@ def _edges_at(hierarchy: pd.DataFrame, level: str) -> pd.DataFrame:
     return edges.drop_duplicates(["child", "parent"])
 
 
-def _pairs(function: np.ndarray, edges: pd.DataFrame, *, level: str) -> pd.DataFrame:
-    """(feature, group) rows: each parent of a feature, else itself if protected, else UNGROUPED."""
+def _pairs(function: np.ndarray, edges: pd.DataFrame, *, level: str, stratified: bool) -> pd.DataFrame:
+    """(feature, group) rows: each parent of a feature, else itself if protected, else UNGROUPED.
+
+    Only an unstratified input raises when nothing maps: a pathway need not have strata, so a stratified
+    table whose functions all lack a parent is valid (HUMAnN writes UNGROUPED|taxon rows).
+    """
     features = pd.DataFrame({"feature": np.arange(function.size), "child": function})
     protected = features["child"].isin(PROTECTED_FEATURES)
     mapped = features[~protected].merge(edges[["child", "parent"]], on="child")
     plain = ~features["child"].isin(SPECIAL_FEATURES)
-    if plain.any() and not mapped["feature"].isin(features["feature"][plain]).any():
+    if not stratified and plain.any() and not mapped["feature"].isin(features["feature"][plain]).any():
         msg = (
             f"no feature of adata is a child at level={level!r}; "
             f"features: {features['child'][plain].unique()[:3].tolist()}, children: {edges['child'].unique()[:3].tolist()}"

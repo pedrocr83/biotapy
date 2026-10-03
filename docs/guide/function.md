@@ -51,6 +51,12 @@ hierarchy, with `humann_regroup_table`'s rules:
   `"abundance"`: its values are no longer counts of reads or proportions that
   sum to 1, so `bt.pp.rarefy` refuses it.
 
+If no function of a community table has a parent at the level, `func_glom`
+raises and shows a few ids from each side: this is almost always an id
+format mismatch, such as `EC:1.1.1.1` in the table against `1.1.1.1` in the
+hierarchy. A stratified table does not raise, because a pathway need not
+have strata; its rows go to `UNGROUPED|<taxon>`, as in HUMAnN.
+
 Apply it to each modality to keep the pair together:
 
 ```python
