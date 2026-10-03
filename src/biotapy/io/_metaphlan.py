@@ -41,12 +41,14 @@ def read_metaphlan(path: str | Path) -> TreeData:
     Raises
     ------
     ValueError
-        The file is empty or malformed (a value that is not a number, a
-        missing or negative value, a data row with more cells than the header, repeated
-        column names); the leaf clades of a sample do not sum to 100 (rows
-        removed, or a table that is not a profile, such as one with ``;``
-        lineages); or leaf names or sample names repeat. Messages name
-        ``path``.
+        The file is empty, not UTF-8 text, or a ``.gz`` that is not valid
+        gzip; the header repeats a column name or has an empty sample column
+        name; a data row has more cells than the header, or no (or a blank)
+        id; an abundance is missing (a short row or an empty cell), not a
+        number, negative or not finite; the leaf clades of a sample do not
+        sum to 100 (rows removed, or a table that is not a profile, such as
+        one with ``;`` lineages); or leaf names or sample names repeat.
+        Messages name ``path``.
 
     Notes
     -----
@@ -59,6 +61,10 @@ def read_metaphlan(path: str | Path) -> TreeData:
     ``UNCLASSIFIED`` unless ``dropna=False``. ``uns['biotapy']['x_kind']`` is
     ``"relative"``. NCBI taxids, ``additional_species``, coverage and read
     estimates are not read.
+
+    The reader builds one dense clades x samples ``float64`` array of every
+    row the file prints before keeping the leaves as CSR (about 12 MB for
+    HMP2's 932-row x 1,638-sample table).
 
     References
     ----------

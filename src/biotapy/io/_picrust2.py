@@ -54,17 +54,20 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
     Raises
     ------
     ValueError
-        A file is empty or malformed (a value that is not a number, a missing
-        value or id, a data row with more cells than the header, repeated
-        column names); ``path``'s first header cell is not ``function``,
-        ``pathway`` or (from ``biom convert``) ``#OTU ID``, as in a trait
-        table; ``path`` has a ``description`` column; ``contrib``
-        lacks a ``sample``, ``function``, ``taxon`` or
-        ``taxon_function_abun`` column, repeats a sample, function and taxon,
-        names a sample or function that ``path`` lacks, or has no rows for a
-        sample whose total in ``path`` is nonzero; a value is negative;
-        a taxon written ``NA`` (read as missing: "no function or taxon").
-        Messages name the file's argument.
+        A file is empty, not UTF-8 text, or a ``.gz`` that is not valid
+        gzip; its header repeats a column name or has an empty one after the
+        first; a data row has more cells than the header, or no (or a blank)
+        id; a value is missing (a short row or an empty cell), not a number,
+        negative or not finite. ``path``'s first header cell is not
+        ``function``, ``pathway`` or (from ``biom convert``) ``#OTU ID``, as
+        in a trait table; ``path`` has a ``description`` column; or its
+        function ids repeat once ``EC:`` is removed. ``contrib`` lacks a
+        ``sample``, ``function``, ``taxon`` or ``taxon_function_abun``
+        column; repeats a sample, function and taxon; names a sample or
+        function that ``path`` lacks; has no rows for a sample whose total
+        in ``path`` is nonzero; has a row with no function or taxon (a taxon
+        written ``NA`` reads as missing); or has a function or taxon id
+        holding ``|``. Messages name the file's argument.
 
     Notes
     -----
@@ -181,11 +184,13 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
     Raises
     ------
     ValueError
-        The file is empty or malformed (a value that is not a number, a
-        missing value or id, a negative value, a data row with more cells than
-        the header, repeated column names, or function ids that coincide once ``EC:`` is
-        removed); the first header cell is not ``sequence``, as in a
-        metagenome or pathway table; or an ASV id repeats. Messages name
+        The file is empty, not UTF-8 text, or a ``.gz`` that is not valid
+        gzip; its first header cell is not ``sequence``, as in a metagenome
+        or pathway table; the header repeats a column name or has an empty
+        one after the first; a data row has more cells than the header, or
+        no (or a blank) id; a value is missing (a short row or an empty
+        cell), not a number, negative or not finite; an ASV id repeats; or
+        function ids coincide once ``EC:`` is removed. Messages name
         ``path``.
 
     Notes

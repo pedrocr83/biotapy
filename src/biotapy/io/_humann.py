@@ -55,11 +55,13 @@ def read_humann(path: str | Path) -> MuData:
     Raises
     ------
     ValueError
-        The file is empty or a pathway coverage table; the header repeats a
-        column name; a value is not a number; a data row has more cells than
-        the header, fewer cells, an empty cell (any missing value) or no id;
-        a row id holds more than one ``|``; or sample names repeat once their
-        suffix is removed. Messages name ``path``.
+        The file is empty, not UTF-8 text, or a ``.gz`` that is not valid
+        gzip; it is a pathway coverage table; the header repeats a column
+        name or has an empty sample column name; a data row has more cells
+        than the header, fewer cells, or no (or a blank) id; a value is
+        missing, not a number, negative or not finite; a row id holds more
+        than one ``|``; or sample names repeat once their suffix is removed.
+        Messages name ``path``.
 
     Notes
     -----
