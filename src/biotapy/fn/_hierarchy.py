@@ -100,7 +100,8 @@ def _read_rows(path: Path) -> list[list[str]]:
     for numbers, problem in ((gaps, "an empty cell before its last id"), (short, "a single id")):
         if numbers:
             shown = ", ".join(map(str, numbers[:3])) + (f" (and {len(numbers) - 3} more)" if len(numbers) > 3 else "")
-            msg = f"path={str(path)!r}: every line needs an id and at least one id it maps to; lines {shown} have {problem}"
+            which = f"lines {shown} have" if len(numbers) > 1 else f"line {shown} has"
+            msg = f"path={str(path)!r}: every line needs an id and at least one id it maps to; {which} {problem}"
             raise ValueError(msg)
     if not rows:
         msg = f"path={str(path)!r}: the file holds no edges"

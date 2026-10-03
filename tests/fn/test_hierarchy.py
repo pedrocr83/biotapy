@@ -52,7 +52,7 @@ def test_attrs_name_the_file():
 def test_a_line_with_one_id_is_named(tmp_path):
     path = tmp_path / "map.tsv"
     path.write_text("P1\tK1\nP2\n")
-    with pytest.raises(ValueError, match=r"lines 2 "):
+    with pytest.raises(ValueError, match=r"line 2 has a single id"):
         bt.fn.load_hierarchy(path, "pathway")
 
 
@@ -73,7 +73,7 @@ def test_a_file_with_no_edges_raises(tmp_path, text):
 def test_an_empty_cell_before_the_last_id_is_named(tmp_path, line):
     path = tmp_path / "map.tsv"
     path.write_text(f"P0\tK0\n{line}\n")
-    with pytest.raises(ValueError, match=r"path=.*lines 2 have an empty cell"):
+    with pytest.raises(ValueError, match=r"path=.*line 2 has an empty cell"):
         bt.fn.load_hierarchy(path, "pathway")
 
 
@@ -118,7 +118,7 @@ def test_whitespace_beside_a_tab_is_stripped_too(tmp_path):
 def test_long_line_lists_say_they_are_truncated(tmp_path):
     path = tmp_path / "map.tsv"
     path.write_text("P1\tK1\n" + "P\n" * 7)
-    with pytest.raises(ValueError, match=r"lines 2, 3, 4 \(and 4 more\)"):
+    with pytest.raises(ValueError, match=r"lines 2, 3, 4 \(and 4 more\) have a single id"):
         bt.fn.load_hierarchy(path, "pathway")
 
 
