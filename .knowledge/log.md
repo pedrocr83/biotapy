@@ -1,5 +1,12 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2 plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the
+  user-approved Phase 2 plan: resolved design notes (renorm, func_glom
+  semantics, x_kind rules, MuData layout, layering, licence notices, roadmap
+  corrections), slices 2A-2D with slice 2A in full TDD steps, review focus
+  and exit gate; description reworded.
+
 ## 2026-10-03 (after 0.1.0)
 * **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
   [phase-1-core](roadmap/phase-1-core.md),
