@@ -1,7 +1,8 @@
 # Example datasets
 
-`biotapy.datasets` ships four example datasets, each returning the same
-[data model](data_model.md) every biotapy function relies on.
+`biotapy.datasets` ships five example datasets. Four return the [data model](data_model.md)
+every biotapy function relies on; `toy_humann` returns a `MuData` function
+table.
 
 ## `toy`
 
@@ -15,6 +16,21 @@ import biotapy as bt
 
 tdata = bt.datasets.toy()
 tdata.shape  # (6, 8)
+```
+
+## `toy_humann`
+
+`bt.datasets.toy_humann()` is the toy samples' gene families as HUMAnN writes
+them after regrouping to EC numbers, built in memory: a `MuData` whose
+`"function"` modality holds `UNMAPPED`, `UNGROUPED` and four EC numbers in
+RPK, and whose `"function_by_taxon"` modality holds their seven strata.
+`bt.fn` docstrings use it:
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+mdata["function"].shape  # (6, 6)
 ```
 
 ## `global_patterns`, `enterotype` and `esophagus`

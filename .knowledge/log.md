@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.3b)
+* **Update**: [function-shape](contracts/function-shape.md) lets examples use `bt.datasets.toy_humann()` for function tables (rules.md R8.2 widened to match, user-approved); ticked task 2.3b in [phase-2-function](roadmap/phase-2-function.md).
+
 ## 2026-10-03 (Phase 2, task 2.3)
 * **Update**: [data-model-slots](contracts/data-model-slots.md) adds the Function tables section and the `io.read_humann` exception to the `x_kind` convention; ticked task 2.3 in [phase-2-function](roadmap/phase-2-function.md).
 

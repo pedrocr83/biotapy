@@ -32,6 +32,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     datasets.esophagus
     datasets.global_patterns
     datasets.toy
+    datasets.toy_humann
 ```
 
 ## Preprocessing

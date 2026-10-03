@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:48:00Z }
-commit: 5848747
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:55:00Z }
+commit: cdfe31b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -354,7 +354,7 @@ not exist yet.
 - [x] 2.1 `_core.sum_pairs` and `_core.replace_features`
 - [x] 2.1b `_core` function tables and the mudata dependency
 - [x] 2.3 `io.read_humann(path) -> MuData`
-- [ ] 2.3b `datasets.toy_humann() -> MuData`
+- [x] 2.3b `datasets.toy_humann() -> MuData`
 - [ ] 2.5a `datasets.enzyme() -> pd.DataFrame`
 - [ ] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
 - [ ] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
@@ -1524,7 +1524,7 @@ A/B as in `toy()`; `"function"` 6 features: `UNMAPPED`, `UNGROUPED`,
 `1.1.1.1`, `2.7.1.1`, `2.7.1.2`, `3.2.1.4`; `"function_by_taxon"` 7;
 `x_kind == "rpk"`). Every later `fn` docstring example uses it.
 
-- [ ] **Step 1: Failing tests.** Append to `tests/datasets/test_toy.py` (and
+- [x] **Step 1: Failing tests.** Append to `tests/datasets/test_toy.py` (and
   add `import numpy as np` above `import treedata as td`):
   ```python
   def test_toy_humann_has_both_modalities_over_the_toy_samples():
@@ -1542,9 +1542,9 @@ A/B as in `toy()`; `"function"` 6 features: `UNMAPPED`, `UNGROUPED`,
           strata = by_taxon[:, (by_taxon.var["function"] == name).to_numpy()].X.sum(axis=1)
           np.testing.assert_array_equal(np.asarray(strata).ravel(), function[:, name].X.toarray().ravel())
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_toy.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_toy.py -q`
   -> `AttributeError: module 'biotapy.datasets' has no attribute 'toy_humann'`.
-- [ ] **Step 3: Implement.** In `src/biotapy/datasets/_toy.py`: docstring
+- [x] **Step 3: Implement.** In `src/biotapy/datasets/_toy.py`: docstring
   becomes `"""Tiny in-memory datasets for docstring examples and tests."""`;
   add `from mudata import MuData` after the pandas import; the `_core` import
   becomes `from biotapy._core import TreeData, make_function_mudata, make_treedata, tree_from_edges`;
@@ -1602,9 +1602,9 @@ A/B as in `toy()`; `"function"` 6 features: `UNMAPPED`, `UNGROUPED`,
   ```
   `src/biotapy/datasets/__init__.py`: `from ._toy import toy, toy_humann`;
   `"toy_humann"` at the end of `__all__`.
-- [ ] **Step 4: Run, expect pass** - same command -> `5 passed`;
+- [x] **Step 4: Run, expect pass** - same command -> `5 passed`;
   `uv run --group test pytest src/biotapy/datasets -q` -> doctests pass.
-- [ ] **Step 5: Docs.** `docs/api.md`: `datasets.toy_humann` after
+- [x] **Step 5: Docs.** `docs/api.md`: `datasets.toy_humann` after
   `datasets.toy`. `docs/guide/datasets.md`: the first sentence becomes
   "`biotapy.datasets` ships five example datasets, each returning the same
   [data model](data_model.md) every biotapy function relies on."; insert
@@ -1626,7 +1626,7 @@ A/B as in `toy()`; `"function"` 6 features: `UNMAPPED`, `UNGROUPED`,
   ```
   ````
   Build docs -> `build succeeded.`
-- [ ] **Step 6: Knowledge** (user-approved wording; R12.1).
+- [x] **Step 6: Knowledge** (user-approved wording; R12.1).
   - `.knowledge/contracts/function-shape.md`, statement 6, the bullet
     "Examples use `bt.datasets.toy()`" becomes "Examples use
     `bt.datasets.toy()`, or `bt.datasets.toy_humann()` for function tables
@@ -1634,7 +1634,7 @@ A/B as in `toy()`; `"function"` 6 features: `UNMAPPED`, `UNGROUPED`,
   - `rules.md` R8.2: "a runnable `Examples` section using
     `bt.datasets.toy()`" becomes "a runnable `Examples` section using
     `bt.datasets.toy()` (or `bt.datasets.toy_humann()` for function tables)".
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/datasets/_toy.py src/biotapy/datasets/__init__.py tests/datasets/test_toy.py \
