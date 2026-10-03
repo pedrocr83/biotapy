@@ -55,6 +55,10 @@ def richness(
     point gets no legend entry. There are no standard-error bars:
     ``tl.alpha`` stores none.
 
+    ``obs['alpha_*']`` columns survive feature changes (:func:`biotapy.pp.filter_features`,
+    :func:`biotapy.pp.rarefy`, :func:`biotapy.pp.tax_glom`), but they still describe the
+    old table: recompute with ``bt.tl.alpha(adata, metrics=[metric], inplace=True)`` before plotting.
+
     Examples
     --------
     >>> import biotapy as bt
