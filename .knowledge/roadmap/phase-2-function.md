@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T17:56:00Z }
-commit: 731617d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 sources:
   - id: spec
     resource: ../../plan.md
@@ -3056,10 +3056,10 @@ state was gated:
 
   | File | Holds |
   |---|---|
-  | `io/_table.py` (new, 2.2a) | `_read_table`, `_numbers`: the strict TSV reading every function-table reader shares |
-  | `io/_humann.py` (2.2a) | `read_humann`, now on `_table.py`; its own `_read_table` is removed |
-  | `io/_metaphlan.py` (2.2) | `read_metaphlan`, `_header` |
-  | `io/_picrust2.py` (2.4, 2.4b) | `read_picrust2`, `_contributions`, `read_picrust2_traits`, `_first_line` |
+  | `io/_table.py` (new, 2.2a) | `_leading_lines`, `_header` (moved here from `_metaphlan.py` in the Checkpoint B fix pass), `_read_table`, `_numbers`: the strict TSV reading every function-table reader shares |
+  | `io/_humann.py` (2.2a) | `read_humann`, now on `_table.py`; its own `_read_table` is removed; it keeps its own header rule |
+  | `io/_metaphlan.py` (2.2) | `read_metaphlan`, `_sample_columns` |
+  | `io/_picrust2.py` (2.4, 2.4b) | `read_picrust2`, `_contributions`, `read_picrust2_traits`, `_read`, `_check_first_cell` |
   | `_core/__init__.py` (2.2) | exports `RELATIVE_TOLERANCE` (already defined in `_slots.py`) |
 
 - **Shared parsing (brief question 7).** The three readers need the same
@@ -3077,9 +3077,20 @@ state was gated:
 
   Both parse only the columns they use as numbers.
 
-  `_read_table` gains one check, for repeated column names. pandas renames a
-  second `S1` to `S1.1` without a word (measured: `read_humann` read two
-  samples, `S1` and `S1.1`).
+  `_read_table` gained checks over `_humann.py`'s old one (final code, after
+  the fix pass):
+  - repeated column names. pandas renames a second `S1` to `S1.1` without a
+    word (measured: `read_humann` read two samples, `S1` and `S1.1`);
+  - an empty name after the first header cell (the first, the index name, is
+    never used and may be empty: pandas and R write it so);
+  - a blank id, and a blank or empty first line (two different messages);
+  - decode, gzip, zlib and EOF errors, which become `ValueError`s naming the
+    argument (`_leading_lines` raises them too);
+  - `_numbers` also rejects non-finite values, and negative ones when called
+    with `nonnegative=True`, which every reader does.
+
+  Both functions read `utf-8-sig`, so a byte-order mark never hides a leading
+  `#`.
 
 - **MetaPhlAn leaf rule (brief question 1).** A row becomes a feature when no
   other row descends from it through any ancestor. That is the deepest row of
@@ -3327,8 +3338,8 @@ file.
   - `_read_table(path: Path, header: str, *, skiprows: int, argument: str, text: int = 1) -> pd.DataFrame`
     (indexed by the first column; raises `ValueError` starting with
     `argument`);
-  - `_numbers(frame: pd.DataFrame, *, argument: str) -> np.ndarray`
-    (float64, same shape as `frame`).
+  - `_numbers(frame: pd.DataFrame, *, argument: str, nonnegative: bool = False) -> np.ndarray`
+    (float64, same shape as `frame`; the final code also rejects non-finite values).
 
   Both are private to `io`; 2.2, 2.4 and 2.4b import them with
   `from ._table import _numbers, _read_table`.
@@ -3344,7 +3355,7 @@ def test_repeated_sample_columns_raise_naming_the_path(tmp_path):
     # pandas would rename the second "S1" to "S1.1" and read two samples.
     path = tmp_path / "twice.tsv"
     path.write_text("# Pathway\tS1\tS1\nPWY-1\t1.0\t2.0\n")
-    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names \['S1'\]"):
+    with pytest.raises(ValueError, match=r"twice\.tsv.*repeats column names: \['S1'\]"):
         bt.io.read_humann(path)
 
 
@@ -3387,7 +3398,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     names = header.rstrip("\r\n").split("\t")
     repeated = sorted(name for name, count in Counter(names).items() if count > 1)
     if repeated:
-        msg = f"{argument} repeats column names {repeated[:3]}"
+        msg = f"{argument} repeats column names: {repeated[:3]}"
         raise ValueError(msg)
     try:
         table = pd.read_csv(
@@ -4386,7 +4397,7 @@ MALFORMED = {
     "missing-taxon": (UNSTRAT, CONTRIB + "S1\tEC:1.1.1.1\t" + ROW, r"c\.tsv.*no function or taxon"),
     "non-number": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tASV1\t1\t1\t1\tx\t1\t1\n", r"c\.tsv.*not a number"),
     "bar-in-taxon": (UNSTRAT, CONTRIB + "S1\tEC:4.1.1.1\tA|B" + ROW, r"path=.*u\.tsv.*contrib=.*c\.tsv.*one '\|'"),
-    "repeated-sample": (UNSTRAT.replace("S3", "S2"), CONTRIB, r"path=.*u\.tsv.*repeats column names \['S2'\]"),
+    "repeated-sample": (UNSTRAT.replace("S3", "S2"), CONTRIB, r"path=.*u\.tsv.*repeats column names: \['S2'\]"),
     "description": (
         "function\tdescription\tS1\nEC:1.1.1.1\tAlcohol dehydrogenase\t1.0\n",
         CONTRIB,
@@ -5028,7 +5039,7 @@ uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselecte
 ```
 
 ### Checkpoint B - review slice 2B
-- [ ] **Review the whole slice** with superpowers:requesting-code-review,
+- [x] **Review the whole slice** with superpowers:requesting-code-review,
   against:
   - data-model-slots, function-shape, module-boundaries and r-golden-parity;
   - no-bundled-kegg and function-tables-as-mudata;
@@ -5037,23 +5048,27 @@ uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselecte
   Then a fix pass, one commit per finding, each with a test. Reviewers may
   run the readers on real files they hold. Never commit those files, and
   never copy a PICRUSt2 output into `tests/` (GPL).
-- [ ] **Run the gates** on the committed tree:
+- [x] **Run the gates** on the committed tree:
   - `uvx prek run --all-files`;
   - `uv run --group test pytest -q -W error::UserWarning`;
   - `uv run --group test pytest -m golden tests/fn -q`;
   - `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
 
   Confirm `~/.cache/biotapy` does not exist.
-- [ ] **Knowledge** (codebase-map templates; R12.2-R12.4).
+- [x] **Knowledge** (codebase-map templates; R12.2-R12.4).
   - **Update `.knowledge/modules/io.md`.**
     - Responsibility: add `read_metaphlan` (TreeData), `read_picrust2`
       (MuData) and `read_picrust2_traits` (DataFrame).
     - Entry points:
-      - `_metaphlan.py:read_metaphlan`, `_metaphlan.py:_header`;
+      - `_metaphlan.py:read_metaphlan`, `_metaphlan.py:_sample_columns`;
       - `_picrust2.py:read_picrust2`, `_picrust2.py:_contributions`,
-        `_picrust2.py:read_picrust2_traits`, `_picrust2.py:_first_line`;
-      - `_table.py:_read_table`, `_table.py:_numbers`, replacing the
+        `_picrust2.py:read_picrust2_traits`, `_picrust2.py:_read`,
+        `_picrust2.py:_check_first_cell`;
+      - `_table.py:_leading_lines`, `_table.py:_header`,
+        `_table.py:_read_table`, `_table.py:_numbers`, replacing the
         `_humann.py:_read_table` entry.
+      - (Written before the fix pass and corrected after it: `_first_line`
+        does not exist, and `_header` lives in `_table.py`.)
     - Invariants:
       - the leaf rule (any ancestor) and the 100% check;
       - `x_kind` set by the reader, never inferred, for MetaPhlAn
@@ -5061,7 +5076,14 @@ uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselecte
       - `EC:` removed;
       - `RARE` not special;
       - every message names its argument;
-      - `_read_table` rejects repeated column names.
+      - `_read_table` rejects repeated column names and an empty name after
+        the first; `_numbers` rejects non-finite values and, with
+        `nonnegative=True`, negative ones;
+      - `read_metaphlan` always gives the seven rank columns;
+      - the PICRUSt2 readers check the header's first cell
+        (`_picrust2.py:_check_first_cell`);
+      - `read_picrust2` raises when `contrib` lacks a sample whose total in
+        `path` is nonzero.
     - Gotchas:
       - MetaPhlAn may omit an intermediate rank's row (4.0.6 fixture);
       - pandas renames repeated header cells and drops extra cells under
@@ -5072,7 +5094,9 @@ uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselecte
       - the h5mu writer turns `str` columns into categoricals in place.
     - Update its `description`, and the copy in `modules/index.md`.
   - **Update `.knowledge/modules/core.md`:** `RELATIVE_TOLERANCE` is
-    exported, with `io/_metaphlan.py` as its second consumer.
+    exported, with `io/_metaphlan.py` as its second consumer; and
+    `make_function_mudata` is also used by `io.read_picrust2` (found by the
+    review).
   - **Update `.knowledge/decisions/function-tables-as-mudata.md`:** add
     `src/biotapy/io/_picrust2.py` to `paths`. In Context, say that PICRUSt2's
     two files fill the same two modalities.
@@ -5116,11 +5140,26 @@ judgement call. The recommended answer comes first.
    unmapped abundance.
 6. **New task 2.2a changes a slice 2A reader.** `read_humann`'s strict
    parsing moves to `io/_table.py` (R4.3, three readers), and `read_humann`
-   gains two behaviours:
-   - a repeated sample column now raises; today pandas silently reads `S1`
-     and `S1.1`;
-   - a row with no id raises "no id" instead of `_core`'s "var ids must not
-     be missing" (both name `path`).
+   gains these behaviours (final code, `_table.py:_read_table`,
+   `_table.py:_numbers`, `_table.py:_leading_lines`):
+   - a repeated sample column raises; before, pandas silently read `S1` and
+     `S1.1`;
+   - an empty column name after the first header cell raises (the first,
+     the index name, may be empty);
+   - a row with no (or a blank) id raises "no id" instead of `_core`'s "var
+     ids must not be missing" (both name `path`);
+   - an empty file, and a blank first line, get their own named messages;
+   - a negative value raises (`nonnegative=True`), and so does a non-finite
+     one;
+   - a file that is not UTF-8, or a `.gz` that is not gzip, truncated or
+     corrupt (`gzip.BadGzipFile`, `EOFError`, `zlib.error`), raises
+     `ValueError` naming `path`;
+   - a UTF-8 byte-order mark is read (`utf-8-sig`).
+
+   It does not take the shared `_header`: HUMAnN's rule is the last `#` line
+   even when it holds no tab, and `_header` would then read a HUMAnN table's
+   first data row as its header (`_humann.py:read_humann`, with a comment).
+   The two rules agree on every real file.
 7. **`_core` exports `RELATIVE_TOLERANCE`.** MetaPhlAn's 100% check uses the
    data model's own definition of `relative`.
 8. **MetaPhlAn sample names.** A single profile is named after its file, and
@@ -5178,7 +5217,8 @@ checklist.
 3. **Type consistency.**
    - The shared helpers are used with the same signature in 2.2a, 2.2, 2.4
      and 2.4b: `_read_table(path, header, *, skiprows, argument, text=1)` and
-     `_numbers(frame, *, argument)`.
+     `_numbers(frame, *, argument)` (the final `_numbers` also takes
+     `nonnegative=False`).
    - `read_picrust2` returns `make_function_mudata`'s layout, so `var`
      columns match `read_humann`, as 2.7 and 2.9 expect.
    - `read_picrust2_traits`' index uses the same text ids as
@@ -5246,6 +5286,14 @@ purity.
   4.0 article).
 
 **Design questions:**
+0. **PICRUSt2's `RARE` taxon has no trait row** (forward note from the
+   Checkpoint B review). `read_picrust2` keeps it as an ordinary taxon in
+   `var["taxon"]` (`_picrust2.py:read_picrust2`, decision 5), but a trait
+   table from `read_picrust2_traits` never lists it. On the review's probe, the taxa missing from
+   the traits were exactly `{'RARE'}`. 2.8 must decide what `RARE`'s
+   abundance does: drop it, or keep it in the denominators of `p` without a
+   trait vector. Unknown until 2.8; question 1 (taxa without traits) is the
+   place to settle it.
 1. **Taxa without traits, or with all-zero gene vectors.** BC of zero
    against zero is 0 in SciPy; against non-zero it is 1. Proposed: drop taxa
    absent from `traits` with a `warn_user` count. Keep all-zero taxa

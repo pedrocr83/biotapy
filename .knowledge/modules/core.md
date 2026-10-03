@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 status: stable
 ---
 
@@ -41,8 +41,9 @@ none of them back.
   rank, raising `KeyError` naming the rank when it is absent.
 - `_taxonomy.py:normalize_ranks` - canonicalize rank column names (aliases,
   lowercasing) and values (strip `k__`-style prefixes, map `""`/`"NA"`/a bare
-  prefix to NaN) to the pandas `str` dtype; used directly by `io.read_dada2`
-  and indirectly, via `split_lineage`, by `io.read_biom`/`read_qiime2`.
+  prefix to NaN) to the pandas `str` dtype; used directly by `io.read_dada2`,
+  `io.read_phyloseq` and `io.read_metaphlan`, and indirectly, via
+  `split_lineage`, by `io.read_biom`/`read_qiime2`.
 - `_taxonomy.py:split_lineage` - parse a `;`-separated lineage string
   (Greengenes `k__`, RESCRIPT/SILVA `d__`, SILVA `D_0__`, or unprefixed) into
   rank columns, then run them through `normalize_ranks`.
@@ -59,6 +60,10 @@ none of them back.
   (every value a whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file
   format does not record `x_kind` itself.
+- `_slots.py:RELATIVE_TOLERANCE` - the data model's definition of "sums to 1",
+  exported from `_core/__init__.py`; consumed by `_slots.py:infer_x_kind` and
+  by `io.read_metaphlan`'s 100% check on each sample's leaf clades
+  (`io/_metaphlan.py:read_metaphlan`).
 - `_slots.py:add_provenance` - append one provenance entry; a numpy scalar
   parameter (a threshold taken from a numpy reduction) is stored as its Python
   value through `.item()`, since `json` rejects it.
@@ -72,7 +77,8 @@ none of them back.
 - `_function.py:make_function_mudata` / `_function.py:function_var` - split
   HUMAnN-style row ids (`ID: name|stratum`) into the `function` and
   `function_by_taxon` modalities and their `var` columns, with `x_kind` and
-  provenance set; used by `io.read_humann` and `datasets.toy_humann`. A row id
+  provenance set; used by `io.read_humann`, `io.read_picrust2` and
+  `datasets.toy_humann`. A row id
   with two `|` raises `ValueError`, as do repeated sample or row ids. See
   [function-tables-as-mudata](/decisions/function-tables-as-mudata.md).
 - `_function.py:SPECIAL_FEATURES` / `PROTECTED_FEATURES` / `UNGROUPED` /

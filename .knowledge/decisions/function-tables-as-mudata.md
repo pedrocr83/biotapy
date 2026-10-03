@@ -4,9 +4,9 @@ title: Function tables are a two-modality MuData
 description: A HUMAnN-style function table is a MuData with a community modality and a stratified modality, adopted in Phase 2 instead of Phase 4; mudata is a runtime dependency.
 tags: [fn, io, mudata, dependencies]
 status: stable
-paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/io/_picrust2.py", "src/biotapy/fn/**"]
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
+commit: fbfeb99
 sources:
   - id: research
     resource: ../roadmap/phase-2-function.md
@@ -18,9 +18,15 @@ A pathway's community abundance is not the sum of its per-taxon strata, so the
 stratified rows cannot be derived from the community rows and summing one table
 that holds both double counts. Phase 2 needs both tables, aligned by sample,
 from one `read_humann` call (`_core/_function.py:make_function_mudata`).
+PICRUSt2's two files fill the same two modalities: `io.read_picrust2` takes
+the unstratified table for `"function"` and the long contribution table
+(`contrib=`) for `"function_by_taxon"` (`io/_picrust2.py:read_picrust2`), so
+the stratified modality is empty without `contrib`. Its per-ASV trait table
+describes genomes, not samples, so it is a DataFrame and not a modality
+(`io/_picrust2.py:read_picrust2_traits`).
 
 # Decision
-`io.read_humann` returns a `MuData` with modalities `"function"` and
+`io.read_humann` and `io.read_picrust2` return a `MuData` with modalities `"function"` and
 `"function_by_taxon"`, each an AnnData with its own copy of `obs`
 (`_core/_function.py:FUNCTION_KEY`, `BY_TAXON_KEY`;
 [data-model-slots](/contracts/data-model-slots.md), Function tables). Both
