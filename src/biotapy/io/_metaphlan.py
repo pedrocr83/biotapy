@@ -89,10 +89,7 @@ def read_metaphlan(path: str | Path) -> TreeData:
     lineages = [clade.split("|") for clade in table.index]
     ancestors = {"|".join(lineage[:depth]) for lineage in lineages for depth in range(1, len(lineage))}
     leaf = np.array([clade not in ancestors for clade in table.index], dtype=bool)
-    percent = _numbers(values, argument=argument)
-    if (percent < 0).any():
-        msg = f"{argument} has a negative abundance; MetaPhlAn abundances are percentages"
-        raise ValueError(msg)
+    percent = _numbers(values, argument=argument, nonnegative=True)
     X = percent[leaf].T / 100
     totals = X.sum(axis=1)
     # Only a column that is zero on every row is an empty sample; zero leaves under nonzero internal rows lost reads.
