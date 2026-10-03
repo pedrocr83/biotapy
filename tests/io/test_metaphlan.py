@@ -130,6 +130,23 @@ def test_a_single_rank_table_reads_that_rank(tmp_path):
     assert bt.io.read_metaphlan(write(tmp_path, text)).var_names.tolist() == ["B_a", "B_b"]
 
 
+def test_a_genus_level_table_has_every_rank_column(tmp_path):
+    # metaphlan --tax_lev g stops at genus; species stays a column of NaN, as in read_dada2 and read_biom.
+    text = f"#mpa_v\n#clade_name\tNCBI_tax_id\trelative_abundance\n{LINEAGE}|g__B\t\t70.0\n{LINEAGE}|g__C\t\t30.0\n"
+    tdata = bt.io.read_metaphlan(write(tmp_path, text))
+    assert tdata.var.columns.tolist() == list(RANKS)
+    assert tdata.var["genus"].tolist() == ["B", "C"] and tdata.var["species"].isna().all()
+    assert tdata.var["species"].dtype == tdata.var["genus"].dtype
+    assert bt.pp.tax_glom(tdata, "genus").var_names.tolist() == ["B", "C"]
+    assert bt.pp.tax_glom(tdata, "species", dropna=False).n_vars == 2
+
+
+def test_an_all_unclassified_profile_has_every_rank_column(tmp_path):
+    text = "#mpa_v\n#clade_name\tNCBI_tax_id\trelative_abundance\nUNCLASSIFIED\t-1\t100.0\n"
+    var = bt.io.read_metaphlan(write(tmp_path, text)).var
+    assert var.columns.tolist() == list(RANKS) and var.isna().all().all()
+
+
 def test_reads_read_stats_profiles_and_short_rows(tmp_path):
     # -t rel_ab_w_read_stats has a "-" coverage for UNCLASSIFIED; before 4.2.3 some rows lacked additional_species.
     text = (

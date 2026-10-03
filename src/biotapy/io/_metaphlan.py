@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from biotapy._core import RELATIVE_TOLERANCE, TreeData, make_treedata, split_lineage
+from biotapy._core import RANKS, RELATIVE_TOLERANCE, TreeData, make_treedata, normalize_ranks, split_lineage
 
 from ._table import _header, _numbers, _read_table
 
@@ -108,7 +108,8 @@ def read_metaphlan(path: str | Path) -> TreeData:
     # A clade lineage is "k__A|p__B|..."; UNCLASSIFIED and UNKNOWN have none, so every rank is NaN.
     lineage = pd.Series(clades.str.replace("|", ";"), index=clades).where(clades.str.contains("__", regex=False))
     names = clades.str.split("|").str[-1].str.replace(r"^[a-z]__", "", regex=True).rename(None)
-    var = split_lineage(lineage).set_axis(names)
+    # split_lineage stops at the deepest rank present; a profile always has all seven, missing ones NaN.
+    var = normalize_ranks(split_lineage(lineage).reindex(columns=list(RANKS))).set_axis(names)
     obs = pd.DataFrame(index=values.columns.str.replace("_profile", "", regex=False))
     try:
         return make_treedata(X, obs=obs, var=var, tree=None, x_kind="relative", source="io.read_metaphlan")
