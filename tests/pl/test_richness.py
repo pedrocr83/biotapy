@@ -1,7 +1,9 @@
+import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
+from matplotlib.figure import Figure
 
 import biotapy as bt
 
@@ -48,6 +50,19 @@ def test_richness_nan_values_are_left_out(ax):
     bt.tl.alpha(tdata, metrics=["shannon"], inplace=True)  # s1 is all-zero: Shannon NaN
     bt.pl.richness(tdata, "shannon", color="group", ax=ax)
     assert len(_points(ax)) == 5 and np.isfinite(_points(ax)).all()
+
+
+def _samples_with_shannon(n_obs):
+    adata = ad.AnnData(X=sp.csr_matrix(np.ones((n_obs, 1))), obs=pd.DataFrame(index=[f"s{i}" for i in range(n_obs)]))
+    adata.obs["alpha_shannon"] = 0.0
+    return adata
+
+
+def test_richness_labels_at_most_250_names(ax):
+    bt.pl.richness(_samples_with_shannon(251), "shannon", ax=ax)
+    assert ax.get_xticks().size == 0
+    at_cap = bt.pl.richness(_samples_with_shannon(250), "shannon", ax=Figure().add_subplot())
+    assert [label.get_text() for label in at_cap.get_xticklabels()] == [f"s{i}" for i in range(250)]
 
 
 def test_richness_single_sample(ax):

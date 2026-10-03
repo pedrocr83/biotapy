@@ -158,7 +158,15 @@ def test_heatmap_zeros_are_drawn_black_on_a_log_scale(ax):
 def test_heatmap_labels_at_most_250_names(ax):
     bt.pl.heatmap(_adata(np.ones((1, 251))), ax=ax)
     assert ax.get_yticks().size == 0
-    bt.pl.heatmap(_adata(np.ones((1, 250))), ax=Figure().add_subplot())
+    at_cap = bt.pl.heatmap(_adata(np.ones((1, 250))), ax=Figure().add_subplot())
+    assert [label.get_text() for label in at_cap.get_yticklabels()] == [f"f{i}" for i in range(250)]
+
+
+def test_bar_labels_at_most_250_names(ax):
+    bt.pl.bar(_adata(np.ones((251, 1)), var={"phylum": ["p"]}), "phylum", ax=ax)
+    assert ax.get_xticks().size == 0
+    at_cap = bt.pl.bar(_adata(np.ones((250, 1)), var={"phylum": ["p"]}), "phylum", ax=Figure().add_subplot())
+    assert [label.get_text() for label in at_cap.get_xticklabels()] == [f"s{i}" for i in range(250)]
 
 
 def test_heatmap_layer_and_all_zero_sample(ax):
