@@ -185,8 +185,12 @@ def test_heatmap_single_sample(ax):
 
 
 def test_heatmap_nothing_positive_raises(ax):
-    with pytest.raises(ValueError, match="no positive value"):
+    with pytest.raises(ValueError, match=r"^adata: X holds no positive value"):
         bt.pl.heatmap(_adata(np.zeros((2, 3))), ax=ax)
+    adata = _adata(np.ones((2, 3)))
+    adata.layers["relative"] = sp.csr_matrix((2, 3))
+    with pytest.raises(ValueError, match=r"^layer='relative': layers\['relative'\] holds no positive value"):
+        bt.pl.heatmap(adata, layer="relative", ax=ax)
 
 
 def test_heatmap_input_unchanged(assert_unchanged, ax):

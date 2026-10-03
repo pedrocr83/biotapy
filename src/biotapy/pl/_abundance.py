@@ -134,7 +134,8 @@ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = Non
     # matplotlib's imshow needs a dense array (rules.md R6.2): one dense copy, features x samples.
     dense = table(adata, layer).T.toarray()
     if not (dense > 0).any():
-        msg = "the table holds no positive value to draw on a log scale"
+        table_name = "adata: X" if layer is None else f"layer={layer!r}: layers[{layer!r}]"
+        msg = f"{table_name} holds no positive value to draw on a log scale"
         raise ValueError(msg)
     ax = new_axes(ax)
     cmap = LinearSegmentedColormap.from_list("phyloseq", [_LOW, _HIGH]).with_extremes(bad=_ZERO)
