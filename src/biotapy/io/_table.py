@@ -2,6 +2,7 @@
 
 import csv
 import gzip
+import zlib
 from collections import Counter
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import pandas as pd
 def _leading_lines(path: Path, *, argument: str) -> tuple[list[str], str]:
     """The ``#`` lines that open ``path`` (gzip is read directly) and the first line after them (``""`` if none).
 
-    A file that is not UTF-8 text, or a ``.gz`` that is not gzip, raises ``ValueError`` naming ``argument``.
+    A file that is not UTF-8 text, or a ``.gz`` that is not gzip or is truncated, raises ``ValueError`` naming ``argument``.
     """
     comments: list[str] = []
     opener = gzip.open if path.suffix == ".gz" else open
@@ -22,7 +23,7 @@ def _leading_lines(path: Path, *, argument: str) -> tuple[list[str], str]:
                 if not line.startswith("#"):
                     return comments, line
                 comments.append(line)
-    except (UnicodeDecodeError, gzip.BadGzipFile) as error:
+    except (UnicodeDecodeError, gzip.BadGzipFile, EOFError, zlib.error) as error:
         msg = f"{argument} is not a UTF-8 text table (or a valid .gz): {error}"
         raise ValueError(msg) from error
     return comments, ""
@@ -73,7 +74,14 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
             dtype=dict.fromkeys(range(text), str),
             quoting=csv.QUOTE_NONE,
         )
-    except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError, gzip.BadGzipFile) as error:
+    except (
+        pd.errors.EmptyDataError,
+        pd.errors.ParserError,
+        UnicodeDecodeError,
+        gzip.BadGzipFile,
+        EOFError,
+        zlib.error,
+    ) as error:
         msg = f"{argument} is not a valid tab-separated table: {error}"
         raise ValueError(msg) from error
     # pandas shifts the header over when the first data row is longer, so compare with the header's own cells.

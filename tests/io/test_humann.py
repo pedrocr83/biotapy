@@ -239,3 +239,19 @@ def test_negative_abundance_raises_naming_the_path(tmp_path):
     path.write_text("# P\tS1\nA\t-1\n")
     with pytest.raises(ValueError, match=r"neg\.tsv.*negative"):
         bt.io.read_humann(path)
+
+
+@pytest.mark.parametrize("damage", ["truncated-header", "truncated-body", "corrupt-body"])
+def test_a_damaged_gzip_raises_naming_the_path(tmp_path, damage):
+    data = gzip.compress(("# Pathway\tS1\n" + "".join(f"PWY-{i}\t{i}.5\n" for i in range(2000))).encode())
+    if damage == "truncated-header":
+        data = data[:12]  # fails while the header is found
+    elif damage == "truncated-body":
+        data = data[: len(data) // 2]  # fails while the table is read
+    else:
+        middle = len(data) // 2
+        data = data[:middle] + bytes(byte ^ 0xFF for byte in data[middle : middle + 2]) + data[middle + 2 :]
+    path = tmp_path / "broken.tsv.gz"
+    path.write_bytes(data)
+    with pytest.raises(ValueError, match=r"broken\.tsv\.gz"):
+        bt.io.read_humann(path)
