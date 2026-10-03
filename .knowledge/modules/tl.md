@@ -5,8 +5,8 @@ description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, 
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:30:01Z }
-commit: 8f26269
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 status: stable
 ---
 
@@ -51,7 +51,8 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   (`tests/conftest.py`) checks inputs, including the key set of
   `uns["biotapy"]`.
 - scikit-bio only ever gets dense input (rules.md R6.2): `alpha` densifies
-  rows in chunks of at most `2**20` values (`_alpha.py:_CHUNK_VALUES`);
+  rows in chunks of at most `2**20` values (`_alpha.py:_CHUNK_VALUES`), plus
+  one int64 presence copy of the chunk when `faith_pd` is asked;
   `beta` and `unifrac` densify `X` once, since pairwise distances need every
   row.
 - Trees come only from `_core.get_skbio_tree`; nothing in `tl` imports
@@ -65,6 +66,11 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   scikit-learn 1.9/1.10 change the defaults of `n_init` and `init`.
 - `permanova` has no `inplace`: it returns a test result, not per-sample or
   per-pair values.
+- `permanova` runs scikit-bio's OpenMP F-statistic on one thread
+  (`threadpoolctl.threadpool_limits(1, user_api="openmp")`, which restores the
+  previous limit on exit). With one thread per core it took about 24 s on the
+  toy table on a busy machine, against 0.01 s. `_permanova.py:permanova`,
+  `tests/tl/test_permanova.py`.
 - `faith_pd` runs on presence/absence (`(dense > 0)` as int64, per chunk),
   which is exact because Faith PD depends on presence only, so it runs on
   any abundance. `_alpha.py:alpha`
@@ -76,11 +82,12 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
 # Dependencies
 
 - [core](/modules/core.md): `as_csr`, `require_counts`, `get_skbio_tree`,
-  `as_generator`, `TreeData`.
+  `as_generator`, `require_categorical`, `TreeData`.
 - scikit-bio: `alpha_diversity`, `beta_diversity`, `DistanceMatrix`, `pcoa`,
   `permanova`.
 - scikit-learn: `sklearn.manifold.MDS`, with an `int` seed drawn from
   `as_generator`, because its `random_state` rejects a `np.random.Generator`.
+- threadpoolctl: `threadpool_limits` around scikit-bio's `permanova`.
 
 # Verification
 
@@ -103,6 +110,11 @@ cache: `BIOTAPY_DATA_DIR=<cache> uv run --group test pytest -m golden tests/tl -
   NMDS on planar points (`tests/tl/test_ordination.py:test_nmds_recovers_a_planar_configuration`).
 - The PERMANOVA golden test takes 10-20 s at 9,999 permutations (18 s at
   Checkpoint C).
+- `faith_pd` on 5,000 x 50,000 takes about 48 s (asv, Task 1.21). scikit-bio
+  re-indexes and re-validates the tree on every `alpha_diversity` call, once per
+  chunk of `2**20 // n_vars` samples, and that is about 97% of the time;
+  converting the tree once (`get_skbio_tree`) takes 0.46 s. A fix needs a
+  profile-driven perf task (rules.md R10.1), not a change here.
 - scikit-bio 0.7.4's tree code, `skbio.diversity._phylogenetic._nodes_by_counts`,
   casts abundances to int64. Faith PD and both UniFrac engines (Cython and
   numba) share it, so fractions are truncated silently. This is why

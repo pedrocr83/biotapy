@@ -108,7 +108,7 @@ def test_bar_without_ax_draws_on_a_new_pyplot_figure():
 
 
 def test_bar_missing_layer_names_the_call(ax):
-    with pytest.raises(KeyError, match=r"run bt.pp.relative\(adata\) first"):
+    with pytest.raises(KeyError, match=r"run adata = bt\.pp\.relative\(adata\) first"):
         bt.pl.bar(bt.datasets.toy(), "phylum", layer="relative", ax=ax)
 
 
@@ -158,7 +158,15 @@ def test_heatmap_zeros_are_drawn_black_on_a_log_scale(ax):
 def test_heatmap_labels_at_most_250_names(ax):
     bt.pl.heatmap(_adata(np.ones((1, 251))), ax=ax)
     assert ax.get_yticks().size == 0
-    bt.pl.heatmap(_adata(np.ones((1, 250))), ax=Figure().add_subplot())
+    at_cap = bt.pl.heatmap(_adata(np.ones((1, 250))), ax=Figure().add_subplot())
+    assert [label.get_text() for label in at_cap.get_yticklabels()] == [f"f{i}" for i in range(250)]
+
+
+def test_bar_labels_at_most_250_names(ax):
+    bt.pl.bar(_adata(np.ones((251, 1)), var={"phylum": ["p"]}), "phylum", ax=ax)
+    assert ax.get_xticks().size == 0
+    at_cap = bt.pl.bar(_adata(np.ones((250, 1)), var={"phylum": ["p"]}), "phylum", ax=Figure().add_subplot())
+    assert [label.get_text() for label in at_cap.get_xticklabels()] == [f"s{i}" for i in range(250)]
 
 
 def test_heatmap_layer_and_all_zero_sample(ax):
@@ -177,8 +185,12 @@ def test_heatmap_single_sample(ax):
 
 
 def test_heatmap_nothing_positive_raises(ax):
-    with pytest.raises(ValueError, match="no positive value"):
+    with pytest.raises(ValueError, match=r"^adata: X holds no positive value"):
         bt.pl.heatmap(_adata(np.zeros((2, 3))), ax=ax)
+    adata = _adata(np.ones((2, 3)))
+    adata.layers["relative"] = sp.csr_matrix((2, 3))
+    with pytest.raises(ValueError, match=r"^layer='relative': layers\['relative'\] holds no positive value"):
+        bt.pl.heatmap(adata, layer="relative", ax=ax)
 
 
 def test_heatmap_input_unchanged(assert_unchanged, ax):

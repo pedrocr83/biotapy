@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
+import threadpoolctl
 
 import biotapy as bt
+from biotapy.tl import _permanova
 
 
 def _toy_with():
@@ -74,6 +76,26 @@ def test_permanova_nan_distances_raise():
     bt.tl.beta(tdata, inplace=True)
     with pytest.raises(ValueError, match=r"distance='braycurtis': obsp\['braycurtis'\] holds NaN"):
         bt.tl.permanova(tdata, "group", seed=0)
+
+
+def _openmp_threads():
+    return [pool["num_threads"] for pool in threadpoolctl.threadpool_info() if pool["user_api"] == "openmp"]
+
+
+def test_permanova_runs_openmp_single_threaded_and_restores_the_limit(monkeypatch):
+    real = _permanova.skbio_permanova
+    seen = []
+
+    def spy(*args, **kwargs):
+        seen.append(_openmp_threads())
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(_permanova, "skbio_permanova", spy)
+    tdata = _toy_with()
+    before = _openmp_threads()
+    bt.tl.permanova(tdata, "group", permutations=9, seed=0)
+    assert len(seen) == 1 and all(threads == 1 for threads in seen[0])
+    assert _openmp_threads() == before
 
 
 def test_permanova_missing_distance_names_the_call():

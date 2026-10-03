@@ -22,7 +22,8 @@ the groups you need:
 uv sync --group dev --group test --group doc
 ```
 
-- `dev`: ruff, mypy, import-linter, prek - linting and type-checking.
+- `dev`: ruff, mypy, import-linter, prek, asv - linting, type-checking and
+  benchmarks.
 - `test`: pytest, hypothesis, coverage.
 - `doc`: sphinx, myst-nb, sphinx-book-theme and the other packages that build
   this site.
@@ -84,6 +85,13 @@ Then open `docs/_build/html/index.html`. Read the Docs builds this same site
 with `uvx hatch run docs:build` (see `.readthedocs.yaml` and the `docs` hatch
 environment in `pyproject.toml`), which wraps the equivalent `sphinx-build`
 invocation.
+
+Notebooks run on every build (`nb_execution_mode = "cache"`), but a notebook is
+re-executed only when its own content changes. After a code change, run
+`uvx hatch run docs:clean` first, which deletes every git-ignored file under
+`docs/` (`_build`, with the jupyter cache in it, and `generated`), or delete
+`docs/_build/.jupyter_cache`, to force re-execution locally. CI and Read the
+Docs always start clean.
 
 If you refer to objects from another package, add an entry to
 `intersphinx_mapping` in `docs/conf.py` so Sphinx can link to it. If the build

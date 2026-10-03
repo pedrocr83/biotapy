@@ -1,5 +1,90 @@
 # Knowledge bundle log
 
+## 2026-10-03
+* **Refresh**: [phase-1-core](roadmap/phase-1-core.md) and
+  [engine-parity](contracts/engine-parity.md), commit and `generated` only,
+  against 809c508; the only change under their paths was a `tl.py` docstring
+  timing, which neither concept states.
+* **Fix**: [io](modules/io.md) no longer quotes `untyped_calls_exclude = ["biom"]`
+  (the real list has four entries); [r-golden-parity](contracts/r-golden-parity.md)
+  description now says "computation", since `pl` functions are exempt. Checked
+  against 2d0cab6.
+* **Update**: refreshed the 14 concepts the Checkpoint D fixes made stale,
+  against 2b9fc24, after checking each against the fixes. Content edits:
+  [tl](modules/tl.md) (`permanova` runs OpenMP on one thread through
+  threadpoolctl), [pl](modules/pl.md) (a missing layer names
+  `adata = bt.pp.relative(adata)`; `heatmap`'s `ValueError` names `adata` or
+  `layer=`; a richness group with no point gets no legend entry),
+  [phase-1-core](roadmap/phase-1-core.md) (Checkpoint D review and knowledge
+  boxes ticked). Commit and `generated` only: [core](modules/core.md),
+  [io](modules/io.md), [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [phase-2-function](roadmap/phase-2-function.md),
+  [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md),
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [r-golden-parity](contracts/r-golden-parity.md),
+  [tree-access](contracts/tree-access.md),
+  [add-a-function](playbooks/add-a-function.md),
+  [cut-a-release](playbooks/cut-a-release.md).
+* **Update**: three concept errors from the Checkpoint D review (M2):
+  [function-shape](contracts/function-shape.md) says each public `pp`, `tl`
+  and `pl` function has a purity test, not every test;
+  [index](index.md)'s Modules line names all six module concepts;
+  [data-model-slots](contracts/data-model-slots.md) marks `pp.clr` and
+  `layers["clr"]` as Phase 3, not yet written.
+* **Update**: [core](modules/core.md) lists `_slots.py:require_categorical`,
+  the one validator for categorical groupings; [pl](modules/pl.md) and
+  [tl](modules/tl.md) name it among their `_core` dependencies (Checkpoint D,
+  I2).
+* **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md)
+  and [phase-1-core](roadmap/phase-1-core.md)'s dependency table record
+  threadpoolctl (`>=3.5`, approved 2026-10-03), which limits `tl.permanova`'s
+  OpenMP F-statistic to one thread (Checkpoint D, P1).
+* **Create**: [pl](modules/pl.md), the Module concept for the plots (Task 1.22).
+  Listed in [modules](modules/index.md), whose [io](modules/io.md) line now
+  names phyloseq objects too.
+* **Update**: refreshed every stale concept against 1ad037b (Task 1.22), after
+  reading the code behind each statement. Content edits:
+  [core](modules/core.md) (`add_provenance` stores numpy scalars through
+  `.item()`; no asv import-time benchmark exists),
+  [io](modules/io.md) (the rdata warning filter hides only the suffix messages;
+  stale `_qiime2.py:15` line reference),
+  [pp](modules/pp.md) (`tl` exists; every function is pure; `filter_samples`
+  keeps stale ordinations; the prevalence boundary note),
+  [tl](modules/tl.md) (the `faith_pd` presence copy per chunk),
+  [data-model-slots](contracts/data-model-slots.md) (`pl` reads and writes no
+  slot; `filter_samples` keeps stale ordinations),
+  [function-shape](contracts/function-shape.md) (purity tests cover `pl`),
+  [add-a-function](playbooks/add-a-function.md) (`pl` purity; the `R equivalent:`
+  line feeds the Coming-from-R page),
+  [phase-0-foundation](roadmap/phase-0-foundation.md) (mypy now covers
+  `docs/extensions`, a root `conftest.py`, the `network` and `docs` CI jobs),
+  [phase-1-core](roadmap/phase-1-core.md) (every task has TDD steps; Task 1.22
+  ticked). Commit and `generated` only, no statement stale:
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [r-golden-parity](contracts/r-golden-parity.md),
+  [tree-access](contracts/tree-access.md),
+  [cut-a-release](playbooks/cut-a-release.md),
+  [maintain-knowledge](playbooks/maintain-knowledge.md),
+  [regenerate-golden-files](playbooks/regenerate-golden-files.md),
+  [phase-2-function](roadmap/phase-2-function.md),
+  [phase-3-stats](roadmap/phase-3-stats.md),
+  [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md).
+* **Update**: [tl](modules/tl.md) gained a Gotcha: `faith_pd` at 5,000 x 50,000
+  takes about 48 s, nearly all of it scikit-bio re-indexing the tree per chunk
+  (asv baseline, Task 1.21; `docs/performance.md`). Task 1.21 is ticked in
+  [phase-1-core](roadmap/phase-1-core.md), with its exit-gate item "asv
+  baselines recorded".
+* **Update**: [engine-parity](contracts/engine-parity.md) statement 5 now names
+  the benchmark dataset (`benchmarks/benchmarks/_data.py:synthetic`) and where
+  the baselines are recorded (`docs/performance.md`). Task 1.21 added the asv
+  suite.
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 gained a
+  bullet: the release also switches `docs/tutorials/getting_started.md` from the
+  GitHub install line to `pip install biotapy`. PyPI only has the 0.0.1
+  placeholder, so the page says the GitHub line until then.
+
 ## 2026-10-02
 * **Update**: [phase-1-core](roadmap/phase-1-core.md) Task 1.23 Step 5 now
   lists only the README changes that need the release itself: the user asked

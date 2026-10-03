@@ -44,7 +44,7 @@ def read_phyloseq(path: str | Path, *, name: str | None = None) -> TreeData:
 
     Notes
     -----
-    R equivalent: ``phyloseq::phyloseq``
+    R equivalent: ``base::readRDS``, ``base::load``
     Guide: :doc:`/guide/reading_data`
 
     The OTU table is read densely once (8 bytes x samples x taxa) and stored sparse.

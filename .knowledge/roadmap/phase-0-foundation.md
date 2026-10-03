@@ -9,8 +9,8 @@ phase_state: done
 effort: ~1 week part-time
 depends_on: []
 paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T11:12:51Z }
-commit: b77a226
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 sources:
   - id: spec
     resource: ../../plan.md
@@ -505,9 +505,9 @@ create `.github/pull_request_template.md`.
 # Deviations (rulings made during execution)
 Recorded here because the execution ledger is not committed.
 - Skeleton generated non-interactively (`cruft create --no-input --extra-context`), keys from the template's `cookiecutter.json`.
-- The template (v0.8.0) ships no `docs/template_usage.md`, no mypy and no `autofix.yaml`; its `conftest.py` only served the deleted example test and was removed.
+- The template (v0.8.0) ships no `docs/template_usage.md`, no mypy and no `autofix.yaml`; its `conftest.py` only served the deleted example test and was removed. (Phase 1 added a repo-root `conftest.py` for the figure-closing fixture shared by `tests/` and the `src/biotapy` doctests.)
 - ruff pre-commit hook bumped v0.15.21 -> v0.16.9: `PLR0917` is preview-only in 0.15.
-- `mypy` added as a dev dependency with a local prek hook; `[tool.mypy]` strict on `src/biotapy`, Python 3.12. User confirmed.
+- `mypy` added as a dev dependency with a local prek hook; `[tool.mypy]` strict on `src/biotapy`, Python 3.12. User confirmed. Phase 1 widened `files` to `docs/extensions` too, and the hook now runs with the `doc` group.
 - pytest options live in the template's native `[tool.pytest]` table (pytest 9, `strict = true` implies strict markers), not `[tool.pytest.ini_options]`.
 - Workflows, README badge and `docs/conf.py` target `master`, not the template's `main`.
 - The test job runs `bash` on every OS (template steps use POSIX syntax) and includes the OS in its name.
@@ -524,7 +524,7 @@ Recorded here because the execution ledger is not committed.
 
 # Exit gate
 - [x] `uvx prek run --all-files` and `uv run --group test pytest` green locally; output read.
-- [x] CI green: 12 test cells (pre-release cells may fail), `lint`, `import-without-extras`, build; docs.
+- [x] CI green: 12 test cells (pre-release cells may fail), `lint`, `import-without-extras`, build; docs. (The Phase 0 job set; Phase 1 added `network` and `docs` jobs.)
 - [x] Docs live on Read the Docs.
 - [x] `biotapy 0.0.1` on PyPI.
 - [x] rules.md R14 commands match the generated template.

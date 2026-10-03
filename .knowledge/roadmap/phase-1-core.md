@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T17:30:00Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:56:36Z }
+commit: 809c508
 sources:
   - id: spec
     resource: ../../plan.md
@@ -28,9 +28,7 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Tasks 1.1-1.5 and slice 1B stage 1
-> (1.6-1.9) have full TDD steps. Every later task lists files, interface, tests and done-when; expand
-> it with superpowers:writing-plans and get approval before starting (rules.md R1.2a).
+> (recommended) or superpowers:executing-plans. Every task through 1.23 has full TDD steps.
 
 **Goal:** 0.1 is a credible phyloseq replacement on TreeData.[^spec]
 
@@ -73,6 +71,7 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.17 | runtime | scikit-learn `>=1.8` | non-metric MDS (scikit-bio has none); 1.8 renamed `dissimilarity` to `metric` - approved 2026-09-27 |
 | 1.18 | runtime | matplotlib `>=3.8` | `pl`, imported inside its functions so `import biotapy` stays fast - approved 2026-09-27 |
 | 1.21 | dev | asv `>=0.6.6` | benchmarks, with asv's own `uv` environment plugin - approved 2026-09-27 |
+| Checkpoint D | runtime | threadpoolctl `>=3.5` | limit `tl.permanova`'s OpenMP F-statistic to one thread (24 s to 0.01 s on a busy machine); already installed through scikit-learn - approved 2026-10-03 |
 
 # Review focus
 1. **Non-string or duplicated sample/feature ids** from readers (BIOM ids can be ints) -> readers cast to `str` and fail on duplicates naming them. Tests in 1.7a, 1.7c-1.9.
@@ -8585,7 +8584,7 @@ non-zero below 90% total line coverage (ruling 18).
   - the baseline table in `docs/performance.md`, which ticks the exit gate's
     "asv baselines recorded".
 
-- [ ] **Step 1: Dependency.**
+- [x] **Step 1: Dependency.**
   - In `[dependency-groups] dev`, add `"asv>=0.6.6",` before
     `"import-linter>=2.15",`.
   - 0.6.6 is the version prototyped: it ships the `uv` environment plugin
@@ -8594,7 +8593,7 @@ non-zero below 90% total line coverage (ruling 18).
   - Run `uv sync --group dev --group test --group doc`, then confirm that
     `uv run --group dev python -c "import asv; print(asv.__version__)"`
     prints `0.6.6` or later.
-- [ ] **Step 2: Failing test.** Append to `tests/test_ci.py`:
+- [x] **Step 2: Failing test.** Append to `tests/test_ci.py`:
   ```python
 
 
@@ -8604,7 +8603,7 @@ non-zero below 90% total line coverage (ruling 18).
       assert check and check[0]["working-directory"] == "benchmarks"
   ```
   It fails: `check` is empty.
-- [ ] **Step 3: The suite.**
+- [x] **Step 3: The suite.**
   - `benchmarks/asv.conf.json`, as plain JSON:
     - asv 0.6 would accept JSON5 comments, but the repo's biome-format hook
       rejects them; it failed the prototype's first draft.
@@ -8793,7 +8792,7 @@ non-zero below 90% total line coverage (ruling 18).
     staging `pyproject.toml`, the five `benchmarks/` files,
     `.github/workflows/test.yaml`, `tests/test_ci.py`, the concept and the log.
     The baseline is measured on this commit.
-- [ ] **Step 4: Run the baseline.** It takes about 11 minutes and 3 GB of free
+- [x] **Step 4: Run the baseline.** It takes about 11 minutes and 3 GB of free
   memory. Close other heavy work first, since the numbers are the record.
   With `git status --short` empty, from the repository root:
   ```bash
@@ -8808,7 +8807,7 @@ non-zero below 90% total line coverage (ruling 18).
     section's asv facts; a result more than twice those, or a failure, is
     reported before it is recorded (R14.1).
   - `git status --short` must show nothing new: `.asv/` is ignored.
-- [ ] **Step 5: The performance page.**
+- [x] **Step 5: The performance page.**
   - Create `docs/performance.md` from the prototype's page below. Replace the
     commit, date, machine line and every number with Step 4's `asv show`
     output: the page records this run, not the prototype's.
@@ -8861,7 +8860,7 @@ non-zero below 90% total line coverage (ruling 18).
     ````
   - `docs/index.md`: in the "Project" toctree, add `performance.md` after
     `design.md`.
-- [ ] **Step 6: Knowledge.**
+- [x] **Step 6: Knowledge.**
   - `modules/tl.md`, add a Gotcha: "`faith_pd` on 5,000 x 50,000 takes about
     45 s (asv, Task 1.21). scikit-bio re-indexes and re-validates the tree on
     every `alpha_diversity` call, once per chunk of `2**20 // n_vars` samples,
@@ -8869,7 +8868,7 @@ non-zero below 90% total line coverage (ruling 18).
     (`get_skbio_tree`) takes 0.46 s. A fix needs a profile-driven perf task
     (rules.md R10.1), not a change here."
   - Add a log line. Tick 1.21 here.
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   - The three gates.
   - Commit `docs: record the asv baselines for 0.1`, staging
     `docs/performance.md`, `docs/index.md`, `.knowledge/modules/tl.md`, the
@@ -8890,7 +8889,7 @@ non-zero below 90% total line coverage (ruling 18).
   `21 current, 0 stale, 12 uncheckable`. Checkpoint D and 1.23 re-run it after
   their own commits.
 
-- [ ] **Step 1: The `pl` Module concept.** Create `.knowledge/modules/pl.md`.
+- [x] **Step 1: The `pl` Module concept.** Create `.knowledge/modules/pl.md`.
   - Set `generated.by` to `claude-code/` plus the implementing model's id.
   - Set `generated.at` to the output of `date -u +%FT%TZ`.
   - Set `commit` to `git rev-parse --short HEAD`, the last code commit.
@@ -8984,7 +8983,7 @@ non-zero below 90% total line coverage (ruling 18).
     what tl and pp stored - stacked bars, heatmap, richness, ordination and
     scree - drawn with matplotlib on the given or a new Axes, computing
     nothing.`
-- [ ] **Step 2: Refresh the stale concepts.**
+- [x] **Step 2: Refresh the stale concepts.**
   - `bash scripts/knowledge_stale.sh` reported 18 stale concepts before this
     slice (research, 2026-09-27):
     - the roadmap: `phase-0-foundation`, `phase-1-core`, `phase-2-function`,
@@ -9020,7 +9019,7 @@ non-zero below 90% total line coverage (ruling 18).
       if it cannot be parsed."
   - Report every other edit in the task report, one line per concept: what
     changed, or "commit only".
-- [ ] **Step 3: Verify.**
+- [x] **Step 3: Verify.**
   - `uv run --group test pytest tests/test_knowledge_bundle.py -q`: every
     concept has a `type` and is listed in its `index.md`, including `pl`.
   - `bash scripts/knowledge_stale.sh --against HEAD` must print
@@ -9030,12 +9029,12 @@ non-zero below 90% total line coverage (ruling 18).
       against it; `--against HEAD` checks the branch as it will merge.
     - The 12 uncheckable are the 10 decisions, `phase-5-beyond` and
       `spec-review`, which have no `paths:` key (ruling 19).
-- [ ] **Step 4: Commit.** Add a log line naming every concept refreshed, and
+- [x] **Step 4: Commit.** Add a log line naming every concept refreshed, and
   tick 1.22. Commit `docs(knowledge): add the pl module and refresh every Phase 1 concept`,
   staging the concepts, `modules/index.md`, the roadmap and the log.
 
 ### Checkpoint D - review slice 1D
-- [ ] Review the whole slice (superpowers:requesting-code-review) against:
+- [x] Review the whole slice (superpowers:requesting-code-review) against:
   - every contract: function-shape, data-model-slots, module-boundaries,
     tree-access and r-golden-parity;
   - the pure-by-default decision;
@@ -9044,7 +9043,7 @@ non-zero below 90% total line coverage (ruling 18).
 
   Then a fix pass, one commit per finding, each with a test. Also read the
   per-file coverage table from 1.19b's command, and report any file under 90%.
-- [ ] Knowledge after the fix pass: run
+- [x] Knowledge after the fix pass: run
   `bash scripts/knowledge_stale.sh --against HEAD`.
   - For each concept a fix made stale: check it against the fix, then bump its
     `commit` to the new `HEAD`, in one commit
@@ -9167,6 +9166,8 @@ for the user's explicit approval of that step (R13.3).
     The development version installs straight from GitHub:
     `pip install git+https://github.com/pedrocr83/biotapy.git`.
     ````
+  - `docs/tutorials/getting_started.md`: its install sentence names the GitHub
+    install line until now; replace it with `pip install biotapy`.
 - [ ] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
     print `PASSED` (0.0.1's sdist and wheel did).
@@ -9295,7 +9296,7 @@ for the user's explicit approval of that step (R13.3).
   `plot_tree`, `plot_net`, CCA, DPCoA.
 - [ ] All `golden` tests pass per [r-golden-parity](/contracts/r-golden-parity.md).
 - [ ] The generated Coming-from-R table maps all 31 functions below.
-- [ ] asv baselines recorded.
+- [x] asv baselines recorded.
 - [ ] Coverage >= 90% on public functions (rules.md R11.6).
 - [ ] `biotapy 0.1.0` on PyPI; Phase 1 `phase_state: done`; Phase 2 active.
 

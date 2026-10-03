@@ -1,5 +1,7 @@
 """CI must run the rules.md gate (prek hooks), not only local pre-commit."""
 
+import ast
+import json
 import tomllib
 from pathlib import Path
 
@@ -7,6 +9,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = yaml.safe_load((ROOT / ".github/workflows/test.yaml").read_text(encoding="utf-8"))
+DOCS = ROOT / "docs"
 
 
 def test_ci_runs_every_prek_hook():
@@ -47,3 +50,54 @@ def test_docs_job_builds_the_docs_with_the_pooch_cache():
 
 def test_docs_job_blocks_merges():
     assert "docs" in WORKFLOW["jobs"]["check"]["needs"]
+
+
+def test_lint_job_imports_the_benchmarks():
+    steps = WORKFLOW["jobs"]["lint"]["steps"]
+    check = [step for step in steps if step.get("run", "").strip() == "uv run --group dev asv check --python=same"]
+    assert check and check[0]["working-directory"] == "benchmarks"
+
+
+def _conf_constants():
+    # Parsed, not imported: conf.py imports Sphinx extensions the test group does not install.
+    tree = ast.parse((DOCS / "conf.py").read_text(encoding="utf-8"))
+    return {
+        target.id: ast.literal_eval(node.value)
+        for node in tree.body
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+
+
+def test_docs_build_executes_notebooks_and_fails_on_a_cell_error():
+    conf = _conf_constants()
+    assert conf["nb_execution_mode"] == "cache"
+    assert conf["nb_execution_raise_on_error"] is True
+
+
+def _sources():
+    return [
+        path
+        for path in sorted(DOCS.rglob("*"))
+        if path.suffix in {".md", ".ipynb"} and not {"_build", "generated"} & set(path.relative_to(DOCS).parts)
+    ]
+
+
+def _notebook_metadata(path):
+    if path.suffix == ".ipynb":
+        return json.loads(path.read_text(encoding="utf-8")).get("metadata", {})
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        return {}
+    return yaml.safe_load(text[4 : text.index("\n---", 3)]) or {}
+
+
+def test_no_page_overrides_the_notebook_execution_settings():
+    assert _sources()
+    overridden = [
+        str(path.relative_to(DOCS))
+        for path in _sources()
+        if "mystnb" in _notebook_metadata(path) or "execution_mode" in str(_notebook_metadata(path))
+    ]
+    assert overridden == []

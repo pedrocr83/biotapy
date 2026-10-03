@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from biotapy._core import add_provenance, feature_subset, infer_x_kind, require_counts, x_kind
+from biotapy._core import add_provenance, feature_subset, infer_x_kind, require_categorical, require_counts, x_kind
 
 
 def _adata() -> ad.AnnData:
@@ -24,6 +24,29 @@ def _adata() -> ad.AnnData:
 
 def test_x_kind_defaults_to_counts():
     assert x_kind(_adata()) == "counts"
+
+
+def test_require_categorical_rejects_numeric_naming_the_argument():
+    values = pd.Series([1.0, 2.0, np.nan], name="dose")
+    with pytest.raises(
+        TypeError,
+        match=r"grouping='dose' is a numeric column \(float64\); tl.permanova compares groups, "
+        r"so convert it with \.astype\(\"category\"\) for one group per value",
+    ):
+        require_categorical(values, arg="grouping", purpose="tl.permanova compares groups")
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.Series([True, False]),
+        pd.Series(pd.Categorical([1, 2])),
+        pd.Series(["a", None]),
+        pd.Series(["a", "b"], dtype="str"),
+    ],
+)
+def test_require_categorical_accepts_bool_category_and_string(values):
+    require_categorical(values, arg="x", purpose="plots group by category")
 
 
 def test_require_counts_rejects_relative():

@@ -4,7 +4,7 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T07:47:57Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T07:40:00Z }
 commit: 806bede
 sources:
   - id: spec
@@ -42,7 +42,9 @@ torch or an R installation into every install is unacceptable.[^spec]
   information and CPython 3.12 wheels. `pl` imports it inside its functions,
   and pyplot only when it must make a figure, so `import biotapy` does not
   load it. It brings contourpy, cycler, fonttools, kiwisolver, pillow and
-  pyparsing.
+  pyparsing. Checkpoint D declared threadpoolctl (`>=3.5`, approved
+  2026-10-03), already installed through scikit-learn: `tl.permanova` limits
+  scikit-bio's OpenMP F-statistic to one thread with it.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

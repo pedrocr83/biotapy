@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.sparse as sp
 from anndata import AnnData
 
-from biotapy._core import as_csr
+from biotapy._core import as_csr, require_categorical
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -23,7 +23,7 @@ MISSING_COLOR = "#7f7f7f"
 # phyloseq's plot_heatmap(max.label = 250): past this many names, tick labels overlap into a solid block.
 MAX_LABELS = 250
 # The call that writes each layer pl can read, for the error raised when it is missing.
-_LAYER_WRITTEN_BY = {"relative": "bt.pp.relative(adata)"}
+_LAYER_WRITTEN_BY = {"relative": "adata = bt.pp.relative(adata)"}
 
 
 def new_axes(ax: "Axes | None") -> "Axes":
@@ -58,12 +58,7 @@ def obs_groups(adata: AnnData, column: str, *, arg: str) -> Groups:
 
 def groups(values: pd.Series, *, arg: str) -> Groups:
     """Codes, labels and colours: a categorical's order, else sorted values, with missing values last as NA."""
-    if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
-        msg = (
-            f"{arg}={values.name!r} is a numeric column ({values.dtype}); plots group by category, "
-            'so convert it with .astype("category") for one group per value'
-        )
-        raise TypeError(msg)
+    require_categorical(values, arg=arg, purpose="plots group by category")
     categorical = pd.Categorical(values).remove_unused_categories()
     codes = categorical.codes.astype(np.intp)
     labels = [str(category) for category in categorical.categories]
@@ -87,14 +82,16 @@ def _colors(n: int, *, missing: bool) -> list[RGBA]:
 def scatter(
     ax: "Axes", x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], *, by: Groups | None, title: str | None
 ) -> None:
-    """One scatter, or one per group with a legend titled ``title``."""
+    """One scatter, or one per group that has points, with a legend titled ``title``."""
     if by is None:
         ax.scatter(x, y)
         return
     codes, labels, colors = by
     for code, (label, color) in enumerate(zip(labels, colors, strict=True)):
         keep = codes == code
-        ax.scatter(x[keep], y[keep], color=color, label=label)
+        # A group whose points were all left out (NaN) gets no legend entry; the others keep their colours.
+        if keep.any():
+            ax.scatter(x[keep], y[keep], color=color, label=label)
     ax.legend(title=title)
 
 

@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, x
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
-commit: 4a5adaf
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
+commit: 2b9fc24
 status: stable
 ---
 
@@ -45,11 +45,17 @@ none of them back.
   `"counts"` and every stored value is a whole number (`infer_x_kind`'s rule,
   O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
   and `tl.unifrac(weighted=True)`.
+- `_slots.py:require_categorical` - raise `TypeError` naming its `arg=`,
+  with an `.astype("category")` hint, when a column meant to group samples is
+  numeric and not bool; shared by `tl.permanova` (`grouping=`) and `pl`'s
+  `_common.py:groups` (`x=`, `color=`, `fill=`).
 - `_slots.py:infer_x_kind` - classify a freshly read matrix as `"counts"`
   (every value a whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file
   format does not record `x_kind` itself.
-- `_slots.py:add_provenance` - append one provenance entry.
+- `_slots.py:add_provenance` - append one provenance entry; a numpy scalar
+  parameter (a threshold taken from a numpy reduction) is stored as its Python
+  value through `.item()`, since `json` rejects it.
 - `_slots.py:feature_subset` - the only place that implements the
   Propagation table in [data-model-slots](/contracts/data-model-slots.md).
 - `_tree.py:make_treedata` / `get_tree` / `tree_from_edges` - build or read a
@@ -128,9 +134,10 @@ scikit-bio (Newick parsing, `_tree.py:tree_from_newick`; also used for
 `TreeNode` conversion, `_tree.py:get_skbio_tree`). scikit-bio is a
 real cost at import time: measured at commit 43d6efb, `import biotapy` takes
 ~1.0-1.1s, of which roughly half (~0.5s) is scikit-bio, found by diffing
-against importing biotapy's other runtime dependencies alone. A lazy
-(function-local) import is deferred until Task 1.21's asv benchmark measures
-it properly (rules.md R10.1: no optimization without a measurement).
+against importing biotapy's other runtime dependencies alone. The asv suite
+(`benchmarks/benchmarks`) times `pp` and `tl` calls, not `import biotapy`, so
+that figure stands unprofiled; a lazy (function-local) import waits for a
+measurement (rules.md R10.1: no optimization without one).
 
 # Verification
 

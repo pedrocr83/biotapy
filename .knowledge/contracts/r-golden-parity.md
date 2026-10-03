@@ -1,12 +1,12 @@
 ---
 type: Contract
 title: R golden parity
-description: Every function with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants.
+description: Every computation with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants.
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T07:47:57Z }
-commit: 806bede
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:55:56Z }
+commit: 2d0cab6
 sources:
   - id: spec
     resource: ../../plan.md
