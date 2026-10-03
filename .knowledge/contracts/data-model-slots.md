@@ -5,7 +5,7 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:48:00Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T14:10:00Z }
 commit: 5848747
 sources:
   - id: spec
@@ -59,7 +59,7 @@ Extends the spec's data-model table with exact keys.[^spec]
    The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
    `relative`) and labels a header without a unit `abundance`, never `counts`.
-   No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+   The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
    text table), and labeling proportions `counts` would misdescribe them to
    every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
    (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
