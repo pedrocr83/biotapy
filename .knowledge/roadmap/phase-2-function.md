@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:55:00Z }
-commit: cdfe31b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:00:00Z }
+commit: ebede28
 sources:
   - id: spec
     resource: ../../plan.md
@@ -355,7 +355,7 @@ not exist yet.
 - [x] 2.1b `_core` function tables and the mudata dependency
 - [x] 2.3 `io.read_humann(path) -> MuData`
 - [x] 2.3b `datasets.toy_humann() -> MuData`
-- [ ] 2.5a `datasets.enzyme() -> pd.DataFrame`
+- [x] 2.5a `datasets.enzyme() -> pd.DataFrame`
 - [ ] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
 - [ ] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [ ] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
@@ -1654,7 +1654,7 @@ produces `bt.datasets.enzyme() -> pd.DataFrame` (columns `child, parent, level,
 parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
 `attrs["license"] == "CC BY 4.0"`). 2.6 consumes it as a `hierarchy`.
 
-- [ ] **Step 1: Fixtures** - excerpts of the 02-Sep-2026 release (CC BY 4.0;
+- [x] **Step 1: Fixtures** - excerpts of the 02-Sep-2026 release (CC BY 4.0;
   the notice states the changes). `tests/data/enzyme/enzyme.dat`:
   ```text
   CC   -----------------------------------------------------------------------
@@ -1737,7 +1737,7 @@ parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
   2.7.1.1, 2.7.1.2, 3.2.1.4), each cut to its ID and DE lines; enzclass.txt keeps
   its header, footer and the nine class lines above those entries.
   ```
-- [ ] **Step 2: Failing tests** - `tests/datasets/test_enzyme.py`:
+- [x] **Step 2: Failing tests** - `tests/datasets/test_enzyme.py`:
   ```python
   from pathlib import Path
 
@@ -1794,9 +1794,9 @@ parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
       assert edges["child"].nunique() > 8000 and set(edges["level"]) == {"class", "subclass", "subsubclass"}
       assert edges.attrs["source"].startswith("ENZYME release ")
   ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/datasets/test_enzyme.py -q`
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/datasets/test_enzyme.py -q`
   -> `ImportError: cannot import name '_enzyme' from 'biotapy.datasets'`.
-- [ ] **Step 4: Implement.** In `src/biotapy/datasets/_remote.py`:
+- [x] **Step 4: Implement.** In `src/biotapy/datasets/_remote.py`:
   - module docstring: `"""Datasets downloaded once and cached with pooch: phyloseq's examples and the ENZYME files."""`;
   - end `_REGISTRY` with
     ```python
@@ -1906,12 +1906,12 @@ parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
   ```
   `src/biotapy/datasets/__init__.py`: `from ._enzyme import enzyme` first;
   `"enzyme"` after `"enterotype"` in `__all__`.
-- [ ] **Step 5: Run, expect pass** - same command -> `5 passed, 1 deselected`
+- [x] **Step 5: Run, expect pass** - same command -> `5 passed, 1 deselected`
   (the `network` test). Once, by hand, with a scratch cache:
   `BIOTAPY_DATA_DIR=$(mktemp -d) uv run --group test pytest -m network tests/datasets/test_enzyme.py -q`
   -> `1 passed` (26,143 rows, 8,875 children, every parent named, for the
   02-Sep-2026 release).
-- [ ] **Step 6: Docs.** `docs/api.md`: `datasets.enzyme` after
+- [x] **Step 6: Docs.** `docs/api.md`: `datasets.enzyme` after
   `datasets.enterotype`. `docs/guide/datasets.md`: first sentence becomes
   "`biotapy.datasets` ships six datasets: five examples, each returning the
   same [data model](data_model.md) every biotapy function relies on, and the
@@ -1933,7 +1933,7 @@ parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
   under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); cite it when
   you publish results that use it. biotapy itself is". Build docs ->
   `build succeeded.`
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/datasets/_enzyme.py src/biotapy/datasets/_remote.py src/biotapy/datasets/__init__.py \
@@ -1954,7 +1954,7 @@ parent_name`; levels `class`, `subclass`, `subsubclass`; `attrs["source"]`,
 `attrs["source"] == str(path)`). Local files only, gzip allowed, no header
 line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
 
-- [ ] **Step 1: Failing tests** - `tests/fn/test_hierarchy.py`:
+- [x] **Step 1: Failing tests** - `tests/fn/test_hierarchy.py`:
   ```python
   import gzip
   from pathlib import Path

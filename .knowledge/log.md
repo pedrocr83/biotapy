@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.5a)
+* **Update**: ticked task 2.5a in [phase-2-function](roadmap/phase-2-function.md); `datasets.enzyme` downloads ENZYME unpinned (`known_hash=None`, user decision 2026-10-03) and raises if `enzyme.dat` has no release line.
+
 ## 2026-10-03 (Phase 2, task 2.3b fix round 1)
 * **Update**: [function-shape](contracts/function-shape.md) Examples bullet now also allows a reader's example to write a small temp file, matching rules.md R8.2.
 
