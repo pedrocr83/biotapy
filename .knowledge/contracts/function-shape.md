@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T08:21:37Z }
-commit: 9789e0b
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -69,7 +69,7 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
   line, and an `Examples` section. The same parser writes the Coming-from-R table at each docs
   build, with `docs/_data/r_idioms.toml` for the R calls that are plain AnnData code (task 1.19).
 - Doctests in CI (`--doctest-modules` in pytest config, Phase 0 task 0.4).
-- Purity: every `pp`/`tl` test asserts the input is unchanged.
+- Purity: every `pp`, `tl` and `pl` test asserts the input is unchanged (`assert_unchanged`, `tests/conftest.py`).
 
 # Binds
 - [module-boundaries](/contracts/module-boundaries.md)

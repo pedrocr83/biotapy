@@ -5,8 +5,8 @@ description: Only biotapy/_core/_tree.py imports treedata or networkx, so a Tree
 tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:33:04Z }
-commit: 6f3d626
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json

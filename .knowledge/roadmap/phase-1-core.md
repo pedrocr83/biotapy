@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T13:00:00Z }
-commit: 43d6efb
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -28,9 +28,7 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Tasks 1.1-1.5 and slice 1B stage 1
-> (1.6-1.9) have full TDD steps. Every later task lists files, interface, tests and done-when; expand
-> it with superpowers:writing-plans and get approval before starting (rules.md R1.2a).
+> (recommended) or superpowers:executing-plans. Every task through 1.23 has full TDD steps.
 
 **Goal:** 0.1 is a credible phyloseq replacement on TreeData.[^spec]
 
@@ -8890,7 +8888,7 @@ non-zero below 90% total line coverage (ruling 18).
   `21 current, 0 stale, 12 uncheckable`. Checkpoint D and 1.23 re-run it after
   their own commits.
 
-- [ ] **Step 1: The `pl` Module concept.** Create `.knowledge/modules/pl.md`.
+- [x] **Step 1: The `pl` Module concept.** Create `.knowledge/modules/pl.md`.
   - Set `generated.by` to `claude-code/` plus the implementing model's id.
   - Set `generated.at` to the output of `date -u +%FT%TZ`.
   - Set `commit` to `git rev-parse --short HEAD`, the last code commit.
@@ -8984,7 +8982,7 @@ non-zero below 90% total line coverage (ruling 18).
     what tl and pp stored - stacked bars, heatmap, richness, ordination and
     scree - drawn with matplotlib on the given or a new Axes, computing
     nothing.`
-- [ ] **Step 2: Refresh the stale concepts.**
+- [x] **Step 2: Refresh the stale concepts.**
   - `bash scripts/knowledge_stale.sh` reported 18 stale concepts before this
     slice (research, 2026-09-27):
     - the roadmap: `phase-0-foundation`, `phase-1-core`, `phase-2-function`,
@@ -9020,7 +9018,7 @@ non-zero below 90% total line coverage (ruling 18).
       if it cannot be parsed."
   - Report every other edit in the task report, one line per concept: what
     changed, or "commit only".
-- [ ] **Step 3: Verify.**
+- [x] **Step 3: Verify.**
   - `uv run --group test pytest tests/test_knowledge_bundle.py -q`: every
     concept has a `type` and is listed in its `index.md`, including `pl`.
   - `bash scripts/knowledge_stale.sh --against HEAD` must print
@@ -9030,7 +9028,7 @@ non-zero below 90% total line coverage (ruling 18).
       against it; `--against HEAD` checks the branch as it will merge.
     - The 12 uncheckable are the 10 decisions, `phase-5-beyond` and
       `spec-review`, which have no `paths:` key (ruling 19).
-- [ ] **Step 4: Commit.** Add a log line naming every concept refreshed, and
+- [x] **Step 4: Commit.** Add a log line naming every concept refreshed, and
   tick 1.22. Commit `docs(knowledge): add the pl module and refresh every Phase 1 concept`,
   staging the concepts, `modules/index.md`, the roadmap and the log.
 

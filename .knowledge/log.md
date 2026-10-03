@@ -1,6 +1,37 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Create**: [pl](modules/pl.md), the Module concept for the plots (Task 1.22).
+  Listed in [modules](modules/index.md), whose [io](modules/io.md) line now
+  names phyloseq objects too.
+* **Update**: refreshed every stale concept against 1ad037b (Task 1.22), after
+  reading the code behind each statement. Content edits:
+  [core](modules/core.md) (`add_provenance` stores numpy scalars through
+  `.item()`; no asv import-time benchmark exists),
+  [io](modules/io.md) (the rdata warning filter hides only the suffix messages;
+  stale `_qiime2.py:15` line reference),
+  [pp](modules/pp.md) (`tl` exists; every function is pure; `filter_samples`
+  keeps stale ordinations; the prevalence boundary note),
+  [tl](modules/tl.md) (the `faith_pd` presence copy per chunk),
+  [data-model-slots](contracts/data-model-slots.md) (`pl` reads and writes no
+  slot; `filter_samples` keeps stale ordinations),
+  [function-shape](contracts/function-shape.md) (purity tests cover `pl`),
+  [add-a-function](playbooks/add-a-function.md) (`pl` purity; the `R equivalent:`
+  line feeds the Coming-from-R page),
+  [phase-0-foundation](roadmap/phase-0-foundation.md) (mypy now covers
+  `docs/extensions`, a root `conftest.py`, the `network` and `docs` CI jobs),
+  [phase-1-core](roadmap/phase-1-core.md) (every task has TDD steps; Task 1.22
+  ticked). Commit and `generated` only, no statement stale:
+  [engine-parity](contracts/engine-parity.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [r-golden-parity](contracts/r-golden-parity.md),
+  [tree-access](contracts/tree-access.md),
+  [cut-a-release](playbooks/cut-a-release.md),
+  [maintain-knowledge](playbooks/maintain-knowledge.md),
+  [regenerate-golden-files](playbooks/regenerate-golden-files.md),
+  [phase-2-function](roadmap/phase-2-function.md),
+  [phase-3-stats](roadmap/phase-3-stats.md),
+  [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md).
 * **Update**: [tl](modules/tl.md) gained a Gotcha: `faith_pd` at 5,000 x 50,000
   takes about 48 s, nearly all of it scikit-bio re-indexing the tree per chunk
   (asv baseline, Task 1.21; `docs/performance.md`). Task 1.21 is ticked in

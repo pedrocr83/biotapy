@@ -5,8 +5,8 @@ description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, 
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T13:00:00Z }
-commit: 8f26269
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 status: stable
 ---
 
@@ -51,7 +51,8 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   (`tests/conftest.py`) checks inputs, including the key set of
   `uns["biotapy"]`.
 - scikit-bio only ever gets dense input (rules.md R6.2): `alpha` densifies
-  rows in chunks of at most `2**20` values (`_alpha.py:_CHUNK_VALUES`);
+  rows in chunks of at most `2**20` values (`_alpha.py:_CHUNK_VALUES`), plus
+  one int64 presence copy of the chunk when `faith_pd` is asked;
   `beta` and `unifrac` densify `X` once, since pairwise distances need every
   row.
 - Trees come only from `_core.get_skbio_tree`; nothing in `tl` imports

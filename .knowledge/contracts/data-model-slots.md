@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-27T19:12:43Z }
-commit: 4a5adaf
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -35,6 +35,8 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
 | `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
+
+`pl` reads these slots and writes none ([pl](/modules/pl.md)).
 
 ## Conventions
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and
@@ -81,7 +83,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | Operation | Keeps | Drops |
 |---|---|---|
 | Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
-| Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing | nothing |
+| Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
 | Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
 
 Feature-changing operations go through `_core.feature_subset`, the single place

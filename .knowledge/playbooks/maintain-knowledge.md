@@ -5,8 +5,8 @@ description: When and how to write or update an OKF concept in .knowledge/, in t
 tags: [okf, docs, workflow]
 status: stable
 paths: ["tests/test_knowledge_bundle.py", "scripts/knowledge_stale.sh"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T10:16:21Z }
-commit: b77a226
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 sources:
   - id: okf-spec
     resource: https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md

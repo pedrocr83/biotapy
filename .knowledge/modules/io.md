@@ -5,8 +5,8 @@ description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T14:00:00Z }
-commit: 6fd5344
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 status: stable
 ---
 
@@ -103,7 +103,7 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 # Gotchas
 
 - `io/_qiime2.py` imports the private `_biom_parts` straight from its sibling
-  `io/_biom.py` (`_qiime2.py:15`) rather than duplicating the BIOM-parsing
+  `io/_biom.py` (`_qiime2.py`'s `from ._biom import _biom_parts`) rather than duplicating the BIOM-parsing
   logic. This is a deliberate exception to
   [module-boundaries](/contracts/module-boundaries.md) rule 1, now amended to
   allow a private import between topic files of the *same* subpackage; it
@@ -168,10 +168,14 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   passing `extension=path.suffix.lower()` in `_rdata.py:read_matrix_rds`,
   which still branches on the file's suffix (it only ever reads a `.rds`, for
   DADA2). `_rdata.py:load_phyloseq` no longer branches on suffix at all
-  (previous paragraph): it parses once and suppresses every
-  suffix-consistency `UserWarning` `parse_file` could raise, since none of
-  them are meaningful once format comes from content (Task 1.9b fix round 1;
-  superseded for `load_phyloseq` by Checkpoint B fix F4).
+  (previous paragraph): it parses once and hides only rdata's
+  suffix-consistency `UserWarning`s, matched by their exact text
+  (`_rdata.py:_SUFFIX_WARNING`), since none of them are meaningful once format
+  comes from content. A filter on every `UserWarning` would also hide rdata's
+  "Tag not implemented ... and ignored", which means an attribute was dropped
+  (rules.md R7.4); if rdata rewords the three messages, they surface again
+  instead of staying hidden (Task 1.9b fix round 1; superseded for
+  `load_phyloseq` by Checkpoint B fix F4).
 - `read_dada2` casts `X` to `np.int64` when it holds integers, so counts are
   the same dtype whether they came from a CSV (pandas' default `int64`) or an
   `.rds` matrix (R's 32-bit integer, `int32`) (Task 1.9b fix round 1).

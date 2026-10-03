@@ -5,8 +5,8 @@ description: The only sanctioned path from "we need X" to a merged public functi
 tags: [workflow, api, testing]
 status: stable
 paths: ["src/biotapy/**", "tests/**", "docs/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-28T07:47:57Z }
-commit: 806bede
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 ---
 
 # When
@@ -25,7 +25,7 @@ Any new entry in a subpackage `__all__`.
    - happy path on `bt.datasets.toy()`;
    - edge cases: empty sample (all-zero row), all-zero feature, missing
      taxonomy rank / NaN rank value, single sample;
-   - purity: input unchanged (`pp`, `tl` with `inplace=False`);
+   - purity: input unchanged (`pp`, `tl` with `inplace=False`, `pl`);
    - property test with Hypothesis when an invariant exists (sums preserved,
      rows sum to 1, symmetric distances);
    - golden test when an R equivalent exists, per [r-golden-parity](/contracts/r-golden-parity.md);
@@ -34,7 +34,9 @@ Any new entry in a subpackage `__all__`.
 5. **Minimal implementation** matching [function-shape](/contracts/function-shape.md).
    No option without a test that uses it.
 6. **Export**: add to the subpackage `__init__.py` import list and `__all__`.
-7. **Docstring** with `R equivalent:` line, `Guide:` link, runnable example.
+7. **Docstring** with `R equivalent:` line, `Guide:` link, runnable example. The `R equivalent:` line
+   feeds the generated Coming-from-R page; `tests/test_docstrings.py` fails
+   if it cannot be parsed.
 8. **Docs page**: add or extend the `docs/guide/<concept>.md` page the
    docstring links to; add the function to `docs/api.md`.
 9. **Knowledge**: update `.knowledge/` only if a contract, decision or module

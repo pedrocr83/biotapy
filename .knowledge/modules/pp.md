@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T17:46:59Z }
-commit: d28af22
+generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
+commit: 1ad037b
 status: stable
 ---
 
@@ -16,7 +16,7 @@ Owns the `bt.pp.*` verbs that transform an AnnData/TreeData's abundance
 table: `relative` (adds a layer, keeps every feature), `tax_glom`
 (aggregates features to a taxonomic rank, drops derived slots). Owns
 filtering (`filter_features`, `filter_samples`) and rarefaction (`rarefy`);
-does NOT own any diversity/ordination computation (`tl`, Slice 1C).
+does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
 
 # Entry points
 
@@ -34,10 +34,9 @@ does NOT own any diversity/ordination computation (`tl`, Slice 1C).
 
 # Invariants
 
-- Both functions are pure ([pure-by-default](/decisions/pure-by-default.md)):
-  return a new object, input unchanged. Checked via the `assert_unchanged`
-  fixture (`tests/conftest.py`) in `tests/pp/test_transform.py` and
-  `tests/pp/test_glom.py`.
+- Every function is pure ([pure-by-default](/decisions/pure-by-default.md)):
+  returns a new object, input unchanged. Checked via the `assert_unchanged`
+  fixture (`tests/conftest.py`) in `tests/pp/test_{transform,glom,filter,rarefy}.py`.
 - `tax_glom` groups by the full lineage string joined down to `rank`, not by
   the rank label alone - phyloseq semantics: `";_;".join`, missing value ->
   `"NA"` - so same-named taxa in different lineages (e.g. two unrelated
@@ -85,3 +84,9 @@ does NOT own any diversity/ordination computation (`tl`, Slice 1C).
   position in `var_names`, not the order groups are first encountered while
   scanning lineages; `bt.datasets.toy()`'s taxa are contiguous per phylum, so
   `tests/pp/test_glom.py` builds its own interleaved fixture to cover this.
+- `filter_samples` keeps every slot, so a kept `obsm` ordination and its
+  `uns["biotapy"]["pcoa"|"nmds"]` summary were computed with the dropped
+  samples included; recompute them (`_filter.py:filter_samples` docstring).
+- `filter_features` keeps a feature when `present / n_obs >= min_prevalence`;
+  phyloseq's `sum(x > 0) >= p * length(x)` can drop it at an exact boundary
+  through floating point (7 of 25 samples at `p = 0.28`).
