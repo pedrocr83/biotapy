@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 from skbio.stats.distance import permanova as skbio_permanova
+from threadpoolctl import threadpool_limits
 
 from biotapy._core import as_generator
 
@@ -60,7 +61,9 @@ def permanova(
     R and NumPy random generators differ. ``grouping`` is categorical, one group
     per distinct value, like an R factor. adonis2 fits a numeric column as one
     continuous term instead, so a numeric column raises rather than silently
-    becoming one group per value.
+    becoming one group per value. scikit-bio's F-statistic runs on one OpenMP
+    thread here: with one thread per core it took 24 s instead of 0.01 s on a
+    busy machine.
 
     References
     ----------
@@ -90,7 +93,9 @@ def permanova(
         msg = f"grouping={grouping!r} is missing for {int(groups.isna().sum())} sample(s); drop them first"
         raise ValueError(msg)
     distances = stored_distances(adata, distance)
-    result: pd.Series = skbio_permanova(
-        distances, groups.to_numpy(), permutations=permutations, seed=as_generator(seed)
-    )
+    # scikit-bio's F-statistic starts one OpenMP thread per core: about 24 s on a toy table when the cores are busy.
+    with threadpool_limits(1, user_api="openmp"):
+        result: pd.Series = skbio_permanova(
+            distances, groups.to_numpy(), permutations=permutations, seed=as_generator(seed)
+        )
     return result

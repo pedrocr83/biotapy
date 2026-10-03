@@ -71,6 +71,7 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.17 | runtime | scikit-learn `>=1.8` | non-metric MDS (scikit-bio has none); 1.8 renamed `dissimilarity` to `metric` - approved 2026-09-27 |
 | 1.18 | runtime | matplotlib `>=3.8` | `pl`, imported inside its functions so `import biotapy` stays fast - approved 2026-09-27 |
 | 1.21 | dev | asv `>=0.6.6` | benchmarks, with asv's own `uv` environment plugin - approved 2026-09-27 |
+| Checkpoint D | runtime | threadpoolctl `>=3.5` | limit `tl.permanova`'s OpenMP F-statistic to one thread (24 s to 0.01 s on a busy machine); already installed through scikit-learn - approved 2026-10-03 |
 
 # Review focus
 1. **Non-string or duplicated sample/feature ids** from readers (BIOM ids can be ints) -> readers cast to `str` and fail on duplicates naming them. Tests in 1.7a, 1.7c-1.9.

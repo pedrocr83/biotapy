@@ -35,6 +35,7 @@ dependencies = [
   "scipy",
   # for debug logging (referenced from the issue template)
   "session-info2",
+  "threadpoolctl>=3.5",
   "treedata>=0.3.1,<0.4",
   "xarray",
 ]
@@ -164,10 +165,10 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
-# biom-format and scikit-learn ship no type annotations at all, nor does scikit-bio's
-# subsample_counts; exempt only calls into them (not our own code) from strict's
-# disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
-untyped_calls_exclude = [ "biom", "skbio.stats._subsample", "sklearn" ]
+# biom-format and scikit-learn ship no type annotations at all, nor do scikit-bio's
+# subsample_counts and threadpoolctl's threadpool_limits; exempt only calls into them (not our
+# own code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [ "biom", "skbio.stats._subsample", "sklearn", "threadpoolctl" ]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [
@@ -187,6 +188,8 @@ overrides = [
   # scikit-learn 1.9.1 ships no py.typed marker either; same treatment.
   { module = "sklearn", follow_untyped_imports = true, implicit_reexport = true },
   { module = "sklearn.*", follow_untyped_imports = true, implicit_reexport = true },
+  # threadpoolctl 3.7.0 is a single module, which cannot carry a py.typed marker; same treatment.
+  { module = "threadpoolctl", follow_untyped_imports = true },
 ]
 
 [tool.pytest]

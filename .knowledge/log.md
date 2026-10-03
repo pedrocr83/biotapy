@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md)
+  and [phase-1-core](roadmap/phase-1-core.md)'s dependency table record
+  threadpoolctl (`>=3.5`, approved 2026-10-03), which limits `tl.permanova`'s
+  OpenMP F-statistic to one thread (Checkpoint D, P1).
 * **Create**: [pl](modules/pl.md), the Module concept for the plots (Task 1.22).
   Listed in [modules](modules/index.md), whose [io](modules/io.md) line now
   names phyloseq objects too.
