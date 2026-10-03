@@ -1,0 +1,13 @@
+# Gene Family	S1_Abundance-RPKs	S2_Abundance-RPKs	S3_Abundance-RPKs
+UNMAPPED	10.0	20.0	0.0
+UniRef90_A: alpha protein	8.0	2.0	0.0
+UniRef90_A: alpha protein|g__Bacteroides.s__Bacteroides_ovatus	5.0	2.0	0.0
+UniRef90_A: alpha protein|unclassified	3.0	0.0	0.0
+UniRef90_B	6.0	4.0	0.0
+UniRef90_B|g__Bacteroides.s__Bacteroides_ovatus	6.0	1.0	0.0
+UniRef90_B|g__Blautia.s__Blautia_obeum	0.0	3.0	0.0
+UniRef90_C	4.0	0.5	0.0
+UniRef90_C|g__Blautia.s__Blautia_obeum	4.0	0.5	0.0
+UniRef90_D	2.0	6.0	0.0
+UniRef90_D|unclassified	2.0	6.0	0.0
+UniRef90_unknown	3.0	1.0	0.0

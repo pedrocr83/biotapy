@@ -350,7 +350,7 @@ code and every later golden test reads its files. ENZYME (2.5a) comes before
 not exist yet.
 
 # Tasks (checklist)
-- [ ] 2.0 HUMAnN fixtures, notice and golden export
+- [x] 2.0 HUMAnN fixtures, notice and golden export
 - [ ] 2.1 `_core.sum_pairs` and `_core.replace_features`
 - [ ] 2.1b `_core` function tables and the mudata dependency
 - [ ] 2.3 `io.read_humann(path) -> MuData`
@@ -499,7 +499,7 @@ and 2.12 read. Golden CSV layout: index `sample_id` (`S1`, `S2`, `S3`),
 columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
 `G1|g__Bacteroides.s__Bacteroides_ovatus`, ...).
 
-- [ ] **Step 1: Copy HUMAnN's test files at a pinned commit**
+- [x] **Step 1: Copy HUMAnN's test files at a pinned commit**
   ```bash
   B=https://raw.githubusercontent.com/biobakery/humann/e07b3a3/humann/tests/data
   mkdir -p tests/data/humann
@@ -517,7 +517,7 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   abafba07bca02b87f1fc9b656e6194114972199369384c4eef5662be49faa1f7  tests/data/humann/gene_families.tsv
   8a53688414541a78f8137a75c9956fca0a2ee4b2f32a8e2f08193350ce301e76  tests/data/humann/multi_sample_genefamilies.tsv
   ```
-- [ ] **Step 2: Write the synthetic inputs** (tab-separated; every line of a
+- [x] **Step 2: Write the synthetic inputs** (tab-separated; every line of a
   table has the same number of fields). They cover what the copied files lack:
   `UNMAPPED`, `UNINTEGRATED` with strata, a named feature, an unmapped
   feature with a stratum, `UniRef90_unknown`, a many-to-many map with a member
@@ -563,7 +563,7 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   ```
   Check: `awk -F'\t' '{print FILENAME, NF}' tests/data/humann/genefamilies.tsv tests/data/humann/pathabundance.tsv | sort -u`
   Expected: `tests/data/humann/genefamilies.tsv 4` and `tests/data/humann/pathabundance.tsv 4`.
-- [ ] **Step 3: Write the notice** `tests/data/humann/NOTICE.txt`:
+- [x] **Step 3: Write the notice** `tests/data/humann/NOTICE.txt`:
   ```text
   multi_sample_genefamilies.tsv, gene_families.tsv and
   demo_pathabundance_with_names.tsv are copied from HUMAnN's test data,
@@ -596,7 +596,7 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   genefamilies.tsv, pathabundance.tsv and regroup_map.tsv are synthetic, written
   for biotapy (BSD-3-Clause); they follow the formats in HUMAnN's documentation.
   ```
-- [ ] **Step 4: Write the export script** `tests/humann/export_golden.py`:
+- [x] **Step 4: Write the export script** `tests/humann/export_golden.py`:
   ```python
   """Write the HUMAnN golden files (contracts/r-golden-parity).
 
@@ -652,7 +652,7 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   if __name__ == "__main__":
       main()
   ```
-- [ ] **Step 5: Run it twice; the second run must be bit-identical**
+- [x] **Step 5: Run it twice; the second run must be bit-identical**
   ```bash
   uv run --no-project --with humann==3.9 --with pandas==3.0.6 python tests/humann/export_golden.py
   sha256sum tests/golden/humann/* > /tmp/humann-golden.sha
@@ -707,11 +707,11 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   S2,597015.0,59701.5,59701.5,0.0,119403.0,29850.7,89552.2,14925.4,14925.4,179104.0,179104.0,29850.7
   S3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
   ```
-- [ ] **Step 6: Keep the script out of the sdist**, like `tests/r`
+- [x] **Step 6: Keep the script out of the sdist**, like `tests/r`
   (`pyproject.toml`, `[tool.hatch] build.targets.sdist.exclude`): add
   `"/tests/humann",` after `"/tests/r",`. The fixtures and `NOTICE.txt` stay
   in the sdist, which is what MIT asks of copies.
-- [ ] **Step 7: Knowledge** (contract wording, user-approved; R12.1).
+- [x] **Step 7: Knowledge** (contract wording, user-approved; R12.1).
   - `.knowledge/contracts/r-golden-parity.md`:
     - `description`: append "; HUMAnN-parity functions are tested the same
       way against files exported from pinned HUMAnN 3.9".
@@ -750,9 +750,9 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
     synthetic inputs in `tests/data/humann/` are hand-written: change them
     deliberately, then regenerate; never edit a golden CSV.
     ````
-- [ ] **Step 8: Run** `uv run --group test pytest tests/test_data_files.py tests/test_knowledge_bundle.py -q`
+- [x] **Step 8: Run** `uv run --group test pytest tests/test_data_files.py tests/test_knowledge_bundle.py -q`
   Expected: all pass (every new file is under 1 MB).
-- [ ] **Step 9: Gate and commit**
+- [x] **Step 9: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add tests/data/humann tests/humann/export_golden.py tests/golden/humann pyproject.toml \

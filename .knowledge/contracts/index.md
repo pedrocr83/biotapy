@@ -5,4 +5,4 @@
 * [Module boundaries](module-boundaries.md) - Layered package (_core at the bottom, pl/ml/da at the top); public API only through subpackage __all__; private topic files; shared helpers only in _core.
 * [Tree access](tree-access.md) - Only biotapy/_core/_tree.py touches the TreeData tree API, so a TreeData change touches one file.
 * [Engine parity](engine-parity.md) - A compiled kernel is a drop-in behind `engine=`; the Python engine is the oracle and both must match within a stated tolerance.
-* [R golden parity](r-golden-parity.md) - Every function with an R equivalent is tested against golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants.
+* [R golden parity](r-golden-parity.md) - Every function with an R equivalent is tested against golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants; HUMAnN-parity functions are tested the same way against files exported from pinned HUMAnN 3.9.

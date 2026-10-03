@@ -96,6 +96,7 @@ build.targets.sdist.exclude = [
   "/docs/_build",
   "/docs/generated",
   "/docs/jupyter_execute",
+  "/tests/humann",
   "/tests/r",
   "/tests/test_ci.py",
   "/tests/test_knowledge_bundle.py",
@@ -208,7 +209,7 @@ addopts = [
   "not network and not r",
 ]
 markers = [
-  "golden: compares against R golden files (contracts/r-golden-parity)",
+  "golden: compares against R or HUMAnN golden files (contracts/r-golden-parity)",
   "network: downloads data; runs only in the dedicated CI job",
   "r: needs R and rpy2 (extra `r`)",
 ]

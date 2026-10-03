@@ -1,0 +1,10 @@
+# Pathway	S1_Abundance	S2_Abundance	S3_Abundance
+UNMAPPED	40.0	10.0	0.0
+UNINTEGRATED	30.0	25.0	0.0
+UNINTEGRATED|g__Bacteroides.s__Bacteroides_ovatus	20.0	5.0	0.0
+UNINTEGRATED|unclassified	5.0	15.0	0.0
+PWY-1: first pathway	20.0	10.0	0.0
+PWY-1: first pathway|g__Bacteroides.s__Bacteroides_ovatus	15.0	4.0	0.0
+PWY-1: first pathway|g__Blautia.s__Blautia_obeum	2.0	5.0	0.0
+PWY-2: second pathway	10.0	5.0	0.0
+PWY-2: second pathway|g__Blautia.s__Blautia_obeum	10.0	5.0	0.0
