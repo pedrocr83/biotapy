@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (slice 2B plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2B plan in full TDD steps (2.2a shared strict table reading, 2.2 read_metaphlan, 2.4 read_picrust2, 2.4b read_picrust2_traits, Checkpoint B) and its decisions; checklist, slices table, dependency row 2.2 and decision 11 updated.
+
 ## 2026-10-03 (slice 2B start)
 * **Refresh**: phase-0-foundation, phase-1-core, r-golden-parity, add-a-function, commit and `generated` only, against 4ef5314; the renorm warn-once test fix (2d47f8d) and the Hypothesis deadline (4ef5314) contradict nothing they state.
 
