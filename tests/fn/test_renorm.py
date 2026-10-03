@@ -1,5 +1,7 @@
+import json
 from pathlib import Path
 
+import mudata
 import numpy as np
 import pandas as pd
 import pytest
@@ -138,3 +140,34 @@ def test_special_false_on_a_table_of_specials_says_so():
     mdata = bt.io.read_humann(Path(__file__).parents[1] / "data" / "humann" / "demo_pathabundance_with_names.tsv")
     with pytest.raises(ValueError, match=r"special=False dropped every community row"):
         bt.fn.renorm(mdata, "relab", special=False)
+
+
+def _stage(adata):
+    """(var columns and dtypes, x_kind, provenance steps) of one modality."""
+    meta = adata.uns["biotapy"]
+    steps = [json.loads(entry)["step"] for entry in meta["provenance"]]
+    return dict(adata.var.dtypes.astype(str)), meta["x_kind"], steps
+
+
+def test_toy_humann_composes_through_func_glom_renorm_and_func_glom_again():
+    # The review's chain on HMP2, here on toy_humann: every stage keeps the var contract and adds one step.
+    community = {"name": "str", "special": "bool"}
+    by_taxon = dict.fromkeys(["function", "name", "taxon", "genus", "species"], "str") | {"special": "bool"}
+    classes = pd.DataFrame(
+        {"child": ["1.1.1.1", "2.7.1.1", "2.7.1.2"], "parent": ["1.-.-.-", "2.-.-.-", "2.-.-.-"], "level": "class"}
+    )
+    everything = pd.DataFrame({"child": ["1.-.-.-", "2.-.-.-"], "parent": "all", "level": "all"})
+    mdata = bt.datasets.toy_humann()
+    grouped = mudata.MuData({key: bt.fn.func_glom(mod, "class", hierarchy=classes) for key, mod in mdata.mod.items()})
+    renormed = bt.fn.renorm(grouped, "relab")
+    again = {key: bt.fn.func_glom(mod, "all", hierarchy=everything) for key, mod in renormed.mod.items()}
+    stages = [
+        (mdata.mod, "rpk", ["datasets.toy_humann"]),
+        (grouped.mod, "rpk", ["datasets.toy_humann", "fn.func_glom"]),
+        (renormed.mod, "relative", ["datasets.toy_humann", "fn.func_glom", "fn.renorm"]),
+        (again, "relative", ["datasets.toy_humann", "fn.func_glom", "fn.renorm", "fn.func_glom"]),
+    ]
+    for mods, kind, steps in stages:
+        assert _stage(mods["function"]) == (community, kind, steps)
+        assert _stage(mods["function_by_taxon"]) == (by_taxon, kind, steps)
+    assert again["function"].var_names.tolist() == ["UNGROUPED", "UNMAPPED", "all"]
