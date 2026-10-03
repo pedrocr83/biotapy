@@ -73,7 +73,9 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
     Guide: :doc:`/guide/function`
 
     Matches ``humann_regroup_table`` (HUMAnN 3.9) with its defaults
-    ``--ungrouped Y --protected Y``; the golden tests compare the two. As
+    ``--ungrouped Y --protected Y``; the golden tests compare the two. One
+    difference: ``READS_UNMAPPED`` passes through as in HUMAnN master, where
+    3.9 sums it into ``UNGROUPED``. As
     there, a mean divides by the number of members present in the table,
     not by the group's size in ``hierarchy``.
 
@@ -117,6 +119,9 @@ def _edges_at(hierarchy: pd.DataFrame, level: str) -> pd.DataFrame:
     if missing:
         msg = f"hierarchy needs columns {list(_EDGE_COLUMNS)}; missing {missing}"
         raise KeyError(msg)
+    if hierarchy[["child", "parent"]].isna().any().any():
+        msg = "hierarchy has a missing value in column 'child' or 'parent'"
+        raise ValueError(msg)
     edges = hierarchy[hierarchy["level"] == level]
     if edges.empty:
         msg = f"hierarchy has no row at level={level!r}; its levels: {sorted(hierarchy['level'].unique().tolist())}"
@@ -129,10 +134,11 @@ def _pairs(function: np.ndarray, edges: pd.DataFrame, *, level: str) -> pd.DataF
     features = pd.DataFrame({"feature": np.arange(function.size), "child": function})
     protected = features["child"].isin(PROTECTED_FEATURES)
     mapped = features[~protected].merge(edges[["child", "parent"]], on="child")
-    if not protected.all() and mapped.empty:
+    plain = ~features["child"].isin(SPECIAL_FEATURES)
+    if plain.any() and not mapped["feature"].isin(features["feature"][plain]).any():
         msg = (
             f"no feature of adata is a child at level={level!r}; "
-            f"features: {features['child'][~protected][:3].tolist()}, children: {edges['child'][:3].tolist()}"
+            f"features: {features['child'][plain].unique()[:3].tolist()}, children: {edges['child'].unique()[:3].tolist()}"
         )
         raise ValueError(msg)
     alone = features[protected | ~features["feature"].isin(mapped["feature"])]
@@ -152,7 +158,8 @@ def _group_var(var: pd.DataFrame, pairs: pd.DataFrame, labels: pd.Index, *, edge
     if "taxon" in var.columns:
         out["function"] = pd.array(group.to_numpy(), dtype=text)
     out["name"] = pd.array(group.map(names).to_numpy() if names is not None else [np.nan] * len(group), dtype=text)
-    for column in [column for column in _TAXON_COLUMNS if column in var.columns]:
-        out[column] = var[column].array[first]
+    if "taxon" in var.columns:
+        for column in [column for column in _TAXON_COLUMNS if column in var.columns]:
+            out[column] = var[column].array[first]
     out["special"] = group.isin(SPECIAL_FEATURES).to_numpy()
     return out

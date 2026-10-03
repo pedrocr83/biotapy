@@ -145,9 +145,39 @@ def test_empty_modality_gives_no_groups():
 def test_no_feature_in_the_hierarchy_raises_with_examples():
     hierarchy = pd.DataFrame({"child": ["EC:2.7.1.1"], "parent": ["P"], "level": "pathway"})
     with pytest.raises(
-        ValueError, match=r"features: \['UNGROUPED', '1.1.1.1', '2.7.1.1'\], children: \['EC:2.7.1.1'\]"
+        ValueError, match=r"features: \['1.1.1.1', '2.7.1.1', '2.7.1.2'\], children: \['EC:2.7.1.1'\]"
     ):
         bt.fn.func_glom(_function(), "pathway", hierarchy=hierarchy)
+
+
+def test_error_examples_are_distinct_ids():
+    hierarchy = pd.DataFrame({"child": ["x", "x", "y"], "parent": ["P", "Q", "P"], "level": "pathway"})
+    with pytest.raises(ValueError, match=r"children: \['x', 'y'\]"):
+        bt.fn.func_glom(_function(), "pathway", hierarchy=hierarchy)
+
+
+def test_only_specials_are_summed_or_passed_through():
+    # humann_regroup_table: UNGROUPED is summed into UNGROUPED, UNMAPPED maps to itself.
+    function = _function()[:, ["UNMAPPED", "UNGROUPED"]].copy()
+    out = bt.fn.func_glom(function, "class", hierarchy=EC)
+    assert out.var_names.tolist() == ["UNGROUPED", "UNMAPPED"]
+    np.testing.assert_array_equal(_column(out, "UNGROUPED"), _column(function, "UNGROUPED"))
+    np.testing.assert_array_equal(_column(out, "UNMAPPED"), _column(function, "UNMAPPED"))
+
+
+def test_missing_child_or_parent_raises_naming_hierarchy():
+    for column in ("child", "parent"):
+        broken = EC.copy()
+        broken.loc[0, column] = np.nan
+        with pytest.raises(ValueError, match="hierarchy has a missing value"):
+            bt.fn.func_glom(_function(), "class", hierarchy=broken)
+
+
+def test_generic_input_gets_no_taxon_columns():
+    function = _function()
+    function.var["genus"] = "Foo"
+    out = bt.fn.func_glom(function, "class", hierarchy=EC)
+    assert "genus" not in out.var.columns
 
 
 def test_unknown_level_names_the_levels():
