@@ -53,5 +53,5 @@ class BetaFullSize:
         return synthetic()
 
     def peakmem_beta(self, tdata: TreeData) -> None:
-        """One call, about 6 minutes."""
+        """One call; the 2,000-sample run took 88 s, so expect several minutes."""
         bt.tl.beta(tdata)

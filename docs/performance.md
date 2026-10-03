@@ -8,6 +8,12 @@ record, not a gate: release 0.1 sets no speed target.
 Measured on commit `7bed7ef`, 2026-10-03: a 16-thread laptop (11th Gen Intel Core i7-11800H, 2.30
 GHz) with 62 GB of RAM, Linux, Python 3.13, in the development environment (`asv run --python=same`).
 
+Each figure is a single asv run on one machine, with no measured variance, and the background load
+during the run is unknown. The `tl.beta` rows came out 1.5-1.9x slower than an earlier prototype run
+on the same machine (500 samples 8.34 s against 5.62 s; 1,000 samples 31.1 s against 16.2 s; 2,000
+samples 88.4 s against 54.2 s). Treat the numbers as an order of magnitude, not a gate. The
+`peakmem_` figures include the memory of the loaded table itself.
+
 | Benchmark | Result |
 |---|---|
 | `pp.relative` | 0.88 s |
@@ -22,12 +28,16 @@ GHz) with 62 GB of RAM, Linux, Python 3.13, in the development environment (`asv
 | `tl.beta`, Bray-Curtis, 5,000 samples, peak memory | 2.73 GB |
 
 - `tl.beta` compares every pair of samples, so its time grows with the square of the samples:
-  about 6 minutes at 5,000. Its memory is one dense copy of `X` (8 bytes x 5,000 x 50,000 =
+  at 5,000 samples it was run once, for peak memory only, and not timed: asv recorded 9.8 minutes
+  for that whole run, and extrapolating the 2,000-sample figure quadratically (88.4 s x 6.25) gives
+  about 9 minutes, an estimate and not a measurement. Its memory is one dense copy of `X` (8 bytes x 5,000 x 50,000 =
   2 GB) plus the distances, as its docstring says.
 - `tl.alpha` densifies at most 2**20 values at a time, so its peak stays far below one dense
   copy of `X`.
 - `faith_pd` spends almost all its time in scikit-bio, which re-indexes the 100,006-node tree for
-  each chunk of 20 samples; converting the tree once takes 0.46 s.
+  each chunk of 20 samples (2**20 values, so 20 samples at 50,000 features); about 97% of its time
+  is that re-indexing, and converting the tree once takes 0.46 s. The optimization is deferred until
+  a profile-driven task (rules.md R10.1).
 
 ## Running the benchmarks
 
@@ -41,5 +51,5 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
 ```
 
 `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
-`.asv/results`. The whole suite takes about 11 minutes and needs about 3 GB of free memory.
+`.asv/results`. The whole suite took about 17 minutes on this run and needs about 3 GB of free memory.
 `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
