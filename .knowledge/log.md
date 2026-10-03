@@ -1,5 +1,13 @@
 # Knowledge bundle log
 
+## 2026-10-03 (after 0.1.0)
+* **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [phase-1-core](roadmap/phase-1-core.md),
+  [add-a-function](playbooks/add-a-function.md) and
+  [cut-a-release](playbooks/cut-a-release.md), commit and `generated` only,
+  against 45d0946; the setup-uv 10.2.0 bump (Dependabot PR #11) and the pixi
+  install lines contradict nothing they state.
+
 ## 2026-10-03 (release 0.1.0)
 * **Update**: Phase 1 closed after biotapy 0.1.0 reached PyPI (tag v0.1.0,
   release workflow run 37118911248). [phase-1-core](roadmap/phase-1-core.md)
