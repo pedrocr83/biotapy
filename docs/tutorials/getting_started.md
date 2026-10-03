@@ -13,9 +13,7 @@ kernelspec:
 
 # Getting started
 
-Install the development version with
-`pip install git+https://github.com/pedrocr83/biotapy.git` (Python 3.12 or newer;
-PyPI's `biotapy` is still a name placeholder). This page downloads
+Install with `pip install biotapy` (Python 3.12 or newer). This page downloads
 phyloseq's GlobalPatterns dataset once (435 kB) and draws its first ordination:
 
 ```{code-cell} ipython3
