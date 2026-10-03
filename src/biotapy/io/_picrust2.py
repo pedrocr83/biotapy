@@ -55,8 +55,9 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
         column names); ``path`` has a ``description`` column; ``contrib``
         lacks a ``sample``, ``function``, ``taxon`` or
         ``taxon_function_abun`` column, repeats a sample, function and taxon,
-        or names a sample or function that ``path`` lacks. Messages name the
-        file's argument.
+        or names a sample or function that ``path`` lacks; a value is negative;
+        a taxon written ``NA`` (read as missing: "no function or taxon").
+        Messages name the file's argument.
 
     Notes
     -----
@@ -100,7 +101,7 @@ def read_picrust2(path: str | Path, *, contrib: str | Path | None = None) -> MuD
     if "description" in table.columns:
         msg = f"{argument} has a 'description' column (add_descriptions.py output); pass the table without it"
         raise ValueError(msg)
-    X = sp.csr_matrix(_numbers(table, argument=argument).T)
+    X = sp.csr_matrix(_numbers(table, argument=argument, nonnegative=True).T)
     row_ids = table.index.str.removeprefix(_EC_PREFIX)
     if contrib is not None:
         by_taxon, keys = _contributions(Path(contrib), samples=table.columns, functions=row_ids)
@@ -122,7 +123,7 @@ def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tup
     if table.index.name != "sample" or missing:
         msg = f"{argument} needs PICRUSt2's long-format columns sample, {', '.join(_CONTRIB_COLUMNS)}; found {[table.index.name, *table.columns]}"
         raise ValueError(msg)
-    values = _numbers(table[["taxon_function_abun"]], argument=argument).ravel()
+    values = _numbers(table[["taxon_function_abun"]], argument=argument, nonnegative=True).ravel()
     ids = table[["function", "taxon"]]
     if ids.isna().any().any():
         msg = f"{argument} has a row with no function or taxon"
@@ -138,6 +139,7 @@ def _contributions(path: Path, *, samples: pd.Index, functions: pd.Index) -> tup
         msg = f"{argument} repeats a sample, function and taxon"
         raise ValueError(msg)
     matrix = sp.csr_matrix((values, (rows, codes)), shape=(len(samples), len(keys)))
+    matrix.eliminate_zeros()
     return matrix, pd.Index(keys)
 
 

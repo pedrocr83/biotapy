@@ -38,6 +38,9 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     header or a row with no (or a blank) id raise ``ValueError``; a short row's missing cells are NaN, for the
     caller to check in the columns it reads (``_numbers``).
     """
+    if header.strip() == "":
+        msg = f"{argument} is empty (it has no header line)"
+        raise ValueError(msg)
     names = header.rstrip("\r\n").split("\t")
     if any(not name.strip() for name in names):
         msg = f"{argument} has an empty column name in its header (a trailing tab?)"
@@ -68,8 +71,11 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     return table
 
 
-def _numbers(frame: pd.DataFrame, *, argument: str) -> np.ndarray:
-    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number or a gap."""
+def _numbers(frame: pd.DataFrame, *, argument: str, nonnegative: bool = False) -> np.ndarray:
+    """``frame``'s values as a float64 array, raising ``ValueError`` naming ``argument`` on a non-number or a gap.
+
+    With ``nonnegative``, a negative value raises too (abundances cannot be negative).
+    """
     try:
         values = frame.to_numpy(dtype=np.float64)
     except ValueError as error:
@@ -77,5 +83,8 @@ def _numbers(frame: pd.DataFrame, *, argument: str) -> np.ndarray:
         raise ValueError(msg) from error
     if np.isnan(values).any():
         msg = f"{argument} has a missing or NaN value (a data row with fewer cells than the header, or an empty cell)"
+        raise ValueError(msg)
+    if nonnegative and (values < 0).any():
+        msg = f"{argument} has a negative value; abundances cannot be negative"
         raise ValueError(msg)
     return values

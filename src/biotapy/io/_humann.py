@@ -108,7 +108,7 @@ def read_humann(path: str | Path) -> MuData:
         msg = f"{argument} is a pathway coverage table; read_humann reads abundance tables"
         raise ValueError(msg)
     table = _read_table(path, header, skiprows=max(len(comments) - 1, 0), argument=argument)
-    X = _numbers(table, argument=argument).T
+    X = _numbers(table, argument=argument, nonnegative=True).T
     obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
     unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)

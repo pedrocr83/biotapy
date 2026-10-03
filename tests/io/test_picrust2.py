@@ -204,3 +204,33 @@ def test_a_file_that_is_not_utf8_text_raises_naming_its_argument(tmp_path, argum
     unstrat, contrib = (bad, None) if argument == "path" else (write(tmp_path, UNSTRAT, "u.tsv"), bad)
     with pytest.raises(ValueError, match=rf"{argument}=.*bad\.tsv.*UTF-8"):
         bt.io.read_picrust2(unstrat, contrib=contrib)
+
+
+@pytest.mark.parametrize("argument", ["path", "contrib"])
+def test_an_empty_file_raises_naming_its_argument(tmp_path, argument):
+    empty = write(tmp_path, "", "empty.tsv")
+    unstrat, contrib = (empty, None) if argument == "path" else (write(tmp_path, UNSTRAT, "u.tsv"), empty)
+    with pytest.raises(ValueError, match=rf"{argument}=.*empty\.tsv.*is empty"):
+        bt.io.read_picrust2(unstrat, contrib=contrib)
+
+
+def test_explicit_zero_contributions_are_not_stored(tmp_path):
+    zero = CONTRIB + "S3\tEC:4.1.1.1\tASV1\t1\t1\t1\t0.0\t1\t1\n"
+    by_taxon = bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, zero, "c.tsv"))[
+        "function_by_taxon"
+    ]
+    assert by_taxon.n_vars == 6 and by_taxon.X.nnz == 7
+
+
+@pytest.mark.parametrize("argument", ["path", "contrib"])
+def test_negative_values_raise_naming_their_argument(tmp_path, argument):
+    unstrat = UNSTRAT.replace("10.0", "-10.0") if argument == "path" else UNSTRAT
+    contrib = CONTRIB.replace("\t20.0\t142.86", "\t-20.0\t142.86") if argument == "contrib" else CONTRIB
+    with pytest.raises(ValueError, match=rf"{argument}=.*negative"):
+        bt.io.read_picrust2(write(tmp_path, unstrat, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))
+
+
+def test_an_na_taxon_is_read_as_missing(tmp_path):
+    contrib = CONTRIB + "S1\tEC:4.1.1.1\tNA\t1\t1\t1\t1.0\t1\t1\n"
+    with pytest.raises(ValueError, match=r"c\.tsv.*no function or taxon"):
+        bt.io.read_picrust2(write(tmp_path, UNSTRAT, "u.tsv"), contrib=write(tmp_path, contrib, "c.tsv"))

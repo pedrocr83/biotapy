@@ -154,7 +154,7 @@ def test_header_only_table_has_no_features(tmp_path):
 def test_empty_file_raises_naming_the_path(tmp_path):
     path = tmp_path / "empty_file.tsv"
     path.write_text("")
-    with pytest.raises(ValueError, match="empty_file.tsv"):
+    with pytest.raises(ValueError, match=r"empty_file\.tsv.*is empty"):
         bt.io.read_humann(path)
 
 
@@ -221,4 +221,11 @@ def test_header_with_an_empty_column_name_raises_naming_the_path(tmp_path):
     path = tmp_path / "trailing_tab.tsv"
     path.write_text("# P\tS1\t\nA\t1\t2\n")
     with pytest.raises(ValueError, match=r"trailing_tab\.tsv.*empty column name"):
+        bt.io.read_humann(path)
+
+
+def test_negative_abundance_raises_naming_the_path(tmp_path):
+    path = tmp_path / "neg.tsv"
+    path.write_text("# P\tS1\nA\t-1\n")
+    with pytest.raises(ValueError, match=r"neg\.tsv.*negative"):
         bt.io.read_humann(path)
