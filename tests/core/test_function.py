@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse as sp
 from mudata import MuData
 
 from biotapy._core import BY_TAXON_KEY, FUNCTION_KEY, function_var, make_function_mudata
@@ -82,3 +83,47 @@ def test_make_function_mudata_round_trips_through_h5mu(tmp_path):
     back = mudata.read_h5mu(tmp_path / "f.h5mu")
     assert back[BY_TAXON_KEY].var["taxon"].tolist() == mdata[BY_TAXON_KEY].var["taxon"].tolist()
     assert back[FUNCTION_KEY].var["name"].isna().tolist() == [True, False]
+
+
+def _split(row_ids):
+    return make_function_mudata(
+        np.ones((2, len(row_ids))),
+        obs=pd.DataFrame(index=["s1", "s2"]),
+        row_ids=pd.Index(row_ids),
+        x_kind="cpm",
+        source="test",
+    )
+
+
+def test_make_function_mudata_without_strata_gives_an_empty_by_taxon_modality():
+    mdata = _split(["K1", "K2"])
+    assert mdata[BY_TAXON_KEY].shape == (2, 0)
+    assert mdata[FUNCTION_KEY].shape == (2, 2)
+
+
+def test_make_function_mudata_with_only_strata_gives_an_empty_function_modality():
+    mdata = _split(["K1|g__A.s__B", "K2|unclassified"])
+    assert mdata[FUNCTION_KEY].shape == (2, 0)
+    assert mdata[BY_TAXON_KEY].shape == (2, 2)
+
+
+def test_make_function_mudata_global_obs_has_no_columns():
+    assert _split(IDS.tolist()).obs.shape[1] == 0
+
+
+def test_make_function_mudata_stores_x_as_csr_in_both_modalities():
+    mdata = _split(IDS.tolist())
+    assert all(isinstance(mdata[key].X, sp.csr_matrix) for key in (FUNCTION_KEY, BY_TAXON_KEY))
+
+
+def test_make_function_mudata_records_x_kind_and_one_provenance_entry_per_modality():
+    mdata = _split(IDS.tolist())
+    for key in (FUNCTION_KEY, BY_TAXON_KEY):
+        meta = mdata[key].uns["biotapy"]
+        assert meta["x_kind"] == "cpm"
+        assert len(meta["provenance"]) == 1 and '"step": "test"' in meta["provenance"][0]
+
+
+def test_make_function_mudata_var_names_are_unique_across_modalities():
+    names = _split(IDS.tolist()).var_names
+    assert names.is_unique and len(names) == len(IDS)
