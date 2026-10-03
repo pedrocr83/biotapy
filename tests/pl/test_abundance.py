@@ -108,7 +108,7 @@ def test_bar_without_ax_draws_on_a_new_pyplot_figure():
 
 
 def test_bar_missing_layer_names_the_call(ax):
-    with pytest.raises(KeyError, match=r"run bt.pp.relative\(adata\) first"):
+    with pytest.raises(KeyError, match=r"run adata = bt\.pp\.relative\(adata\) first"):
         bt.pl.bar(bt.datasets.toy(), "phylum", layer="relative", ax=ax)
 
 

@@ -23,7 +23,7 @@ MISSING_COLOR = "#7f7f7f"
 # phyloseq's plot_heatmap(max.label = 250): past this many names, tick labels overlap into a solid block.
 MAX_LABELS = 250
 # The call that writes each layer pl can read, for the error raised when it is missing.
-_LAYER_WRITTEN_BY = {"relative": "bt.pp.relative(adata)"}
+_LAYER_WRITTEN_BY = {"relative": "adata = bt.pp.relative(adata)"}
 
 
 def new_axes(ax: "Axes | None") -> "Axes":
