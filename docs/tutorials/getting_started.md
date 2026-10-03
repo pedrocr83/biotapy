@@ -13,7 +13,8 @@ kernelspec:
 
 # Getting started
 
-Install with `pip install biotapy` (Python 3.12 or newer). This page downloads
+Install with `pip install biotapy`, `uv add biotapy` or `pixi add --pypi biotapy`
+(Python 3.12 or newer). This page downloads
 phyloseq's GlobalPatterns dataset once (435 kB) and draws its first ordination:
 
 ```{code-cell} ipython3
