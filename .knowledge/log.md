@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.12)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.renorm` as feature-changing and notes in convention 2 that renormalised stratified rows are shares of the community total; roadmap `phase-2-function` ticks task 2.12.
+
 ## 2026-10-03 (Phase 2, task 2.6)
 - **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.func_glom` as feature-changing, names `_core.replace_features` beside `feature_subset`, and gains the "Aggregation semantics (`func_glom`)" section; roadmap `phase-2-function` ticks task 2.6.
 

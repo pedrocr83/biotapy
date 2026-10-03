@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:00:00Z }
-commit: c1be712
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T20:00:00Z }
+commit: 9479792
 sources:
   - id: spec
     resource: ../../plan.md
@@ -59,6 +59,8 @@ Extends the spec's data-model table with exact keys.[^spec]
    The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
    `relative`) and labels a header without a unit `abundance`, never `counts`.
+   `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
+   its `relative` stratified rows do not sum to 1: they are shares of the community total.
    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
    text table), and labeling proportions `counts` would misdescribe them to
    every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
@@ -101,7 +103,7 @@ the sum of their strata for pathways, which is why there are two.
 ## Propagation
 | Operation | Keeps | Drops |
 |---|---|---|
-| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `fn.renorm`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
 | Layer-adding (`pp.relative`; `pp.clr` in Phase 3) | everything | nothing; adds one layer |
 

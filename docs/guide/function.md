@@ -75,3 +75,14 @@ still reaches the levels above.
 biotapy ships and downloads no KEGG or MetaCyc mapping: their licences do not
 allow it to. If you hold a KEGG or MetaCyc licence, export the mapping you
 need and read it with `load_hierarchy`.
+
+## Renormalising
+
+`bt.fn.renorm(mdata, "relab")` (or `"cpm"`) divides every row of both
+modalities by the sample's community total, as `humann_renorm_table` does by
+default. Stratified rows are divided by the community total too, so a
+pathway's strata keep their share of the community. `special=False` drops
+the special rows before totalling, as `--special n` does.
+
+HUMAnN's `--mode levelwise`, where each modality is scaled by its own total,
+is `bt.pp.relative` applied to each modality.

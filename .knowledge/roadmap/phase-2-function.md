@@ -358,7 +358,7 @@ not exist yet.
 - [x] 2.5a `datasets.enzyme() -> pd.DataFrame`
 - [x] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
 - [x] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
-- [ ] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
+- [x] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
 - [ ] Checkpoint A
 - [ ] 2.2 `io.read_metaphlan(path) -> TreeData` (outline)
 - [ ] 2.4 `io.read_picrust2(...) -> MuData` and 2.4b `io.read_picrust2_traits(path) -> pd.DataFrame` (outline)
@@ -2680,7 +2680,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
 `bt.fn.renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = True) -> MuData`
 (design note 1).
 
-- [ ] **Step 1: Failing tests** - `tests/fn/test_renorm.py`:
+- [x] **Step 1: Failing tests** - `tests/fn/test_renorm.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -2811,9 +2811,9 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
       # Looser than the 1e-7 default: humann_renorm_table prints six significant digits (%.6g).
       np.testing.assert_allclose(table[golden.columns].to_numpy(), golden.to_numpy(), rtol=5e-6)
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn/test_renorm.py tests/fn/test_renorm_golden.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn/test_renorm.py tests/fn/test_renorm_golden.py -q`
   -> `AttributeError: module 'biotapy.fn' has no attribute 'renorm'`.
-- [ ] **Step 3: Implement** - `src/biotapy/fn/_renorm.py`:
+- [x] **Step 3: Implement** - `src/biotapy/fn/_renorm.py`:
   ```python
   """Renormalisation of HUMAnN tables, with humann_renorm_table's community semantics."""
 
@@ -2932,9 +2932,9 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   `untyped_calls_exclude = [ "biom", "mudata", "skbio.stats._subsample", "sklearn", "threadpoolctl" ]`,
   and the comment above it names "mudata's MuData.update" beside
   threadpoolctl's `threadpool_limits`.
-- [ ] **Step 4: Run, expect pass** - same command -> `15 passed` (11 + 4
+- [x] **Step 4: Run, expect pass** - same command -> `15 passed` (11 + 4
   golden). `uv run --group dev mypy` -> no issues.
-- [ ] **Step 5: Docs.** `docs/api.md`: `fn.renorm` after `fn.load_hierarchy`.
+- [x] **Step 5: Docs.** `docs/api.md`: `fn.renorm` after `fn.load_hierarchy`.
   Append to `docs/guide/function.md`:
   ````markdown
   ## Renormalising
@@ -2949,12 +2949,12 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   is `bt.pp.relative` applied to each modality.
   ````
   Build docs -> `build succeeded.`
-- [ ] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`:
+- [x] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`:
   Propagation table, "Feature-changing" row: add `fn.renorm` ("rescales `X`
   and may drop the special rows; sets `x_kind` to `relative` or `cpm`").
   Convention 2: "`fn.renorm`'s `relative` stratified rows do not sum to 1:
   they are shares of the community total."
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/fn/_renorm.py src/biotapy/fn/__init__.py tests/fn/test_renorm.py tests/fn/test_renorm_golden.py \
