@@ -103,7 +103,8 @@ def read_humann(path: str | Path) -> MuData:
     """
     path = Path(path)
     argument = f"path={str(path)!r}"
-    # HUMAnN's rule: the last "#" line is the header; with none, the first line is.
+    # HUMAnN's rule: the last "#" line is the header; with none, the first line is. Not _table._header, which
+    # skips a last "#" line without a tab and would then read a HUMAnN table's first data row as its header.
     comments, first = _leading_lines(path, argument=argument)
     header = comments[-1] if comments else first
     if _COVERAGE.search(header):
