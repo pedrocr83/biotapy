@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:02:00Z }
-commit: 9507159
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:13:23Z }
+commit: 3b36423
 sources:
   - id: spec
     resource: ../../plan.md
@@ -56,7 +56,9 @@ sources:
    stay synthetic, except small files copied under a permissive licence
    with a `NOTICE.txt` beside them (`tests/data/humann`: HUMAnN's MIT test
    data; `tests/data/metaphlan`: a MetaPhlAn 4.0.6 profile from HUMAnN's MIT
-   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0).
+   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0). PICRUSt2
+   (GPL-3) fixtures are always synthetic, written from its documented
+   column headers.
 7. `pl` functions have an R equivalent but no golden test. They draw numbers
    that `tl` stores, and `tl`'s golden tests check those numbers (controller
    ruling 2026-09-27; rules.md R11.2).
@@ -69,7 +71,8 @@ sources:
    `mia::importMetaPhlAn`) is checked against MetaPhlAn's own output: its
    leaves, grouped by `pp.tax_glom` to each rank, equal the clade rows the
    profile prints (`tests/io/test_metaphlan.py`, atol `1e-6` because
-   MetaPhlAn rounds each percentage to 5 decimals).
+   MetaPhlAn rounds each percentage to 5 decimals). `io.read_picrust2` has no
+   R equivalent; invariants on synthetic files check it.
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match

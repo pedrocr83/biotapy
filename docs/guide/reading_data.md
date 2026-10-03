@@ -318,3 +318,32 @@ tdata = bt.io.read_metaphlan("merged_abundance_table.tsv")
   marker tables), raises a `ValueError` instead of double counting.
 - **Not read.** NCBI taxids, `additional_species`, coverage and estimated
   read counts.
+
+## PICRUSt2
+
+`bt.io.read_picrust2` reads a PICRUSt2 prediction into the same two-modality
+`MuData` as `bt.io.read_humann`: the unstratified table becomes
+`"function"`, and the long-format contributions written with `--stratified`
+become `"function_by_taxon"`, one feature per function and ASV.
+
+```python
+import biotapy as bt
+
+mdata = bt.io.read_picrust2(
+    "EC_metagenome_out/pred_metagenome_unstrat.tsv.gz",
+    contrib="EC_metagenome_out/pred_metagenome_contrib.tsv.gz",
+)
+pathways = bt.io.read_picrust2("pathways_out/path_abun_unstrat.tsv.gz")
+```
+
+- **Ids.** `EC:1.1.1.1` becomes `1.1.1.1`, the form ENZYME, HUMAnN and
+  `bt.datasets.enzyme` use. KO and pathway ids are kept.
+- **Taxa.** A stratified feature's `taxon` is the ASV id as written (`0042`
+  stays `0042`), or `RARE` for the rare ASVs PICRUSt2 groups together.
+- **Units.** `x_kind` is `"abundance"`: the values are read counts divided by
+  predicted marker copies and multiplied by gene copies, not counts.
+- **Not read.** The deprecated wide stratified table (`--wide_table`) and
+  tables with an `add_descriptions.py` `description` column raise a
+  `ValueError`; pass the table without descriptions. PICRUSt2's pathway
+  coverage tables have the same layout as its abundance tables and cannot be
+  told apart, so pass only abundance tables.

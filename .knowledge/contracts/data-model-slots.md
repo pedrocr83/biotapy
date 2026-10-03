@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:02:00Z }
-commit: 9507159
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T18:13:23Z }
+commit: 3b36423
 sources:
   - id: spec
     resource: ../../plan.md
@@ -61,6 +61,8 @@ Extends the spec's data-model table with exact keys.[^spec]
    `relative`) and labels a header without a unit `abundance`, never `counts`.
    `io.read_metaphlan` divides MetaPhlAn's percentages by 100 and sets `relative`, after
    checking that every sample's leaf clades sum to 1 within `1e-3` (`_core.RELATIVE_TOLERANCE`).
+   `io.read_picrust2` sets `abundance`: PICRUSt2's values are read counts divided by predicted
+   marker copies and multiplied by gene copies.
    `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
    its `relative` stratified rows do not sum to 1: they are shares of the community total.
    The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
@@ -87,9 +89,9 @@ Extends the spec's data-model table with exact keys.[^spec]
    ids) never collide silently.
 
 ## Function tables
-`io.read_humann` (and, from Phase 2 slice 2B, `io.read_picrust2`) returns a
-`MuData` built by `_core.make_function_mudata` with two modalities over the
-same samples, each an `AnnData` with its own copy of `obs`:
+`io.read_humann` and `io.read_picrust2` return a `MuData` built by
+`_core.make_function_mudata` with two modalities over the same samples, each
+an `AnnData` with its own copy of `obs`:
 
 | Modality | Features | `var` columns |
 |---|---|---|
@@ -101,6 +103,13 @@ same samples, each an `AnnData` with its own copy of `obs`:
 columns use the pandas `str` dtype, as rank columns do. Both modalities
 always exist; either may have 0 features. The community values are not
 the sum of their strata for pathways, which is why there are two.
+
+In a PICRUSt2 table the stratified rows come from the long contribution
+table (`taxon_function_abun`), and the modality has 0 features when no
+contribution table is read. `taxon` is the ASV id as written, or `RARE`
+(PICRUSt2's group of rare ASVs: an ordinary stratum, not `special`), so
+`genus` and `species` are NaN. `EC:` is removed from EC numbers in both
+modalities, so ids match ENZYME's and HUMAnN's.
 
 ## Taxonomic profiles (MetaPhlAn)
 `io.read_metaphlan` keeps one feature per leaf clade: a row that no other

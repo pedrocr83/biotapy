@@ -367,7 +367,7 @@ not exist yet.
 - [ ] Checkpoint A
 - [x] 2.2a io/_table.py: strict table reading shared by the readers
 - [x] 2.2 io.read_metaphlan(path) -> TreeData
-- [ ] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
+- [ ] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame (2.4 done, 2.4b pending)
 - [ ] Checkpoint B
 - [ ] 2.7 `fn.contributions(mdata, function, *, top=None) -> pd.DataFrame` (outline)
 - [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame` (outline)
@@ -4226,7 +4226,7 @@ uv run --group test pytest -q -W error::UserWarning   # 784 passed, 22 deselecte
 genus and species for ASV ids), `SPECIAL_FEATURES` (`RARE` is not special),
 and `fn.func_glom`.
 
-- [ ] **Step 1: Failing tests.** Create `tests/io/test_picrust2.py`:
+- [x] **Step 1: Failing tests.** Create `tests/io/test_picrust2.py`:
 
 ```python
 import gzip
@@ -4428,10 +4428,10 @@ def test_each_contribution_lands_in_its_cell(rows):
     assert by_taxon.X.nnz == len(rows)
 ```
 
-- [ ] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q`
+- [x] **Step 2: Run, expect failure.** `uv run --group test pytest tests/io/test_picrust2.py -q`
   -> `17 failed, 7 errors`, all `AttributeError: module 'biotapy.io' has no attribute 'read_picrust2'`.
   The 7 errors are the tests that use the `mdata` fixture.
-- [ ] **Step 3: Implement.** Create `src/biotapy/io/_picrust2.py`.
+- [x] **Step 3: Implement.** Create `src/biotapy/io/_picrust2.py`.
   `_contributions` is the single-use helper R4.4 allows: inlined,
   `read_picrust2` has 37 statements and complexity 9. `_first_line` serves
   both files here, and the trait reader in 2.4b.
@@ -4610,10 +4610,10 @@ __all__ = [
 ]
 ```
 
-- [ ] **Step 4: Run, expect pass.** The same command gives `24 passed`. The
+- [x] **Step 4: Run, expect pass.** The same command gives `24 passed`. The
   doctest `uv run --group test pytest src/biotapy/io/_picrust2.py -q` gives
   `1 passed`.
-- [ ] **Step 5: Docs and contracts.**
+- [x] **Step 5: Docs and contracts.**
   - `docs/api.md`: add `io.read_picrust2` after `io.read_phyloseq`.
   - `docs/guide/reading_data.md`: append the PICRUSt2 section.
   - `docs/guide/function.md`: add "PICRUSt2 tables" before "Aggregating
@@ -4772,13 +4772,13 @@ index fdeab8b..b91f760 100644
 ````
 
   Build the docs as in 2.2 Step 6 -> `build succeeded.`
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - Tick this task's boxes and the 2.4 part of its checklist line.
   - Bump `generated` and `commit` in `data-model-slots.md` and
     `r-golden-parity.md`.
   - Add to `.knowledge/log.md`:
     `- **Update**: [data-model-slots](contracts/data-model-slots.md) convention 2 (PICRUSt2 is abundance) and Function tables (read_picrust2: stratified rows from the contribution table, taxon = ASV id or RARE, EC: removed); [r-golden-parity](contracts/r-golden-parity.md) statements 6 and 8 (synthetic PICRUSt2 fixtures, no R equivalent); [phase-2-function](roadmap/phase-2-function.md) task 2.4 done.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 uvx prek run --all-files
