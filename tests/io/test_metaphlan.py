@@ -249,6 +249,12 @@ def test_a_merged_table_may_name_a_sample_relative_abundance(tmp_path):
     assert tdata.obs_names.tolist() == ["relative_abundance", "S2"]
 
 
+def test_a_merged_table_with_an_empty_corner_cell_reads(tmp_path):
+    # pandas to_csv(sep="\t") and R write.table(col.names=NA) leave the header's first cell empty.
+    tdata = bt.io.read_metaphlan(write(tmp_path, "\tS1\tS2\nk__A\t100.0\t100.0\n"))
+    assert tdata.obs_names.tolist() == ["S1", "S2"] and tdata.var_names.tolist() == ["A"]
+
+
 def test_negative_abundances_raise_naming_the_path(tmp_path):
     text = "clade_name\tS1\nk__A|g__X\t150.0\nk__A|g__Y\t-50.0\n"
     with pytest.raises(ValueError, match=r"neg\.tsv.*negative"):

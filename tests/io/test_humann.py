@@ -224,6 +224,16 @@ def test_header_with_an_empty_column_name_raises_naming_the_path(tmp_path):
         bt.io.read_humann(path)
 
 
+def test_an_empty_corner_cell_is_read_as_an_unnamed_index(tmp_path):
+    # pandas to_csv(sep="\t") and R write.table(col.names=NA) leave the header's first cell empty.
+    path = tmp_path / "corner.tsv"
+    path.write_text("\tS1_Abundance-RPKs\nUNMAPPED\t1.0\nK1|g__A.s__A_b\t2.0\n")
+    mdata = bt.io.read_humann(path)
+    assert mdata.obs_names.tolist() == ["S1"] and mdata["function"].uns["biotapy"]["x_kind"] == "rpk"
+    assert mdata["function"].var_names.tolist() == ["UNMAPPED"]
+    assert mdata["function_by_taxon"].var_names.tolist() == ["K1|g__A.s__A_b"]
+
+
 def test_negative_abundance_raises_naming_the_path(tmp_path):
     path = tmp_path / "neg.tsv"
     path.write_text("# P\tS1\nA\t-1\n")

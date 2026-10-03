@@ -34,7 +34,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
     ``skiprows`` lines precede the header. The first ``text`` columns are read
     as text, so ids such as ``0042`` stay as written. ``argument`` names the
     input in messages, e.g. ``"path='table.tsv'"``. An empty file, repeated
-    column names, an empty column name, a data row with more cells than the
+    column names, an empty column name (other than the first), a data row with more cells than the
     header or a row with no (or a blank) id raise ``ValueError``; a short row's missing cells are NaN, for the
     caller to check in the columns it reads (``_numbers``).
     """
@@ -42,7 +42,8 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
         msg = f"{argument} is empty (it has no header line)"
         raise ValueError(msg)
     names = header.rstrip("\r\n").split("\t")
-    if any(not name.strip() for name in names):
+    # The first cell names the id column and is never used: pandas and R's write.table(col.names=NA) leave it empty.
+    if any(not name.strip() for name in names[1:]):
         msg = f"{argument} has an empty column name in its header (a trailing tab?)"
         raise ValueError(msg)
     repeated = sorted(name for name, count in Counter(names).items() if count > 1)
