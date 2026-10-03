@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.3)
+* **Update**: [data-model-slots](contracts/data-model-slots.md) adds the Function tables section and the `io.read_humann` exception to the `x_kind` convention; ticked task 2.3 in [phase-2-function](roadmap/phase-2-function.md).
+
 ## 2026-10-03 (Phase 2, task 2.1b)
 * **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) records the approved mudata dependency; ticked task 2.1b in [phase-2-function](roadmap/phase-2-function.md).
 

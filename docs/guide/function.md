@@ -1,0 +1,32 @@
+# Function
+
+`bt.fn` works on functional profiles - gene families, EC numbers, pathways -
+the way `bt.pp.tax_glom` works on taxonomy. Its rules follow HUMAnN's own
+utility scripts, and biotapy's golden tests compare the two on the same files.
+
+## Two tables per HUMAnN file
+
+A HUMAnN table holds community rows (`PWY-5100`) and the same functions split
+by taxon (`PWY-5100|g__Bacteroides.s__Bacteroides_ovatus`). For pathways the
+community value is not the sum of its strata, so neither can be derived from
+the other. `bt.io.read_humann` therefore returns a
+[MuData](https://mudata.scverse.org/) with two modalities over the same
+samples:
+
+| Modality | Rows | `var` columns |
+|---|---|---|
+| `"function"` | community rows | `name`, `special` |
+| `"function_by_taxon"` | stratified rows | `function`, `name`, `taxon`, `genus`, `species`, `special` |
+
+```python
+import biotapy as bt
+
+mdata = bt.io.read_humann("pathabundance.tsv")
+mdata["function"]  # samples x pathways
+mdata["function_by_taxon"]  # samples x (pathway, taxon) pairs
+```
+
+`UNMAPPED`, `READS_UNMAPPED`, `UNINTEGRATED` and `UNGROUPED` stay features,
+flagged in `var["special"]`, so a sample's total keeps what HUMAnN could not
+assign. Read one table per call: a gene family table and a pathway table both
+hold `UNMAPPED`.

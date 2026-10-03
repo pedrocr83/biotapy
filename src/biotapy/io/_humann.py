@@ -1,0 +1,117 @@
+"""HUMAnN 3 and 4 tables: gene families, reactions, pathway abundance, and their regrouped or renormalised forms."""
+
+import csv
+import gzip
+import re
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from mudata import MuData
+
+from biotapy._core import XKind, make_function_mudata
+
+# Sample-column suffixes: HUMAnN's own ("_Abundance-RPKs", "_Abundance"), renorm --update-snames'
+# ("-CPM", "-RELAB"), and the file names humann_join_tables uses when every file names its
+# sample alike ("<sample>_pathabundance_cpm", as in the HMP2 merged tables).
+_SUFFIX = re.compile(r"(?:_Abundance|_genefamilies|_pathabundance)?(?:[-_](?:RPKs|CPM|RELAB|cpm|relab))?$")
+_COVERAGE = re.compile(r"_(?:Coverage|pathcoverage)")
+# Units a header names, in this order: renorm --update-snames rewrites the sample columns but
+# keeps the first cell, so a "-RELAB" column outranks an "Adjusted CPMs" first cell.
+_UNITS: tuple[tuple[re.Pattern[str], XKind], ...] = (
+    (re.compile(r"[-_](?:RELAB|relab)(?:\t|$)"), "relative"),
+    (re.compile(r"[-_](?:CPM|cpm)(?:\t|$)|Adjusted CPMs"), "cpm"),
+    (re.compile(r"RPKs(?:\t|$)"), "rpk"),
+)
+
+
+def read_humann(path: str | Path) -> MuData:
+    r"""Read one HUMAnN table into community and per-taxon modalities.
+
+    Parameters
+    ----------
+    path
+        A HUMAnN 3 or 4 output table, per sample or merged by
+        ``humann_join_tables``: gene families, reactions or pathway
+        abundance, as written or after ``humann_regroup_table`` /
+        ``humann_renorm_table``. Gzip (``.gz``) is read directly.
+
+    Returns
+    -------
+    MuData
+        Two modalities over the same samples:
+
+        - ``"function"``: community rows (no ``|``), ``var`` columns
+          ``name`` and ``special``;
+        - ``"function_by_taxon"``: stratified rows (``ID|taxon``), ``var``
+          columns ``function``, ``name``, ``taxon``, ``genus``, ``species``
+          and ``special``.
+
+        ``var_names`` are the row ids without their ``": name"`` part.
+        ``special`` flags ``UNMAPPED``, ``READS_UNMAPPED``, ``UNINTEGRATED``
+        and ``UNGROUPED``, which stay as features. Sample names lose the
+        suffix HUMAnN adds (``_Abundance-RPKs``, ``_Abundance``, ``-CPM``,
+        ``-RELAB``, or a joined file name's ``_pathabundance_cpm``).
+
+    Raises
+    ------
+    ValueError
+        The file is a pathway coverage table, or a row id holds more than
+        one ``|``; sample names repeat once their suffix is removed.
+
+    Notes
+    -----
+    R equivalent: ``mia::importHUMAnN``
+    Guide: :doc:`/guide/reading_data`
+
+    ``uns['biotapy']['x_kind']`` comes from the header: ``-RELAB`` or
+    ``_relab`` is ``"relative"``; ``-CPM``, ``_cpm`` or ``Adjusted CPMs`` is
+    ``"cpm"``; ``RPKs`` is ``"rpk"``. A header without a unit (pathway
+    abundance) is ``"abundance"``, even when the values are whole numbers.
+    Renormalise with ``humann_renorm_table --update-snames`` so the header
+    names the new unit.
+
+    Read one table per call: a gene family table and a pathway table both
+    hold ``UNMAPPED``, so they cannot share a modality.
+
+    The community and stratified rows are kept apart because a pathway's
+    community abundance is not the sum of its strata.
+
+    References
+    ----------
+    Beghini F et al. (2021) Integrating taxonomic, functional, and strain-level profiling of
+    diverse microbial communities with bioBakery 3. eLife 10:e65088.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> import biotapy as bt
+    >>> path = Path(tempfile.mkdtemp()) / "genefamilies.tsv"
+    >>> _ = path.write_text("# Gene Family\tS1_Abundance-RPKs\nUNMAPPED\t2.0\nK1\t4.0\nK1|g__A.s__A_b\t4.0\n")
+    >>> mdata = bt.io.read_humann(path)
+    >>> mdata["function"].var_names.tolist(), mdata["function_by_taxon"].var_names.tolist()
+    (['UNMAPPED', 'K1'], ['K1|g__A.s__A_b'])
+    """
+    path = Path(path)
+    # HUMAnN's rule: the last "#" line is the header; with none, the first line is.
+    header, n_comments = "", 0
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.startswith("#"):
+                header = header or line
+                break
+            header, n_comments = line, n_comments + 1
+    if _COVERAGE.search(header):
+        msg = f"path={str(path)!r} is a pathway coverage table; read_humann reads abundance tables"
+        raise ValueError(msg)
+    table = pd.read_csv(
+        path, sep="\t", skiprows=max(n_comments - 1, 0), index_col=0, dtype={0: str}, quoting=csv.QUOTE_NONE
+    )
+    X = table.to_numpy(dtype=np.float64).T
+    obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
+    # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.
+    unit = next((kind for pattern, kind in _UNITS if pattern.search(header.rstrip("\n"))), None)
+    x_kind = unit or "abundance"
+    return make_function_mudata(X, obs=obs, row_ids=table.index, x_kind=x_kind, source="io.read_humann")

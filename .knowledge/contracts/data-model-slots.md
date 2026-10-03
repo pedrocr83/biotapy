@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T07:45:00Z }
-commit: 06e2537
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:48:00Z }
+commit: 5848747
 sources:
   - id: spec
     resource: ../../plan.md
@@ -30,7 +30,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
 | `layers` | same-shape transforms of `X` | `relative`; `clr` from `pp.clr` (Phase 3, not yet written) |
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
-| `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column) |
+| `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column); function tables: see Function tables |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
@@ -56,6 +56,9 @@ Extends the spec's data-model table with exact keys.[^spec]
    Readers always set it, inferred from the values by `_core.infer_x_kind`
    (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
+   The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
+   `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
+   `relative`) and labels a header without a unit `abundance`, never `counts`.
    No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
    text table), and labeling proportions `counts` would misdescribe them to
    every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
@@ -78,6 +81,22 @@ Extends the spec's data-model table with exact keys.[^spec]
    values to `str` and raises `ValueError` on duplicates, naming them (up to
    5), so integer or mixed-type ids from a reader (e.g. unquoted BIOM JSON
    ids) never collide silently.
+
+## Function tables
+`io.read_humann` (and, from Phase 2 slice 2B, `io.read_picrust2`) returns a
+`MuData` built by `_core.make_function_mudata` with two modalities over the
+same samples, each an `AnnData` with its own copy of `obs`:
+
+| Modality | Features | `var` columns |
+|---|---|---|
+| `"function"` | community rows, e.g. `PWY-1` | `name`, `special` |
+| `"function_by_taxon"` | stratified rows, e.g. `PWY-1\|g__Bacteroides.s__Bacteroides_ovatus` | `function`, `name`, `taxon`, `genus`, `species`, `special` |
+
+`var_names` drop the row's `": name"`. `special` flags `UNMAPPED`,
+`READS_UNMAPPED`, `UNINTEGRATED` and `UNGROUPED`, which stay features. Text
+columns use the pandas `str` dtype, as rank columns do. Both modalities
+always exist; either may have 0 features. The community values are not
+the sum of their strata for pathways, which is why there are two.
 
 ## Propagation
 | Operation | Keeps | Drops |

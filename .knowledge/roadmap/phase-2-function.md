@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:43:01Z }
-commit: 858c12a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:48:00Z }
+commit: 5848747
 sources:
   - id: spec
     resource: ../../plan.md
@@ -353,7 +353,7 @@ not exist yet.
 - [x] 2.0 HUMAnN fixtures, notice and golden export
 - [x] 2.1 `_core.sum_pairs` and `_core.replace_features`
 - [x] 2.1b `_core` function tables and the mudata dependency
-- [ ] 2.3 `io.read_humann(path) -> MuData`
+- [x] 2.3 `io.read_humann(path) -> MuData`
 - [ ] 2.3b `datasets.toy_humann() -> MuData`
 - [ ] 2.5a `datasets.enzyme() -> pd.DataFrame`
 - [ ] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
@@ -1109,7 +1109,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
 **Interfaces:** consumes `make_function_mudata`, `XKind`; produces
 `bt.io.read_humann(path: str | Path) -> MuData` (design notes 3 and 4).
 
-- [ ] **Step 1: Failing tests** - `tests/io/test_humann.py`:
+- [x] **Step 1: Failing tests** - `tests/io/test_humann.py`:
   ```python
   import gzip
   import tempfile
@@ -1263,9 +1263,9 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
       mdata = bt.io.read_humann(path)
       assert mdata["function"].shape == (2, 0) and mdata["function_by_taxon"].shape == (2, 0)
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/io/test_humann.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/io/test_humann.py -q`
   -> `AttributeError: module 'biotapy.io' has no attribute 'read_humann'`.
-- [ ] **Step 3: Implement** - `src/biotapy/io/_humann.py`:
+- [x] **Step 3: Implement** - `src/biotapy/io/_humann.py`:
   ```python
   """HUMAnN 3 and 4 tables: gene families, reactions, pathway abundance, and their regrouped or renormalised forms."""
 
@@ -1403,9 +1403,9 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
   ```
   `src/biotapy/io/__init__.py`: add `from ._humann import read_humann` after
   the `_dada2` import and `"read_humann"` to `__all__` after `"read_dada2"`.
-- [ ] **Step 4: Run, expect pass** - same command -> `19 passed`; doctest:
+- [x] **Step 4: Run, expect pass** - same command -> `19 passed`; doctest:
   `uv run --group test pytest src/biotapy/io/_humann.py -q` -> `1 passed`.
-- [ ] **Step 5: Docs.**
+- [x] **Step 5: Docs.**
   - `docs/conf.py`, `intersphinx_mapping`: add
     `"mudata": ("https://mudata.scverse.org/stable/", None),` after matplotlib.
   - `docs/api.md`: `io.read_humann` after `io.read_dada2`.
@@ -1478,7 +1478,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
     ````
   - Build: `uv run --group doc sphinx-build -W -b html docs docs/_build/html`
     -> `build succeeded.`
-- [ ] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`
+- [x] **Step 6: Knowledge** - `.knowledge/contracts/data-model-slots.md`
   (contract addition, user-approved):
   - Convention 2, after "Readers always set it, inferred from the values by
     `_core.infer_x_kind`": insert "- except `io.read_humann`, which reads it
@@ -1504,7 +1504,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
     the sum of their strata for pathways, which is why there are two.
     ````
   - Slots table, `var` row: append "; function tables: see Function tables".
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/io/_humann.py src/biotapy/io/__init__.py tests/io/test_humann.py \
