@@ -1,6 +1,12 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: three concept errors from the Checkpoint D review (M2):
+  [function-shape](contracts/function-shape.md) says each public `pp`, `tl`
+  and `pl` function has a purity test, not every test;
+  [index](index.md)'s Modules line names all six module concepts;
+  [data-model-slots](contracts/data-model-slots.md) marks `pp.clr` and
+  `layers["clr"]` as Phase 3, not yet written.
 * **Update**: [core](modules/core.md) lists `_slots.py:require_categorical`,
   the one validator for categorical groupings; [pl](modules/pl.md) and
   [tl](modules/tl.md) name it among their `_core` dependencies (Checkpoint D,

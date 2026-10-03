@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T07:45:00Z }
+commit: 06e2537
 sources:
   - id: spec
     resource: ../../plan.md
@@ -28,7 +28,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | Slot | Holds | Keys |
 |---|---|---|
 | `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
-| `layers` | same-shape transforms of `X` | `relative`, `clr` |
+| `layers` | same-shape transforms of `X` | `relative`; `clr` from `pp.clr` (Phase 3, not yet written) |
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
 | `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column) |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
@@ -84,7 +84,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 |---|---|---|
 | Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
-| Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
+| Layer-adding (`pp.relative`; `pp.clr` in Phase 3) | everything | nothing; adds one layer |
 
 Feature-changing operations go through `_core.feature_subset`, the single place
 that implements the "Drops" column.
