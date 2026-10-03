@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -129,3 +131,10 @@ def test_modalities_with_different_samples_raise_naming_mdata(samples):
     mdata.mod["function_by_taxon"] = mdata["function_by_taxon"][samples].copy()
     with pytest.raises(ValueError, match=r"mdata\['function'\] and mdata\['function_by_taxon'\].*same samples"):
         bt.fn.renorm(mdata, "relab")
+
+
+def test_special_false_on_a_table_of_specials_says_so():
+    # HUMAnN's demo pathway table holds only UNMAPPED and UNINTEGRATED community rows.
+    mdata = bt.io.read_humann(Path(__file__).parents[1] / "data" / "humann" / "demo_pathabundance_with_names.tsv")
+    with pytest.raises(ValueError, match=r"special=False dropped every community row"):
+        bt.fn.renorm(mdata, "relab", special=False)

@@ -52,7 +52,7 @@ def renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = Tru
     ValueError
         ``units`` is not ``"relab"`` or ``"cpm"``; the two modalities do not
         hold the same samples in the same order; the ``"function"``
-        modality has no feature.
+        modality has no feature, or none left after ``special=False``.
 
     Warns
     -----
@@ -88,7 +88,12 @@ def renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = Tru
         raise ValueError(msg)
     community, by_taxon = (_kept(mod, special=special) for mod in _function_modalities(mdata))
     if community.n_vars == 0:
-        msg = f"mdata[{FUNCTION_KEY!r}] has no feature to total; renorm needs the community (unstratified) rows"
+        reason = (
+            "special=False dropped every community row, as all of them are special"
+            if not special and mdata.mod[FUNCTION_KEY].n_vars > 0
+            else "renorm needs the community (unstratified) rows"
+        )
+        msg = f"mdata[{FUNCTION_KEY!r}] has no feature to total; {reason}"
         raise ValueError(msg)
     totals = np.asarray(as_csr(community.X).sum(axis=1), dtype=np.float64).ravel()
     empty = community.obs_names[totals == 0]
