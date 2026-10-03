@@ -70,7 +70,8 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
     KeyError
         ``hierarchy`` lacks a required column, or has no row at ``level``.
     ValueError
-        ``agg`` is not ``"sum"`` or ``"mean"``; no feature of an
+        ``agg`` is not ``"sum"`` or ``"mean"``; ``hierarchy`` has a
+        missing value in ``child`` or ``parent``; no feature of an
         unstratified ``adata`` is a child at ``level`` (usually an id
         format mismatch, such as ``EC:1.1.1.1`` against ``1.1.1.1``). A
         stratified ``adata`` does not raise: its rows go to
