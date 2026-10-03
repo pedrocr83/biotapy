@@ -47,7 +47,8 @@ gp.shape
 ## Richness
 
 `plot_richness(GP, "human", "SampleType", measures = alpha_meas)`, one panel per measure, then a
-box plot per group (`+ geom_boxplot()`). InvSimpson is `1 / (1 - simpson)`.
+box plot per group (`+ geom_boxplot()`). biotapy stores Gini-Simpson as `simpson` and has no
+InvSimpson metric; derive phyloseq's from it as `1 / (1 - gp.obs["alpha_simpson"])`.
 
 ```{code-cell} ipython3
 metrics = ["observed_features", "chao1", "shannon", "simpson"]
