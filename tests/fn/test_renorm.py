@@ -118,3 +118,14 @@ def test_zero_total_sample_warns_once_naming_it():
     with pytest.warns(UserWarning, match=rf"1 sample.*{name}") as record:
         bt.fn.renorm(mdata, "relab")
     assert len(record) == 1 and record[0].filename == __file__
+
+
+@pytest.mark.parametrize(
+    "samples", [slice(None, None, -1), slice(0, 4)], ids=["same samples reordered", "fewer samples"]
+)
+def test_modalities_with_different_samples_raise_naming_mdata(samples):
+    # Totals come from "function" and are applied by row to "function_by_taxon".
+    mdata = bt.datasets.toy_humann()
+    mdata.mod["function_by_taxon"] = mdata["function_by_taxon"][samples].copy()
+    with pytest.raises(ValueError, match=r"mdata\['function'\] and mdata\['function_by_taxon'\].*same samples"):
+        bt.fn.renorm(mdata, "relab")

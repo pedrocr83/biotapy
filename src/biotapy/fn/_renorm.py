@@ -50,7 +50,8 @@ def renorm(mdata: MuData, units: Literal["relab", "cpm"], *, special: bool = Tru
     KeyError
         ``mdata`` lacks one of the two modalities.
     ValueError
-        ``units`` is not ``"relab"`` or ``"cpm"``; the ``"function"``
+        ``units`` is not ``"relab"`` or ``"cpm"``; the two modalities do not
+        hold the same samples in the same order; the ``"function"``
         modality has no feature.
 
     Warns
@@ -107,6 +108,12 @@ def _function_modalities(mdata: MuData) -> tuple[AnnData, AnnData]:
     if not isinstance(community, AnnData) or not isinstance(by_taxon, AnnData):
         msg = f"mdata needs AnnData modalities {[FUNCTION_KEY, BY_TAXON_KEY]}, as bt.io.read_humann returns them"
         raise KeyError(msg)
+    if not community.obs_names.equals(by_taxon.obs_names):
+        msg = (
+            f"mdata[{FUNCTION_KEY!r}] and mdata[{BY_TAXON_KEY!r}] must hold the same samples in the same order, "
+            "because each sample's community total divides its own stratified rows"
+        )
+        raise ValueError(msg)
     return community, by_taxon
 
 
