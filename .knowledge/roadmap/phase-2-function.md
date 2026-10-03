@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:00:00Z }
-commit: 818eed6
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:43:01Z }
+commit: 858c12a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -289,7 +289,7 @@ repeated under "Decisions for the user".
 # Dependencies to approve (ask at the start of the task named)
 | Task | Group | Package | Reason |
 |---|---|---|---|
-| 2.1b | runtime | mudata `>=0.4` | two-modality function tables; pure Python, BSD-3; brings `scverse-misc[settings]` (pydantic-settings, python-dotenv, pydantic) - approved 2026-10-03 |
+| 2.1b | runtime | mudata `>=0.4` | two-modality function tables; pure Python, BSD-3; its `scverse-misc[settings]` needs are already installed through anndata - approved 2026-10-03 |
 | 2.0 | none (tool run, not installed) | humann `==3.9`, pandas `==3.0.6` via `uv run --no-project --with` | golden files - ruling 2026-10-03 |
 | 2.2 | R image (only if chosen) | Bioconductor `mia` | golden test against `mia::importMetaPhlAn`; decide at 2.2 (Part 3) |
 | 2.8 | none | - | weighted Jaccard comes from SciPy's `braycurtis` (identity checked) |
@@ -352,7 +352,7 @@ not exist yet.
 # Tasks (checklist)
 - [x] 2.0 HUMAnN fixtures, notice and golden export
 - [x] 2.1 `_core.sum_pairs` and `_core.replace_features`
-- [ ] 2.1b `_core` function tables and the mudata dependency
+- [x] 2.1b `_core` function tables and the mudata dependency
 - [ ] 2.3 `io.read_humann(path) -> MuData`
 - [ ] 2.3b `datasets.toy_humann() -> MuData`
 - [ ] 2.5a `datasets.enzyme() -> pd.DataFrame`
@@ -895,7 +895,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
   `make_treedata` (`ValueError` naming duplicates), one provenance entry
   `source` per modality.
 
-- [ ] **Step 1: Add the approved dependency** (approved 2026-10-03, R9.1):
+- [x] **Step 1: Add the approved dependency** (approved 2026-10-03, R9.1):
   `uv add 'mudata>=0.4'`. Expected: `pyproject.toml` gains `"mudata>=0.4",`
   between `matplotlib` and `networkx`, and `uv.lock` gains mudata 0.4.1 with
   `scverse-misc[settings]`, `pydantic-settings` and `python-dotenv`. In
@@ -905,7 +905,7 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
   { module = "mudata", follow_untyped_imports = true, implicit_reexport = true },
   { module = "mudata.*", follow_untyped_imports = true, implicit_reexport = true },
   ```
-- [ ] **Step 2: Failing tests** - `tests/core/test_function.py`:
+- [x] **Step 2: Failing tests** - `tests/core/test_function.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -992,9 +992,9 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
       assert back[BY_TAXON_KEY].var["taxon"].tolist() == mdata[BY_TAXON_KEY].var["taxon"].tolist()
       assert back[FUNCTION_KEY].var["name"].isna().tolist() == [True, False]
   ```
-- [ ] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_function.py -q`
+- [x] **Step 3: Run, expect failure** - `uv run --group test pytest tests/core/test_function.py -q`
   -> `ImportError: cannot import name 'BY_TAXON_KEY' from 'biotapy._core'`.
-- [ ] **Step 4: Implement** - `src/biotapy/_core/_function.py`:
+- [x] **Step 4: Implement** - `src/biotapy/_core/_function.py`:
   ```python
   """Function tables: HUMAnN-style row ids and the two-modality MuData (contracts/data-model-slots)."""
 
@@ -1083,15 +1083,15 @@ modify `src/biotapy/_core/__init__.py`, `pyproject.toml`, `uv.lock`,
   `FUNCTION_KEY` and `PROTECTED_FEATURES` around `PHYLO_KEY`,
   `SPECIAL_FEATURES` after `RANKS`, `function_var` after `feature_subset`,
   `make_function_mudata` before `make_treedata`).
-- [ ] **Step 5: Run, expect pass** - same command -> `8 passed`. Then
+- [x] **Step 5: Run, expect pass** - same command -> `8 passed`. Then
   `uv run --group dev mypy` -> `Success: no issues found`.
-- [ ] **Step 6: Knowledge.** In `.knowledge/decisions/optional-heavy-dependencies.md`,
+- [x] **Step 6: Knowledge.** In `.knowledge/decisions/optional-heavy-dependencies.md`,
   after the Checkpoint D sentence about threadpoolctl, add: "Phase 2 task 2.1b
   added mudata (`>=0.4`, approved 2026-10-03): a HUMAnN or PICRUSt2 table needs
   a community and a per-taxon modality over the same samples, which neither
   AnnData nor TreeData holds. It is pure Python (BSD-3) and brings
   `scverse-misc[settings]` (pydantic-settings, python-dotenv, pydantic)."
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add pyproject.toml uv.lock src/biotapy/_core/_function.py src/biotapy/_core/__init__.py \

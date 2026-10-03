@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.1b)
+* **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) records the approved mudata dependency; ticked task 2.1b in [phase-2-function](roadmap/phase-2-function.md).
+
 ## 2026-10-03 (Phase 2, task 2.1)
 * **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks task 2.1 (`_core.sum_pairs`, `_core.replace_features`).
 

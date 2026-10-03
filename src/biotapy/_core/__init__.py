@@ -1,5 +1,13 @@
 """Private kernel shared by biotapy subpackages (contracts/module-boundaries)."""
 
+from ._function import (
+    BY_TAXON_KEY,
+    FUNCTION_KEY,
+    PROTECTED_FEATURES,
+    SPECIAL_FEATURES,
+    function_var,
+    make_function_mudata,
+)
 from ._matrix import argmax_by, as_csr, sum_by, sum_pairs
 from ._optional import import_optional
 from ._rng import as_generator
@@ -29,8 +37,12 @@ from ._tree import (
 from ._warnings import warn_user
 
 __all__ = [
+    "BY_TAXON_KEY",
+    "FUNCTION_KEY",
     "PHYLO_KEY",
+    "PROTECTED_FEATURES",
     "RANKS",
+    "SPECIAL_FEATURES",
     "TreeData",
     "XKind",
     "add_provenance",
@@ -38,10 +50,12 @@ __all__ = [
     "as_csr",
     "as_generator",
     "feature_subset",
+    "function_var",
     "get_skbio_tree",
     "get_tree",
     "import_optional",
     "infer_x_kind",
+    "make_function_mudata",
     "make_treedata",
     "normalize_ranks",
     "relabel_tips",
