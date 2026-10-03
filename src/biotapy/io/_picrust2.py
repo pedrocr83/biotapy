@@ -8,7 +8,7 @@ from mudata import MuData
 
 from biotapy._core import make_function_mudata
 
-from ._table import _leading_lines, _numbers, _read_table
+from ._table import _header, _numbers, _read_table
 
 # PICRUSt2 writes EC numbers as "EC:1.1.1.1"; ENZYME, HUMAnN and bt.datasets.enzyme write "1.1.1.1".
 _EC_PREFIX = "EC:"
@@ -210,6 +210,6 @@ def read_picrust2_traits(path: str | Path) -> pd.DataFrame:
 
 
 def _read(path: Path, *, argument: str, text: int = 1) -> pd.DataFrame:
-    """A PICRUSt2 table: its header is the first line that does not start with ``#``."""
-    comments, first = _leading_lines(path, argument=argument)
-    return _read_table(path, first, skiprows=len(comments), argument=argument, text=text)
+    """A PICRUSt2 table, or one converted from BIOM, whose header is a ``#OTU ID`` line."""
+    header, skiprows, _ = _header(path, argument=argument)
+    return _read_table(path, header, skiprows=skiprows, argument=argument, text=text)

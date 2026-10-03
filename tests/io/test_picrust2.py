@@ -291,3 +291,18 @@ def test_non_finite_values_raise_naming_the_path(tmp_path, value):
         bt.io.read_picrust2_traits(write(tmp_path, f"sequence\tEC:1.1.1.1\nA\t{value}\n", "traits.tsv"))
     with pytest.raises(ValueError, match=r"unstrat\.tsv.*not finite"):
         bt.io.read_picrust2(write(tmp_path, f"function\tS1\nEC:1.1.1.1\t{value}\n", "unstrat.tsv"))
+
+
+def test_a_biom_converted_table_reads_its_hash_header(tmp_path):
+    # biom convert --to-tsv (after qiime tools export) writes a "#" comment line, then a "#OTU ID" header.
+    text = "# Constructed from biom file\n#OTU ID\tS1\tS2\nEC:1.1.1.1\t10.0\t2.0\nEC:2.7.1.1\t24.0\t5.5\nEC:3.2.1.1\t4.0\t5.5\n"
+    mdata = bt.io.read_picrust2(write(tmp_path, text, "feature-table.tsv"))
+    assert mdata.obs_names.tolist() == ["S1", "S2"]
+    assert mdata["function"].var_names.tolist() == ["1.1.1.1", "2.7.1.1", "3.2.1.1"]
+    np.testing.assert_array_equal(mdata["function"].X.toarray(), [[10.0, 24.0, 4.0], [2.0, 5.5, 5.5]])
+
+
+def test_traits_read_a_hash_header(tmp_path):
+    text = "# Constructed from biom file\n#OTU ID\tEC:1.1.1.1\tEC:2.7.1.1\nASV1\t1\t2\nASV2\t0\t1\n"
+    traits = bt.io.read_picrust2_traits(write(tmp_path, text, "traits.tsv"))
+    assert traits.index.tolist() == ["ASV1", "ASV2"] and traits.columns.tolist() == ["1.1.1.1", "2.7.1.1"]

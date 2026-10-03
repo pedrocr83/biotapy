@@ -7,7 +7,7 @@ import pandas as pd
 
 from biotapy._core import RELATIVE_TOLERANCE, TreeData, make_treedata, split_lineage
 
-from ._table import _leading_lines, _numbers, _read_table
+from ._table import _header, _numbers, _read_table
 
 # NCBI taxid columns: a MetaPhlAn 3 merged table keeps one beside its samples.
 _TAXID_COLUMNS = ("NCBI_tax_id", "clade_taxid")
@@ -130,16 +130,3 @@ def _sample_columns(table: pd.DataFrame, path: Path, *, is_profile: bool) -> pd.
         if is_profile and column in table.columns:
             return table[[column]].set_axis([Path(path.name.removesuffix(".gz")).stem], axis=1)
     return table.drop(columns=[column for column in _TAXID_COLUMNS if column in table.columns])
-
-
-def _header(path: Path, *, argument: str) -> tuple[str, int, bool]:
-    """The header line, how many lines precede it, and whether it is a ``#`` line (a profile's).
-
-    A profile's header is its last ``#`` line (``#clade_name...``); a merged
-    table's is the first line after its ``#`` lines, the first of which names
-    the database and holds no tab.
-    """
-    comments, first = _leading_lines(path, argument=argument)
-    if comments and "\t" in comments[-1]:
-        return comments[-1], len(comments) - 1, True
-    return first, len(comments), False

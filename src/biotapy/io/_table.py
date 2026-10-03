@@ -28,6 +28,20 @@ def _leading_lines(path: Path, *, argument: str) -> tuple[list[str], str]:
     return comments, ""
 
 
+def _header(path: Path, *, argument: str) -> tuple[str, int, bool]:
+    """The header line, how many lines precede it, and whether it is a ``#`` line.
+
+    The header is the last ``#`` line when it holds a tab (a MetaPhlAn
+    profile's ``#clade_name...``, or ``#OTU ID...`` from ``biom convert``);
+    otherwise it is the first line after the ``#`` lines, which then only
+    describe the file (MetaPhlAn's database name).
+    """
+    comments, first = _leading_lines(path, argument=argument)
+    if comments and "\t" in comments[-1]:
+        return comments[-1], len(comments) - 1, True
+    return first, len(comments), False
+
+
 def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: int = 1) -> pd.DataFrame:
     """The table whose header line is ``header``, indexed by its first column.
 
