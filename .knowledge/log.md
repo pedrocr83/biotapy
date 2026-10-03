@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.5a fix round 1)
+* **Update**: no concept changed; `datasets.enzyme` now checks that `enzyme.dat` and `enzclass.txt` are the same release and that `enzclass.txt` has class lines.
+
 ## 2026-10-03 (Phase 2, task 2.5a)
 * **Update**: ticked task 2.5a in [phase-2-function](roadmap/phase-2-function.md); `datasets.enzyme` downloads ENZYME unpinned (`known_hash=None`, user decision 2026-10-03) and raises if `enzyme.dat` has no release line.
 

@@ -13,6 +13,7 @@ LEVELS = ("class", "subclass", "subsubclass")
 _CLASS_LINE = re.compile(r"^(\d+\.\s*[\d-]+\.\s*[\d-]+\.-)\s+(.*?)\.?\s*$", re.MULTILINE)
 _ID_LINE = re.compile(r"^ID   (\S+)$", re.MULTILINE)
 _RELEASE = re.compile(r"^CC   Release of (.+)$", re.MULTILINE)
+_CLASS_RELEASE = re.compile(r"^Release:\s+(\S+)", re.MULTILINE)
 _URL = "https://enzyme.expasy.org/"
 
 
@@ -35,7 +36,8 @@ def enzyme() -> pd.DataFrame:
     Raises
     ------
     ValueError
-        If ``enzyme.dat`` has no ``Release of`` line.
+        If ``enzyme.dat`` has no ``Release of`` line, its release differs from
+        ``enzclass.txt``'s, or ``enzclass.txt`` has no class lines.
 
     Notes
     -----
@@ -48,7 +50,11 @@ def enzyme() -> pd.DataFrame:
 
     ENZYME keeps only its current release online, so the first download is
     cached for good and ``attrs["source"]`` records which release it was.
-    Delete the cached ``enzyme.dat`` and ``enzclass.txt`` to take a newer one.
+    To take a newer one, delete the cached ``enzyme.dat`` and ``enzclass.txt``
+    from the ``BIOTAPY_DATA_DIR`` directory if that variable is set, otherwise
+    from pooch's per-user cache directory (``pooch.os_cache("biotapy")``,
+    which depends on the platform); delete both, or the two files may come from
+    different releases.
 
     ENZYME is copyrighted by the SIB Swiss Institute of Bioinformatics and
     distributed under the Creative Commons Attribution 4.0 (CC BY 4.0)
@@ -70,8 +76,18 @@ def enzyme() -> pd.DataFrame:
     release = _RELEASE.search(entries)
     if release is None:
         raise ValueError(f"{entries_path.name} has no 'CC   Release of ...' line, so its release is unknown")
-    classes = Path(_fetch("enzclass.txt")).read_text(encoding="utf-8")
-    names = {re.sub(r"\s", "", ec): name for ec, name in _CLASS_LINE.findall(classes)}
+    classes_path = Path(_fetch("enzclass.txt"))
+    classes = classes_path.read_text(encoding="utf-8")
+    class_release = _CLASS_RELEASE.search(classes)
+    if class_release is not None and class_release[1] != release[1]:
+        raise ValueError(
+            f"{entries_path.name} is release {release[1]} but {classes_path.name} is release {class_release[1]}; "
+            "delete both cached files and download them again"
+        )
+    pairs = _CLASS_LINE.findall(classes)
+    if not pairs:
+        raise ValueError(f"{classes_path.name} has no class lines such as '1. 1. 1.-    Name.'")
+    names = {re.sub(r"\s", "", ec): name for ec, name in pairs}
     leaves = pd.Series(_ID_LINE.findall(entries), dtype=str)
     edges = _ancestors(leaves)
     internal = pd.Series(sorted(set(names) | set(edges["parent"])), dtype=str)

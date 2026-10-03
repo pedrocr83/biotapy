@@ -76,8 +76,11 @@ BIOTAPY_DATA_DIR=/path/to/cache python my_script.py
 EC hierarchy as an edge table: every EC number with its sub-subclass,
 subclass and class, named from `enzclass.txt`. ENZYME keeps only its current
 release online, so no hash can be pinned: the first download is cached for
-good, and `attrs["source"]` records which release it was. Delete the cached
-files to take a newer release.
+good, and `attrs["source"]` records which release it was. To take a newer
+release, delete both cached files, `enzyme.dat` and `enzclass.txt`, from
+`BIOTAPY_DATA_DIR` if you set it, otherwise from the per-user cache directory
+(`pooch.os_cache("biotapy")`, which depends on your platform). Delete both:
+`enzyme()` raises if the two files come from different releases.
 
 ## Licensing
 
