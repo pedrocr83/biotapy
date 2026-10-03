@@ -1,6 +1,5 @@
 """HUMAnN 3 and 4 tables: gene families, reactions, pathway abundance, and their regrouped or renormalised forms."""
 
-import gzip
 import re
 from pathlib import Path
 
@@ -9,7 +8,7 @@ from mudata import MuData
 
 from biotapy._core import XKind, make_function_mudata
 
-from ._table import _numbers, _read_table
+from ._table import _leading_lines, _numbers, _read_table
 
 # Sample-column suffixes: HUMAnN's own ("_Abundance-RPKs", "_Abundance"), renorm --update-snames'
 # ("-CPM", "-RELAB"), and the file names humann_join_tables uses when every file names its
@@ -103,18 +102,12 @@ def read_humann(path: str | Path) -> MuData:
     path = Path(path)
     argument = f"path={str(path)!r}"
     # HUMAnN's rule: the last "#" line is the header; with none, the first line is.
-    header, n_comments = "", 0
-    opener = gzip.open if path.suffix == ".gz" else open
-    with opener(path, "rt", encoding="utf-8") as handle:
-        for line in handle:
-            if not line.startswith("#"):
-                header = header or line
-                break
-            header, n_comments = line, n_comments + 1
+    comments, first = _leading_lines(path, argument=argument)
+    header = comments[-1] if comments else first
     if _COVERAGE.search(header):
         msg = f"{argument} is a pathway coverage table; read_humann reads abundance tables"
         raise ValueError(msg)
-    table = _read_table(path, header, skiprows=max(n_comments - 1, 0), argument=argument)
+    table = _read_table(path, header, skiprows=max(len(comments) - 1, 0), argument=argument)
     X = _numbers(table, argument=argument).T
     obs = pd.DataFrame(index=table.columns.str.replace(_SUFFIX, "", regex=True))
     # HUMAnN never writes raw counts: a table whose header names no unit holds pathway abundances.

@@ -216,3 +216,55 @@ def test_leaves_keep_every_percentage(weights):
         tdata = bt.io.read_metaphlan(path)
     assert tdata.var_names.tolist() == [f"SGB{i}" for i in range(len(leaves))]
     np.testing.assert_allclose(tdata.X.toarray().ravel(), np.array(leaves) / 100, rtol=1e-12)
+
+
+def test_a_sample_with_only_internal_rows_raises(tmp_path):
+    # Sample B was profiled with --tax_lev g: its abundance sits on a row that is an ancestor in sample A.
+    text = (
+        "#mpa_vJan25\nclade_name\tA\tB\n"
+        f"{LINEAGE}|g__Bacteroides\t100.0\t100.0\n"
+        f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus\t100.0\t0.0\n"
+        f"{LINEAGE}|g__Bacteroides|s__Bacteroides_ovatus|t__SGB1871\t100.0\t0.0\n"
+    )
+    with pytest.raises(ValueError, match=r"merged\.tsv.*1 sample\(s\) do not sum to 100%: \{'B': 0\.0\}"):
+        bt.io.read_metaphlan(write(tmp_path, text, "merged.tsv"))
+
+
+def test_var_names_carry_no_header_label(tmp_path):
+    assert bt.io.read_metaphlan(DEMO).var.index.name is None
+    text = "clade_name\tS1\nk__Bacteria\t100.0\n"
+    assert bt.io.read_metaphlan(write(tmp_path, text)).var.index.name is None
+
+
+def test_a_metaphlan_2_profile_is_named_after_its_file(tmp_path):
+    text = "#SampleID\tMetaphlan2_Analysis\nk__Bacteria\t60.0\nk__Bacteria|p__Firmicutes\t60.0\nUNCLASSIFIED\t40.0\n"
+    tdata = bt.io.read_metaphlan(write(tmp_path, text, "S9_profile.txt"))
+    assert tdata.obs_names.tolist() == ["S9"]
+    np.testing.assert_allclose(tdata.X.toarray(), [[0.6, 0.4]])
+
+
+def test_a_merged_table_may_name_a_sample_relative_abundance(tmp_path):
+    text = "#mpa_v\nclade_name\trelative_abundance\tS2\nk__Bacteria\t100.0\t100.0\n"
+    tdata = bt.io.read_metaphlan(write(tmp_path, text))
+    assert tdata.obs_names.tolist() == ["relative_abundance", "S2"]
+
+
+def test_negative_abundances_raise_naming_the_path(tmp_path):
+    text = "clade_name\tS1\nk__A|g__X\t150.0\nk__A|g__Y\t-50.0\n"
+    with pytest.raises(ValueError, match=r"neg\.tsv.*negative"):
+        bt.io.read_metaphlan(write(tmp_path, text, "neg.tsv"))
+
+
+@pytest.mark.parametrize("kind", ["latin-1", "not-gzip"])
+def test_unreadable_files_raise_naming_the_path(tmp_path, kind):
+    path = tmp_path / ("bad.tsv.gz" if kind == "not-gzip" else "bad.tsv")
+    path.write_bytes(b"clade_name\tS1\nk__Caf\xe9\t100.0\n")
+    with pytest.raises(ValueError, match=r"bad\.tsv"):
+        bt.io.read_metaphlan(path)
+
+
+def test_read_humann_names_the_path_of_an_unreadable_file(tmp_path):
+    path = tmp_path / "bad_genefamilies.tsv"
+    path.write_bytes(b"# Gene Family\tS1_Abundance-RPKs\nK\xe91\t2.0\n")
+    with pytest.raises(ValueError, match=r"bad_genefamilies\.tsv"):
+        bt.io.read_humann(path)

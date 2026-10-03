@@ -1,6 +1,5 @@
 """MetaPhlAn 3 and 4 taxonomic profiles, per sample or merged by merge_metaphlan_tables.py."""
 
-import gzip
 from pathlib import Path
 
 import numpy as np
@@ -8,7 +7,7 @@ import pandas as pd
 
 from biotapy._core import RELATIVE_TOLERANCE, TreeData, make_treedata, split_lineage
 
-from ._table import _numbers, _read_table
+from ._table import _leading_lines, _numbers, _read_table
 
 # NCBI taxid columns: a MetaPhlAn 3 merged table keeps one beside its samples.
 _TAXID_COLUMNS = ("NCBI_tax_id", "clade_taxid")
@@ -43,7 +42,7 @@ def read_metaphlan(path: str | Path) -> TreeData:
     ------
     ValueError
         The file is empty or malformed (a value that is not a number, a
-        missing value, a data row with more cells than the header, repeated
+        missing or negative value, a data row with more cells than the header, repeated
         column names); the leaf clades of a sample do not sum to 100 (rows
         removed, or a table that is not a profile, such as one with ``;``
         lineages); or leaf names or sample names repeat. Messages name
@@ -71,31 +70,33 @@ def read_metaphlan(path: str | Path) -> TreeData:
     >>> import tempfile
     >>> from pathlib import Path
     >>> import biotapy as bt
-    >>> path = Path(tempfile.mkdtemp()) / "S1_profile.tsv"
     >>> rows = ["k__Bacteria\t2\t90.0\t", "k__Bacteria|g__Bacteroides\t2|816\t90.0\t", "UNCLASSIFIED\t-1\t10.0\t"]
-    >>> _ = path.write_text(
-    ...     "#mpa_vJan25\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n" + "\n".join(rows)
-    ... )
-    >>> tdata = bt.io.read_metaphlan(path)
+    >>> text = "#mpa_vJan25\n#clade_name\tNCBI_tax_id\trelative_abundance\tadditional_species\n" + "\n".join(rows)
+    >>> with tempfile.TemporaryDirectory() as tmp:
+    ...     path = Path(tmp) / "S1_profile.tsv"
+    ...     _ = path.write_text(text)
+    ...     tdata = bt.io.read_metaphlan(path)
     >>> tdata.obs_names.tolist(), tdata.var_names.tolist(), tdata.X.toarray().tolist()
     (['S1'], ['Bacteroides', 'UNCLASSIFIED'], [[0.9, 0.1]])
     """
     path = Path(path)
     argument = f"path={str(path)!r}"
-    header, skiprows = _header(path)
+    header, skiprows, is_profile = _header(path, argument=argument)
     table = _read_table(path, header, skiprows=skiprows, argument=argument)
-    if "relative_abundance" in table.columns:
-        values = table[["relative_abundance"]].set_axis([Path(path.name.removesuffix(".gz")).stem], axis=1)
-    else:
-        values = table.drop(columns=[column for column in _TAXID_COLUMNS if column in table.columns])
+    values = _sample_columns(table, path, is_profile=is_profile)
     # A leaf is a clade no other clade descends from, through any ancestor: MetaPhlAn can omit an
     # intermediate rank's row (the 4.0.6 fixture has no o__Corynebacteriales), so direct parents are not enough.
     lineages = [clade.split("|") for clade in table.index]
     ancestors = {"|".join(lineage[:depth]) for lineage in lineages for depth in range(1, len(lineage))}
     leaf = np.array([clade not in ancestors for clade in table.index], dtype=bool)
-    X = _numbers(values, argument=argument)[leaf].T / 100
+    percent = _numbers(values, argument=argument)
+    if (percent < 0).any():
+        msg = f"{argument} has a negative abundance; MetaPhlAn abundances are percentages"
+        raise ValueError(msg)
+    X = percent[leaf].T / 100
     totals = X.sum(axis=1)
-    bad = (totals != 0) & (np.abs(totals - 1) > RELATIVE_TOLERANCE)
+    # Only a column that is zero on every row is an empty sample; zero leaves under nonzero internal rows lost reads.
+    bad = ~np.isclose(totals, 1, rtol=0, atol=RELATIVE_TOLERANCE) & percent.any(axis=0)
     if bad.any():
         shown = {
             name: round(float(total) * 100, 3)
@@ -109,7 +110,8 @@ def read_metaphlan(path: str | Path) -> TreeData:
     clades = table.index[leaf]
     # A clade lineage is "k__A|p__B|..."; UNCLASSIFIED and UNKNOWN have none, so every rank is NaN.
     lineage = pd.Series(clades.str.replace("|", ";"), index=clades).where(clades.str.contains("__", regex=False))
-    var = split_lineage(lineage).set_axis(clades.str.split("|").str[-1].str.replace(r"^[a-z]__", "", regex=True))
+    names = clades.str.split("|").str[-1].str.replace(r"^[a-z]__", "", regex=True).rename(None)
+    var = split_lineage(lineage).set_axis(names)
     obs = pd.DataFrame(index=values.columns.str.replace("_profile", "", regex=False))
     try:
         return make_treedata(X, obs=obs, var=var, tree=None, x_kind="relative", source="io.read_metaphlan")
@@ -118,22 +120,26 @@ def read_metaphlan(path: str | Path) -> TreeData:
         raise ValueError(msg) from error
 
 
-def _header(path: Path) -> tuple[str, int]:
-    """The header line and how many lines precede it.
+def _sample_columns(table: pd.DataFrame, path: Path, *, is_profile: bool) -> pd.DataFrame:
+    """The abundance columns: a profile's one, named after its file, or a merged table's samples.
+
+    A profile's header is a ``#`` line; a merged table's is not, so a merged
+    sample may be called ``relative_abundance``.
+    """
+    for column in ("relative_abundance", "Metaphlan2_Analysis"):
+        if is_profile and column in table.columns:
+            return table[[column]].set_axis([Path(path.name.removesuffix(".gz")).stem], axis=1)
+    return table.drop(columns=[column for column in _TAXID_COLUMNS if column in table.columns])
+
+
+def _header(path: Path, *, argument: str) -> tuple[str, int, bool]:
+    """The header line, how many lines precede it, and whether it is a ``#`` line (a profile's).
 
     A profile's header is its last ``#`` line (``#clade_name...``); a merged
     table's is the first line after its ``#`` lines, the first of which names
     the database and holds no tab.
     """
-    comments: list[str] = []
-    header = ""
-    opener = gzip.open if path.suffix == ".gz" else open
-    with opener(path, "rt", encoding="utf-8") as handle:
-        for line in handle:
-            if not line.startswith("#"):
-                header = line
-                break
-            comments.append(line)
+    comments, first = _leading_lines(path, argument=argument)
     if comments and "\t" in comments[-1]:
-        return comments[-1], len(comments) - 1
-    return header, len(comments)
+        return comments[-1], len(comments) - 1, True
+    return first, len(comments), False
