@@ -1,5 +1,6 @@
 """x_kind, provenance, feature-changing subsets and categorical groupings (contracts/data-model-slots)."""
 
+import copy
 import json
 from importlib.metadata import version
 from typing import Literal, cast
@@ -82,7 +83,7 @@ def add_provenance(adata: AnnData, step: str, **params: ParamValue) -> None:
 def _kept_meta(adata: AnnData) -> dict[str, object]:
     """The ``uns['biotapy']`` entries that survive a feature change (``KEPT_META``)."""
     meta = adata.uns.get("biotapy", {"x_kind": "counts"})
-    return {key: meta[key] for key in KEPT_META if key in meta}
+    return copy.deepcopy({key: meta[key] for key in KEPT_META if key in meta})
 
 
 def feature_subset(adata: AnnData, index: npt.NDArray[np.intp]) -> AnnData:

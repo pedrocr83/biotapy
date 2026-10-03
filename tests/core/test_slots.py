@@ -26,6 +26,8 @@ def _adata() -> ad.AnnData:
     adata.layers["relative"] = adata.X.copy()
     adata.obsm["X_pcoa"] = np.zeros((2, 2))
     adata.obsp["braycurtis"] = sp.csr_matrix((2, 2))
+    adata.varm["loadings"] = np.zeros((3, 2))
+    adata.varp["links"] = sp.csr_matrix((3, 3))
     adata.uns["other"] = 1
     return adata
 
@@ -147,6 +149,7 @@ def test_replace_features_keeps_samples_and_drops_derived_slots():
     assert out.shape == (2, 1) and list(out.var_names) == ["g1"]
     assert out.obs["group"].tolist() == ["a", "b"]
     assert not out.layers.keys() - {None} and not out.obsm and not out.obsp
+    assert not out.varm and not out.varp
     assert set(out.uns) == {"biotapy"} and set(out.uns["biotapy"]) == {"x_kind", "provenance"}
 
 
@@ -156,3 +159,19 @@ def test_replace_features_does_not_touch_its_input(assert_unchanged):
     out = replace_features(adata, sp.csr_matrix(np.ones((2, 1))), pd.DataFrame(index=["g1"]))
     add_provenance(out, "test.after")
     assert_unchanged(before, adata)
+
+
+def test_replace_features_does_not_share_kept_metadata_with_its_input():
+    adata = _adata()
+    add_provenance(adata, "test.step")
+    out = replace_features(adata, sp.csr_matrix(np.ones((2, 1))), pd.DataFrame(index=["g1"]))
+    out.uns["biotapy"]["provenance"].append("extra")
+    assert len(adata.uns["biotapy"]["provenance"]) == 1
+
+
+def test_feature_subset_does_not_share_kept_metadata_with_its_input():
+    adata = _adata()
+    add_provenance(adata, "test.step")
+    out = feature_subset(adata, np.array([0, 1]))
+    out.uns["biotapy"]["provenance"].append("extra")
+    assert len(adata.uns["biotapy"]["provenance"]) == 1

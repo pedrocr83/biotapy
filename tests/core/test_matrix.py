@@ -80,3 +80,29 @@ def test_sum_pairs_with_one_group_per_feature_equals_sum_by(dense, data):
     np.testing.assert_array_equal(
         sum_pairs(sp.csr_matrix(dense), kept, codes[kept], n_groups=3).toarray(), expected.toarray()
     )
+
+
+@given(
+    arrays(np.int64, st.tuples(st.integers(1, 5), st.integers(1, 5)), elements=st.integers(0, 50)),
+    st.lists(st.tuples(st.integers(0, 4), st.integers(0, 2)), max_size=12),
+)
+def test_sum_pairs_many_to_many_matches_a_dense_reference(dense, pairs):
+    pairs = [(feature, group) for feature, group in pairs if feature < dense.shape[1]]
+    membership = np.zeros((dense.shape[1], 3), dtype=np.int64)
+    for feature, group in pairs:
+        membership[feature, group] = 1  # a set: a repeated pair stays 1
+    features = np.array([feature for feature, _ in pairs], dtype=np.intp)
+    groups = np.array([group for _, group in pairs], dtype=np.intp)
+    out = sum_pairs(sp.csr_matrix(dense), features, groups, n_groups=3)
+    np.testing.assert_array_equal(out.toarray(), dense @ membership)
+
+
+def test_sum_pairs_keeps_float_dtype():
+    out = sum_pairs(sp.csr_matrix(X, dtype=np.float32), np.array([0, 2]), np.array([0, 0]), n_groups=1)
+    assert out.dtype == np.float32
+    np.testing.assert_array_equal(out.toarray(), [[4], [10]])
+
+
+def test_sum_pairs_with_no_samples_gives_no_rows():
+    out = sum_pairs(sp.csr_matrix((0, 3), dtype=np.int64), np.array([0, 1]), np.array([0, 1]), n_groups=2)
+    assert out.shape == (0, 2) and out.nnz == 0
