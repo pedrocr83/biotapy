@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Refresh**: [phase-1-core](roadmap/phase-1-core.md) and
+  [engine-parity](contracts/engine-parity.md), commit and `generated` only,
+  against 809c508; the only change under their paths was a `tl.py` docstring
+  timing, which neither concept states.
 * **Fix**: [io](modules/io.md) no longer quotes `untyped_calls_exclude = ["biom"]`
   (the real list has four entries); [r-golden-parity](contracts/r-golden-parity.md)
   description now says "computation", since `pl` functions are exempt. Checked
