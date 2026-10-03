@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, task 2.1)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks task 2.1 (`_core.sum_pairs`, `_core.replace_features`).
+
 ## 2026-10-03 (Phase 2, task 2.0)
 * **Update**: [r-golden-parity](contracts/r-golden-parity.md) (statement 1b, HUMAnN parity row and fixtures exception, enforcement bullet; description reworded) and [regenerate-golden-files](playbooks/regenerate-golden-files.md) (HUMAnN section, paths). Added the HUMAnN fixtures with their MIT notice and the HUMAnN 3.9 golden export; ticked task 2.0 in [phase-2-function](roadmap/phase-2-function.md).
 

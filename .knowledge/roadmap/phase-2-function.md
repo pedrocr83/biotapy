@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T13:13:11Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:00:00Z }
+commit: 818eed6
 sources:
   - id: spec
     resource: ../../plan.md
@@ -351,7 +351,7 @@ not exist yet.
 
 # Tasks (checklist)
 - [x] 2.0 HUMAnN fixtures, notice and golden export
-- [ ] 2.1 `_core.sum_pairs` and `_core.replace_features`
+- [x] 2.1 `_core.sum_pairs` and `_core.replace_features`
 - [ ] 2.1b `_core` function tables and the mudata dependency
 - [ ] 2.3 `io.read_humann(path) -> MuData`
 - [ ] 2.3b `datasets.toy_humann() -> MuData`
@@ -776,7 +776,7 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   `uns = {"biotapy": {x_kind, provenance}}` from `adata`; `layers`, `obsm`,
   `obsp`, `varm`, `varp` and other `uns` keys are not carried.
 
-- [ ] **Step 1: Failing tests.** Append to `tests/core/test_matrix.py` and
+- [x] **Step 1: Failing tests.** Append to `tests/core/test_matrix.py` and
   change its import to `from biotapy._core import argmax_by, as_csr, sum_by, sum_pairs`:
   ```python
   def test_sum_pairs_counts_a_feature_in_every_group():
@@ -829,9 +829,9 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
       add_provenance(out, "test.after")
       assert_unchanged(before, adata)
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py tests/core/test_slots.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py tests/core/test_slots.py -q`
   -> `ImportError: cannot import name 'sum_pairs' from 'biotapy._core'`.
-- [ ] **Step 3: Implement.** Append to `src/biotapy/_core/_matrix.py`:
+- [x] **Step 3: Implement.** Append to `src/biotapy/_core/_matrix.py`:
   ```python
   def sum_pairs(
       X: sp.csr_matrix, features: npt.NDArray[np.intp], groups: npt.NDArray[np.intp], *, n_groups: int
@@ -868,9 +868,9 @@ columns = HUMAnN row ids without `": name"` (`UNMAPPED`, `G1`,
   `replace_features` from `._slots` (the `._slots` import becomes a
   parenthesised one-name-per-line list, as `ruff format` writes it), and add
   both to `__all__` in alphabetical order.
-- [ ] **Step 4: Run, expect pass** - same command -> `36 passed` (15 in
+- [x] **Step 4: Run, expect pass** - same command -> `36 passed` (15 in
   `test_matrix.py`, 21 in `test_slots.py`).
-- [ ] **Step 5: Gate and commit**
+- [x] **Step 5: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/_core/_matrix.py src/biotapy/_core/_slots.py src/biotapy/_core/__init__.py \

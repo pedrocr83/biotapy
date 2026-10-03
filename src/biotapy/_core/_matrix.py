@@ -38,3 +38,21 @@ def argmax_by(values: npt.NDArray[np.float64], codes: npt.NDArray[np.intp]) -> n
     order = valid[np.lexsort((-values[valid], codes[valid]))]
     first = np.r_[True, np.diff(codes[order]) != 0]
     return order[first]
+
+
+def sum_pairs(
+    X: sp.csr_matrix, features: npt.NDArray[np.intp], groups: npt.NDArray[np.intp], *, n_groups: int
+) -> sp.csr_matrix:
+    """Sum the columns of ``X`` into groups given ``(feature, group)`` membership pairs.
+
+    A feature listed with several groups counts in full toward each of them
+    (many-to-many, as ``humann_regroup_table`` does). The pairs are a set: a
+    repeated pair counts once. A feature in no pair is left out.
+    """
+    indicator = sp.csr_matrix(
+        (np.ones(features.size, dtype=X.dtype), (features, groups)),
+        shape=(X.shape[1], n_groups),
+    )
+    # The constructor sums repeated (feature, group) entries; membership is a set, so reset them to 1.
+    indicator.data[:] = 1
+    return sp.csr_matrix(X @ indicator)

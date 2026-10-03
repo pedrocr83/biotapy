@@ -6,7 +6,15 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from biotapy._core import add_provenance, feature_subset, infer_x_kind, require_categorical, require_counts, x_kind
+from biotapy._core import (
+    add_provenance,
+    feature_subset,
+    infer_x_kind,
+    replace_features,
+    require_categorical,
+    require_counts,
+    x_kind,
+)
 
 
 def _adata() -> ad.AnnData:
@@ -129,3 +137,22 @@ def test_feature_subset_drops_ordination_metadata():
         "nmds": {"stress": 0.1},
     }
     assert feature_subset(adata, np.array([0])).uns["biotapy"] == {"x_kind": "counts", "provenance": ["{}"]}
+
+
+def test_replace_features_keeps_samples_and_drops_derived_slots():
+    adata = _adata()
+    adata.obs["group"] = ["a", "b"]
+    add_provenance(adata, "test.step")
+    out = replace_features(adata, sp.csr_matrix(np.ones((2, 1))), pd.DataFrame(index=["g1"]))
+    assert out.shape == (2, 1) and list(out.var_names) == ["g1"]
+    assert out.obs["group"].tolist() == ["a", "b"]
+    assert not out.layers.keys() - {None} and not out.obsm and not out.obsp
+    assert set(out.uns) == {"biotapy"} and set(out.uns["biotapy"]) == {"x_kind", "provenance"}
+
+
+def test_replace_features_does_not_touch_its_input(assert_unchanged):
+    adata = _adata()
+    before = adata.copy()
+    out = replace_features(adata, sp.csr_matrix(np.ones((2, 1))), pd.DataFrame(index=["g1"]))
+    add_provenance(out, "test.after")
+    assert_unchanged(before, adata)

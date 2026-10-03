@@ -7,6 +7,7 @@ from typing import Literal, cast
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import scipy.sparse as sp
 from anndata import AnnData
 
 from ._matrix import as_csr
@@ -78,6 +79,12 @@ def add_provenance(adata: AnnData, step: str, **params: ParamValue) -> None:
     meta["provenance"] = [*meta.get("provenance", []), entry]
 
 
+def _kept_meta(adata: AnnData) -> dict[str, object]:
+    """The ``uns['biotapy']`` entries that survive a feature change (``KEPT_META``)."""
+    meta = adata.uns.get("biotapy", {"x_kind": "counts"})
+    return {key: meta[key] for key in KEPT_META if key in meta}
+
+
 def feature_subset(adata: AnnData, index: npt.NDArray[np.intp]) -> AnnData:
     """Subset features and drop every slot derived from the old feature set."""
     out = adata[:, index].copy()
@@ -86,6 +93,15 @@ def feature_subset(adata: AnnData, index: npt.NDArray[np.intp]) -> AnnData:
         # anndata 0.13 lists X itself as layers[None]; deleting that key would delete X.
         for key in [key for key in mapping.keys() if key is not None]:
             del mapping[key]
-    meta = out.uns.get("biotapy", {"x_kind": "counts"})
-    out.uns = {"biotapy": {key: meta[key] for key in KEPT_META if key in meta}}
+    out.uns = {"biotapy": _kept_meta(out)}
     return out
+
+
+def replace_features(adata: AnnData, X: sp.csr_matrix, var: pd.DataFrame) -> AnnData:
+    """A new AnnData with ``adata``'s samples and new features ``var`` (an aggregation's groups).
+
+    Keeps ``obs`` and the ``uns['biotapy']`` keys a feature change keeps; every
+    slot derived from the old features is left behind, as in ``feature_subset``.
+    """
+    # anndata types .obs as DataFrame | Dataset2D (its lazy variant); the data model guarantees a DataFrame.
+    return AnnData(X=X, obs=cast("pd.DataFrame", adata.obs).copy(), var=var, uns={"biotapy": _kept_meta(adata)})
