@@ -18,7 +18,8 @@ def _leading_lines(path: Path, *, argument: str) -> tuple[list[str], str]:
     comments: list[str] = []
     opener = gzip.open if path.suffix == ".gz" else open
     try:
-        with opener(path, "rt", encoding="utf-8") as handle:
+        # utf-8-sig drops a byte-order mark, which would otherwise hide a leading "#".
+        with opener(path, "rt", encoding="utf-8-sig") as handle:
             for line in handle:
                 if not line.startswith("#"):
                     return comments, line
@@ -74,6 +75,7 @@ def _read_table(path: Path, header: str, *, skiprows: int, argument: str, text: 
             index_col=0,
             dtype=dict.fromkeys(range(text), str),
             quoting=csv.QUOTE_NONE,
+            encoding="utf-8-sig",
         )
     except (
         pd.errors.EmptyDataError,

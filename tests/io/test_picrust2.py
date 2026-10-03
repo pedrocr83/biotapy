@@ -359,3 +359,10 @@ def test_an_error_without_contrib_does_not_mention_it(tmp_path):
     with pytest.raises(ValueError, match=r"u\.tsv.*duplicate var ids") as info:
         bt.io.read_picrust2(write(tmp_path, "function\tS1\nEC:1.1.1.1\t1\n1.1.1.1\t2\n", "u.tsv"))
     assert "contrib=" not in str(info.value)
+
+
+def test_a_byte_order_mark_before_a_biom_header_is_ignored(tmp_path):
+    path = tmp_path / "bom.tsv"
+    path.write_bytes("﻿# Constructed from biom file\n#OTU ID\tS1\nEC:1.1.1.1\t1.0\n".encode())
+    mdata = bt.io.read_picrust2(path)
+    assert mdata.obs_names.tolist() == ["S1"] and mdata["function"].var_names.tolist() == ["1.1.1.1"]

@@ -291,3 +291,10 @@ def test_read_humann_names_the_path_of_an_unreadable_file(tmp_path):
     path.write_bytes(b"# Gene Family\tS1_Abundance-RPKs\nK\xe91\t2.0\n")
     with pytest.raises(ValueError, match=r"bad_genefamilies\.tsv"):
         bt.io.read_humann(path)
+
+
+def test_a_byte_order_mark_before_the_comments_is_ignored(tmp_path):
+    path = tmp_path / "bom.tsv"
+    path.write_bytes("﻿#mpa_v30\nclade_name\tS1\nk__A\t100.0\n".encode())
+    tdata = bt.io.read_metaphlan(path)
+    assert tdata.obs_names.tolist() == ["S1"] and tdata.var_names.tolist() == ["A"]

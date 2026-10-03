@@ -269,3 +269,11 @@ def test_an_na_id_raises_saying_na(tmp_path):
     path.write_text("# Pathway\tS1\nNA\t1\n")
     with pytest.raises(ValueError, match=r"na_id\.tsv.*no id \(an empty or NA first cell\)"):
         bt.io.read_humann(path)
+
+
+def test_a_byte_order_mark_before_the_comments_is_ignored(tmp_path):
+    # Windows editors save UTF-8 with a byte-order mark; it must not hide the leading "#".
+    path = tmp_path / "bom.tsv"
+    path.write_bytes("﻿# comment\n# Pathway\tS1_Abundance-RPKs\nPWY-1\t1.0\n".encode())
+    mdata = bt.io.read_humann(path)
+    assert mdata.obs_names.tolist() == ["S1"] and mdata["function"].var_names.tolist() == ["PWY-1"]
