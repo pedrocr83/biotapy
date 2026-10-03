@@ -13,6 +13,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     io.read_biom
     io.read_dada2
+    io.read_humann
     io.read_phyloseq
     io.read_qiime2
     io.write_biom
@@ -28,9 +29,11 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     datasets.enterotype
+    datasets.enzyme
     datasets.esophagus
     datasets.global_patterns
     datasets.toy
+    datasets.toy_humann
 ```
 
 ## Preprocessing
@@ -47,6 +50,20 @@ Public functions are listed here as they ship, from Phase 1 onward.
     pp.rarefy
     pp.relative
     pp.tax_glom
+```
+
+## Function
+
+```{eval-rst}
+.. module:: biotapy.fn
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    fn.func_glom
+    fn.load_hierarchy
+    fn.renorm
 ```
 
 ## Tools

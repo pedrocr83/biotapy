@@ -4,9 +4,9 @@ title: Data-model slots
 description: Which AnnData/TreeData slot holds what, the exact result keys, the x_kind and provenance conventions, and which slots feature-changing operations drop.
 tags: [data-model, api]
 status: stable
-paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T07:45:00Z }
-commit: 06e2537
+paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
+commit: 8e0442b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -30,7 +30,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
 | `layers` | same-shape transforms of `X` | `relative`; `clr` from `pp.clr` (Phase 3, not yet written) |
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
-| `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column) |
+| `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column); function tables: see Function tables |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
 | `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
@@ -56,7 +56,12 @@ Extends the spec's data-model table with exact keys.[^spec]
    Readers always set it, inferred from the values by `_core.infer_x_kind`
    (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
-   No file format records it (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
+   The exception is `io.read_humann`, which reads it from the table header (`RPKs` ->
+   `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
+   `relative`) and labels a header without a unit `abundance`, never `counts`.
+   `fn.renorm` rescales `X` (and may drop the special rows), setting `x_kind` to `relative` or `cpm`;
+   its `relative` stratified rows do not sum to 1: they are shares of the community total.
+   The other readers infer it because their formats record no unit (BIOM, QIIME 2 `RelativeFrequency`, a DADA2
    text table), and labeling proportions `counts` would misdescribe them to
    every function that reads `x_kind`. Missing key means `counts`. Functions that need raw counts
    (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
@@ -79,15 +84,32 @@ Extends the spec's data-model table with exact keys.[^spec]
    5), so integer or mixed-type ids from a reader (e.g. unquoted BIOM JSON
    ids) never collide silently.
 
+## Function tables
+`io.read_humann` (and, from Phase 2 slice 2B, `io.read_picrust2`) returns a
+`MuData` built by `_core.make_function_mudata` with two modalities over the
+same samples, each an `AnnData` with its own copy of `obs`:
+
+| Modality | Features | `var` columns |
+|---|---|---|
+| `"function"` | community rows, e.g. `PWY-1` | `name`, `special` |
+| `"function_by_taxon"` | stratified rows, e.g. `PWY-1\|g__Bacteroides.s__Bacteroides_ovatus` | `function`, `name`, `taxon`, `genus`, `species`, `special` |
+
+`var_names` drop the row's `": name"`. `special` flags `UNMAPPED`,
+`READS_UNMAPPED`, `UNINTEGRATED` and `UNGROUPED`, which stay features. Text
+columns use the pandas `str` dtype, as rank columns do. Both modalities
+always exist; either may have 0 features. The community values are not
+the sum of their strata for pathways, which is why there are two.
+
 ## Propagation
 | Operation | Keeps | Drops |
 |---|---|---|
-| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
+| Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `fn.renorm`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
 | Layer-adding (`pp.relative`; `pp.clr` in Phase 3) | everything | nothing; adds one layer |
 
-Feature-changing operations go through `_core.feature_subset`, the single place
-that implements the "Drops" column.
+Feature-changing operations go through `_core.feature_subset`, or `_core.replace_features` when the new
+features are groups rather than a subset; both keep only `KEPT_META`, the
+single definition of the "Drops" column.
 
 ## Aggregation semantics (`tax_glom`)
 Matches phyloseq:[^phyloseq-glom] features are grouped by the full lineage up
@@ -96,6 +118,21 @@ families stay separate); the representative ("archetype") is the most abundant
 feature, first on ties; ranks below the target become `NaN`. The kept tree is
 the archetypes' subtree; TreeData keeps unary nodes, which leaves root-to-tip
 path lengths, and therefore Faith PD and UniFrac, unchanged.[^treedata]
+
+## Aggregation semantics (`func_glom`)
+Matches `humann_regroup_table` (HUMAnN 3.9, `--ungrouped Y --protected Y`):
+a feature counts in full toward every parent it has at the level; features
+with none are summed into `UNGROUPED` (per taxon when `var` has `taxon`);
+`UNMAPPED`, `READS_UNMAPPED` and `UNINTEGRATED` pass through
+(`READS_UNMAPPED` as in HUMAnN master; 3.9 sums it into `UNGROUPED`);
+`agg="mean"` divides by the members present. Groups are sorted by name.
+`var` holds
+`name` (from the hierarchy's `parent_name`) and `special`, plus `function`,
+`taxon` and rank columns for a stratified input. The input's `x_kind` is
+kept only for a sum in which every feature has at most one parent at the
+level; a mean, or a sum with a feature in several parents, sets it to
+`abundance`, so `require_counts` refuses it (a read would count once per
+parent, and proportions would no longer sum to 1).
 
 # Why
 A slot whose meaning depends on which function wrote it cannot be trusted by

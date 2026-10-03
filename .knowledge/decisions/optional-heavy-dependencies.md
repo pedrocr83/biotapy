@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T07:40:00Z }
-commit: 806bede
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:43:01Z }
+commit: 858c12a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -44,7 +44,12 @@ torch or an R installation into every install is unacceptable.[^spec]
   load it. It brings contourpy, cycler, fonttools, kiwisolver, pillow and
   pyparsing. Checkpoint D declared threadpoolctl (`>=3.5`, approved
   2026-10-03), already installed through scikit-learn: `tl.permanova` limits
-  scikit-bio's OpenMP F-statistic to one thread with it.
+  scikit-bio's OpenMP F-statistic to one thread with it. Phase 2 task 2.1b
+  added mudata (`>=0.4`, approved 2026-10-03): a HUMAnN or PICRUSt2 table needs
+  a community and a per-taxon modality over the same samples, which neither
+  AnnData nor TreeData holds. It is pure Python (BSD-3); what it needs
+  (`scverse-misc[settings]`, pydantic-settings, python-dotenv, pydantic) is
+  already installed through anndata.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

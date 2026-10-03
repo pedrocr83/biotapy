@@ -9,8 +9,8 @@ phase_state: not-started
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -45,6 +45,10 @@ Expand into TDD steps (superpowers:writing-plans) when the phase starts.
 
 - [ ] **4.1 MuData conventions** - modality names `taxa`, `function`,
   `metabolites`, `host`; `io.to_mudata(**modalities) -> MuData` aligning samples; decision concept.
+  A Phase 2 function table is already a two-modality MuData (`function`,
+  `function_by_taxon`), so `function` here cannot be a nested MuData: use
+  `function` and `function_by_taxon` side by side
+  ([function-tables-as-mudata](/decisions/function-tables-as-mudata.md)).
 - [ ] **4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`** - wraps scikit-bio's mmvec.
 - [ ] **4.3 `ml.PrevalenceFilter`, `ml.RelativeAbundance`, `ml.CLR`** - sklearn transformers over arrays (`fit` learns kept features); `sklearn.utils.estimator_checks.check_estimator` passes.
 - [ ] **4.4 `ml.embed(adata, model, *, batch_size=64, inplace=False)`** - plugin loader over the entry-point group; one reference plugin (MGM or BiomeGPT, whichever has usable public weights).

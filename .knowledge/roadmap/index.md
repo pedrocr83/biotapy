@@ -1,6 +1,6 @@
 # Active phase
 
-* [Phase 2 - Function (0.2)](phase-2-function.md) - HUMAnN 4, PICRUSt2 and MetaPhlAn readers; KO -> module -> pathway hierarchies with func_glom; stratified taxa-to-function links; functional redundancy. **phase_state: in-progress**
+* [Phase 2 - Function (0.2)](phase-2-function.md) - HUMAnN 3/4, PICRUSt2 and MetaPhlAn readers; user-supplied and ENZYME hierarchies with func_glom; HUMAnN-parity renorm; stratified taxa-to-function links; functional redundancy (Tian 2020). **phase_state: in-progress**
 
 # Phases
 

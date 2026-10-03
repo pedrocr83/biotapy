@@ -150,8 +150,10 @@ Full contract: [.knowledge/contracts/data-model-slots.md](.knowledge/contracts/d
 - **R8.2** Every public function has a NumPy docstring with: summary,
   Parameters, Returns, a `Notes` section containing exactly one
   `R equivalent: ``pkg::fn``` line (or `R equivalent: none`) and a `Guide:`
-  link, a runnable `Examples` section using `bt.datasets.toy()`, and
-  References where a method is cited.
+  link, a runnable `Examples` section using `bt.datasets.toy()` (or
+  `bt.datasets.toy_humann()` for function tables; a function that reads a file
+  may write a small temp file in its example), and References where a method
+  is cited.
 - **R8.3** Where documentation goes
   ([docs-okf-and-sphinx](.knowledge/decisions/docs-okf-and-sphinx.md)):
 

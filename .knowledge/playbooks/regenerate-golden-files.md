@@ -4,9 +4,9 @@ title: Regenerate the R golden files
 description: Rebuild the pinned R image and rerun it to regenerate golden CSVs and R-only test fixtures, with a bit-identical check before committing.
 tags: [testing, r, validation]
 status: stable
-paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**", "tests/humann/**", "tests/data/humann/**"]
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:10:30Z }
+commit: 3b50719
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -29,10 +29,11 @@ sources:
 From the repo root:
 ```bash
 docker build -t biotapy-golden tests/r
+mkdir -p build  # git-ignored; holds the checksum between the two runs
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
-sha256sum tests/golden/*/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > /tmp/golden-run1.sha
+sha256sum tests/golden/*/*.csv.gz tests/data/phyloseq/* tests/data/dada2/* > build/golden-run1.sha
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work biotapy-golden
-sha256sum -c /tmp/golden-run1.sha
+sha256sum -c build/golden-run1.sha
 ```
 - `-e HOME=/tmp` is required: R needs a writable `HOME` when the container
   runs as the host's non-root uid/gid (`--user "$(id -u):$(id -g)"`), which
@@ -48,6 +49,19 @@ sha256sum -c /tmp/golden-run1.sha
   every file at test time, so growth is caught even for files the script does
   not gate. If a file hits either limit, stop and report the size — do not
   change the golden layout without the controller's ruling.
+
+# HUMAnN golden files
+When HUMAnN's pin (3.9) changes, or a HUMAnN-parity golden is added:
+```bash
+uv run --no-project --with humann==3.9 --with pandas==3.0.6 python tests/humann/export_golden.py
+mkdir -p build
+sha256sum tests/golden/humann/* > build/humann-golden.sha
+uv run --no-project --with humann==3.9 --with pandas==3.0.6 python tests/humann/export_golden.py
+sha256sum -c build/humann-golden.sha
+```
+The script writes gzip with `mtime=0`, so reruns are bit-identical. The
+synthetic inputs in `tests/data/humann/` are hand-written: change them
+deliberately, then regenerate; never edit a golden CSV.
 
 # Verification
 ```bash

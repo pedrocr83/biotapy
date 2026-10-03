@@ -1,21 +1,22 @@
 ---
 type: Module
 title: io
-description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables and phyloseq objects, building every TreeData through _core.make_treedata.
+description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables and phyloseq objects (each a TreeData through _core.make_treedata) and HUMAnN tables (a MuData through _core.make_function_mudata).
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T06:55:56Z }
-commit: 2d0cab6
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 status: stable
 ---
 
 # Responsibility
 
-Owns the `bt.io.*` verbs that move data between files and a TreeData:
+Owns the `bt.io.*` verbs that move data between files and a TreeData (or, for
+a function table, a MuData):
 `read_biom`/`write_biom` (`_biom.py`), `read_qiime2` (`_qiime2.py`),
-`read_dada2` (`_dada2.py`) and `read_phyloseq` (`_phyloseq.py`, `_rdata.py`),
-plus the private checked-join helper shared across readers (`_join.py`). Does
+`read_dada2` (`_dada2.py`), `read_phyloseq` (`_phyloseq.py`, `_rdata.py`) and
+`read_humann` (`_humann.py`), plus the private checked-join helper shared across readers (`_join.py`). Does
 NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 [datasets](/modules/datasets.md), Task 1.11): those call `read_phyloseq`.
 
@@ -37,16 +38,39 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   `rdata` `constructor_dict` for phyloseq's five S4 slots, and a plain R
   matrix reader (numeric or character) shared with `read_dada2`'s `.rds`
   input (Task 1.9b).
+- `_humann.py:read_humann` - one HUMAnN 3 or 4 table (gene families,
+  reactions, pathway abundance; per sample or joined; `.gz` allowed) to a
+  two-modality MuData, `function` and `function_by_taxon`, through
+  `_core.make_function_mudata`. Reads one table per call.
+- `_humann.py:_read_table` - private; the pandas read plus the malformed-file
+  checks (more or fewer cells than the header, a non-number, a missing value),
+  each raising `ValueError` naming `path`.
 - `_join.py:_join_to` - private; the one checked reindex-join for a side file
   (taxonomy, metadata, taxa) onto a table's ids, used by every reader above
   that joins a side file.
 
 # Invariants
 
-- Every reader builds its result only through `_core.make_treedata`.
+- Every TreeData reader builds its result only through `_core.make_treedata`;
+  `read_humann` builds its MuData only through `_core.make_function_mudata`.
   `_biom.py:read_biom`, `_qiime2.py:read_qiime2` and `_dada2.py:read_dada2`
   set `x_kind` by calling `_core.infer_x_kind` on the freshly parsed matrix,
   never a literal; `_phyloseq.py:read_phyloseq` does the same.
+- `read_humann` takes `x_kind` from the table header instead, because HUMAnN
+  records the unit there: `RPKs` is `rpk`, `CPM`/`_cpm`/`Adjusted CPMs` is
+  `cpm`, `RELAB`/`_relab` is `relative`, and a header with no unit (pathway
+  abundance) is `abundance`, never `counts`, even when every value is whole.
+  `_humann.py:_UNITS`, `_humann.py:read_humann`. The header is HUMAnN's rule:
+  the last `#` line, or the first line when there is none
+  (`_humann.py:read_humann`); the first cell can be stale after
+  `humann_renorm_table --update-snames`, so a `-RELAB` or `-CPM` sample column
+  outranks it (`_humann.py:_UNITS` order).
+- Sample names lose HUMAnN's suffixes (`_Abundance-RPKs`, `-CPM`, `-RELAB`, a
+  joined file's `_pathabundance_cpm`) (`_humann.py:_SUFFIX`). Pathway coverage
+  tables are refused (`_humann.py:_COVERAGE`).
+- Every `read_humann` error names `path`, including the ones raised in `_core`
+  (repeated sample or row ids, a row id with two `|`), which it re-raises with
+  the path and the original as `__cause__`. `_humann.py:read_humann`.
 - biom-format stores observations (features) x samples; `_biom_parts`
   transposes exactly once so biotapy's samples-as-rows convention holds from
   there on. `_biom.py:_biom_parts`.
@@ -86,7 +110,7 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 
 # Dependencies
 
-- [core](/modules/core.md): `make_treedata`, `infer_x_kind`, `split_lineage`,
+- [core](/modules/core.md): `make_function_mudata`, `XKind`, `make_treedata`, `infer_x_kind`, `split_lineage`,
   `normalize_ranks`, `tree_from_newick`, `tree_from_phylo`, `tree_tips`,
   `relabel_tips`, `warn_user`, `TreeData`, `RANKS`, `as_csr`.
 - Third-party: `biom-format` (`_biom.py`, and `_qiime2.py` via
@@ -102,6 +126,18 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 
 # Gotchas
 
+- `read_humann` reads the whole table into one dense rows x samples
+  `float64` array before converting to CSR (about 290 MB for HMP2's 22,113 x
+  1,638 pathway table); `_humann.py:_read_table`. R6.2's no-densify rule is
+  met by the docstring `Notes` stating the cost, not by avoiding the array.
+- `read_humann` has no R golden. Its R equivalent (`mia::importHUMAnN`) is named
+  for the Coming-from-R table, and its parity comes from the HUMAnN goldens of
+  `fn.func_glom` and `fn.renorm` that read through it
+  ([r-golden-parity](/contracts/r-golden-parity.md), statement 8).
+- `read_humann` reads one table per call: a gene family table and a pathway
+  table both hold `UNMAPPED`, so they cannot share a modality. h5mu round-trips
+  the result only because the text `var` columns are the `str` dtype
+  (`_core/_function.py:function_var`).
 - `io/_qiime2.py` imports the private `_biom_parts` straight from its sibling
   `io/_biom.py` (`_qiime2.py`'s `from ._biom import _biom_parts`) rather than duplicating the BIOM-parsing
   logic. This is a deliberate exception to

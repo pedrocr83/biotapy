@@ -1,0 +1,45 @@
+CC   -----------------------------------------------------------------------
+CC
+CC   ENZYME nomenclature database
+CC
+CC   -----------------------------------------------------------------------
+CC   Release of 02-Sep-2026
+CC   -----------------------------------------------------------------------
+CC
+CC   Alan Bridge and Kristian Axelsen
+CC   SIB Swiss Institute of Bioinformatics
+CC   Centre Medical Universitaire (CMU)
+CC   1, rue Michel Servet
+CC   1211 Geneva 4
+CC   Switzerland
+CC
+CC   Email: enzyme@expasy.org
+CC
+CC   WWW server: https://enzyme.expasy.org/
+CC
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the SIB Swiss Institute of Bioinformatics and
+CC   distributed under the Creative Commons Attribution (CC BY 4.0) License
+CC   -----------------------------------------------------------------------
+//
+ID   1.1.1.1
+DE   alcohol dehydrogenase.
+//
+ID   1.1.1.5
+DE   Transferred entry: 1.1.1.303 and 1.1.1.304.
+//
+ID   1.1.1.74
+DE   Deleted entry.
+//
+ID   1.1.1.n4
+DE   (-)-trans-carveol dehydrogenase.
+//
+ID   2.7.1.1
+DE   hexokinase.
+//
+ID   2.7.1.2
+DE   glucokinase.
+//
+ID   3.2.1.4
+DE   cellulase.
+//

@@ -1,7 +1,9 @@
 # Example datasets
 
-`biotapy.datasets` ships four example datasets, each returning the same
-[data model](data_model.md) every biotapy function relies on.
+`biotapy.datasets` ships six datasets: five examples and the ENZYME hierarchy
+for `bt.fn.func_glom`. Four of the examples return the [data model](data_model.md)
+every biotapy function relies on; `toy_humann` returns a `MuData` function
+table.
 
 ## `toy`
 
@@ -15,6 +17,21 @@ import biotapy as bt
 
 tdata = bt.datasets.toy()
 tdata.shape  # (6, 8)
+```
+
+## `toy_humann`
+
+`bt.datasets.toy_humann()` is the toy samples' gene families as HUMAnN writes
+them after regrouping to EC numbers, built in memory: a `MuData` whose
+`"function"` modality holds `UNMAPPED`, `UNGROUPED` and four EC numbers in
+RPK, and whose `"function_by_taxon"` modality holds their seven strata.
+`bt.fn` docstrings use it:
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+mdata["function"].shape  # (6, 6)
 ```
 
 ## `global_patterns`, `enterotype` and `esophagus`
@@ -52,11 +69,27 @@ per-user cache directory (`pooch.os_cache("biotapy")`):
 BIOTAPY_DATA_DIR=/path/to/cache python my_script.py
 ```
 
+## `enzyme`
+
+`bt.datasets.enzyme()` downloads ENZYME's `enzyme.dat` (9.6 MB) and
+`enzclass.txt` from the SIB Swiss Institute of Bioinformatics and returns the
+EC hierarchy as an edge table: every EC number with its sub-subclass,
+subclass and class, named from `enzclass.txt`. ENZYME keeps only its current
+release online, so no hash can be pinned: the first download is cached for
+good, and `attrs["source"]` records which release it was. To take a newer
+release, delete both cached files, `enzyme.dat` and `enzclass.txt`, from
+`BIOTAPY_DATA_DIR` if you set it, otherwise from the per-user cache directory
+(`pooch.os_cache("biotapy")`, which depends on your platform). Delete both:
+`enzyme()` raises if the two files come from different releases.
+
 ## Licensing
 
 `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository
 at runtime; biotapy ships none of it. That data stays licensed to
-phyloseq's authors under AGPL-3. biotapy itself is
+phyloseq's authors under AGPL-3. `enzyme` downloads ENZYME,
+copyrighted by the SIB Swiss Institute of Bioinformatics and distributed
+under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); cite it when
+you publish results that use it. biotapy itself is
 [BSD-3-Clause](https://github.com/pedrocr83/biotapy/blob/master/LICENSE).
 
 [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data

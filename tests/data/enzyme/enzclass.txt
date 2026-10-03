@@ -1,0 +1,25 @@
+----------------------------------------------------------------------------
+        ENZYME nomenclature database
+        SIB Swiss Institute of Bioinformatics; Geneva, Switzerland
+----------------------------------------------------------------------------
+
+Description: Definition of enzyme classes, subclasses and sub-subclasses
+Name:        enzclass.txt
+Release:     02-Sep-2026
+
+----------------------------------------------------------------------------
+
+1. -. -.-  Oxidoreductases.
+1. 1. -.-   Acting on the CH-OH group of donors.
+1. 1. 1.-    With NAD(+) or NADP(+) as acceptor.
+2. -. -.-  Transferases.
+2. 7. -.-   Transferring phosphorus-containing groups.
+2. 7. 1.-    Phosphotransferases with an alcohol group as acceptor.
+3. -. -.-  Hydrolases.
+3. 2. -.-   Glycosylases.
+3. 2. 1.-    Glycosidases, i.e. enzymes hydrolyzing O- and S-glycosyl compounds.
+
+----------------------------------------------------------------------------
+Copyrighted by the SIB Swiss Institute of Bioinformatics and
+distributed under the Creative Commons Attribution (CC BY 4.0) License
+----------------------------------------------------------------------------

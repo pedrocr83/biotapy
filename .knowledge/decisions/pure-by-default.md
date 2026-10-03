@@ -5,8 +5,8 @@ description: io/pp return new objects and never mutate input; tl returns results
 tags: [api, conventions]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-27T19:50:20Z }
-generated: { by: claude-code/claude-sonnet-5, at: 2026-09-27T18:29:04Z }
-commit: 795dc19
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 sources:
   - id: spec
     resource: ../../plan.md
@@ -23,7 +23,7 @@ behaviour. Confirmed by the user on 2026-09-26.
 # Decision
 | Module | Returns | Mutates input |
 |---|---|---|
-| `io`, `datasets` | new `TreeData` / `MuData` | n/a |
+| `io`, `datasets` | new `TreeData` / `MuData`; `datasets.enzyme` a `pd.DataFrame` edge table | n/a |
 | `pp` | new `TreeData` | never |
 | `tl` (default `inplace=False`) | the result (`pd.DataFrame`, `np.ndarray`, `pd.Series`) | never |
 | `tl` with `inplace=True` | `None` | writes to the slot named in [data-model-slots](/contracts/data-model-slots.md) |

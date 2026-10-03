@@ -253,3 +253,32 @@ Biostrings::writeXStringSet(refseq(ps), "refseq.fasta")
 ps@refseq <- NULL
 saveRDS(ps, "ps.rds")
 ```
+
+## HUMAnN
+
+`bt.io.read_humann` reads one HUMAnN 3 or 4 table - gene families, reactions
+or pathway abundance, per sample or merged with `humann_join_tables`, raw or
+after `humann_regroup_table` / `humann_renorm_table` - into a `MuData` with a
+`"function"` (community) and a `"function_by_taxon"` (stratified) modality;
+the [function guide](function.md) explains why there are two.
+
+```python
+import biotapy as bt
+
+mdata = bt.io.read_humann("sample_genefamilies.tsv")
+```
+
+- **Header.** The last line starting with `#` is the header, or the first
+  line when none does (the HMP2 merged tables).
+- **Ids.** `UniRef90_X: name|g__Genus.s__Species` becomes the feature
+  `UniRef90_X|g__Genus.s__Species`, with `name`, `taxon`, `genus` and
+  `species` in `var`.
+- **Samples.** HUMAnN's column suffixes (`_Abundance-RPKs`, `_Abundance`,
+  `-CPM`, `-RELAB`, a joined file's `_pathabundance_cpm`) are removed.
+- **Units.** `x_kind` comes from the header: `RPKs` is `"rpk"`, `CPM`
+  (`Adjusted CPMs` in HUMAnN 4) is `"cpm"`, `RELAB` is `"relative"`. A
+  header without a unit - pathway abundance as HUMAnN writes it - is
+  `"abundance"`, never `"counts"`. After renormalising with HUMAnN, pass
+  `--update-snames` so the header names the new unit.
+- **Not read.** Pathway coverage tables (HUMAnN 3 only) raise a
+  `ValueError`: they are not abundances.

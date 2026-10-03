@@ -1,12 +1,12 @@
 ---
 type: Module
 title: Core (`_core`)
-description: Private kernel package - sparse group math, taxonomic rank order, x_kind/provenance/slot rules, and the sole gateway to TreeData and networkx.
+description: Private kernel package - sparse group math, taxonomic rank order, function-table construction, x_kind/provenance/slot rules, and the sole gateway to TreeData and networkx.
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+commit: 020efbb
 status: stable
 ---
 
@@ -14,7 +14,8 @@ status: stable
 
 Owns: sparse matrix kernels (`_matrix.py`), the canonical taxonomic rank order
 and lineage/rank-column parsing (`_taxonomy.py`), the `x_kind`/provenance/
-`feature_subset` slot rules (`_slots.py`), TreeData construction and the only
+`feature_subset`/`replace_features` slot rules (`_slots.py`), function-table
+construction and the HUMAnN special-row constants (`_function.py`), TreeData construction and the only
 import of `treedata`/`networkx` in the package (`_tree.py`), the single
 user-facing warning entry point (`_warnings.py`), lazy optional-dependency
 import (`_optional.py`), and the single RNG entry point (`_rng.py`).
@@ -31,6 +32,11 @@ none of them back.
 - `_matrix.py:sum_by` / `_matrix.py:argmax_by` - grouped column sum and
   grouped argmax by integer group codes, negative codes dropped; today's only
   caller is `pp.tax_glom`.
+- `_matrix.py:sum_pairs` - column sums into groups from `(feature, group)`
+  membership pairs, where a feature may sit in several groups and counts in
+  full toward each (many-to-many); the pairs are a set, a repeated pair counts
+  once; used by `fn.func_glom`. Where `sum_by` assigns each feature one group,
+  this does not.
 - `_taxonomy.py:split_ranks` - split `var`'s taxonomy columns at a target
   rank, raising `KeyError` naming the rank when it is absent.
 - `_taxonomy.py:normalize_ranks` - canonicalize rank column names (aliases,
@@ -56,8 +62,23 @@ none of them back.
 - `_slots.py:add_provenance` - append one provenance entry; a numpy scalar
   parameter (a threshold taken from a numpy reduction) is stored as its Python
   value through `.item()`, since `json` rejects it.
-- `_slots.py:feature_subset` - the only place that implements the
-  Propagation table in [data-model-slots](/contracts/data-model-slots.md).
+- `_slots.py:feature_subset` / `_slots.py:replace_features` - together the
+  only places that implement the Propagation table in
+  [data-model-slots](/contracts/data-model-slots.md): `feature_subset` keeps a
+  subset of the features, `replace_features` builds a new AnnData over new
+  features (a group aggregation) from the same samples. Both keep only
+  `_slots.py:KEPT_META`; `replace_features` returns a plain AnnData, with no
+  `vart`.
+- `_function.py:make_function_mudata` / `_function.py:function_var` - split
+  HUMAnN-style row ids (`ID: name|stratum`) into the `function` and
+  `function_by_taxon` modalities and their `var` columns, with `x_kind` and
+  provenance set; used by `io.read_humann` and `datasets.toy_humann`. A row id
+  with two `|` raises `ValueError`, as do repeated sample or row ids. See
+  [function-tables-as-mudata](/decisions/function-tables-as-mudata.md).
+- `_function.py:SPECIAL_FEATURES` / `PROTECTED_FEATURES` / `UNGROUPED` /
+  `FUNCTION_KEY` / `BY_TAXON_KEY` - the one definition of HUMAnN's special
+  rows and the modality names; `io`, `datasets` and `fn` import them and
+  repeat no literal.
 - `_tree.py:make_treedata` / `get_tree` / `tree_from_edges` - build or read a
   TreeData's phylogeny; the only functions allowed to touch `treedata` or
   `networkx` ([tree-access](/contracts/tree-access.md)). `make_treedata`
@@ -84,7 +105,8 @@ none of them back.
   `KeyError` (from `get_tree`) when it has no `vart['phylo']`.
 - `_warnings.py:warn_user` - the single `UserWarning` entry point, attributed
   to the first stack frame outside biotapy; shared by `_tree.py` (tree/table
-  mismatch) and `io/_join.py` (partial join).
+  mismatch), `io/_join.py` (partial join) and `fn/_renorm.py` (zero-total
+  samples).
 - `_optional.py:import_optional` - lazy import for a heavy extra, raising an
   `ImportError` that names the extra to install.
 - `_rng.py:as_generator` - the single entry point that turns a seed into a
@@ -121,6 +143,9 @@ none of them back.
   prunes tips outside the table (ancestors kept); a partial overlap gives one
   `UserWarning` naming both counts, and no overlap at all raises `ValueError`
   with example ids from each side. `_tree.py:_align_tree`.
+- Function `var` text columns (`name`, `function`, `taxon`, `genus`,
+  `species`) are the pandas `str` dtype for the same reason
+  (`_function.py:function_var`).
 - Rank columns (`_taxonomy.py:normalize_ranks`) are the pandas `str` dtype,
   never `object`: anndata's h5ad/h5td writer raises on an all-NaN `object`
   column, which a reader whose `species` rank is entirely missing would
@@ -129,7 +154,7 @@ none of them back.
 # Dependencies
 
 None inside biotapy. Imports only third-party packages: `numpy`, `scipy`,
-`pandas`, `anndata`, and, in `_tree.py` only, `treedata`/`networkx` and
+`pandas`, `anndata`, `mudata` (`_function.py` only) and, in `_tree.py` only, `treedata`/`networkx` and
 scikit-bio (Newick parsing, `_tree.py:tree_from_newick`; also used for
 `TreeNode` conversion, `_tree.py:get_skbio_tree`). scikit-bio is a
 real cost at import time: measured at commit 43d6efb, `import biotapy` takes

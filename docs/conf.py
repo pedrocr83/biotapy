@@ -108,6 +108,7 @@ intersphinx_mapping = {
     "skbio": ("https://scikit.bio/docs/latest/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "mudata": ("https://mudata.scverse.org/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and

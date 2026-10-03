@@ -1,9 +1,27 @@
 """Private kernel shared by biotapy subpackages (contracts/module-boundaries)."""
 
-from ._matrix import argmax_by, as_csr, sum_by
+from ._function import (
+    BY_TAXON_KEY,
+    FUNCTION_KEY,
+    PROTECTED_FEATURES,
+    SPECIAL_FEATURES,
+    UNGROUPED,
+    function_var,
+    make_function_mudata,
+)
+from ._matrix import argmax_by, as_csr, sum_by, sum_pairs
 from ._optional import import_optional
 from ._rng import as_generator
-from ._slots import XKind, add_provenance, feature_subset, infer_x_kind, require_categorical, require_counts, x_kind
+from ._slots import (
+    XKind,
+    add_provenance,
+    feature_subset,
+    infer_x_kind,
+    replace_features,
+    require_categorical,
+    require_counts,
+    x_kind,
+)
 from ._taxonomy import RANKS, normalize_ranks, split_lineage, split_ranks
 from ._tree import (
     PHYLO_KEY,
@@ -20,8 +38,13 @@ from ._tree import (
 from ._warnings import warn_user
 
 __all__ = [
+    "BY_TAXON_KEY",
+    "FUNCTION_KEY",
     "PHYLO_KEY",
+    "PROTECTED_FEATURES",
     "RANKS",
+    "SPECIAL_FEATURES",
+    "UNGROUPED",
     "TreeData",
     "XKind",
     "add_provenance",
@@ -29,18 +52,22 @@ __all__ = [
     "as_csr",
     "as_generator",
     "feature_subset",
+    "function_var",
     "get_skbio_tree",
     "get_tree",
     "import_optional",
     "infer_x_kind",
+    "make_function_mudata",
     "make_treedata",
     "normalize_ranks",
     "relabel_tips",
+    "replace_features",
     "require_categorical",
     "require_counts",
     "split_lineage",
     "split_ranks",
     "sum_by",
+    "sum_pairs",
     "tree_from_edges",
     "tree_from_newick",
     "tree_from_phylo",

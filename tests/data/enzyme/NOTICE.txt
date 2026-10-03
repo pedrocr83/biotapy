@@ -1,0 +1,9 @@
+enzyme.dat and enzclass.txt are excerpts of the ENZYME nomenclature database,
+release of 02-Sep-2026 (https://ftp.expasy.org/databases/enzyme/), copyrighted
+by the SIB Swiss Institute of Bioinformatics and distributed under the Creative
+Commons Attribution 4.0 International licence (CC BY 4.0,
+https://creativecommons.org/licenses/by/4.0/).
+
+Changes: enzyme.dat keeps its header and seven entries (1.1.1.1, 1.1.1.5,
+1.1.1.74, 1.1.1.n4, 2.7.1.1, 2.7.1.2, 3.2.1.4), each cut to its ID and DE lines; enzclass.txt keeps
+its header, footer and the nine class lines above those entries.

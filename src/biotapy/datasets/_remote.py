@@ -1,4 +1,4 @@
-"""Example datasets from phyloseq's repository, downloaded once and cached with pooch."""
+"""Datasets downloaded once and cached with pooch: phyloseq's examples and the ENZYME files."""
 
 from functools import cache
 from typing import cast
@@ -14,6 +14,14 @@ _REGISTRY = {
     "GlobalPatterns.RData": "sha256:bea90c3c48275ea874e0c9400b133da1647e4cddd11b39f89a3d8ffd78512d2d",
     "enterotype.RData": "sha256:0701dd010023344a917bd31680f78580c076bf039befe829830dc43bfc56b8db",
     "esophagus.RData": "sha256:0b06d9c35f2e694c34461308af149eb54419453fcb98763de20ab61980b87e46",
+    # ENZYME keeps no old releases, so no hash can stay valid: the first download is
+    # cached for good, and enzyme() records the release it read (datasets/_enzyme.py).
+    "enzyme.dat": None,
+    "enzclass.txt": None,
+}
+_URLS = {
+    "enzyme.dat": "https://ftp.expasy.org/databases/enzyme/enzyme.dat",
+    "enzclass.txt": "https://ftp.expasy.org/databases/enzyme/enzclass.txt",
 }
 
 
@@ -23,7 +31,9 @@ def _pooch() -> pooch.Pooch:
     # marker, so mypy --strict infers Any for the untyped `create`; cast it back to Pooch.
     return cast(
         pooch.Pooch,
-        pooch.create(path=pooch.os_cache("biotapy"), base_url=_BASE_URL, registry=_REGISTRY, env="BIOTAPY_DATA_DIR"),
+        pooch.create(
+            path=pooch.os_cache("biotapy"), base_url=_BASE_URL, registry=_REGISTRY, urls=_URLS, env="BIOTAPY_DATA_DIR"
+        ),
     )
 
 

@@ -1,5 +1,66 @@
 # Knowledge bundle log
 
+## 2026-10-03 (Phase 2, Checkpoint A knowledge)
+- **Create**: [fn](modules/fn.md) (`load_hierarchy`, `func_glom`, `renorm`; HUMAnN 3.9 semantics, the final `x_kind`, guard and alignment rules) and [function-tables-as-mudata](decisions/function-tables-as-mudata.md) (options weighed, h5mu tree loss, mudata dependency, the Phase 4 task 4.1 forward note); both added to their `index.md`.
+- **Update**: [core](modules/core.md): `_function.py`, `sum_pairs`, `replace_features` as a second Propagation implementer, `warn_user`'s third caller, and mudata among the third-party imports (review: three statements were false).
+- **Update**: [io](modules/io.md): `read_humann`, its header unit rule, `path` in every error, no R golden; the "every reader goes through `make_treedata`" invariant and the Responsibility line now cover the MuData reader. `modules/index.md` entry reworded.
+- **Update**: [datasets](modules/datasets.md): `toy_humann`, `enzyme` and its unpinned hash; description and `modules/index.md` entry no longer say "TreeData objects" only.
+- **Update**: [pure-by-default](decisions/pure-by-default.md) table: `datasets.enzyme` returns a `pd.DataFrame`; the root `index.md` Modules line names `fn`.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) design note 7 (frontmatter now edited) and the Checkpoint A Knowledge box; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.1 notes `function` + `function_by_taxon`.
+- **Recheck**: phase-0, phase-1, engine-parity, module-boundaries, tree-access, add-a-function and cut-a-release flagged stale by the slice's `src/` and `pyproject.toml` changes; nothing they state was false, so only `commit` and `generated` moved. phase-0's pytest marker snippet now reads "R or HUMAnN golden files", as `pyproject.toml` does.
+
+## 2026-10-03 (Phase 2, Checkpoint A fix pass)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) `func_glom` section: a mean, or a sum with a feature in several parents, sets `x_kind` to `abundance` (review I2).
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) design note 2: the nothing-maps guard applies to unstratified input only (review Minor 2).
+- **Update**: [function-shape](contracts/function-shape.md) Examples bullet: "a function that reads a file may write a small temp file in its example" replaces "a reader's example", matching rules.md R8.2 (user-approved; review Minor 13).
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 8: a reader's R parity may come from a tool's golden files downstream (`io.read_humann` through the HUMAnN goldens; mia not added to the R image; user-approved, review F6). Its `description` now carries the HUMAnN clause its `contracts/index.md` entry already had (review Minor 14).
+- **Update**: [data-model-slots](contracts/data-model-slots.md) `func_glom` section notes that `READS_UNMAPPED` passes through as in HUMAnN master while 3.9 sums it into `UNGROUPED` (review Minor 15); `paths` gains `src/biotapy/fn/**` (review Minor 14).
+- **Update**: [regenerate-golden-files](playbooks/regenerate-golden-files.md) writes its checksum files to the git-ignored `build/`, not `/tmp` (review Minor 12).
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks task 2.5's steps 2-7 (done in 03bb529 and its fix round); the roadmap `index.md` Phase 2 entry now carries the concept's description (review Minor 14).
+
+## 2026-10-03 (Phase 2, task 2.12)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.renorm` as feature-changing and notes in convention 2 that renormalised stratified rows are shares of the community total; roadmap `phase-2-function` ticks task 2.12.
+
+## 2026-10-03 (Phase 2, task 2.6)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) lists `fn.func_glom` as feature-changing, names `_core.replace_features` beside `feature_subset`, and gains the "Aggregation semantics (`func_glom`)" section; roadmap `phase-2-function` ticks task 2.6.
+
+## 2026-10-03 (Phase 2, task 2.5 fix round 1)
+* **Update**: no concept changed; `fn.load_hierarchy` now rejects empty files and lines with an empty cell, skips `#` lines, reads a UTF-8 BOM.
+
+## 2026-10-03 (Phase 2, task 2.5)
+* **Update**: ticked task 2.5 in [phase-2-function](roadmap/phase-2-function.md); `fn.load_hierarchy` reads local mapping files. Changed [no-bundled-kegg](decisions/no-bundled-kegg.md) (and its `decisions/index.md` entry): loaders read local files only, ENZYME is the one built-in download, KEGG and MetaCyc are never shipped or fetched.
+
+## 2026-10-03 (Phase 2, task 2.5a fix round 1)
+* **Update**: no concept changed; `datasets.enzyme` now checks that `enzyme.dat` and `enzclass.txt` are the same release and that `enzclass.txt` has class lines.
+
+## 2026-10-03 (Phase 2, task 2.5a)
+* **Update**: ticked task 2.5a in [phase-2-function](roadmap/phase-2-function.md); `datasets.enzyme` downloads ENZYME unpinned (`known_hash=None`, user decision 2026-10-03) and raises if `enzyme.dat` has no release line.
+
+## 2026-10-03 (Phase 2, task 2.3b fix round 1)
+* **Update**: [function-shape](contracts/function-shape.md) Examples bullet now also allows a reader's example to write a small temp file, matching rules.md R8.2.
+
+## 2026-10-03 (Phase 2, task 2.3b)
+* **Update**: [function-shape](contracts/function-shape.md) lets examples use `bt.datasets.toy_humann()` for function tables (rules.md R8.2 widened to match, user-approved); ticked task 2.3b in [phase-2-function](roadmap/phase-2-function.md).
+
+## 2026-10-03 (Phase 2, task 2.3)
+* **Update**: [data-model-slots](contracts/data-model-slots.md) adds the Function tables section and the `io.read_humann` exception to the `x_kind` convention; ticked task 2.3 in [phase-2-function](roadmap/phase-2-function.md).
+
+## 2026-10-03 (Phase 2, task 2.1b)
+* **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) records the approved mudata dependency; ticked task 2.1b in [phase-2-function](roadmap/phase-2-function.md).
+
+## 2026-10-03 (Phase 2, task 2.1)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks task 2.1 (`_core.sum_pairs`, `_core.replace_features`).
+
+## 2026-10-03 (Phase 2, task 2.0)
+* **Update**: [r-golden-parity](contracts/r-golden-parity.md) (statement 1b, HUMAnN parity row and fixtures exception, enforcement bullet; description reworded) and [regenerate-golden-files](playbooks/regenerate-golden-files.md) (HUMAnN section, paths). Added the HUMAnN fixtures with their MIT notice and the HUMAnN 3.9 golden export; ticked task 2.0 in [phase-2-function](roadmap/phase-2-function.md).
+
+## 2026-10-03 (Phase 2 plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the
+  user-approved Phase 2 plan: resolved design notes (renorm, func_glom
+  semantics, x_kind rules, MuData layout, layering, licence notices, roadmap
+  corrections), slices 2A-2D with slice 2A in full TDD steps, review focus
+  and exit gate; description reworded.
+
 ## 2026-10-03 (after 0.1.0)
 * **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
   [phase-1-core](roadmap/phase-1-core.md),
