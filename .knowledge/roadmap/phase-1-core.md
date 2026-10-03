@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T10:08:36Z }
-commit: 695507e
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T10:20:23Z }
+commit: 659f5a0
 sources:
   - id: spec
     resource: ../../plan.md
@@ -72,6 +72,7 @@ scikit-bio 0.7.4 · matplotlib · pooch · rdata · biom-format · scikit-learn 
 | 1.18 | runtime | matplotlib `>=3.8` | `pl`, imported inside its functions so `import biotapy` stays fast - approved 2026-09-27 |
 | 1.21 | dev | asv `>=0.6.6` | benchmarks, with asv's own `uv` environment plugin - approved 2026-09-27 |
 | Checkpoint D | runtime | threadpoolctl `>=3.5` | limit `tl.permanova`'s OpenMP F-statistic to one thread (24 s to 0.01 s on a busy machine); already installed through scikit-learn - approved 2026-10-03 |
+| 1.23 | build | hatchling `>=1.27` | floor for the PEP 639 license expression (`license = "BSD-3-Clause"`, `license-files`) - approved 2026-10-03 |
 
 # Review focus
 1. **Non-string or duplicated sample/feature ids** from readers (BIOM ids can be ints) -> readers cast to `str` and fail on duplicates naming them. Tests in 1.7a, 1.7c-1.9.

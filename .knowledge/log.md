@@ -1,6 +1,15 @@
 # Knowledge bundle log
 
 ## 2026-10-03 (release 0.1.0)
+* **Update**: [phase-1-core](roadmap/phase-1-core.md) records the approved
+  build floor `hatchling>=1.27` in its dependency table. Refreshed
+  [phase-0-foundation](roadmap/phase-0-foundation.md),
+  [module-boundaries](contracts/module-boundaries.md),
+  [tree-access](contracts/tree-access.md),
+  [add-a-function](playbooks/add-a-function.md) and
+  [cut-a-release](playbooks/cut-a-release.md), commit and `generated` only,
+  against 659f5a0; the hatchling floor and the performance page's suite time
+  contradict nothing they state.
 * **Refresh**: [phase-0-foundation](roadmap/phase-0-foundation.md),
   [phase-1-core](roadmap/phase-1-core.md),
   [engine-parity](contracts/engine-parity.md),
