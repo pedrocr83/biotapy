@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:02:00Z }
-commit: 3012459
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:11:00Z }
+commit: 6ceec29
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2023,10 +2023,10 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   ```
   In `tests/test_docstrings.py`, `test_every_public_subpackage_is_covered`
   expects `{"datasets", "fn", "io", "pl", "pp", "tl"}`.
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn/test_hierarchy.py tests/test_docstrings.py -q`
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/fn/test_hierarchy.py tests/test_docstrings.py -q`
   -> `AttributeError: module 'biotapy' has no attribute 'fn'`, and the
   subpackage-set assertion fails.
-- [ ] **Step 3: Implement** - `src/biotapy/fn/_hierarchy.py`:
+- [x] **Step 3: Implement** - `src/biotapy/fn/_hierarchy.py`:
   ```python
   """Function hierarchies from the user's own mapping files (decisions/no-bundled-kegg)."""
 
@@ -2125,9 +2125,9 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   `src/biotapy/__init__.py`: `from . import datasets, fn, io, pl, pp, tl` and
   `"fn"` after `"datasets"` in `__all__`. import-linter needs no change: `fn`
   is already on the `tl | fn` layer.
-- [ ] **Step 4: Run, expect pass** - same command -> all pass (7 in
+- [x] **Step 4: Run, expect pass** - same command -> all pass (7 in
   `test_hierarchy.py`).
-- [ ] **Step 5: Docs.** `docs/api.md`, new section before `## Tools`:
+- [x] **Step 5: Docs.** `docs/api.md`, new section before `## Tools`:
   ````markdown
   ## Function
 
@@ -2157,7 +2157,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   need and read it with `load_hierarchy`.
   ````
   Build docs -> `build succeeded.`
-- [ ] **Step 6: Knowledge** - `.knowledge/decisions/no-bundled-kegg.md`
+- [x] **Step 6: Knowledge** - `.knowledge/decisions/no-bundled-kegg.md`
   (R12.1: it says loaders take "a path or URL" and names MetaCyc as open):
   - `description`: "Function hierarchies come from the user's local files or
     from ENZYME (CC BY 4.0, `bt.datasets.enzyme`); KEGG and MetaCyc are never
@@ -2170,7 +2170,7 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
     only. Test fixtures are synthetic maps and a CC BY 4.0 ENZYME excerpt."
   - Consequences: "KEGG and MetaCyc users point `load_hierarchy` at files they
     are licensed to use."
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   git add src/biotapy/fn src/biotapy/__init__.py tests/fn/test_hierarchy.py tests/test_docstrings.py \
