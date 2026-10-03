@@ -95,7 +95,6 @@ def test_enzyme_downloads_and_parses():
     assert edges["child"].nunique() > 8000 and set(edges["level"]) == {"class", "subclass", "subsubclass"}
     assert edges.attrs["source"].startswith("ENZYME release ")
 
-
     out = bt.fn.func_glom(bt.datasets.toy_humann()["function"], "class", hierarchy=bt.datasets.enzyme())
     assert out.var_names.tolist() == ["1.-.-.-", "2.-.-.-", "3.-.-.-", "UNGROUPED", "UNMAPPED"]
     assert out.var.loc["2.-.-.-", "name"] == "Transferases"
