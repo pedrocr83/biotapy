@@ -36,8 +36,8 @@ def enzyme() -> pd.DataFrame:
     Raises
     ------
     ValueError
-        If ``enzyme.dat`` has no ``Release of`` line, its release differs from
-        ``enzclass.txt``'s, or ``enzclass.txt`` has no class lines.
+        If ``enzyme.dat`` has no ``Release of`` line, ``enzclass.txt`` has no
+        ``Release:`` line or no class lines, or the two releases differ.
 
     Notes
     -----
@@ -79,7 +79,9 @@ def enzyme() -> pd.DataFrame:
     classes_path = Path(_fetch("enzclass.txt"))
     classes = classes_path.read_text(encoding="utf-8")
     class_release = _CLASS_RELEASE.search(classes)
-    if class_release is not None and class_release[1] != release[1]:
+    if class_release is None:
+        raise ValueError(f"{classes_path.name} has no 'Release: ...' line, so its release is unknown")
+    if class_release[1] != release[1]:
         raise ValueError(
             f"{entries_path.name} is release {release[1]} but {classes_path.name} is release {class_release[1]}; "
             "delete both cached files and download them again"

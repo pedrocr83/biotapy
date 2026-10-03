@@ -74,6 +74,14 @@ def test_mixed_releases_raise(monkeypatch, tmp_path):
         bt.datasets.enzyme()
 
 
+def test_enzclass_without_a_release_line_raises(monkeypatch, tmp_path):
+    lines = (DATA / "enzclass.txt").read_text(encoding="utf-8").splitlines(keepends=True)
+    classes = "".join(line for line in lines if not line.startswith("Release:"))
+    _write_files(tmp_path, monkeypatch, dat=(DATA / "enzyme.dat").read_text(encoding="utf-8"), classes=classes)
+    with pytest.raises(ValueError, match="enzclass.txt"):
+        bt.datasets.enzyme()
+
+
 def test_enzclass_without_class_lines_raises(monkeypatch, tmp_path):
     dat = (DATA / "enzyme.dat").read_text(encoding="utf-8")
     _write_files(tmp_path, monkeypatch, dat=dat, classes="Release:     02-Sep-2026\n")
