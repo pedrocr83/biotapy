@@ -67,6 +67,9 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
 
     Raises
     ------
+    TypeError
+        ``hierarchy`` is not a DataFrame (for example a path; read it with
+        ``bt.fn.load_hierarchy``).
     KeyError
         ``hierarchy`` lacks a required column, or has no row at ``level``.
     ValueError
@@ -131,6 +134,12 @@ def func_glom(adata: AnnData, level: str, *, hierarchy: pd.DataFrame, agg: Liter
 
 
 def _edges_at(hierarchy: pd.DataFrame, level: str) -> pd.DataFrame:
+    if not isinstance(hierarchy, pd.DataFrame):
+        msg = (
+            f"hierarchy must be an edge table (pandas.DataFrame), not {type(hierarchy).__name__}; "
+            "for a mapping file, pass bt.fn.load_hierarchy(path, ...)"
+        )
+        raise TypeError(msg)
     missing = [column for column in _EDGE_COLUMNS if column not in hierarchy.columns]
     if missing:
         msg = f"hierarchy needs columns {list(_EDGE_COLUMNS)}; missing {missing}"

@@ -234,6 +234,11 @@ def test_missing_hierarchy_column_raises():
         bt.fn.func_glom(_function(), "class", hierarchy=EC.drop(columns="level"))
 
 
+def test_a_path_as_hierarchy_raises_pointing_to_load_hierarchy():
+    with pytest.raises(TypeError, match=r"hierarchy must be .*not str; .*pass bt\.fn\.load_hierarchy\(path, \.\.\.\)"):
+        bt.fn.func_glom(_function(), "class", hierarchy="map.tsv")
+
+
 def test_unknown_agg_raises():
     with pytest.raises(ValueError, match="agg="):
         bt.fn.func_glom(_function(), "class", hierarchy=EC, agg="median")
