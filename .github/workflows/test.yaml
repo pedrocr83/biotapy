@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Get test environments
         id: get-envs
         run: |
@@ -74,7 +74,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: ${{ matrix.env.python }}
       - name: create hatch environment
@@ -110,7 +110,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Run all prek hooks
         run: uvx prek run --all-files --show-diff-on-failure
       # Imports and discovers the asv suite without running it (docs/performance.md), so an API
@@ -130,7 +130,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Import every biotapy module with runtime dependencies only
         run: >-
           uv run --no-dev python -c "import importlib, pkgutil, biotapy;
@@ -148,7 +148,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.13"
       - name: Cache pooch downloads
@@ -173,7 +173,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.13"
       - name: Cache pooch downloads
