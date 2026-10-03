@@ -51,6 +51,13 @@ or, with [uv][]:
 uv add biotapy
 ```
 
+or, with [pixi][], in a workspace that has Python 3.12 or newer:
+
+```bash
+pixi add "python>=3.12"
+pixi add --pypi biotapy
+```
+
 The development version installs straight from GitHub:
 `pip install git+https://github.com/pedrocr83/biotapy.git`.
 
@@ -221,6 +228,7 @@ Questions, bug reports and feature requests all go to the [issue tracker][].
 [roadmap]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/roadmap/index.md
 [data-model-contract]: https://github.com/pedrocr83/biotapy/blob/master/.knowledge/contracts/data-model-slots.md
 [uv]: https://github.com/astral-sh/uv
+[pixi]: https://pixi.sh/
 [issue tracker]: https://github.com/pedrocr83/biotapy/issues
 [tests]: https://github.com/pedrocr83/biotapy/actions/workflows/test.yaml
 [documentation]: https://biotapy.readthedocs.io
