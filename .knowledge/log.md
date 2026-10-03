@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-03 (slice 2C plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2C plan in full TDD steps (2.7 fn.contributions, 2.8 fn.functional_redundancy, 2.9 pl.contributions, Checkpoint C) and its decisions, with the pp.relative subnormal fix approved as a separate commit; checklist signatures, header note, decision 11 and the 2.14 outline updated.
+
 ## 2026-10-03 (Phase 2, Checkpoint B)
 - **Update**: [io](modules/io.md) documents `read_metaphlan`, `read_picrust2` and `read_picrust2_traits` and the shared `_table.py` (header rule, strict checks, `utf-8-sig`, first-cell check, contribution-sample check, seven rank columns), replacing the removed `_humann.py:_read_table`; its description is copied into [modules/index.md](modules/index.md).
 - **Update**: [core](modules/core.md) lists `RELATIVE_TOLERANCE` as exported (second consumer `io.read_metaphlan`), `make_function_mudata` also used by `io.read_picrust2`, and `normalize_ranks` used by `io.read_phyloseq` and `io.read_metaphlan`.
