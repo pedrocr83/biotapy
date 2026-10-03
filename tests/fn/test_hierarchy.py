@@ -95,6 +95,26 @@ def test_whitespace_only_lines_are_blank(tmp_path):
     assert len(bt.fn.load_hierarchy(path, "pathway")) == 2
 
 
+def test_trailing_whitespace_is_stripped_as_in_humann(tmp_path):
+    # humann_regroup_table 3.9 strips each line; on genefamilies.tsv this map gives S1: G1 14, G2 4, UNGROUPED 5.
+    path = tmp_path / "map.tsv"
+    path.write_text("G1\tUniRef90_A\tUniRef90_B \nG2\tUniRef90_C \n")
+    edges = bt.fn.load_hierarchy(path, "group")
+    out = bt.fn.func_glom(bt.io.read_humann(DATA / "genefamilies.tsv")["function"], "group", hierarchy=edges)
+    assert dict(zip(out.var_names, out.X.toarray()[0], strict=True)) == {
+        "G1": 14,
+        "G2": 4,
+        "UNGROUPED": 5,
+        "UNMAPPED": 10,
+    }
+
+
+def test_whitespace_beside_a_tab_is_stripped_too(tmp_path):
+    path = tmp_path / "map.tsv"
+    path.write_text("P1 \t K1\n")
+    assert bt.fn.load_hierarchy(path, "pathway")[["child", "parent"]].values.tolist() == [["K1", "P1"]]
+
+
 def test_long_line_lists_say_they_are_truncated(tmp_path):
     path = tmp_path / "map.tsv"
     path.write_text("P1\tK1\n" + "P\n" * 7)

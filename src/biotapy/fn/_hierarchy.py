@@ -17,7 +17,9 @@ def load_hierarchy(
     ----------
     path
         A tab-separated mapping file with no header line, gzip (``.gz``)
-        allowed, UTF-8 with or without a BOM. Blank lines and lines starting
+        allowed, UTF-8 with or without a BOM. Surrounding whitespace is
+        stripped from every id (``humann_regroup_table`` strips only each
+        line's ends). Blank lines and lines starting
         with ``#`` are skipped (``humann_regroup_table`` does not skip ``#``
         lines; it would read them as ids). Each line holds one id and then one or more ids it maps
         to or from (see ``layout``); a line may repeat its first id.
@@ -80,15 +82,20 @@ def load_hierarchy(
 
 
 def _read_rows(path: Path) -> list[list[str]]:
-    """Rows of a mapping file: blank and ``#`` lines skipped, trailing empty cells dropped."""
+    """Rows of a mapping file: blank and ``#`` lines skipped, cells stripped, trailing empty cells dropped."""
     opener = gzip.open(path, "rt", encoding="utf-8-sig") if path.suffix == ".gz" else path.open(encoding="utf-8-sig")
     with opener as handle:
         lines = [(number, line.rstrip("\r\n")) for number, line in enumerate(handle, start=1)]
-    rows = [(number, line.split("\t")) for number, line in lines if line.strip() and not line.startswith("#")]
+    # humann_regroup_table strips only each line's ends; stripping every cell also drops a space beside a tab.
+    rows = [
+        (number, [cell.strip() for cell in line.split("\t")])
+        for number, line in lines
+        if line.strip() and not line.startswith("#")
+    ]
     for _, row in rows:
-        while not row[-1].strip():
+        while not row[-1]:
             row.pop()
-    gaps = [number for number, row in rows if not all(cell.strip() for cell in row)]
+    gaps = [number for number, row in rows if not all(row)]
     short = [number for number, row in rows if len(row) < 2 and number not in gaps]
     for numbers, problem in ((gaps, "an empty cell before its last id"), (short, "a single id")):
         if numbers:
