@@ -46,7 +46,8 @@ It computes no diversity, distance or ordination; those are
   asserting the input unchanged (`assert_unchanged`, `tests/conftest.py`).
 - Groups (`_common.py:groups`) keep a categorical's order and sort other
   values. Missing values are a last `NA` group, drawn grey. A numeric column
-  raises `TypeError`, as `tl.permanova` does.
+  raises `TypeError` through `_core.require_categorical`, as `tl.permanova`
+  does.
 - `bar` heights equal the sample (or `x` group) totals of the plotted table:
   features with a missing rank are a group, not dropped (a Hypothesis test).
 - `heatmap` keeps `obs`/`var` order and densifies the table once (rules.md
@@ -55,7 +56,7 @@ It computes no diversity, distance or ordination; those are
   phyloseq's `max.label`).
 
 # Dependencies
-- [core](/modules/core.md): `as_csr`, `sum_by`.
+- [core](/modules/core.md): `as_csr`, `sum_by`, `require_categorical`.
 - matplotlib `>=3.8`, a runtime dependency
   ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
 - The slots [tl](/modules/tl.md) and `pp.relative` write

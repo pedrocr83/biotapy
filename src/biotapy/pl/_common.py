@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.sparse as sp
 from anndata import AnnData
 
-from biotapy._core import as_csr
+from biotapy._core import as_csr, require_categorical
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -58,12 +58,7 @@ def obs_groups(adata: AnnData, column: str, *, arg: str) -> Groups:
 
 def groups(values: pd.Series, *, arg: str) -> Groups:
     """Codes, labels and colours: a categorical's order, else sorted values, with missing values last as NA."""
-    if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
-        msg = (
-            f"{arg}={values.name!r} is a numeric column ({values.dtype}); plots group by category, "
-            'so convert it with .astype("category") for one group per value'
-        )
-        raise TypeError(msg)
+    require_categorical(values, arg=arg, purpose="plots group by category")
     categorical = pd.Categorical(values).remove_unused_categories()
     codes = categorical.codes.astype(np.intp)
     labels = [str(category) for category in categorical.categories]

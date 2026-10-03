@@ -1,12 +1,14 @@
 """PERMANOVA: do groups of samples differ in a stored distance matrix?"""
 
+from typing import cast
+
 import numpy as np
 import pandas as pd
 from anndata import AnnData
 from skbio.stats.distance import permanova as skbio_permanova
 from threadpoolctl import threadpool_limits
 
-from biotapy._core import as_generator
+from biotapy._core import as_generator, require_categorical
 
 from ._beta import stored_distances
 
@@ -82,13 +84,9 @@ def permanova(
     if grouping not in adata.obs.columns:
         msg = f"grouping={grouping!r} is not a column of obs"
         raise KeyError(msg)
-    groups = adata.obs[grouping]
-    if pd.api.types.is_numeric_dtype(groups) and not pd.api.types.is_bool_dtype(groups):
-        msg = (
-            f"grouping={grouping!r} is a numeric column ({groups.dtype}); tl.permanova compares groups, "
-            'so convert it with .astype("category") for one group per value'
-        )
-        raise TypeError(msg)
+    # anndata types obs columns as Series | DataArray (its lazy variant); the data model guarantees a Series.
+    groups = cast("pd.Series", adata.obs[grouping])
+    require_categorical(groups, arg="grouping", purpose="tl.permanova compares groups")
     if groups.isna().any():
         msg = f"grouping={grouping!r} is missing for {int(groups.isna().sum())} sample(s); drop them first"
         raise ValueError(msg)

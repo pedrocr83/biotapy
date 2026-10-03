@@ -1,6 +1,10 @@
 # Knowledge bundle log
 
 ## 2026-10-03
+* **Update**: [core](modules/core.md) lists `_slots.py:require_categorical`,
+  the one validator for categorical groupings; [pl](modules/pl.md) and
+  [tl](modules/tl.md) name it among their `_core` dependencies (Checkpoint D,
+  I2).
 * **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md)
   and [phase-1-core](roadmap/phase-1-core.md)'s dependency table record
   threadpoolctl (`>=3.5`, approved 2026-10-03), which limits `tl.permanova`'s

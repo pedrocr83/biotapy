@@ -1,4 +1,4 @@
-"""x_kind, provenance and feature-changing subsets (contracts/data-model-slots)."""
+"""x_kind, provenance, feature-changing subsets and categorical groupings (contracts/data-model-slots)."""
 
 import json
 from importlib.metadata import version
@@ -6,6 +6,7 @@ from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
 from anndata import AnnData
 
 from ._matrix import as_csr
@@ -51,6 +52,19 @@ def require_counts(adata: AnnData, *, func: str) -> None:
     if infer_x_kind(adata.X) != "counts":
         msg = f"{func} needs raw counts in X, but X holds non-integer or missing (NaN) values"
         raise ValueError(msg)
+
+
+def require_categorical(values: pd.Series, *, arg: str, purpose: str) -> None:
+    """Raise unless ``values`` can group samples: one group per value needs a category, string or bool column.
+
+    ``arg`` names the parameter and ``purpose`` says why groups are needed, e.g. ``"plots group by category"``.
+    """
+    if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
+        msg = (
+            f"{arg}={values.name!r} is a numeric column ({values.dtype}); {purpose}, "
+            'so convert it with .astype("category") for one group per value'
+        )
+        raise TypeError(msg)
 
 
 def add_provenance(adata: AnnData, step: str, **params: ParamValue) -> None:

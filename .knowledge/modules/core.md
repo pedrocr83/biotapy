@@ -45,6 +45,10 @@ none of them back.
   `"counts"` and every stored value is a whole number (`infer_x_kind`'s rule,
   O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
   and `tl.unifrac(weighted=True)`.
+- `_slots.py:require_categorical` - raise `TypeError` naming its `arg=`,
+  with an `.astype("category")` hint, when a column meant to group samples is
+  numeric and not bool; shared by `tl.permanova` (`grouping=`) and `pl`'s
+  `_common.py:groups` (`x=`, `color=`, `fill=`).
 - `_slots.py:infer_x_kind` - classify a freshly read matrix as `"counts"`
   (every value a whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file

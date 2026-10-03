@@ -77,7 +77,7 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
 # Dependencies
 
 - [core](/modules/core.md): `as_csr`, `require_counts`, `get_skbio_tree`,
-  `as_generator`, `TreeData`.
+  `as_generator`, `require_categorical`, `TreeData`.
 - scikit-bio: `alpha_diversity`, `beta_diversity`, `DistanceMatrix`, `pcoa`,
   `permanova`.
 - scikit-learn: `sklearn.manifold.MDS`, with an `int` seed drawn from
