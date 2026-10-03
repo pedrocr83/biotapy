@@ -1,12 +1,12 @@
 ---
 type: Contract
 title: R golden parity
-description: Every computation with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants.
+description: Every computation with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants; HUMAnN-parity functions are tested the same way against files exported from pinned HUMAnN 3.9.
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T13:33:04Z }
-commit: 586ba80
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:10:00Z }
+commit: 754f0a0
 sources:
   - id: spec
     resource: ../../plan.md
@@ -59,6 +59,12 @@ sources:
 7. `pl` functions have an R equivalent but no golden test. They draw numbers
    that `tl` stores, and `tl`'s golden tests check those numbers (controller
    ruling 2026-09-27; rules.md R11.2).
+8. A reader's R parity may come from a tool's own golden files downstream,
+   when an R golden for the reader would only re-check parsed numbers.
+   `io.read_humann` (R equivalent `mia::importHUMAnN`) is checked this way:
+   the HUMAnN golden tests of `fn.func_glom` and `fn.renorm` read their
+   inputs through it and compare with HUMAnN's own output. mia is not added
+   to the R image (user-approved 2026-10-03).
 
 # Why
 R and NumPy random generators differ, so stochastic outputs can never match
