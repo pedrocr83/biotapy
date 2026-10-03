@@ -144,9 +144,7 @@ def test_empty_modality_gives_no_groups():
 
 def test_no_feature_in_the_hierarchy_raises_with_examples():
     hierarchy = pd.DataFrame({"child": ["EC:2.7.1.1"], "parent": ["P"], "level": "pathway"})
-    with pytest.raises(
-        ValueError, match=r"features: \['1.1.1.1', '2.7.1.1', '2.7.1.2'\], children: \['EC:2.7.1.1'\]"
-    ):
+    with pytest.raises(ValueError, match=r"features: \['1.1.1.1', '2.7.1.1', '2.7.1.2'\], children: \['EC:2.7.1.1'\]"):
         bt.fn.func_glom(_function(), "pathway", hierarchy=hierarchy)
 
 
