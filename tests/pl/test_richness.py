@@ -52,6 +52,14 @@ def test_richness_nan_values_are_left_out(ax):
     assert len(_points(ax)) == 5 and np.isfinite(_points(ax)).all()
 
 
+def test_richness_group_with_only_nan_values_has_no_legend_entry(ax):
+    tdata = _toy_with("shannon")
+    tdata.obs.loc[tdata.obs["group"] == "B", "alpha_shannon"] = np.nan
+    bt.pl.richness(tdata, "shannon", color="group", ax=ax)
+    assert [text.get_text() for text in ax.get_legend().get_texts()] == ["A"]
+    assert len(_points(ax)) == 3
+
+
 def _samples_with_shannon(n_obs):
     adata = ad.AnnData(X=sp.csr_matrix(np.ones((n_obs, 1))), obs=pd.DataFrame(index=[f"s{i}" for i in range(n_obs)]))
     adata.obs["alpha_shannon"] = 0.0

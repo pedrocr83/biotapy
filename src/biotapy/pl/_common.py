@@ -82,14 +82,16 @@ def _colors(n: int, *, missing: bool) -> list[RGBA]:
 def scatter(
     ax: "Axes", x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], *, by: Groups | None, title: str | None
 ) -> None:
-    """One scatter, or one per group with a legend titled ``title``."""
+    """One scatter, or one per group that has points, with a legend titled ``title``."""
     if by is None:
         ax.scatter(x, y)
         return
     codes, labels, colors = by
     for code, (label, color) in enumerate(zip(labels, colors, strict=True)):
         keep = codes == code
-        ax.scatter(x[keep], y[keep], color=color, label=label)
+        # A group whose points were all left out (NaN) gets no legend entry; the others keep their colours.
+        if keep.any():
+            ax.scatter(x[keep], y[keep], color=color, label=label)
     ax.legend(title=title)
 
 

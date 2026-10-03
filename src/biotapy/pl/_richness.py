@@ -51,7 +51,8 @@ def richness(
     phyloseq computes ``estimate_richness`` and draws every measure in its own
     facet; biotapy reads what :func:`biotapy.tl.alpha` stored and draws one metric
     per axes. Samples with a NaN value, such as Shannon of an all-zero sample, are
-    left out, as ``geom_point(na.rm = TRUE)`` does. There are no standard-error bars:
+    left out, as ``geom_point(na.rm = TRUE)`` does; a ``color`` group left with no
+    point gets no legend entry. There are no standard-error bars:
     ``tl.alpha`` stores none.
 
     Examples
