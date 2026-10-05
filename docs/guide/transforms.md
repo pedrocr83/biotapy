@@ -44,7 +44,7 @@ larger than the smallest non-zero value; pass one on the data's scale, for examp
 
 An all-zero sample gives an all-zero CLR row.
 
-`layers["clr"]` is dense: CLR has no zeros, so it takes 8 bytes per sample and feature, and the call peaks at about three such arrays.
+`layers["clr"]` is dense: CLR has no zeros, so it takes 8 bytes per sample and feature, and the call peaks at three to five such arrays, the most when `X` is mostly non-zero.
 
 ## PhILR
 

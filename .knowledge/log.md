@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3A)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.1's `pp.clr` Notes block states the measured peak memory (3.1x to 4.8x one dense array), matching the code and the transforms guide.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.1 and 3.2 code, test and docs blocks match the Checkpoint A fix pass (`pseudocounted(columns=)` reorders while sparse, philr's wide-node message counts every wide node, narrowed mypy exclude, 57 passed). [data-model-slots](contracts/data-model-slots.md): `X_philr` has one column per internal node with two children, named as `vart["phylo"]` names it. [r-golden-parity](contracts/r-golden-parity.md): PhILR atol reason is about 1e-16 on both sides.
 - **Update**: [data-model-slots](contracts/data-model-slots.md): `obsm["X_philr"]` from `pp.philr` and its embedding-adding propagation row. [r-golden-parity](contracts/r-golden-parity.md): PhILR balances are matched by partition. [tree-access](contracts/tree-access.md): `get_skbio_tree(split_root=False)` and the child-order guarantee PhILR's signs rely on. [phase-3-stats](roadmap/phase-3-stats.md) task 3.2 done.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.1 code blocks follow the review fixes: `pseudocount` type check, all-zero row and peak-memory notes.

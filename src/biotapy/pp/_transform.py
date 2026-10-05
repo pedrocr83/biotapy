@@ -88,9 +88,10 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
     An all-zero sample gives an all-zero CLR row.
 
     CLR has no zeros, so ``X`` is densified once and ``layers['clr']`` is dense:
-    8 bytes x samples x features. Peak memory is about three such arrays (the
-    dense copy of ``X``, the transform's temporaries and its output; 3.4x measured
-    on a 400 x 500 table), so budget for that on large tables.
+    8 bytes x samples x features. Peak memory is three to five such arrays (the
+    dense copy of ``X``, the transform's temporaries and its output; 3.1x to 4.8x
+    measured on 400 x 512 and 2,000 x 2,000 tables, the most when ``X`` is mostly
+    non-zero), so budget for that on large tables.
 
     References
     ----------
