@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3A)
+- **Update**: [data-model-slots](contracts/data-model-slots.md): `obsm["X_philr"]` from `pp.philr` and its embedding-adding propagation row. [r-golden-parity](contracts/r-golden-parity.md): PhILR balances are matched by partition. [tree-access](contracts/tree-access.md): `get_skbio_tree(split_root=False)` and the child-order guarantee PhILR's signs rely on. [phase-3-stats](roadmap/phase-3-stats.md) task 3.2 done.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.1 code blocks follow the review fixes: `pseudocount` type check, all-zero row and peak-memory notes.
 - **Update**: [data-model-slots](contracts/data-model-slots.md): `layers["clr"]` from `pp.clr` is a dense float64 array; `pp.clr` joins the layer-adding row. [r-golden-parity](contracts/r-golden-parity.md): CLR is compared elementwise. [phase-3-stats](roadmap/phase-3-stats.md) task 3.1 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `philr` (and `libuv1`) for the `pp.philr` golden file.

@@ -5,8 +5,8 @@ description: Only biotapy/_core/_tree.py imports treedata or networkx, so a Tree
 tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:55:25Z }
-commit: 0f81793
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:08:33Z }
+commit: 2216894
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json
@@ -81,7 +81,10 @@ reaches past the helpers.[^spec]
   same way. A missing `edge.length` becomes `nan`, same as `tree_from_newick`.
 - scikit-bio's Faith PD and UniFrac need a root with at most two children, so
   `get_skbio_tree` splits a wider root with a zero-length node, and phyloseq
-  instead roots an unrooted tree at a random tip.
+  instead roots an unrooted tree at a random tip. `pp.philr` passes
+  `split_root=False`: a split would invent a balance, so it raises instead.
+  Children keep the order of the stored edges (ape's edge order for a
+  phyloseq tree), which is what makes PhILR's signs equal `philr::philr`'s.
 
 [^treedata]: treedata 0.3.1 on PyPI
 [^spec]: Python Microbiome Toolkit development report, section Risks

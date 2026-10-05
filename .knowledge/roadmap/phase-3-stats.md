@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T14:00:00Z }
-commit: 0f0c9d2
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:08:33Z }
+commit: 2216894
 sources:
   - id: spec
     resource: ../../plan.md
@@ -577,7 +577,7 @@ columns onto it.
 # Tasks (checklist)
 - [x] 3.0 CLR and PhILR golden files (philr in the R image)
 - [x] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
-- [ ] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
+- [x] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
 - [ ] Checkpoint A
 - [ ] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
 - [ ] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
@@ -1195,7 +1195,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   column per internal node in preorder); `_core.get_skbio_tree(adata:
   AnnData, *, split_root: bool = True) -> TreeNode` (default unchanged).
 
-- [ ] **Step 1: Failing tests.** `tests/pp/test_philr.py`:
+- [x] **Step 1: Failing tests.** `tests/pp/test_philr.py`:
   ```python
   import json
 
@@ -1394,13 +1394,13 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       tree = get_skbio_tree(bt.datasets.toy(), split_root=False)
       assert [child.name for child in tree.children] == ["n1", "n2", "n3"]
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/pp/test_philr.py tests/core/test_tree.py -q`
   -> `18 failed, 33 passed` (`AttributeError: module 'biotapy.pp' has no
   attribute 'philr'`; `TypeError: get_skbio_tree() got an unexpected keyword
   argument 'split_root'`); the golden test with `-m "golden or network"` ->
   `1 failed`.
-- [ ] **Step 3: Implement.** In `src/biotapy/_core/_tree.py`:
+- [x] **Step 3: Implement.** In `src/biotapy/_core/_tree.py`:
   ```diff
   @@ -65,15 +65,16 @@ def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
        return cast("nx.DiGraph[str]", tdata.vart[PHYLO_KEY])
@@ -1584,9 +1584,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
    strict = true
    overrides = [
   ```
-- [ ] **Step 4: Run, expect pass** - the same commands -> `51 passed`; golden
+- [x] **Step 4: Run, expect pass** - the same commands -> `51 passed`; golden
   `1 passed`. Property test also under three extra Hypothesis seeds.
-- [ ] **Step 5: Docs.** Append to `docs/guide/transforms.md`:
+- [x] **Step 5: Docs.** Append to `docs/guide/transforms.md`:
   ```markdown
   ## PhILR
 
@@ -1615,7 +1615,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   In `docs/api.md` add `pp.philr` after `pp.filter_samples`. In
   `docs/contributing.md` the sentence ends "...against phyloseq, vegan, ape
   and picante, and `pp.philr` against philr."
-- [ ] **Step 6: Contracts.**
+- [x] **Step 6: Contracts.**
   - `data-model-slots.md`: the `obsm` row's keys gain "; `X_philr` from
     `pp.philr` (a samples x balances `DataFrame`, one column per internal tree
     node, named after it, in preorder)"; after the layer-adding Propagation
@@ -1630,7 +1630,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   ```text
   - **Update**: [data-model-slots](contracts/data-model-slots.md): `obsm["X_philr"]` from `pp.philr` and its embedding-adding propagation row. [r-golden-parity](contracts/r-golden-parity.md): PhILR balances are matched by partition. [tree-access](contracts/tree-access.md): `get_skbio_tree(split_root=False)` and the child-order guarantee PhILR's signs rely on.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   git add src/biotapy/_core/_tree.py src/biotapy/pp/_philr.py src/biotapy/pp/__init__.py tests/core/test_tree.py \
     tests/pp/test_philr.py tests/pp/test_philr_golden.py pyproject.toml docs/guide/transforms.md docs/api.md \

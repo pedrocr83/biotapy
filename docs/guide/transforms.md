@@ -45,3 +45,27 @@ larger than the smallest non-zero value; pass one on the data's scale, for examp
 An all-zero sample gives an all-zero CLR row.
 
 `layers["clr"]` is dense: CLR has no zeros, so it takes 8 bytes per sample and feature, and the call peaks at about three such arrays.
+
+## PhILR
+
+`bt.pp.philr` turns a sample into balances along its phylogeny: one per internal node of the
+tree, the log-ratio of the geometric means of the taxa under the node's two children, scaled so
+that the balances are orthonormal coordinates. They go to `obsm["X_philr"]`, a table with one
+column per node:
+
+```python
+tdata = bt.datasets.toy()[:, :6].copy()
+out = bt.pp.philr(tdata)  # pseudocount=0.5, as in pp.clr
+out.obsm["X_philr"]  # columns root, n1, n4, n2, n5
+```
+
+A balance is positive when the node's first child is more abundant than its second, as in
+`philr::philr` with its default uniform weights. Distances between samples' balances equal
+their Aitchison distances, the Euclidean distances between their CLR vectors.
+
+PhILR needs a rooted binary tree. Filtering features leaves nodes with one child; those define
+no balance and are skipped. A node with three or more children raises: that includes the root
+of an unrooted tree (`bt.datasets.toy()` has one, which is why the example keeps f1-f6). Root
+the tree and resolve its polytomies before reading it, for example with `ape::multi2di` in R.
+Filtering features afterwards drops `obsm["X_philr"]`, since the balances described the old
+features.

@@ -217,3 +217,8 @@ def test_get_skbio_tree_without_phylogeny_names_the_key():
         get_skbio_tree(_make(None))
     with pytest.raises(TypeError, match="needs a TreeData"):
         get_skbio_tree(bt.datasets.toy().to_adata())
+
+
+def test_get_skbio_tree_can_keep_a_wide_root():
+    tree = get_skbio_tree(bt.datasets.toy(), split_root=False)
+    assert [child.name for child in tree.children] == ["n1", "n2", "n3"]

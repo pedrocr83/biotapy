@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T14:00:00Z }
-commit: 0f0c9d2
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:08:33Z }
+commit: 2216894
 sources:
   - id: spec
     resource: ../../plan.md
@@ -32,7 +32,7 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
 | `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column); function tables: see Function tables |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
-| `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
+| `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`; `X_philr` from `pp.philr` (a samples x balances `DataFrame`, one column per internal tree node, named after it, in preorder); `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
 | `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
 
@@ -137,6 +137,7 @@ tables) stays a feature with every rank NaN, so every non-empty sample sums to 1
 | Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `fn.renorm`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
 | Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
+| Embedding-adding (`pp.philr`) | everything | nothing; adds `obsm["X_philr"]`, which a later feature change drops |
 
 Feature-changing operations go through `_core.feature_subset`, or `_core.replace_features` when the new
 features are groups rather than a subset; both keep only `KEPT_META`, the
