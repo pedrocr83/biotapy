@@ -101,7 +101,7 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     """
     genomes = _genomes(traits)
     X, taxa = _abundances(adata, genomes.index)
-    totals = np.asarray(X.sum(axis=1), dtype=np.float64).ravel()
+    totals = np.asarray(X.sum(axis=1, dtype=np.float64)).ravel()
     shares = divide_rows(X, totals)
     distance = _weighted_jaccard(genomes.loc[taxa].to_numpy())
     diversity = _quadratic(shares, distance)
@@ -174,7 +174,7 @@ def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Inde
     keep = np.flatnonzero(found & (np.asarray(X.sum(axis=0)).ravel() > 0))
     X = X[:, keep]
     with np.errstate(over="ignore"):
-        overflowing = ~np.isfinite(np.asarray(X.sum(axis=1)).ravel())
+        overflowing = ~np.isfinite(np.asarray(X.sum(axis=1, dtype=np.float64)).ravel())
     if overflowing.any():
         msg = f"adata: the total abundance of a sample overflows: {adata.obs_names[overflowing][:3].tolist()}"
         raise ValueError(msg)

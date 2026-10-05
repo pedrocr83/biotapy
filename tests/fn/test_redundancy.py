@@ -251,3 +251,17 @@ def test_mudata_adata_raises_naming_adata_and_the_modality():
 def test_dataframe_adata_raises_naming_adata():
     with pytest.raises(TypeError, match=r"adata must be an AnnData.*DataFrame"):
         bt.fn.functional_redundancy(pd.DataFrame([[2, 1, 1]], columns=["A", "B", "C"]), traits=TRAITS)  # type: ignore[arg-type]
+
+
+def test_float32_abundances_give_the_float64_result():
+    dense = np.array([[2.1, 1.3, 1.7], [0.3, 3.9, 1.1]])
+    narrow = _adata(dense)
+    narrow.X = sp.csr_matrix(narrow.X, dtype=np.float32)
+    # Compare with the float32-rounded values widened back, so only the summation precision differs.
+    widened = _adata(np.asarray(narrow.X.toarray(), dtype=np.float64))
+    pd.testing.assert_frame_equal(
+        bt.fn.functional_redundancy(narrow, traits=TRAITS),
+        bt.fn.functional_redundancy(widened, traits=TRAITS),
+        rtol=1e-12,
+        atol=0,
+    )

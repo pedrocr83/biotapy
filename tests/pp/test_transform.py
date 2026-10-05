@@ -76,3 +76,12 @@ def test_relative_rows_sum_to_one_or_zero(dense):
     )
     expected = np.where(dense.sum(axis=1) > 0, 1.0, 0.0)
     np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), expected)
+
+
+def test_relative_float32_rows_sum_to_one_in_float64():
+    adata = ad.AnnData(
+        X=sp.csr_matrix(np.array([[0.1, 0.2, 0.3, 0.7], [1.1, 2.3, 0.0, 4.9]]), dtype=np.float32),
+        obs=pd.DataFrame(index=["s0", "s1"]),
+        var=pd.DataFrame(index=list("abcd")),
+    )
+    np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), 1.0, rtol=0, atol=1e-12)

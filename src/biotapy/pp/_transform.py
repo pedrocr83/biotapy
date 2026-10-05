@@ -35,7 +35,7 @@ def relative(adata: AnnData) -> AnnData:
     1.0
     """
     X = as_csr(adata.X)
-    sums = np.asarray(X.sum(axis=1), dtype=np.float64).ravel()
+    sums = np.asarray(X.sum(axis=1, dtype=np.float64)).ravel()
     out = adata.copy()
     out.layers["relative"] = divide_rows(X, sums)
     add_provenance(out, "pp.relative")
