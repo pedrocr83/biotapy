@@ -34,11 +34,12 @@ def consensus(results: Sequence[pd.DataFrame], *, alpha: float = 0.05, min_metho
     Raises
     ------
     TypeError
-        ``results`` is a single table, or holds something that is not a table.
+        ``results`` is a single table, or holds something that is not a table;
+        ``alpha`` is not a real number or ``min_methods`` is not an ``int``.
     ValueError
         A table is not a ``bt.da`` result; two tables come from the same method or
         compare different contrasts; ``alpha`` is not between 0 and 1;
-        ``min_methods`` is not between 1 and the number of tables.
+        ``min_methods`` is not between 1 and the number of tables; ``results`` is empty.
 
     Notes
     -----
@@ -49,6 +50,8 @@ def consensus(results: Sequence[pd.DataFrame], *, alpha: float = 0.05, min_metho
     did not test (NaN, or absent from its table) counts as not tested, never as
     not significant. A consensus feature has ``n_significant >= min_methods`` and
     every calling method has the same non-zero direction; a conflict is never a
+    consensus. A call whose ``effect`` is exactly 0 has no direction: it counts in
+    ``n_significant``, but ``direction`` is then 0, with no conflict and no
     consensus. The rule is recorded in the decision ``da-consensus-agreement``.
 
     Agreement between methods is a robustness report, not a way to choose a
@@ -89,14 +92,28 @@ def consensus(results: Sequence[pd.DataFrame], *, alpha: float = 0.05, min_metho
     return out
 
 
-def _check(tables: list[pd.DataFrame], *, alpha: float, min_methods: int) -> list[str]:
-    """The tables' method names, after checking they can be compared under ``alpha`` and ``min_methods``."""
+def _check_options(n_tables: int, *, alpha: float, min_methods: int) -> None:
+    """Raise unless ``alpha`` is a real number in (0, 1) and ``min_methods`` an int in [1, n_tables]."""
+    if n_tables == 0:
+        msg = "results is empty; pass at least one method's table"
+        raise ValueError(msg)
+    if isinstance(alpha, bool) or not isinstance(alpha, int | float):
+        msg = f"alpha must be a real number, got {type(alpha).__name__}"
+        raise TypeError(msg)
+    if isinstance(min_methods, bool) or not isinstance(min_methods, int):
+        msg = f"min_methods must be an int, got {type(min_methods).__name__}"
+        raise TypeError(msg)
     if not 0 < alpha < 1:
         msg = f"alpha must be between 0 and 1, got {alpha}"
         raise ValueError(msg)
-    if not 1 <= min_methods <= len(tables):
-        msg = f"min_methods must be between 1 and the number of results ({len(tables)}), got {min_methods}"
+    if not 1 <= min_methods <= n_tables:
+        msg = f"min_methods must be between 1 and the number of results ({n_tables}), got {min_methods}"
         raise ValueError(msg)
+
+
+def _check(tables: list[pd.DataFrame], *, alpha: float, min_methods: int) -> list[str]:
+    """The tables' method names, after checking they can be compared under ``alpha`` and ``min_methods``."""
+    _check_options(len(tables), alpha=alpha, min_methods=min_methods)
     methods = [str(table["method"].iloc[0]) for table in tables]
     repeated = sorted({method for method in methods if methods.count(method) > 1})
     if repeated:

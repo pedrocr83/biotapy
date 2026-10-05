@@ -3859,18 +3859,42 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       ),
       st.integers(1, 4),
   )
-  def test_consensus_needs_enough_calls_and_no_conflict(tables, min_methods):
+  def test_consensus_is_enough_calls_with_one_shared_sign(tables, min_methods):
+      """The Decision's definition, both ways: n_significant >= min_methods and every call has the same non-zero sign."""
+      min_methods = min(min_methods, len(tables))
       results = [_table(f"m{i}", [effect for effect, _ in rows], [q for _, q in rows]) for i, rows in enumerate(tables)]
-      out = bt.da.consensus(results, min_methods=min(min_methods, len(results)))
-      assert (out["n_significant"] <= out["n_tested"]).all()
-      hits = out[out["consensus"]]
-      assert (hits["n_significant"] >= min(min_methods, len(results))).all() and not hits["conflict"].any()
-      assert (hits["direction"] != 0).all() and (out.loc[out["conflict"], "direction"] == 0).all()
+      out = bt.da.consensus(results, min_methods=min_methods)
+      for row, feature in enumerate(out.index):
+          calls = [np.sign(rows[row][0]) for rows in tables if rows[row][1] < 0.05]
+          shared = len(set(calls)) == 1 and calls[0] != 0
+          assert out["n_significant"].iloc[row] == len(calls)
+          assert out["consensus"].iloc[row] == (len(calls) >= min_methods and shared), feature
+          assert out["conflict"].iloc[row] == (1 in calls and -1 in calls)
+          assert out["direction"].iloc[row] == (calls[0] if shared else 0)
+
+
+  def test_a_call_with_an_effect_of_exactly_zero_has_no_direction():
+      out = bt.da.consensus([_table("a", [0.0], [0.01]), _table("b", [1.0], [0.01])])
+      assert out["n_significant"].tolist() == [2] and out["direction"].tolist() == [0]
+      assert out["consensus"].tolist() == [False] and out["conflict"].tolist() == [False]
+
+
+  def test_empty_results_raise():
+      with pytest.raises(ValueError, match=r"results is empty; pass at least one method's table"):
+          bt.da.consensus([])
+
+
+  @pytest.mark.parametrize(
+      ("option", "value"), [("min_methods", True), ("min_methods", 1.5), ("alpha", "0.05"), ("alpha", True)]
+  )
+  def test_option_of_the_wrong_type_raises(option, value):
+      with pytest.raises(TypeError, match=option):
+          bt.da.consensus([_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])], **{option: value})
   ```
   Append to `tests/da/test_schema.py` (the schema checks, through the public
   API):
   ```diff
-  @@ -53,3 +53,38 @@ def test_direction_is_the_sign_and_qvalue_bounds_pvalue(method, counts, split):
+  @@ -53,3 +53,44 @@ def test_direction_is_the_sign_and_qvalue_bounds_pvalue(method, counts, split):
        assert (out.loc[tested, "qvalue"] >= out.loc[tested, "pvalue"] - 1e-15).all()
        assert out.loc[tested, ["pvalue", "qvalue"]].stack().between(0, 1).all()
        assert out.loc[~tested, ["effect", "qvalue"]].isna().all().all()
@@ -3882,6 +3906,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +    return table
   +
   +
+  +def _drop_effect(table, feature):
+  +    table.loc[feature, ["effect", "direction"]] = [np.nan, 0]
+  +
+  +
   +@pytest.mark.parametrize(
   +    ("change", "message"),
   +    [
@@ -3891,8 +3919,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +        (lambda t: t.__setitem__("qvalue", t["qvalue"].where(t.index != "f1")), "NaN exactly where pvalue is"),
   +        (lambda t: t.__setitem__("direction", -t["direction"]), "direction must be the sign of effect"),
   +        (lambda t: t.__setitem__("contrast", ["B vs A"] * 7 + ["A vs B"]), "must hold one contrast"),
+  +        (lambda t: t.__setitem__("contrast", [np.nan] + ["B vs A"] * 7), "must hold one contrast"),
+  +        (lambda t: _drop_effect(t, "f1"), "effect must be NaN exactly where pvalue is"),
   +    ],
-  +    ids=["column", "dtype", "range", "missing q", "direction", "contrast"],
+  +    ids=["column", "dtype", "range", "missing q", "direction", "contrast", "nan contrast", "missing effect"],
   +)
   +def test_consensus_refuses_tables_that_break_the_schema(change, message):
   +    table = _broken(change)
@@ -3951,11 +3981,12 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       Raises
       ------
       TypeError
-          ``results`` is a single table, or holds something that is not a table.
+          ``results`` is a single table, or holds something that is not a table;
+          ``alpha`` is not a real number or ``min_methods`` is not an ``int``.
       ValueError
           A table is not a ``bt.da`` result; two tables come from the same method or
           compare different contrasts; ``alpha`` is not between 0 and 1;
-          ``min_methods`` is not between 1 and the number of tables.
+          ``min_methods`` is not between 1 and the number of tables; ``results`` is empty.
 
       Notes
       -----
@@ -3966,6 +3997,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       did not test (NaN, or absent from its table) counts as not tested, never as
       not significant. A consensus feature has ``n_significant >= min_methods`` and
       every calling method has the same non-zero direction; a conflict is never a
+      consensus. A call whose ``effect`` is exactly 0 has no direction: it counts in
+      ``n_significant``, but ``direction`` is then 0, with no conflict and no
       consensus. The rule is recorded in the decision ``da-consensus-agreement``.
 
       Agreement between methods is a robustness report, not a way to choose a
@@ -4006,14 +4039,28 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       return out
 
 
-  def _check(tables: list[pd.DataFrame], *, alpha: float, min_methods: int) -> list[str]:
-      """The tables' method names, after checking they can be compared under ``alpha`` and ``min_methods``."""
+  def _check_options(n_tables: int, *, alpha: float, min_methods: int) -> None:
+      """Raise unless ``alpha`` is a real number in (0, 1) and ``min_methods`` an int in [1, n_tables]."""
+      if n_tables == 0:
+          msg = "results is empty; pass at least one method's table"
+          raise ValueError(msg)
+      if isinstance(alpha, bool) or not isinstance(alpha, int | float):
+          msg = f"alpha must be a real number, got {type(alpha).__name__}"
+          raise TypeError(msg)
+      if isinstance(min_methods, bool) or not isinstance(min_methods, int):
+          msg = f"min_methods must be an int, got {type(min_methods).__name__}"
+          raise TypeError(msg)
       if not 0 < alpha < 1:
           msg = f"alpha must be between 0 and 1, got {alpha}"
           raise ValueError(msg)
-      if not 1 <= min_methods <= len(tables):
-          msg = f"min_methods must be between 1 and the number of results ({len(tables)}), got {min_methods}"
+      if not 1 <= min_methods <= n_tables:
+          msg = f"min_methods must be between 1 and the number of results ({n_tables}), got {min_methods}"
           raise ValueError(msg)
+
+
+  def _check(tables: list[pd.DataFrame], *, alpha: float, min_methods: int) -> list[str]:
+      """The tables' method names, after checking they can be compared under ``alpha`` and ``min_methods``."""
+      _check_options(len(tables), alpha=alpha, min_methods=min_methods)
       methods = [str(table["method"].iloc[0]) for table in tables]
       repeated = sorted({method for method in methods if methods.count(method) > 1})
       if repeated:
@@ -4036,7 +4083,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
    def result(
        features: "pd.Index[str]",
-  @@ -31,3 +33,43 @@ def result(
+  @@ -31,3 +33,46 @@ def result(
            },
            index=pd.Index(features, name="feature"),
        )
@@ -4065,7 +4112,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +
   +
   +def _check_values(table: pd.DataFrame, *, arg: str) -> None:
-  +    """Raise unless p- and q-values are probabilities missing together, direction is sign(effect), one method and contrast."""
+  +    """Raise unless p-values, q-values and effects are missing together, p and q are probabilities, direction is sign(effect), one method and contrast."""
   +    probabilities = table[["pvalue", "qvalue"]]
   +    if not (probabilities.isna() | probabilities.ge(0) & probabilities.le(1)).all().all():
   +        msg = f"{arg}: pvalue and qvalue must lie between 0 and 1 (NaN for an untested feature)"
@@ -4073,11 +4120,14 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +    if not table["pvalue"].isna().equals(table["qvalue"].isna()):
   +        msg = f"{arg}: qvalue must be NaN exactly where pvalue is"
   +        raise ValueError(msg)
+  +    if not table["effect"].isna().equals(table["pvalue"].isna()):
+  +        msg = f"{arg}: effect must be NaN exactly where pvalue is (an untested feature has no estimate)"
+  +        raise ValueError(msg)
   +    if not (table["direction"].to_numpy() == np.sign(np.nan_to_num(table["effect"].to_numpy()))).all():
   +        msg = f"{arg}: direction must be the sign of effect, 0 where effect is NaN"
   +        raise ValueError(msg)
   +    for column in ("method", "contrast"):
-  +        if table[column].nunique() != 1:
+  +        if table[column].nunique(dropna=False) != 1:
   +            msg = f"{arg} must hold one {column}, found {table[column].unique().tolist()}"
   +            raise ValueError(msg)
   ```
@@ -4093,7 +4143,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   -__all__ = ["ancombc2", "linda"]
   +__all__ = ["ancombc2", "consensus", "linda"]
   ```
-- [x] **Step 4: Run, expect pass** - the same command -> `93 passed, 4 deselected`. The two
+- [x] **Step 4: Run, expect pass** - the same command -> `101 passed, 4 deselected`. The two
   property tests also under three extra seeds.
 - [x] **Step 5: Decision concept.** Create
   `.knowledge/decisions/da-consensus-agreement.md` (`generated.at` is the
@@ -4106,8 +4156,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   tags: [da, statistics, api]
   status: stable
   paths: ["src/biotapy/da/_consensus.py", "src/biotapy/da/_schema.py"]
-  generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:56:32Z }
-  commit: 1153e6a
+  generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:05:08Z }
+  commit: 95a35a1
   sources:
     - id: nearing
       resource: https://www.nature.com/articles/s41467-022-28034-z
@@ -4143,7 +4193,9 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   - `consensus(f)` is true when `n_significant >= min_methods` and every calling
     method has the same non-zero `direction`. `conflict(f)` is true when calling
     methods disagree in sign; a conflict is never a consensus. `direction(f)` is
-    the shared sign, 0 when there is no call or a conflict.
+    the shared sign, 0 when there is no call, a conflict, or a call whose
+    `effect` is exactly 0 (a call with no sign: it counts in `n_significant`,
+    blocks consensus on that feature, and is not a conflict).
   - `da.consensus(results, *, alpha=0.05, min_methods=2)` only combines tables:
     it never runs a method, so the list of methods is written in the user's code
     before any result is seen. Tables must come from different methods and

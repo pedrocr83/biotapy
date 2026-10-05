@@ -61,6 +61,10 @@ def _broken(change):
     return table
 
 
+def _drop_effect(table, feature):
+    table.loc[feature, ["effect", "direction"]] = [np.nan, 0]
+
+
 @pytest.mark.parametrize(
     ("change", "message"),
     [
@@ -70,8 +74,10 @@ def _broken(change):
         (lambda t: t.__setitem__("qvalue", t["qvalue"].where(t.index != "f1")), "NaN exactly where pvalue is"),
         (lambda t: t.__setitem__("direction", -t["direction"]), "direction must be the sign of effect"),
         (lambda t: t.__setitem__("contrast", ["B vs A"] * 7 + ["A vs B"]), "must hold one contrast"),
+        (lambda t: t.__setitem__("contrast", [np.nan] + ["B vs A"] * 7), "must hold one contrast"),
+        (lambda t: _drop_effect(t, "f1"), "effect must be NaN exactly where pvalue is"),
     ],
-    ids=["column", "dtype", "range", "missing q", "direction", "contrast"],
+    ids=["column", "dtype", "range", "missing q", "direction", "contrast", "nan contrast", "missing effect"],
 )
 def test_consensus_refuses_tables_that_break_the_schema(change, message):
     table = _broken(change)

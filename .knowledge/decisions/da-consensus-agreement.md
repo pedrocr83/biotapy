@@ -5,8 +5,8 @@ description: A feature is a consensus hit when at least min_methods methods call
 tags: [da, statistics, api]
 status: stable
 paths: ["src/biotapy/da/_consensus.py", "src/biotapy/da/_schema.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:56:32Z }
-commit: 1153e6a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:05:08Z }
+commit: 95a35a1
 sources:
   - id: nearing
     resource: https://www.nature.com/articles/s41467-022-28034-z
@@ -42,7 +42,9 @@ Per feature `f` and method `m`, over result tables the user computed:
 - `consensus(f)` is true when `n_significant >= min_methods` and every calling
   method has the same non-zero `direction`. `conflict(f)` is true when calling
   methods disagree in sign; a conflict is never a consensus. `direction(f)` is
-  the shared sign, 0 when there is no call or a conflict.
+  the shared sign, 0 when there is no call, a conflict, or a call whose
+  `effect` is exactly 0 (a call with no sign: it counts in `n_significant`,
+  blocks consensus on that feature, and is not a conflict).
 - `da.consensus(results, *, alpha=0.05, min_methods=2)` only combines tables:
   it never runs a method, so the list of methods is written in the user's code
   before any result is seen. Tables must come from different methods and

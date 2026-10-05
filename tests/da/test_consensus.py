@@ -129,10 +129,34 @@ def test_consensus_keeps_its_inputs():
     ),
     st.integers(1, 4),
 )
-def test_consensus_needs_enough_calls_and_no_conflict(tables, min_methods):
+def test_consensus_is_enough_calls_with_one_shared_sign(tables, min_methods):
+    """The Decision's definition, both ways: n_significant >= min_methods and every call has the same non-zero sign."""
+    min_methods = min(min_methods, len(tables))
     results = [_table(f"m{i}", [effect for effect, _ in rows], [q for _, q in rows]) for i, rows in enumerate(tables)]
-    out = bt.da.consensus(results, min_methods=min(min_methods, len(results)))
-    assert (out["n_significant"] <= out["n_tested"]).all()
-    hits = out[out["consensus"]]
-    assert (hits["n_significant"] >= min(min_methods, len(results))).all() and not hits["conflict"].any()
-    assert (hits["direction"] != 0).all() and (out.loc[out["conflict"], "direction"] == 0).all()
+    out = bt.da.consensus(results, min_methods=min_methods)
+    for row, feature in enumerate(out.index):
+        calls = [np.sign(rows[row][0]) for rows in tables if rows[row][1] < 0.05]
+        shared = len(set(calls)) == 1 and calls[0] != 0
+        assert out["n_significant"].iloc[row] == len(calls)
+        assert out["consensus"].iloc[row] == (len(calls) >= min_methods and shared), feature
+        assert out["conflict"].iloc[row] == (1 in calls and -1 in calls)
+        assert out["direction"].iloc[row] == (calls[0] if shared else 0)
+
+
+def test_a_call_with_an_effect_of_exactly_zero_has_no_direction():
+    out = bt.da.consensus([_table("a", [0.0], [0.01]), _table("b", [1.0], [0.01])])
+    assert out["n_significant"].tolist() == [2] and out["direction"].tolist() == [0]
+    assert out["consensus"].tolist() == [False] and out["conflict"].tolist() == [False]
+
+
+def test_empty_results_raise():
+    with pytest.raises(ValueError, match=r"results is empty; pass at least one method's table"):
+        bt.da.consensus([])
+
+
+@pytest.mark.parametrize(
+    ("option", "value"), [("min_methods", True), ("min_methods", 1.5), ("alpha", "0.05"), ("alpha", True)]
+)
+def test_option_of_the_wrong_type_raises(option, value):
+    with pytest.raises(TypeError, match=option):
+        bt.da.consensus([_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])], **{option: value})

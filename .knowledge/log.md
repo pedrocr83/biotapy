@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [da-consensus-agreement](decisions/da-consensus-agreement.md): a call whose `effect` is exactly 0 has no direction (counts in `n_significant`, no consensus, no conflict); [phase-3-stats](roadmap/phase-3-stats.md) task 3.8 code and tests follow the review fixes (`validate_result` counts NaN method/contrast and requires NaN `effect` where `pvalue` is NaN; `consensus` type-checks `alpha` and `min_methods` and refuses an empty `results`).
 - **Create**: [da-consensus-agreement](decisions/da-consensus-agreement.md): what "methods agree" means in `da.consensus` (strict `q < alpha`, one BH, untested is not "not significant", same sign, conflict), the options rejected, and that the user picks the methods; listed in [decisions/index.md](decisions/index.md).
 - **Update**: [function-shape](contracts/function-shape.md) (and rules.md R3.2): `da.consensus` takes `da` result tables instead of an AnnData. [phase-3-stats](roadmap/phase-3-stats.md) task 3.8 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.ancombc2`'s tolerances are per model (`host` loose, `host + log_depth` 1e-6); [phase-3-stats](roadmap/phase-3-stats.md) task 3.4 code, tests and counts follow the fix round (a feature with no residual degrees of freedom is untested, scikit-bio errors are re-raised with the function name).
