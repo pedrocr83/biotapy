@@ -62,6 +62,8 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
 
     Raises
     ------
+    TypeError
+        ``pseudocount`` is a bool or not a real number.
     ValueError
         ``pseudocount`` is negative or not finite; ``X`` holds a negative or
         non-finite value; or ``X`` plus ``pseudocount`` still holds a zero.
@@ -83,9 +85,12 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
     ``pseudocount = FALSE`` fails on zeros; biotapy defaults to 0.5, the value
     LinDA uses. The transform is scale invariant, so counts and their relative
     abundances give the same result only when the pseudocount is scaled with them.
+    An all-zero sample gives an all-zero CLR row.
 
     CLR has no zeros, so ``X`` is densified once and ``layers['clr']`` is dense:
-    8 bytes x samples x features each.
+    8 bytes x samples x features. Peak memory is about three such arrays (the
+    dense copy of ``X``, the transform's temporaries and its output; 3.4x measured
+    on a 400 x 500 table), so budget for that on large tables.
 
     References
     ----------
@@ -107,6 +112,9 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
 
 def pseudocounted(adata: AnnData, pseudocount: float, *, func: str) -> npt.NDArray[np.float64]:
     """``X`` as a dense float64 array plus ``pseudocount``, checked to be strictly positive."""
+    if isinstance(pseudocount, bool) or not isinstance(pseudocount, int | float | np.integer | np.floating):
+        msg = f"pseudocount must be a real number, got {pseudocount!r}"
+        raise TypeError(msg)
     if not np.isfinite(pseudocount) or pseudocount < 0:
         msg = f"pseudocount must be a finite number >= 0, got {pseudocount!r}"
         raise ValueError(msg)

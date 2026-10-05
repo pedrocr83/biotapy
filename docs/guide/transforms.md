@@ -42,4 +42,6 @@ not, as `mia::transformAssay(method = "clr", pseudocount = 0.5)` and
 abundances or CPM it would swamp the rarest features, so biotapy warns when the pseudocount is
 larger than the smallest non-zero value; pass one on the data's scale, for example half that value.
 
-`layers["clr"]` is dense: CLR has no zeros, so it takes 8 bytes per sample and feature.
+An all-zero sample gives an all-zero CLR row.
+
+`layers["clr"]` is dense: CLR has no zeros, so it takes 8 bytes per sample and feature, and the call peaks at about three such arrays.

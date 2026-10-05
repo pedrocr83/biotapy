@@ -189,3 +189,9 @@ def test_clr_rows_sum_to_zero_and_ignore_scale(dense, pseudocount, scale):
     np.testing.assert_allclose(
         bt.pp.clr(scaled, pseudocount=pseudocount * scale).layers["clr"], out, rtol=1e-9, atol=1e-9
     )
+
+
+@pytest.mark.parametrize("pseudocount", [True, False, "0.5", None])
+def test_clr_non_numeric_pseudocount_raises(pseudocount):
+    with pytest.raises(TypeError, match="pseudocount must be a real number"):
+        bt.pp.clr(bt.datasets.toy(), pseudocount=pseudocount)
