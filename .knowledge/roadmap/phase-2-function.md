@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:54:33Z }
-commit: f5236e8
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T10:56:05Z }
+commit: c60fc60
 sources:
   - id: spec
     resource: ../../plan.md
@@ -371,7 +371,7 @@ not exist yet.
 - [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
 - [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
-- [ ] 2.10 `datasets.hmp2() -> MuData`
+- [x] 2.10 `datasets.hmp2() -> MuData`
 - [ ] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
 - [ ] 2.13 Coming-from-R check: "not in 0.2"
 - [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
@@ -7593,7 +7593,7 @@ commit also updates, outside it:
 **Will not touch:** `_remote.py`'s loaders and existing registry entries,
 `_enzyme.py`, `_toy.py`, every reader, `fn`, `_core`, the CI workflows.
 
-- [ ] **Step 1: Failing tests.** Create `tests/datasets/test_hmp2.py`:
+- [x] **Step 1: Failing tests.** Create `tests/datasets/test_hmp2.py`:
 
 ```python
 import gzip
@@ -7750,11 +7750,11 @@ def test_hmp2_downloads_and_loads():
     assert mdata.obs["Participant ID"].is_unique
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py -q`
   -> `1 error during collection`:
   `ImportError: cannot import name '_hmp2' from 'biotapy.datasets'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/datasets/_hmp2.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/datasets/_hmp2.py`:
 
 ```python
 """The HMP2 (IBDMDB) inflammatory bowel disease cohort: pathway abundance and taxa, one stool metagenome per person."""
@@ -7903,14 +7903,14 @@ from ._toy import toy, toy_humann
 __all__ = ["enterotype", "enzyme", "esophagus", "global_patterns", "hmp2", "toy", "toy_humann"]
 ```
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py src/biotapy/datasets/_hmp2.py -q`
   -> `9 passed, 1 deselected` (8 tests and the doctest; the network test is
   deselected). Then the real files:
   `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py -m network -q`
   -> `1 passed` (downloads 23 MB on a cold cache; pooch checks the three
   hashes).
-- [ ] **Step 5: Docs.** In `docs/api.md`, add `datasets.hmp2` after
+- [x] **Step 5: Docs.** In `docs/api.md`, add `datasets.hmp2` after
   `datasets.global_patterns` under "Datasets". Edit the datasets guide:
 
 ```diff
@@ -7992,14 +7992,14 @@ index a48db71..777feeb 100644
 
   Build the docs -> `build succeeded.` (The guide links to the tutorial in
   Task 2.10b, when the page exists; a link now would fail `-W`.)
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - In "# Tasks (checklist)", the line becomes
     `- [x] 2.10 \`datasets.hmp2() -> MuData\``; tick this task's step boxes.
     Bump `generated` and `commit` on this concept.
   - Add to `.knowledge/log.md`, under a new heading
     `## <date> (Phase 2, slice 2D)`:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10 done: \`datasets.hmp2\` returns each HMP2 participant's first metagenome as pathway and species modalities with the metadata.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add src/biotapy/datasets/_hmp2.py src/biotapy/datasets/_remote.py src/biotapy/datasets/__init__.py \
