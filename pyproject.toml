@@ -182,7 +182,7 @@ untyped_calls_exclude = [
   "biom",
   "mudata",
   "skbio.stats._subsample",
-  "skbio.stats.composition._base",
+  "skbio.stats.composition._base.tree_basis",
   "sklearn",
   "threadpoolctl",
 ]

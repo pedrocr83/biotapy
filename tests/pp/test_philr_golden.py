@@ -34,5 +34,5 @@ def test_philr_matches_philr_philr():
     assert ours.keys() == r_names.keys()
     renamed = out.rename(columns={name: r_names[key] for key, name in ours.items()})
     expected = golden.pivot(index="sample_id", columns="balance", values="value")
-    # atol: a balance between taxa that are all absent from a sample is 0 here and about 1e-16 in R.
+    # atol: a balance between taxa that are all absent from a sample is about 1e-16 on both sides.
     np.testing.assert_allclose(renamed.loc[expected.index, expected.columns], expected, rtol=1e-7, atol=1e-12)

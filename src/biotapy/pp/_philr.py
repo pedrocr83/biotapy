@@ -35,6 +35,8 @@ def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
         ``tdata`` is an AnnData that is not a TreeData.
     KeyError
         ``tdata`` has no ``vart['phylo']``.
+    TypeError
+        ``pseudocount`` is a bool or not a real number.
     ValueError
         A node of the tree, the root included, has more than two children; a
         feature is not a tip of the tree; there are fewer than two features; or
@@ -63,7 +65,10 @@ def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
     Aitchison distances, whatever the tree.
 
     ``X`` is densified once (8 bytes x samples x features); the balances take
-    8 bytes x samples x (features - 1).
+    8 bytes x samples x (features - 1). Peak memory is about five such arrays
+    (4.8x measured on a 400 x 512 table) plus scikit-bio's sparse basis, which
+    holds one value per tip under each node (113 MB on GlobalPatterns' 26 x 19,216,
+    28 arrays), so budget for that on large tables.
 
     References
     ----------
@@ -86,7 +91,7 @@ def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
     if len(tips) != tdata.n_vars:
         msg = f"pp.philr needs every feature to be a tip of the tree; {tdata.n_vars - len(tips)} feature(s) are not"
         raise ValueError(msg)
-    values = pseudocounted(tdata, pseudocount, func="pp.philr").take(tdata.var_names.get_indexer(tips), axis=1)
+    values = pseudocounted(tdata, pseudocount, func="pp.philr", columns=tdata.var_names.get_indexer(tips))
     basis, nodes = tree_basis(tree)
     # tree_basis puts a node's first child in the denominator; philr::philr puts it in the numerator.
     balances = pd.DataFrame(-(clr(values) @ basis.T), index=tdata.obs_names, columns=nodes)
@@ -108,7 +113,8 @@ def _binary_tree(tree: TreeNode) -> TreeNode:
         kept[id(node)] = children[0] if len(children) == 1 else TreeNode(node.name, children=children)
     if wide:
         msg = (
-            f"pp.philr needs a rooted binary tree, but the node(s) {wide[:3]} have more than two children; "
+            f"pp.philr needs a rooted binary tree, but the node(s) {wide[:3]} have more than two children "
+            f"({len(wide)} in total); "
             "root the tree and resolve its polytomies first (for example with ape::multi2di in R)"
         )
         raise ValueError(msg)

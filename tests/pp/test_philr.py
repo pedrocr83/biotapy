@@ -162,3 +162,25 @@ def test_balances_keep_the_clr_distance(dense, pseudocount):
     balances = bt.pp.philr(tdata, pseudocount=pseudocount).obsm["X_philr"].to_numpy()
     clr = bt.pp.clr(tdata, pseudocount=pseudocount).layers["clr"]
     np.testing.assert_allclose(np.linalg.norm(balances, axis=1), np.linalg.norm(clr, axis=1), rtol=1e-9, atol=1e-9)
+
+
+def test_wide_node_error_counts_every_wide_node():
+    # Five three-child nodes (q, p1-p4) under a binary root: the message lists the first three, in postorder, and counts all five.
+    edges = [("r", "q", 1.0), ("r", "p4", 1.0), ("q", "p1", 1.0), ("q", "p2", 1.0), ("q", "p3", 1.0)]
+    edges += [(f"p{i + 1}", name, 1.0) for i in range(4) for name in (f"x{i}", f"y{i}", f"z{i}")]
+    tips = [f"{letter}{i}" for i in range(4) for letter in "xyz"]
+    tdata = TreeData(
+        X=sp.csr_matrix(np.ones((2, len(tips)))),
+        obs=pd.DataFrame(index=["s1", "s2"]),
+        var=pd.DataFrame(index=tips),
+        vart={"phylo": tree_from_edges(edges)},
+        label=None,
+    )
+    with pytest.raises(ValueError, match=r"\['p1', 'p2', 'p3'\] have more than two children \(5 in total\)"):
+        bt.pp.philr(tdata)
+
+
+def test_feature_order_does_not_change_the_balances():
+    tdata = _toy6()
+    shuffled = tdata[:, ["f4", "f1", "f6", "f3", "f5", "f2"]].copy()
+    pd.testing.assert_frame_equal(bt.pp.philr(shuffled).obsm["X_philr"], bt.pp.philr(tdata).obsm["X_philr"])

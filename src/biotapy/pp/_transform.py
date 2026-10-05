@@ -110,8 +110,10 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
     return out
 
 
-def pseudocounted(adata: AnnData, pseudocount: float, *, func: str) -> npt.NDArray[np.float64]:
-    """``X`` as a dense float64 array plus ``pseudocount``, checked to be strictly positive."""
+def pseudocounted(
+    adata: AnnData, pseudocount: float, *, func: str, columns: npt.NDArray[np.intp] | None = None
+) -> npt.NDArray[np.float64]:
+    """``X`` (its ``columns``, in that order, if given) as a dense float64 array plus ``pseudocount``, checked > 0."""
     if isinstance(pseudocount, bool) or not isinstance(pseudocount, int | float | np.integer | np.floating):
         msg = f"pseudocount must be a real number, got {pseudocount!r}"
         raise TypeError(msg)
@@ -119,6 +121,9 @@ def pseudocounted(adata: AnnData, pseudocount: float, *, func: str) -> npt.NDArr
         msg = f"pseudocount must be a finite number >= 0, got {pseudocount!r}"
         raise ValueError(msg)
     X = as_csr(adata.X).astype(np.float64)
+    if columns is not None:
+        # Reordered while sparse, so the dense copy below is the only one.
+        X = X[:, columns]
     if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
         msg = f"{func} needs finite, non-negative values in X"
         raise ValueError(msg)
