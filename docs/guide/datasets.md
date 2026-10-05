@@ -111,6 +111,8 @@ mdata = bt.datasets.hmp2()
 mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
 ```
 
+The [function tutorial](../tutorials/function.md) analyses it.
+
 ## Licensing
 
 `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository

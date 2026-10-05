@@ -2,6 +2,7 @@
 
 ## 2026-10-05 (Phase 2, slice 2D)
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10 done: `datasets.hmp2` returns each HMP2 participant's first metagenome as pathway and species modalities with the metadata.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10b done: the HMP2 function tutorial runs on every docs build; notebook cells may take 300 s.
 
 ## 2026-10-05 (slice 2D plan)
 * **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2D plan in full TDD steps (2.10 datasets.hmp2, 2.10b tutorial, 2.13 Coming-from-R, 2.14 benchmarks, Checkpoint D with 2.11 knowledge, 2.15 release 0.2.0) and its decisions; header note, checklist, slices table and decision 11 updated.

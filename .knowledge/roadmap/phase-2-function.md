@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T10:56:05Z }
-commit: c60fc60
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:03:00Z }
+commit: 1f3c642
 sources:
   - id: spec
     resource: ../../plan.md
@@ -372,7 +372,7 @@ not exist yet.
 - [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
 - [x] 2.10 `datasets.hmp2() -> MuData`
-- [ ] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
+- [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
 - [ ] 2.13 Coming-from-R check: "not in 0.2"
 - [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
 - [ ] Checkpoint D
@@ -7558,7 +7558,7 @@ commit also updates, outside it:
 - "# Tasks (checklist)": the three outline lines become
   ```markdown
   - [ ] 2.10 `datasets.hmp2() -> MuData`
-  - [ ] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
+  - [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
   - [ ] 2.13 Coming-from-R check: "not in 0.2"
   - [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
   - [ ] Checkpoint D
@@ -8034,7 +8034,7 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
 **Will not touch:** any `src/` file, the other tutorials, the workflows
 (design 4: no CI change is needed).
 
-- [ ] **Step 1: Failing test.** In `tests/test_ci.py`, add before
+- [x] **Step 1: Failing test.** In `tests/test_ci.py`, add before
   `def _sources():`:
 
 ```python
@@ -8042,10 +8042,10 @@ def test_a_notebook_cell_has_time_to_download_a_dataset():
     assert _conf_constants()["nb_execution_timeout"] == 300
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/test_ci.py -q`
   -> `1 failed, 11 passed`: `KeyError: 'nb_execution_timeout'`.
-- [ ] **Step 3: Implement.** In `docs/conf.py`:
+- [x] **Step 3: Implement.** In `docs/conf.py`:
 
 ```diff
 diff --git a/docs/conf.py b/docs/conf.py
@@ -8064,7 +8064,7 @@ index 1967fc9..606b1e4 100644
 ```
 
   Run `uv run --group test pytest tests/test_ci.py -q` -> `12 passed`.
-- [ ] **Step 4: The tutorial.** Create `docs/tutorials/function.md`:
+- [x] **Step 4: The tutorial.** Create `docs/tutorials/function.md`:
 
 ````markdown
 ---
@@ -8218,7 +8218,7 @@ index 777feeb..63cd1e2 100644
  `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository
 ````
 
-- [ ] **Step 5: Build and read the page.**
+- [x] **Step 5: Build and read the page.**
   `rm -rf docs/_build && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
   -> `build succeeded.`, with the line
   `tutorials/function.md: Executed notebook in <n> seconds` (6.9-8.3 s
@@ -8234,13 +8234,13 @@ index 777feeb..63cd1e2 100644
   directory (keep the phyloseq ones), rebuild, and record both times in
   the task report; then put the files back. The tutorial must stay under
   2 minutes cold.
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line becomes
     `- [x] 2.10b \`docs/tutorials/function.md\`, the HMP2 function tutorial`;
     tick this task's step boxes; bump `generated` and `commit`.
   - Add under the slice 2D log heading:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10b done: the HMP2 function tutorial runs on every docs build; notebook cells may take 300 s.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add docs/tutorials/function.md docs/tutorials/index.md docs/guide/datasets.md docs/conf.py tests/test_ci.py \

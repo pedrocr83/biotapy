@@ -88,6 +88,8 @@ nb_output_stderr = "remove"
 # Every notebook runs at build time; a failing cell fails the build. The cache lives in docs/_build.
 nb_execution_mode = "cache"
 nb_execution_raise_on_error = True
+# Per cell. The function tutorial's first cell downloads 23 MB of HMP2 tables on a cold cache (10-25 s measured).
+nb_execution_timeout = 300
 nb_merge_streams = True
 typehints_defaults = "braces"
 always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14
