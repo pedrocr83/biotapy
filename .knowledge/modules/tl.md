@@ -5,8 +5,8 @@ description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, 
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 status: stable
 ---
 
@@ -75,7 +75,7 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   which is exact because Faith PD depends on presence only, so it runs on
   any abundance. `_alpha.py:alpha`
 - Weighted UniFrac and the count metrics (`observed_features`, `chao1`) need
-  whole-number counts: they call `_core.require_counts`, which checks both
+  non-negative whole-number counts: they call `_core.require_counts`, which checks both
   `x_kind` and the values of `X`. Unweighted UniFrac and Jaccard are
   qualified to presence by scikit-bio and need no counts.
 

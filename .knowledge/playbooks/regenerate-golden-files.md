@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**", "tests/humann/**", "tests/data/humann/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:14:30Z }
-commit: 3044e2f
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md

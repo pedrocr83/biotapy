@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:38:45Z }
-commit: 9c1e8f2
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 status: stable
 ---
 
@@ -54,8 +54,8 @@ none of them back.
 - `_slots.py:x_kind` / `require_counts` - read, or enforce, what `X` holds.
   `require_counts` raises `ValueError` naming its `func=` unless `x_kind` is
   `"counts"` and every stored value is a non-negative whole number (`infer_x_kind`'s rule,
-  O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
-  and `tl.unifrac(weighted=True)`.
+  O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`),
+  `tl.unifrac(weighted=True)` and `da._design.dense_counts`.
 - `_slots.py:require_categorical` - raise `TypeError` naming its `arg=`,
   with an `.astype("category")` hint, when a column meant to group samples is
   numeric and not bool; shared by `tl.permanova` (`grouping=`) and `pl`'s

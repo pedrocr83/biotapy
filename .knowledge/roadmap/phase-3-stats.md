@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:39:32Z }
-commit: 4e111d3
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 sources:
   - id: spec
     resource: ../../plan.md
@@ -585,7 +585,7 @@ columns onto it.
 - [x] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [x] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [x] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
-- [ ] Checkpoint B
+- [ ] Checkpoint B (review, exit-gate check and knowledge done; push open)
 - [ ] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [ ] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [ ] 3.11 CI job `r-bridge` for `-m r` tests
@@ -595,7 +595,7 @@ columns onto it.
 - [ ] 3.12 Coming-from-R check
 - [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
-- [ ] 3.14 Knowledge (Module concept `da`)
+- [ ] 3.14 Knowledge (updates `modules/da.md`, created at Checkpoint B, for the R bridges)
 - [ ] 3.15 Release 0.3.0
 
 # Exit gate
@@ -4676,15 +4676,19 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   ```
 
 ### Checkpoint B - review slice 3B
-- [ ] Review the whole slice (superpowers:requesting-code-review, opus: the
+- [x] Review the whole slice (superpowers:requesting-code-review, opus: the
   LinDA port and the ANCOM-BC2 mapping are numerics) against every contract,
   pure-by-default, the Phase 3 and slice 3B review focus, and the measured
   parity; then a fix pass, one commit per finding, each with a test. Record
   the counts (Critical / Important / Minor) and the fix range here.
-- [ ] Run the exit-gate check for 3B: `uv run --group test pytest -m "golden
+  Recorded: 0 Critical / 2 Important / 5 Minor; fix pass `9f45c28..fd9e94a`
+  plus `927e5ae`; re-review 7/7 addressed.
+- [x] Run the exit-gate check for 3B: `uv run --group test pytest -m "golden
   or network" tests/da -q` (expected `4 passed`) and the full
   `uv run --group test pytest -q -W error::UserWarning`; record both counts.
-- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+  Recorded at `927e5ae`: `4 passed, 104 deselected` for the golden/network
+  run; `1174 passed, 29 deselected` for the full run (1172 before `modules/da.md` added two bundle tests).
+- [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Create `.knowledge/modules/da.md`** (`type: Module`, moved forward from
     3.14, slice 3B decision 13): Responsibility (two native methods behind one schema,
     the consensus table; `da` writes no slot); Entry points
@@ -4906,11 +4910,12 @@ MaAsLin 3 from Python and gets the same schema; CI runs them on Linux.
 - **3.13 benchmarks.** asv entries for `pp.philr` (GlobalPatterns, 2,572
   taxa), `da.linda`, `da.ancombc2` (benchmark data); baselines in
   `docs/performance.md`. Measurements only; no optimisation (R10.1).
-- **Checkpoint D and 3.14 knowledge.** Create `.knowledge/modules/da.md`
-  (`type: Module`; responsibility, entry points, invariants: the schema,
-  BH, no filtering, no formulas, R imports inside functions; verification
+- **Checkpoint D and 3.14 knowledge.** Update `.knowledge/modules/da.md`
+  (created at Checkpoint B; add the R bridges: the schema, BH,
+  no filtering, no formulas, R imports inside functions; verification
   `uv run --group test pytest tests/da -q`; gotchas: patsy's alphabetical
-  reference, Holm defaults, rpy2 on Linux); update `pl.md`, `core.md`,
+  reference, Holm defaults, rpy2 on Linux); update `da.md` (created at
+  Checkpoint B) for the bridges, `pl.md`, `core.md`,
   `optional-heavy-dependencies.md`; index entries and log lines.
 - **3.15 release 0.3.0** per the cut-a-release playbook, after the user
   approves the tag (R13.3).
