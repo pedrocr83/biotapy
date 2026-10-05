@@ -46,10 +46,10 @@ def linda(adata: AnnData, group: str, *, covariates: Sequence[str] = (), referen
         ``covariates`` is not a list of column names, or ``reference`` is not a string.
     ValueError
         ``X`` does not hold raw counts, has an empty sample or fewer than two
-        features; a used ``obs`` column has missing values or is constant;
-        ``group`` has other than two levels; ``reference`` is not one of them or is
-        given for a numeric ``group``; the model has at least as many terms as
-        samples, or collinear columns.
+        features; a used ``obs`` column has missing values, is constant or is
+        repeated; ``group`` has other than two levels; ``reference`` is not one of
+        them or is given for a numeric ``group``; the model has at least as many
+        terms as samples, or collinear columns.
 
     Notes
     -----

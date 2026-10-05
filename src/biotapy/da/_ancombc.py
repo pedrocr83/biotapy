@@ -46,12 +46,13 @@ def ancombc2(
     KeyError
         ``group`` or a covariate is not an ``obs`` column.
     TypeError
-        ``covariates`` is a string rather than a list of column names.
+        ``covariates`` is not a list of column names, or ``reference`` is not a string.
     ValueError
-        ``X`` does not hold raw counts or has an empty sample; a used ``obs`` column
-        has missing values; ``group`` has other than two levels; ``reference`` is
-        not one of them or is given for a numeric ``group``; the model has as many
-        terms as samples, or collinear columns.
+        ``X`` does not hold raw counts, has an empty sample or fewer than two
+        features; a used ``obs`` column has missing values, is constant or is
+        repeated; ``group`` has other than two levels; ``reference`` is not one of
+        them or is given for a numeric ``group``; the model has at least as many
+        terms as samples, or collinear columns; scikit-bio cannot fit the model.
 
     Notes
     -----
