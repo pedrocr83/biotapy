@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `ANCOMBC` for the `da.ancombc2` golden file, with CVXR 1.0-15 and `libgsl27`. [regenerate-golden-files](playbooks/regenerate-golden-files.md) Common mistakes: why CVXR is pinned.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.5 code and tests synced with the review fixes: `da._design` also raises for fewer than two features, a constant `group` or covariate column, non-list `covariates` and a non-string `reference`, and densifies `X` without a second copy.
 - **Update**: [data-model-slots](contracts/data-model-slots.md) gains "DA results": the schema `da` methods return, written by no slot; `paths` gains `src/biotapy/da/**`. [r-golden-parity](contracts/r-golden-parity.md): `da.linda` is compared elementwise with `MicrobiomeStat::linda`. [phase-3-stats](roadmap/phase-3-stats.md) tasks 3.3 and 3.5 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs CRAN `MicrobiomeStat` for the `da.linda` golden file.

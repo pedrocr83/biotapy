@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:58:35Z }
-commit: bcb8796
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:14:30Z }
+commit: 3044e2f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -20,8 +20,10 @@ sources:
    installs only what the current golden files need (`phyloseq`, which brings
    `Biostrings`, `vegan` and `ape`, plus CRAN `picante` for Faith PD and
    Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
-   `fs` binary loads, and CRAN `MicrobiomeStat` for `da.linda`); a new golden
-   function that needs another package adds it in its own commit (rules.md R2.3).
+   `fs` binary loads, CRAN `MicrobiomeStat` for `da.linda`, and Bioconductor
+   `ANCOMBC` for `da.ancombc2`, with CRAN's archived CVXR 1.0-15 and the
+   `libgsl27` runtime library it needs); a new golden function that needs another
+   package adds it in its own commit (rules.md R2.3).
 1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
    `tests/humann/export_golden.py`, run with
    `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
