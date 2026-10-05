@@ -138,6 +138,23 @@ def test_fetches_the_three_pinned_files(fetched):
     assert all(_remote._REGISTRY[name].startswith("sha256:") for name in fetched)
 
 
+def test_a_failed_download_comes_before_any_parsing(fetched, monkeypatch):
+    fetch_local = _hmp2._fetch
+
+    def fetch(name):
+        if name == "taxonomic_profiles_3.tsv.gz":
+            raise ConnectionError(name)
+        return fetch_local(name)
+
+    def parse(path):
+        raise AssertionError(f"parsed {path} before every file was fetched")
+
+    monkeypatch.setattr(_hmp2, "_fetch", fetch)
+    monkeypatch.setattr(_hmp2, "read_humann", parse)
+    with pytest.raises(ConnectionError, match="taxonomic_profiles_3"):
+        bt.datasets.hmp2()
+
+
 def test_round_trips_through_h5mu(fetched, tmp_path):
     mdata = bt.datasets.hmp2()
     mdata.write_h5mu(tmp_path / "hmp2.h5mu")

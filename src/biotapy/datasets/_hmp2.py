@@ -15,6 +15,8 @@ TAXA_KEY = "taxa"
 COLUMNS = ["Participant ID", "week_num", "diagnosis", "site_name", "sex", "consent_age", "Antibiotics"]
 # A participant's metagenomes, earliest first; visit_num orders them within a week and is not kept.
 ORDER = ["Participant ID", "week_num", "visit_num", "External ID"]
+# Fetched together, before any is parsed, so a download error comes first.
+FILES = ["hmp2_metadata_2018-08-20.csv", "pathabundances_3.tsv.gz", "taxonomic_profiles_3.tsv.gz"]
 DIAGNOSES = ["nonIBD", "UC", "CD"]
 
 
@@ -73,13 +75,14 @@ def hmp2() -> MuData:
     >>> mdata["function"].shape, mdata["taxa"].shape  # doctest: +SKIP
     ((130, 478), (130, 579))
     """
-    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["data_type", *COLUMNS, *ORDER])
+    metadata_path, pathways_path, taxa_path = (_fetch(name) for name in FILES)
+    metadata = pd.read_csv(metadata_path, usecols=["data_type", *COLUMNS, *ORDER])
     metagenomes = metadata[metadata["data_type"] == "metagenomics"]
     first = metagenomes.sort_values(ORDER).drop_duplicates("Participant ID")
     obs = first.set_index("External ID")[COLUMNS].rename_axis(None)
     obs["diagnosis"] = pd.Categorical(obs["diagnosis"], categories=DIAGNOSES)
-    pathways = read_humann(_fetch("pathabundances_3.tsv.gz"))
-    taxa = read_metaphlan(_fetch("taxonomic_profiles_3.tsv.gz"))
+    pathways = read_humann(pathways_path)
+    taxa = read_metaphlan(taxa_path)
     samples = obs.index
     # MuData types a modality as AnnData | MuData; read_humann's two are AnnData.
     function = cast("dict[str, AnnData]", pathways.mod)
