@@ -1,5 +1,10 @@
 # Knowledge bundle log
 
+## 2026-10-05 (release 0.2.0)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2 says how to write `## [Unreleased]` from the git log when it is empty, and new step 2c moves the "not in X.Y" labels.
+- **Verification**: re-checked against the 0.2.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md).
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks Checkpoint D (push, merge as PR #18 `d1b89b6`, Read the Docs, the user's go), the exit gate (docs job run 37305490515, golden and Phase 1 gates on PR #18) and Task 2.15 Steps 1-8.
+
 ## 2026-10-05 (Phase 2, Checkpoint D knowledge)
 - **Update**: [datasets](modules/datasets.md) documents `hmp2` (entry point, pinned IBDMDB files fetched before any is parsed, first-metagenome ordering by `week_num`, `visit_num`, `External ID`, pushed metadata, the 290 MB dense read and 1 GB peak, 23 MB cold download, mudata's `convert_dtypes` on the global `obs`, MuData not surviving `pickle`, synthetic offline fixtures); description copied into [modules/index.md](modules/index.md).
 - **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables: `datasets.hmp2` adds a `"taxa"` modality and pushes its metadata into every modality; `fn.renorm` keeps other modalities.

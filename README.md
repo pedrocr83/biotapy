@@ -14,27 +14,37 @@ against R on real data.
 
 ## Status
 
-**biotapy 0.1 is an early release.** The API can still change between minor versions.
+**biotapy 0.2 is an early release.** The API can still change between minor versions.
 
-What 0.1 does (full signatures in the [API reference][api]):
+What 0.2 does (full signatures in the [API reference][api]):
 
 - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
-  (CSV/TSV/`.rds` sequence tables) and `bt.io.read_phyloseq`
-  (`.rds`/`.RData`, no R needed) all read into one `TreeData`.
+  (CSV/TSV/`.rds` sequence tables), `bt.io.read_phyloseq`
+  (`.rds`/`.RData`, no R needed) and `bt.io.read_metaphlan` (MetaPhlAn 3
+  and 4 profiles) all read into one `TreeData`. `bt.io.read_humann` and
+  `bt.io.read_picrust2` read function tables into a `MuData` with a community
+  and a per-taxon modality; `bt.io.read_picrust2_traits` reads PICRUSt2's
+  per-ASV gene copy numbers.
 - **Writer**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out.
-- **Datasets**: `bt.datasets.toy` (in-memory, for examples and tests),
-  `bt.datasets.global_patterns`, `bt.datasets.enterotype` and
-  `bt.datasets.esophagus` (phyloseq's example datasets, downloaded and cached
-  on first use).
+- **Datasets**: `bt.datasets.toy` and `bt.datasets.toy_humann` (in-memory,
+  for examples and tests), `bt.datasets.global_patterns`,
+  `bt.datasets.enterotype` and `bt.datasets.esophagus` (phyloseq's example
+  datasets), `bt.datasets.hmp2` (the HMP2 inflammatory bowel disease cohort)
+  and `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached
+  on first use.
 - **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
   `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`.
+- **Function**: `bt.fn.load_hierarchy`, `bt.fn.func_glom` and `bt.fn.renorm`
+  (checked against HUMAnN's own output), `bt.fn.contributions` and
+  `bt.fn.functional_redundancy`.
 - **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
   `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
 - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
-  `bt.pl.scree` and `bt.pl.heatmap`.
+  `bt.pl.scree`, `bt.pl.heatmap` and `bt.pl.contributions`.
 
-Next, in 0.2: functional profiles from HUMAnN, PICRUSt2 and MetaPhlAn. See the
+Next, in 0.3: compositional transforms (CLR, PhILR) and differential abundance
+(ANCOM-BC, LinDA, ALDEx2, MaAsLin 3) behind one result format. See the
 [roadmap][roadmap]; no dates are promised.
 
 ## Installation
@@ -174,8 +184,12 @@ redone with biotapy in the tutorials.
 `bt.datasets.global_patterns`, `bt.datasets.enterotype` and
 `bt.datasets.esophagus` download example data from
 [phyloseq's repository][phyloseq-data] at runtime; biotapy ships none of it.
-That data stays licensed to phyloseq's authors under AGPL-3. biotapy itself is
-[BSD-3-Clause][license].
+That data stays licensed to phyloseq's authors under AGPL-3.
+`bt.datasets.enzyme` downloads ENZYME, distributed by the SIB Swiss Institute
+of Bioinformatics under CC BY 4.0. `bt.datasets.hmp2` downloads the HMP2
+tables from the [IBDMDB][ibdmdb], which states no licence for them; cite
+Lloyd-Price et al. (2019, *Nature* 569:655-662) when you use them. biotapy
+itself is [BSD-3-Clause][license].
 
 ## Documentation
 
@@ -221,6 +235,7 @@ Questions, bug reports and feature requests all go to the [issue tracker][].
 [treedata]: https://treedata.readthedocs.io/
 [pooch]: https://www.fatiando.org/pooch/
 [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data
+[ibdmdb]: https://ibdmdb.org/
 [license]: https://github.com/pedrocr83/biotapy/blob/master/LICENSE
 [rules]: https://github.com/pedrocr83/biotapy/blob/master/rules.md
 [knowledge]: https://github.com/pedrocr83/biotapy/tree/master/.knowledge

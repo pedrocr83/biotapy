@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
+### Added
+
+- `bt.io.read_humann`: read HUMAnN 3 and 4 tables (gene families, reactions
+  or pathway abundance, also after regrouping or renormalising) into a
+  `MuData` with a community modality, `"function"`, and a per-taxon one,
+  `"function_by_taxon"`.
+- `bt.io.read_metaphlan`: read MetaPhlAn 3 and 4 profiles, one or merged, as
+  relative abundances of the leaf clades with the seven taxonomic ranks.
+- `bt.io.read_picrust2` / `bt.io.read_picrust2_traits`: read PICRUSt2's
+  predicted metagenomes and pathways, with the per-ASV contributions as the
+  per-taxon modality, and its per-ASV gene copy numbers. PICRUSt2 itself is
+  not needed.
+- `bt.fn.load_hierarchy`: read a function hierarchy (HUMAnN or PICRUSt2
+  mapping files, or your own) from a local file.
+- `bt.fn.func_glom`: aggregate functions to one level of a hierarchy, as
+  `humann_regroup_table` does.
+- `bt.fn.renorm`: renormalise a function table to copies per million or
+  relative abundance, as `humann_renorm_table` does. `func_glom` and `renorm`
+  are tested against HUMAnN 3.9's own output.
+- `bt.fn.contributions` and `bt.pl.contributions`: one function's abundance
+  per taxon in every sample, as a table and as stacked bars.
+- `bt.fn.functional_redundancy`: taxonomic diversity, functional diversity
+  and functional redundancy per sample (Tian et al. 2020).
+- `bt.datasets.toy_humann`: a tiny in-memory function table for examples and
+  tests.
+- `bt.datasets.enzyme`: the ENZYME EC hierarchy (CC BY 4.0), downloaded once
+  and cached.
+- `bt.datasets.hmp2`: the HMP2 inflammatory bowel disease cohort's pathways,
+  species and metadata, one stool metagenome per participant, downloaded once
+  and cached.
+- A function guide and a tutorial on the HMP2 cohort.
+- asv benchmarks for `fn.func_glom`, `io.read_humann` and
+  `fn.functional_redundancy`, with their baselines in the docs.
+- New runtime dependency: `mudata>=0.4`, for function tables.
+
+### Changed
+
+- `bt.pp.relative` divides each value by its sample total, summed in float64:
+  a sample whose total is subnormal no longer gives `inf`, and a float32 table
+  is no longer off by about 1e-7.
+- `bt.pl.bar` no longer gives a group the grey that marks missing values, so
+  with eight or more groups plus missing values the colours change.
+- The Coming-from-R page marks the phyloseq calls biotapy does not cover yet
+  "not in 0.2".
+- The docs build gives each notebook cell up to 5 minutes, enough for the
+  function tutorial to download the HMP2 tables on a cold cache.
+
 ## [0.1.0] - 2026-10-03
 
 ### Added

@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:55:25Z }
+commit: 0f81793
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/
@@ -25,9 +25,15 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
 # Steps
 1. Set `version = "X.Y.Z"` in `pyproject.toml` (static; no VCS versioning).
 2. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
-   and open a new empty `## [Unreleased]` above it (Keep a Changelog).
+   and open a new empty `## [Unreleased]` above it (Keep a Changelog). If the
+   phase's pull requests left `## [Unreleased]` empty (0.2.0's did), write its
+   entries first from `git log vPREVIOUS..master --no-merges`: `feat:` commits
+   under Added, `fix:` commits that change a released function under Changed.
 2b. Update `README.md` wherever it describes the previous release: it is PyPI's
    project page, and 0.1.0 replaced 0.0.1's placeholder text.
+2c. Move the "not in X.Y" labels to the new version: `docs/_data/r_idioms.toml`,
+   `docs/coming_from_r.md`, `tests/test_coming_from_r.py` and the phyloseq
+   vignette (`docs/tutorials/phyloseq_analysis.md`). 0.2.0 did this in Task 2.13.
 3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
    (merge commit, not squash). Before the PR, build and run `pytest` from the
    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it
