@@ -5,8 +5,8 @@ description: The only sanctioned path from "we need X" to a merged public functi
 tags: [workflow, api, testing]
 status: stable
 paths: ["src/biotapy/**", "tests/**", "docs/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 ---
 
 # When
@@ -29,7 +29,8 @@ Any new entry in a subpackage `__all__`.
    - property test with Hypothesis when an invariant exists (sums preserved,
      rows sum to 1, symmetric distances);
    - golden test when an R equivalent exists, per [r-golden-parity](/contracts/r-golden-parity.md);
-     not in `pl`, whose plots draw `tl` results that have one.
+     not in `pl`, whose plots draw results of `tl`, `pp` or `fn` that have one
+     (or none, as `pl.contributions`).
    Run and see them fail for the right reason.
 5. **Minimal implementation** matching [function-shape](/contracts/function-shape.md).
    No option without a test that uses it.

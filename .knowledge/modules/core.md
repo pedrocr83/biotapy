@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 status: stable
 ---
 
@@ -29,6 +29,10 @@ none of them back.
 
 - `_matrix.py:as_csr` - normalize any array-like or sparse input (including
   `AnnData.X`) to CSR, without copying one that already is.
+- `_matrix.py:divide_rows` - a float64 copy of a CSR matrix with each stored
+  value divided by its row's total (zero-total rows stay zero); used by
+  `pp.relative`, `fn.renorm` (`_renorm.py:_rescaled`) and
+  `fn.functional_redundancy`.
 - `_matrix.py:sum_by` / `_matrix.py:argmax_by` - grouped column sum and
   grouped argmax by integer group codes, negative codes dropped; today's only
   caller is `pp.tax_glom`.
@@ -176,6 +180,10 @@ measurement (rules.md R10.1: no optimization without one).
 
 # Gotchas
 
+- **`divide_rows` divides, it does not multiply by `1 / total`**: the
+  reciprocal of a subnormal total (5e-324) overflows to `inf`. Callers pass
+  totals they summed in float64, `X.sum(axis=1, dtype=np.float64)`, as float32
+  input would otherwise lose precision in the sum. `_matrix.py:divide_rows`.
 - anndata 0.13 exposes `X` as `layers[None]`: `list(adata.layers.keys())`
   includes `None`, and deleting that key deletes `X`. `feature_subset`
   skips it. Before Task 1.13 it returned `X=None`, which `pp.tax_glom` hid
