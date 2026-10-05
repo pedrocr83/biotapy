@@ -7611,7 +7611,7 @@ _METADATA = pd.DataFrame(
     {
         "Project": "HMP2",
         "External ID": ["S1A_P", "S1B_P", "S1T_P", "S2B", "S2A", "S3A_P"],
-        "Participant ID": ["C3001", "C3001", "C3001", "C3002", "C3002", "H4001"],
+        "Participant ID": ["P1", "P1", "P1", "P2", "P2", "P3"],
         "data_type": [
             "metagenomics",
             "metagenomics",
