@@ -5,12 +5,12 @@ description: "HUMAnN 3/4, PICRUSt2 and MetaPhlAn readers; user-supplied and ENZY
 tags: [roadmap, fn, io]
 status: stable
 release: "0.2"
-phase_state: in-progress
+phase_state: done
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:55:25Z }
-commit: 0f81793
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T13:25:58Z }
+commit: 7df6215
 sources:
   - id: spec
     resource: ../../plan.md
@@ -377,7 +377,7 @@ not exist yet.
 - [x] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
 - [x] Checkpoint D
 - [x] 2.11 Knowledge
-- [ ] 2.15 Release 0.2.0
+- [x] 2.15 Release 0.2.0
 
 # Exit gate
 - [x] Tutorial 2.10 runs in CI (docs job, pooch cache): run 37305490515 executed `tutorials/function.md` in 10.65 s (PR #18).
@@ -9346,10 +9346,10 @@ index d2ded3d..b48c161 100644
     `23 current, 0 stale, 12 uncheckable`.
   - Commit `docs(knowledge): refresh concepts for the 0.2.0 release`,
     staging the playbook, the four concepts, the roadmap and the log.
-- [ ] **Step 9: PR and merge** (approved at Checkpoint D): push
+- [x] **Step 9: PR and merge** (approved at Checkpoint D): push
   `release-0.2.0`, open the PR, wait for green CI, merge with a merge
   commit (not a squash).
-- [ ] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI,
+- [x] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI,
   and that cannot be undone. Ask the user, in one message, for explicit
   approval to:
   1. tag the merged `master` commit `v0.2.0`;
@@ -9360,7 +9360,7 @@ index d2ded3d..b48c161 100644
 
   Wait for a yes that names this release. An earlier approval does not
   count.
-- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+- [x] **Step 11: Tag and release**, only after Step 10's approval:
 
 ```bash
 git switch master && git pull --ff-only
@@ -9380,7 +9380,7 @@ gh run list --workflow release.yaml --limit 3 --json databaseId,headBranch,statu
     each only with the user's approval (playbook, Common mistakes).
   - If it fails after the upload, report it: the version is spent, and the
     fix is 0.2.1.
-- [ ] **Step 12: Verify** (playbook Verification). Both print `0.2.0`:
+- [x] **Step 12: Verify** (playbook Verification). Both print `0.2.0`:
 
 ```bash
 curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
@@ -9389,7 +9389,7 @@ uv run --no-project --with biotapy==0.2.0 python -c "import biotapy as bt; print
 
   The second also prints
   `['contributions', 'func_glom', 'functional_redundancy', 'load_hierarchy', 'renorm'] True`.
-- [ ] **Step 13: Close Phase 2** (approved in Step 10), as `close-phase-1`
+- [x] **Step 13: Close Phase 2** (approved in Step 10), as `close-phase-1`
   did (PR #13):
   - `git switch master && git pull --ff-only && git switch -c close-phase-2`;
   - `roadmap/phase-2-function.md`: `phase_state: in-progress` becomes

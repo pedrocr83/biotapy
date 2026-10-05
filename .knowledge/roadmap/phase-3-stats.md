@@ -5,12 +5,12 @@ description: CLR and PhILR transforms; ANCOM-BC, LinDA, ALDEx2 and MaAsLin 3 beh
 tags: [roadmap, da, pp]
 status: stable
 release: "0.3"
-phase_state: not-started
+phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
-commit: f5236e8
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T13:25:58Z }
+commit: 7df6215
 sources:
   - id: spec
     resource: ../../plan.md

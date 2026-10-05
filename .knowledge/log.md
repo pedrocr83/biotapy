@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (release 0.2.0)
+- **Update**: Phase 2 closed after biotapy 0.2.0 reached PyPI (tag v0.2.0, release workflow run 37316580850). [phase-2-function](roadmap/phase-2-function.md) is `phase_state: done` with every Task 2.15 step and exit-gate item ticked; [phase-3-stats](roadmap/phase-3-stats.md) is `phase_state: in-progress`; the [roadmap index](roadmap/index.md) lists Phase 3 as active.
 - **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2 says how to write `## [Unreleased]` from the git log when it is empty, and new step 2c moves the "not in X.Y" labels.
 - **Verification**: re-checked against the 0.2.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md).
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks Checkpoint D (push, merge as PR #18 `d1b89b6`, Read the Docs, the user's go), the exit gate (docs job run 37305490515, golden and Phase 1 gates on PR #18) and Task 2.15 Steps 1-8.
