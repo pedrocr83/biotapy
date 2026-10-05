@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:40:00Z }
-commit: b3490d2
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
+commit: ef2fe8b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -362,21 +362,21 @@ not exist yet.
 - [x] 2.5 `fn.load_hierarchy(path, level, *, layout="parent_first") -> pd.DataFrame`
 - [x] 2.6 `fn.func_glom(adata, level, *, hierarchy, agg="sum") -> AnnData`
 - [x] 2.12 `fn.renorm(mdata, units, *, special=True) -> MuData`
-- [ ] Checkpoint A
+- [x] Checkpoint A
 - [x] 2.2a io/_table.py: strict table reading shared by the readers
 - [x] 2.2 io.read_metaphlan(path) -> TreeData
 - [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
-- [ ] Checkpoint B
+- [x] Checkpoint B
 - [x] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
 - [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
 - [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
-- [ ] Checkpoint C
+- [x] Checkpoint C
 - [x] 2.10 `datasets.hmp2() -> MuData`
 - [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
 - [x] 2.13 Coming-from-R check: "not in 0.2"
 - [x] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
 - [ ] Checkpoint D
-- [ ] 2.11 Knowledge
+- [x] 2.11 Knowledge
 - [ ] 2.15 Release 0.2.0
 
 # Exit gate
@@ -2972,12 +2972,14 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
   ```
 
 ### Checkpoint A - review slice 2A
-- [ ] Review the whole slice (superpowers:requesting-code-review) against
+- [x] Review the whole slice (superpowers:requesting-code-review) against
   every contract, the pure-by-default decision, no-bundled-kegg, and the
   Phase 2 and slice 2A review focus; then a fix pass, one commit per finding,
-  each with a test.
-- [ ] Run the exit-gate check now: `uv run --group test pytest -m golden tests/fn -q`
+  each with a test. Record: opus review 0 Critical / 2 Important / 16
+  Minor; fix pass `877cf22..020efbb`; re-review 19 addressed.
+- [x] Run the exit-gate check now: `uv run --group test pytest -m golden tests/fn -q`
   (all HUMAnN goldens pass) and the full `uv run --group test pytest`.
+  `pytest -m golden` passed on `3a9d056`.
 - [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Create `.knowledge/modules/fn.md`** (`type: Module`, `paths:
     ["src/biotapy/fn/**"]`).
@@ -3013,9 +3015,9 @@ line. This creates the `fn` subpackage (R4.8: in the phase that fills it).
     the unpinned ENZYME hash) and **`core.md`** (`_function.py`,
     `sum_pairs`, `replace_features`). Add `fn.md` to `modules/index.md` and
     the decision to `decisions/index.md`, with log lines.
-- [ ] Push the branch and open the PR, after the user approves that push
-  (R13.3). CI green, including docs and the network job.
-- [ ] Ask the user to review slice 2A before slice 2B.
+- [x] Push the branch and open the PR, after the user approves that push
+  (R13.3). CI green, including docs and the network job. PR #15, CI 20/20 after `2d47f8d`, merged as `d13ad64`.
+- [x] Ask the user to review slice 2A before slice 2B. Asked 2026-10-03; the user chose to go on to slice 2B.
 
 ---
 ## Slice 2B - Other readers
@@ -5104,9 +5106,9 @@ uv run --group test pytest -q -W error::UserWarning   # 818 passed, 22 deselecte
     two files fill the same two modalities.
   - Add log lines; bump `generated` and `commit` on each changed concept;
     tick this box.
-- [ ] **Push** `phase-2b`, open the PR, and merge-commit on green (approved
-  2026-10-03). CI must be green, including docs and the network job.
-- [ ] **Ask the user to review slice 2B** before slice 2C.
+- [x] **Push** `phase-2b`, open the PR, and merge-commit on green (approved
+  2026-10-03). CI must be green, including docs and the network job. PR #16, CI 20/20, merged as `c49aeb4`.
+- [x] **Ask the user to review slice 2B** before slice 2C. Asked; the user answered "2c", 2026-10-03.
 
 ### Slice 2B decisions for the user
 Each changes a contract, the public surface or an earlier slice, or is a
@@ -7050,9 +7052,9 @@ BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html d
   Re-check every concept `scripts/knowledge_stale.sh` flags; bump only
   `commit`/`generated` where nothing it states became false, with a log line.
   Commit: `docs(knowledge): document fn.contributions, fn.functional_redundancy and pl.contributions`.
-- [ ] **Push** `phase-2c`, open the PR, and merge-commit on green (approved
-  2026-10-03). CI must be green, including docs and the network job.
-- [ ] **Ask the user to review slice 2C** before slice 2D.
+- [x] **Push** `phase-2c`, open the PR, and merge-commit on green (approved
+  2026-10-03). CI must be green, including docs and the network job. PR #17, CI 20/20, merged as `407cc19`.
+- [x] **Ask the user to review slice 2C** before slice 2D. The user approved slice 2C, 2026-10-05.
 
 ### Slice 2C decisions for the user
 
@@ -8744,7 +8746,7 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
 
 ### Checkpoint D - review slice 2D
 
-- [ ] **Review the whole slice** with superpowers:requesting-code-review,
+- [x] **Review the whole slice** with superpowers:requesting-code-review,
   against:
   - data-model-slots (with Task 2.11's Function tables paragraph),
     function-shape, module-boundaries and r-golden-parity;
@@ -8757,7 +8759,11 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
   licence) and never add a MetaCyc mapping. Then a fix pass, one commit per
   finding, each with a test; then a scoped re-review of the fix pass.
   Record: review counts, fix pass range, re-review result.
-- [ ] **Task 2.11** (below), after the fix pass.
+
+  Done: review 0 Critical / 0 Important / 7 Minor; fix pass `9f7b271..ef2fe8b`
+  (M1-M4, M6, M7; M5, the Read the Docs cache, was left by the user's "no
+  workflow change" decision); re-review 6/6 addressed.
+- [x] **Task 2.11** (below), after the fix pass.
 - [ ] **Run the gates** on the committed tree (`git status --short` empty
   first), every command with `BIOTAPY_DATA_DIR=<scratchpad>/pooch`:
   - `uvx prek run --all-files`;
@@ -8818,7 +8824,7 @@ the final code (dispatch rule F15). Use the codebase-map templates
 `modules/pl.md` unless Step 4 finds a false statement (slice 2D changes no
 code they describe); any `src/` file.
 
-- [ ] **Step 1: Concepts the slice changes.** Make these edits, re-checking
+- [x] **Step 1: Concepts the slice changes.** Make these edits, re-checking
   each sentence against the code after the fix pass (a fix may change a
   number or a name), and bump `generated` and `commit` on each:
 
@@ -8999,7 +9005,7 @@ index 9f908df..50f058d 100644
 +  (`datasets/_hmp2.py:hmp2`); `fn.renorm` keeps the extra modality.
 ```
 
-- [ ] **Step 2: The roadmap's open checkpoint boxes.** Slices 2A-2C were
+- [x] **Step 2: The roadmap's open checkpoint boxes.** Slices 2A-2C were
   merged and their reviews asked for, but their boxes were never ticked
   (the ledger, lines 82-100, 136-145 and 170-183). Tick, each with its
   record:
@@ -9014,7 +9020,7 @@ index 9f908df..50f058d 100644
   - Checkpoint C: the push box (PR #17, CI 20/20, merged as `407cc19`); the
     review-ask box (the user approved slice 2C, 2026-10-05).
   - "# Tasks (checklist)": `2.11 Knowledge`; this task's step boxes.
-- [ ] **Step 3: Concepts the diff only touches.** Run
+- [x] **Step 3: Concepts the diff only touches.** Run
   `bash scripts/knowledge_stale.sh --touched --against master` before
   Step 1's edits. In the prototype it listed `modules/datasets` (Step 1)
   and seven more: `phase-0-foundation`, `phase-1-core`, `engine-parity`,
@@ -9025,13 +9031,13 @@ index 9f908df..50f058d 100644
   function-shape's Examples rule already covers downloading loaders with
   `# doctest: +SKIP`). Bump only `generated` and `commit` on each. Re-run
   the script: it lists nothing.
-- [ ] **Step 4: Final pass on `modules/fn.md` and `modules/io.md`.** Read
+- [x] **Step 4: Final pass on `modules/fn.md` and `modules/io.md`.** Read
   both against `src/biotapy/fn/` and `src/biotapy/io/`: MetaPhlAn and
   PICRUSt2 were documented at Checkpoint B, `contributions` and
   `functional_redundancy` at Checkpoint C, and slice 2D changes neither
   package. Change only a statement that is false; otherwise leave both
   untouched (R12.1).
-- [ ] **Step 5: Log.** Add to `.knowledge/log.md`:
+- [x] **Step 5: Log.** Add to `.knowledge/log.md`:
 
 ```markdown
 ## 2026-10-05 (Phase 2, Checkpoint D knowledge)
@@ -9043,7 +9049,7 @@ index 9f908df..50f058d 100644
 
   plus one line for Step 2:
   `- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks the Checkpoint A-C boxes left open after slices 2A-2C merged (PRs #15-#17), each with its record, and Task 2.11.`
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
 
 ```bash
 git add .knowledge/modules/datasets.md .knowledge/modules/index.md .knowledge/contracts/data-model-slots.md \

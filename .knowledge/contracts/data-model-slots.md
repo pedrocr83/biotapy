@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
-commit: f5236e8
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
+commit: ef2fe8b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -113,6 +113,12 @@ contribution table is read. `taxon` is the ASV id as written, or `RARE`
 `genus` and `species` are NaN. `EC:` is removed from EC numbers, in both
 modalities and in `io.read_picrust2_traits`' columns, so ids match ENZYME's
 and HUMAnN's.
+
+`datasets.hmp2` returns a function table with a third modality, `"taxa"`
+(MetaPhlAn species from `io.read_metaphlan`), over the same samples, and its
+sample metadata in the global `obs`, pushed into every modality
+(`datasets/_hmp2.py:hmp2`). `fn` verbs take the modality they need;
+`fn.renorm` keeps any other modality (`fn/_renorm.py:renorm`).
 
 ## Taxonomic profiles (MetaPhlAn)
 `io.read_metaphlan` keeps one feature per leaf clade: a row that no other

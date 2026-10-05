@@ -6,4 +6,4 @@
 * [tl](tl.md) - Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, beta, UniFrac, PCoA, NMDS and PERMANOVA through scikit-bio and scikit-learn, returning results or writing the data-model-slots keys.
 * [pl](pl.md) - Plots of what tl, pp and fn give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination and scree - drawn with matplotlib on the given or a new Axes, computing nothing.
 * [fn](fn.md) - Function hierarchies, aggregation along them, HUMAnN-style renormalisation, per-taxon contributions and functional redundancy (Tian 2020) over function tables; owns no reader and no download.
-* [datasets](datasets.md) - In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, and the ENZYME hierarchy as an edge table.
+* [datasets](datasets.md) - In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, and the ENZYME hierarchy as an edge table.
