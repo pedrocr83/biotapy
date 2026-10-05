@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Checkpoint C fix pass)
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 `_redundancy.py` code block and task 2.9 `_abundance.py` diff now match the fix pass (float64 sample totals, `adata` type check, PICRUSt2 wording, `toy()` example, Notes on the samples x taxa products, explicit taxon count in `pl.contributions`).
+
 ## 2026-10-03 (Phase 2, slice 2C)
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.7 done: `fn.contributions` returns one function's strata as a samples x taxa table.
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 done: `fn.functional_redundancy` computes Tian et al. 2020's TD, FD, FR and nFR per sample.
