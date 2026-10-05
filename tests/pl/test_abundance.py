@@ -323,3 +323,11 @@ def test_colours_with_na_never_hold_the_missing_grey(n):
     assert colours[-1] == "#7f7f7f"
     assert "#7f7f7f" not in colours[:-1]
     assert len(set(colours)) == n + 1
+
+
+def test_contributions_a_mudata_or_the_community_modality_raises_as_fn_does(ax):
+    mdata = bt.datasets.toy_humann()
+    with pytest.raises(TypeError, match=r"mdata\['function_by_taxon'\]"):
+        bt.pl.contributions(mdata, "2.7.1.2", ax=ax)
+    with pytest.raises(KeyError, match=r"adata needs var columns \['function', 'taxon'\].*function_by_taxon"):
+        bt.pl.contributions(mdata["function"], "2.7.1.2", ax=ax)
