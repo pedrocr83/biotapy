@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T18:36:37Z }
-commit: 1e64bd7
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:38:45Z }
+commit: 9c1e8f2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -579,7 +579,7 @@ columns onto it.
 - [x] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
 - [x] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
 - [x] Checkpoint A (PR #21 merged; the user approved slice 3A on 2026-10-05)
-- [ ] 3.B0 `fix(core)`: count tables hold non-negative whole numbers (approved with slice 3B)
+- [x] 3.B0 `fix(core)`: count tables hold non-negative whole numbers (approved with slice 3B)
 - [ ] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
 - [ ] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [ ] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
@@ -2063,7 +2063,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   negative or missing (NaN) values"` for those tables. Later tasks rely on
   this; 3.5's `dense_counts` calls `require_counts` unchanged.
 
-- [ ] **Step 1: Write the failing tests.** Append to `tests/core/test_slots.py`
+- [x] **Step 1: Write the failing tests.** Append to `tests/core/test_slots.py`
   (next to the other `infer_x_kind` and `require_counts` tests):
   ```python
   def test_infer_x_kind_negative_whole_numbers_are_not_counts():
@@ -2076,10 +2076,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       with pytest.raises(ValueError, match="pp.rarefy needs raw counts in X, but X holds non-integer, negative"):
           require_counts(adata, func="pp.rarefy")
   ```
-- [ ] **Step 2: Run them, expect failure.**
+- [x] **Step 2: Run them, expect failure.**
   Run: `uv run --group test pytest tests/core/test_slots.py -q -k "negative"`
   Expected: 2 failed (`'counts' == 'abundance'`; `DID NOT RAISE`).
-- [ ] **Step 3: Fix the rule.** In `src/biotapy/_core/_slots.py`:
+- [x] **Step 3: Fix the rule.** In `src/biotapy/_core/_slots.py`:
   - `infer_x_kind`: the counts test becomes
     `if np.all(matrix.data == np.round(matrix.data)) and not np.any(matrix.data < 0):`
     and the docstring's first rule reads "Non-negative whole numbers are
@@ -2092,13 +2092,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
     `test_require_counts_rejects_non_integer_values` match string becomes
     `"pp.rarefy needs raw counts in X, but X holds non-integer, negative or missing"`
     (the message changed; the assertion is not weakened, R11.5).
-- [ ] **Step 4: Run them, expect success.**
+- [x] **Step 4: Run them, expect success.**
   Run: `uv run --group test pytest tests/core/test_slots.py -q`
   Expected: all passed. Then grep the repo for other assertions on the old
   message: `grep -rn "non-integer or missing" src tests docs .knowledge` must
   print only roadmap history (`.knowledge/roadmap/phase-*.md`); update any
   live test or doc it finds.
-- [ ] **Step 5: Docs and knowledge (R12.1).** "whole numbers are `counts`" ->
+- [x] **Step 5: Docs and knowledge (R12.1).** "whole numbers are `counts`" ->
   "non-negative whole numbers are `counts`" in
   `.knowledge/contracts/data-model-slots.md`, `docs/guide/reading_data.md`;
   "whole numbers" -> "non-negative whole numbers" in
@@ -2106,7 +2106,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   `docs/guide/filtering.md`. Refresh `generated.at` on the two concepts and
   add a dated line to `.knowledge/log.md` (newest heading). Do not edit
   roadmap history.
-- [ ] **Step 6: Commit and gate.**
+- [x] **Step 6: Commit and gate.**
   ```bash
   git add src/biotapy/_core/_slots.py tests/core/test_slots.py .knowledge/contracts/data-model-slots.md \
     .knowledge/modules/core.md .knowledge/log.md docs/guide/reading_data.md docs/guide/diversity.md docs/guide/filtering.md

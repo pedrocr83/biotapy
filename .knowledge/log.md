@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) and [core](modules/core.md) state that `x_kind` `"counts"` means non-negative whole numbers (`infer_x_kind` and `require_counts` reject a table holding a negative value; Task 3.B0); [phase-3-stats](roadmap/phase-3-stats.md) ticks 3.B0.
+
 ## 2026-10-05 (Phase 3, slice 3B plan)
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3B (tasks 3.5 `da.linda` with the result schema, 3.4 `da.ancombc2`, 3.8 `da.consensus`, 3.9 `pl.consensus`, Checkpoint B) into full TDD steps, prototyped and gated per commit; adds Task 3.B0 (`fix(core)`: counts are non-negative whole numbers) approved with the plan; ticks Checkpoint A (PR #21 merged, slice 3A approved).
 

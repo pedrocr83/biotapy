@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:38:45Z }
+commit: 9c1e8f2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -55,7 +55,7 @@ draws `fn.contributions`' table for the stratified function modality.
    deferred inconsistency, not a second convention.
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
    Readers always set it; most infer it from the values by `_core.infer_x_kind`
-   (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
+   (`_core/_slots.py`): non-negative whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
    Three readers are exceptions. `io.read_humann` reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->

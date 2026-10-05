@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:38:45Z }
+commit: 9c1e8f2
 status: stable
 ---
 
@@ -53,7 +53,7 @@ none of them back.
   rank columns, then run them through `normalize_ranks`.
 - `_slots.py:x_kind` / `require_counts` - read, or enforce, what `X` holds.
   `require_counts` raises `ValueError` naming its `func=` unless `x_kind` is
-  `"counts"` and every stored value is a whole number (`infer_x_kind`'s rule,
+  `"counts"` and every stored value is a non-negative whole number (`infer_x_kind`'s rule,
   O(nnz)); called by `pp.rarefy`, `tl.alpha` (`observed_features`, `chao1`)
   and `tl.unifrac(weighted=True)`.
 - `_slots.py:require_categorical` - raise `TypeError` naming its `arg=`,
@@ -61,7 +61,7 @@ none of them back.
   numeric and not bool; shared by `tl.permanova` (`grouping=`) and `pl`'s
   `_common.py:groups` (`x=`, `color=`, `fill=`).
 - `_slots.py:infer_x_kind` - classify a freshly read matrix as `"counts"`
-  (every value a whole number), `"relative"` (every nonzero row sums to 1
+  (every value a non-negative whole number), `"relative"` (every nonzero row sums to 1
   within `RELATIVE_TOLERANCE`), or `"abundance"`, for readers whose file
   format does not record `x_kind` itself.
 - `_slots.py:RELATIVE_TOLERANCE` - the data model's definition of "sums to 1",
