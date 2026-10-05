@@ -57,7 +57,7 @@ uv run --group test pytest -m "network or golden"
 
 These tests download `bt.datasets.global_patterns()`, `bt.datasets.enterotype()`
 and `bt.datasets.esophagus()` through [pooch](https://www.fatiando.org/pooch/)
-and compare biotapy with R on that data: `pp.relative`, `pp.tax_glom`, filtering, rarefaction
+and compare biotapy with R on that data: `pp.relative`, `pp.clr`, `pp.tax_glom`, filtering, rarefaction
 (its invariants), alpha and beta diversity, UniFrac, PCoA, NMDS and PERMANOVA against phyloseq,
 vegan, ape and picante. Set
 `BIOTAPY_DATA_DIR` to point the pooch cache somewhere other than the default

@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:50:00Z }
-commit: 364905b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T14:00:00Z }
+commit: 0f0c9d2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -576,7 +576,7 @@ columns onto it.
 
 # Tasks (checklist)
 - [x] 3.0 CLR and PhILR golden files (philr in the R image)
-- [ ] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
+- [x] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
 - [ ] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
 - [ ] Checkpoint A
 - [ ] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
@@ -853,7 +853,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   `func`; warns when `pseudocount` exceeds the smallest non-zero value), used
   by 3.2.
 
-- [ ] **Step 1: Failing tests.** In `tests/pp/test_transform.py` add
+- [x] **Step 1: Failing tests.** In `tests/pp/test_transform.py` add
   `import pytest` after `import pandas as pd`, and append:
   ```python
   def _clr_by_hand(dense: np.ndarray, pseudocount: float) -> np.ndarray:
@@ -968,12 +968,12 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       assert (rows >= 0).all() and (cols >= 0).all()
       np.testing.assert_allclose(out.layers["clr"][rows, cols], golden["value"], rtol=1e-7)
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/pp/test_transform.py -q` -> `17 failed, 9 passed`
   (`AttributeError: module 'biotapy.pp' has no attribute 'clr'`);
   `uv run --group test pytest tests/pp/test_transform_golden.py -q -m "golden or network"`
   -> `1 failed, 1 passed`.
-- [ ] **Step 3: Implement.** `src/biotapy/pp/_transform.py` becomes
+- [x] **Step 3: Implement.** `src/biotapy/pp/_transform.py` becomes
   (`relative` unchanged):
   ```python
   """Per-sample transforms: add one layer, keep everything else."""
@@ -1115,9 +1115,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
 
   __all__ = ["clr", "filter_features", "filter_samples", "rarefy", "relative", "tax_glom"]
   ```
-- [ ] **Step 4: Run, expect pass** - the same two commands -> `26 passed`;
+- [x] **Step 4: Run, expect pass** - the same two commands -> `26 passed`;
   `2 passed`. The property test also under `--hypothesis-seed=1`, `2`, `3`.
-- [ ] **Step 5: Docs.** Append to `docs/guide/transforms.md`:
+- [x] **Step 5: Docs.** Append to `docs/guide/transforms.md`:
   ```markdown
   ## Centred log-ratio (CLR)
 
@@ -1141,7 +1141,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   In `docs/api.md` add `pp.clr` first in the Preprocessing autosummary. In
   `docs/contributing.md` the network-test sentence reads "compare biotapy with
   R on that data: `pp.relative`, `pp.clr`, `pp.tax_glom`, ...".
-- [ ] **Step 6: Contracts.** In `.knowledge/contracts/data-model-slots.md`:
+- [x] **Step 6: Contracts.** In `.knowledge/contracts/data-model-slots.md`:
   - the `layers` row's keys become ``relative` (sparse CSR); `clr` from `pp.clr` (dense float64 `ndarray`: CLR has no zeros)``;
   - the Propagation row `Layer-adding (`pp.relative`; `pp.clr` in Phase 3)` becomes `Layer-adding (`pp.relative`, `pp.clr`)`.
 
@@ -1151,7 +1151,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   ```text
   - **Update**: [data-model-slots](contracts/data-model-slots.md): `layers["clr"]` from `pp.clr` is a dense float64 array; `pp.clr` joins the layer-adding row. [r-golden-parity](contracts/r-golden-parity.md): CLR is compared elementwise.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   uvx prek run --all-files
   uv run --group doc sphinx-build -W -b html docs docs/_build/html

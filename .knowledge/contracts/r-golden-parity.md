@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:30:00Z }
-commit: e4bee54
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T14:00:00Z }
+commit: 0f0c9d2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -40,7 +40,7 @@ sources:
 
    | Output | Compare | Default tolerance |
    |---|---|---|
-   | Deterministic numeric (glom sums, relative, alpha, Bray-Curtis, UniFrac) | elementwise | `rtol=1e-7` |
+   | Deterministic numeric (glom sums, relative, CLR, alpha, Bray-Curtis, UniFrac) | elementwise | `rtol=1e-7` |
    | PCoA coordinates | per axis, up to sign flip; eigenvalues elementwise | `rtol=1e-6` |
    | NMDS | stress within `0.02`; Procrustes correlation with R `> 0.95` | as stated |
    | Permutation tests (PERMANOVA) | test statistic elementwise; p-value within `0.02` at >= 9,999 permutations | as stated |
