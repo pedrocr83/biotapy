@@ -88,8 +88,8 @@ release, delete both cached files, `enzyme.dat` and `enzclass.txt`, from
 `bt.datasets.hmp2()` is a real cohort: the Integrative Human Microbiome
 Project's inflammatory bowel disease study (HMP2, IBDMDB). It downloads three
 files once (23 MB) and caches them: the HUMAnN 3 pathway abundance table, the
-MetaPhlAn 3 profiles and the sample metadata of the study's 1,638 stool
-metagenomes. It keeps the first metagenome of each of the 130 participants
+MetaPhlAn 3 profiles and the study's sample metadata, of which the 1,638 stool
+metagenomes are used. It keeps the first metagenome of each of the 130 participants
 (lowest `week_num`, then `visit_num`, then `External ID`), so a group comparison counts
 each person once, and returns a `MuData` with three modalities over those
 samples:

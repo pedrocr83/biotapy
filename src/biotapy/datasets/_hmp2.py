@@ -24,9 +24,9 @@ def hmp2() -> MuData:
     """The HMP2 inflammatory bowel disease cohort: each participant's first stool metagenome.
 
     Downloaded once (23 MB) from the IBDMDB and cached: HUMAnN 3 pathway
-    abundance, MetaPhlAn 3 profiles and the sample metadata of the HMP2
-    metagenomes (1,638 samples from 130 participants), of which the first
-    sample of each participant is kept.
+    abundance, MetaPhlAn 3 profiles and the study's sample metadata, of
+    which the 1,638 stool metagenomes (from 130 participants) are used; the
+    first sample of each participant is kept.
 
     Returns
     -------
@@ -58,7 +58,8 @@ def hmp2() -> MuData:
     ``bt.tl.permanova`` do not count one person several times.
 
     Reading the pathway table builds one dense 22,113 x 1,638 ``float64``
-    array (about 290 MB) before the samples are selected.
+    array (about 290 MB) before the samples are selected; the call peaks at
+    about 1 GB of memory (1.03 GB resident, measured on the published files).
 
     The IBDMDB states no licence for these files. biotapy ships none of
     them; cite the study when you use them.
