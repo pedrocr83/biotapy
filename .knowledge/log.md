@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 2, slice 2D)
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) slice 2D blocks match the Checkpoint D fix pass: `hmp2` orders a participant's metagenomes by `week_num`, `visit_num`, `External ID` (C3007 keeps `CSM5MCVB_P`; PWY-5676 in 113 samples, 25 without strata), fetches all three files before parsing, notes its 1 GB peak; the synthetic fixture pins values per sample and uses neutral ids; the tutorial says what the per-species means are.
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) Task 2.10b's tutorial block matches the review fix (empty bars for the 24 samples without per-species PWY-5676 rows; links to the guide's sections).
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10 done: `datasets.hmp2` returns each HMP2 participant's first metagenome as pathway and species modalities with the metadata.
 - **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10b done: the HMP2 function tutorial runs on every docs build; notebook cells may take 300 s.

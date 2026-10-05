@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:30:00Z }
-commit: 2e9d268
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:40:00Z }
+commit: b3490d2
 sources:
   - id: spec
     resource: ../../plan.md
@@ -8185,7 +8185,11 @@ community.X.sum(axis=1)[:5]
 of the 130 samples. `bt.fn.contributions` splits it by species, here keeping the five with
 the largest total and summing the rest into `other`. HMP2's table has per-species rows
 (`unclassified` included) for 88 of those 113 samples, so the other 25 draw an empty bar
-below. The mean per diagnosis compares the groups:
+below. The values are shares of each sample's mapped pathway total (after the `renorm` above),
+not of `PWY-5676` itself, and a pathway's strata need not add up to its community value (here
+they add up to a median of a third of it; the [function guide](../guide/function.md#contributions)
+says why). In the mean per diagnosis, the 25 samples with the pathway but no strata count as
+zero for every species:
 
 ```{code-cell} ipython3
 by_taxon = relab["function_by_taxon"]
