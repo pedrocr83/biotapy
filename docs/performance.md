@@ -37,6 +37,34 @@ variance. The load average (1, 5 and 15 minutes) was 2.02, 2.04, 1.82 before the
   is that re-indexing, and converting the tree once takes 0.46 s. The optimization is deferred until
   a profile-driven task (rules.md R10.1).
 
+## Function tables
+
+Measured on commit `2e9d268`, 2026-10-05, on the same laptop and environment, with
+`asv run --python=same --bench "^fn\."` (the three classes took about 60 s). The load average was
+2.48, 1.84, 1.95 before the run and 1.89, 1.78, 1.92 after it. Release 0.2 sets no speed target
+either.
+
+The function table is shaped like HMP2's pathway table: 1,600 samples, 500 functions with 43
+strata each (22,000 rows), 50% of the community values and 7% of the stratified values non-zero.
+The hierarchy puts every function in two of 50 groups. Functional redundancy runs on 100 samples x
+2,000 taxa (5% non-zero) and 2,500 genes (70% zero copy numbers). All of it comes from seed 0
+(`benchmarks/benchmarks/_data.py`).
+
+| Benchmark | Result |
+|---|---|
+| `fn.func_glom`, 500 community rows to 50 groups | 10.5 ms |
+| `fn.func_glom`, 21,500 stratified rows to 50 groups per taxon | 57.0 ms |
+| `io.read_humann`, 22,000 rows x 1,600 samples | 2.04 s |
+| `io.read_humann`, peak memory | 1.04 GB |
+| `fn.functional_redundancy`, 2,000 taxa | 5.28 s |
+| `fn.functional_redundancy`, 2,000 taxa, peak memory | 446 MB |
+
+- `read_humann`'s peak is about 3.7 times the dense array its docstring names (8 bytes x 22,000 x
+  1,600 = 282 MB). The figure also holds the Python process and pandas' parse of the text; no
+  profile was taken, as nothing is being optimised (rules.md R10.1).
+- `functional_redundancy` compares every pair of taxa, so its time grows with the square of the
+  taxa times the genes, and its memory with the square of the taxa.
+
 ## Running the benchmarks
 
 ```bash
@@ -49,5 +77,6 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
 ```
 
 `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
-`.asv/results`. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
+`.asv/results`. Add `--bench "^fn\."` to `asv run` and `asv show` to run or show only the function
+benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
 `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.

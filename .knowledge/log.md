@@ -1,5 +1,23 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 2, Checkpoint D knowledge)
+- **Update**: [datasets](modules/datasets.md) documents `hmp2` (entry point, pinned IBDMDB files fetched before any is parsed, first-metagenome ordering by `week_num`, `visit_num`, `External ID`, pushed metadata, the 290 MB dense read and 1 GB peak, 23 MB cold download, mudata's `convert_dtypes` on the global `obs`, MuData not surviving `pickle`, synthetic offline fixtures); description copied into [modules/index.md](modules/index.md).
+- **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables: `datasets.hmp2` adds a `"taxa"` modality and pushes its metadata into every modality; `fn.renorm` keeps other modalities.
+- **Update**: [function-tables-as-mudata](decisions/function-tables-as-mudata.md) forward note: `datasets.hmp2` already holds `function`, `function_by_taxon` and `taxa` side by side; `paths` gains `datasets/_hmp2.py`.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks the Checkpoint A-C boxes left open after slices 2A-2C merged (PRs #15-#17), each with its record, Checkpoint D's review (0 Critical / 0 Important / 7 Minor; fix pass `9f7b271..ef2fe8b`; re-review 6/6) and Task 2.11.
+- **Verification**: re-checked against `407cc19..ef2fe8b` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
+
+## 2026-10-05 (Phase 2, slice 2D)
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) slice 2D blocks match the Checkpoint D fix pass: `hmp2` orders a participant's metagenomes by `week_num`, `visit_num`, `External ID` (C3007 keeps `CSM5MCVB_P`; PWY-5676 in 113 samples, 25 without strata), fetches all three files before parsing, notes its 1 GB peak; the synthetic fixture pins values per sample and uses neutral ids; the tutorial says what the per-species means are.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) Task 2.10b's tutorial block matches the review fix (empty bars for the 24 samples without per-species PWY-5676 rows; links to the guide's sections).
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10 done: `datasets.hmp2` returns each HMP2 participant's first metagenome as pathway and species modalities with the metadata.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10b done: the HMP2 function tutorial runs on every docs build; notebook cells may take 300 s.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.13 done: phyloseq calls without an equivalent read "not in 0.2"; the mia importer rows are pinned by a test.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.14 done: asv baselines for `func_glom`, `read_humann` and `functional_redundancy` in docs/performance.md.
+
+## 2026-10-05 (slice 2D plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2D plan in full TDD steps (2.10 datasets.hmp2, 2.10b tutorial, 2.13 Coming-from-R, 2.14 benchmarks, Checkpoint D with 2.11 knowledge, 2.15 release 0.2.0) and its decisions; header note, checklist, slices table and decision 11 updated.
+
 ## 2026-10-05 (Phase 2, Checkpoint C)
 - **Update**: [fn](modules/fn.md) documents `contributions` and `functional_redundancy` (entry points, invariants incl. the boundary checks, the SciPy zero-vector NaN, 16S correction with PICRUSt2's NSTI cutoff applied by the recipe, memory and time cost, `divide_rows` rule); description copied into [modules/index.md](modules/index.md).
 - **Update**: [pl](modules/pl.md) documents `contributions`, `_stack`, the `fn` import and `_colors` never giving a group the NA/"other" grey (`pl.bar` colours changed for 8+ groups plus NA); description copied into [modules/index.md](modules/index.md).

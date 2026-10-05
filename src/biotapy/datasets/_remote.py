@@ -1,4 +1,4 @@
-"""Datasets downloaded once and cached with pooch: phyloseq's examples and the ENZYME files."""
+"""Datasets downloaded once and cached with pooch: phyloseq's examples, the ENZYME files and the HMP2 tables."""
 
 from functools import cache
 from typing import cast
@@ -18,10 +18,18 @@ _REGISTRY = {
     # cached for good, and enzyme() records the release it read (datasets/_enzyme.py).
     "enzyme.dat": None,
     "enzclass.txt": None,
+    # HMP2 (IBDMDB) products: HUMAnN 3 pathways and MetaPhlAn 3 profiles of 2018-05-04, metadata of 2018-08-20.
+    "pathabundances_3.tsv.gz": "sha256:dd983871b0e155255844b91ec10d50fb09230d2f4e915464ab680fa3a9c9ddb3",
+    "taxonomic_profiles_3.tsv.gz": "sha256:d790ff15e46d61ca0cadc55d9f918de4e3415d7f97c992ac37610aaee02117ed",
+    "hmp2_metadata_2018-08-20.csv": "sha256:656b7bd97660ddb875548805e30bede31f2d1208293f7170d2d5755e33862ec9",
 }
+_IBDMDB = "https://g-227ca.190ebd.75bc.data.globus.org/ibdmdb/"
 _URLS = {
     "enzyme.dat": "https://ftp.expasy.org/databases/enzyme/enzyme.dat",
     "enzclass.txt": "https://ftp.expasy.org/databases/enzyme/enzclass.txt",
+    "pathabundances_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/pathabundances_3.tsv.gz",
+    "taxonomic_profiles_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/taxonomic_profiles_3.tsv.gz",
+    "hmp2_metadata_2018-08-20.csv": f"{_IBDMDB}metadata/hmp2_metadata_2018-08-20.csv",
 }
 
 

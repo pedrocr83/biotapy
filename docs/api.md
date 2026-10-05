@@ -35,6 +35,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     datasets.enzyme
     datasets.esophagus
     datasets.global_patterns
+    datasets.hmp2
     datasets.toy
     datasets.toy_humann
 ```

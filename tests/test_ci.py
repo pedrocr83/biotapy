@@ -76,6 +76,10 @@ def test_docs_build_executes_notebooks_and_fails_on_a_cell_error():
     assert conf["nb_execution_raise_on_error"] is True
 
 
+def test_a_notebook_cell_has_time_to_download_a_dataset():
+    assert _conf_constants()["nb_execution_timeout"] == 300
+
+
 def _sources():
     return [
         path
