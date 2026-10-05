@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:56:32Z }
-commit: 1153e6a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:12:45Z }
+commit: f5cf469
 sources:
   - id: spec
     resource: ../../plan.md
@@ -21,8 +21,8 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
 1. **Signature**: `verb(data, <required args>, *, <options>) -> <result>`.
    - `data` is annotated with the widest type that works: `AnnData` when no tree
      is needed, `TreeData` when `vart` is read, `MuData` for multi-modal.
-     `da.consensus` takes a sequence of `da` result tables instead: it combines
-     results, not data.
+     `da.consensus` takes a sequence of `da` result tables and `pl.consensus` the
+     table `da.consensus` returns instead: they combine and draw results, not data.
    - Everything after the required arguments is keyword-only (`*`).
    - No `**kwargs` pass-through, except a documented `plot_kwargs` in `pl`.
 2. **Return and mutation**: per [pure-by-default](/decisions/pure-by-default.md).

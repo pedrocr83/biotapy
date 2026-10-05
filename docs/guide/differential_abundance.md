@@ -103,3 +103,18 @@ et al. (2022) recommend a consensus of several methods, Pelto et al. (2025) one 
 way, choose the methods before you look at their results; trying methods until one finds what you
 hoped for is selective reporting, and a consensus table does not protect against it. Methods that
 share a model, such as ANCOM-BC and ANCOM-BC2, also agree more often for that reason alone.
+
+## Plotting the consensus
+
+`bt.pl.consensus` draws the consensus table as a dot matrix: one row per feature that at least one
+method calls, one column per method. A filled dot is a call, red for a positive effect and blue for
+a negative one; a hollow dot is a feature the method tested without calling it; no dot, a feature
+the method could not test. Consensus features have bold labels. Rows are sorted by the number of
+methods calling them, then by their mean absolute effect, and `top` keeps the first 30:
+
+```python
+ax = bt.pl.consensus(table, top=20)
+```
+
+Feature ids are often accession numbers; to label rows with a rank, rename the table's index first,
+for example `table.rename(index=tdata.var["genus"])`.

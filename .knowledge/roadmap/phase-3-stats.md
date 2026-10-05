@@ -584,7 +584,7 @@ columns onto it.
 - [x] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [x] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [x] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
-- [ ] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
+- [x] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
 - [ ] Checkpoint B
 - [ ] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [ ] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
@@ -4342,7 +4342,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 - Produces: `bt.pl.consensus(table: pd.DataFrame, *, top: int = 30, ax: Axes |
   None = None) -> Axes`.
 
-- [ ] **Step 1: Failing tests.** `tests/pl/test_consensus.py` (the `ax`
+- [x] **Step 1: Failing tests.** `tests/pl/test_consensus.py` (the `ax`
   fixture is `tests/pl/conftest.py`'s untracked figure):
   ```python
   import numpy as np
@@ -4420,10 +4420,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       bt.pl.consensus(table, ax=ax)
       pd.testing.assert_frame_equal(table, before)
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/pl/test_consensus.py -q` -> `7 failed` (`AttributeError: module
   'biotapy.pl' has no attribute 'consensus'`).
-- [ ] **Step 3: Implement.** `src/biotapy/pl/_consensus.py`:
+- [x] **Step 3: Implement.** `src/biotapy/pl/_consensus.py`:
   ```python
   """Where differential abundance methods agree: a dot per feature and method, from da.consensus's table."""
 
@@ -4537,10 +4537,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   -__all__ = ["bar", "contributions", "heatmap", "ordination", "richness", "scree"]
   +__all__ = ["bar", "consensus", "contributions", "heatmap", "ordination", "richness", "scree"]
   ```
-- [ ] **Step 4: Run, expect pass** - the same command -> `7 passed`; the
+- [x] **Step 4: Run, expect pass** - the same command -> `7 passed`; the
   doctest (`uv run --group test pytest src/biotapy/pl/_consensus.py -q`) ->
   `1 passed`.
-- [ ] **Step 5: Docs, contract and rule.**
+- [x] **Step 5: Docs, contract and rule.**
   ````diff
   @@ -102,3 +102,18 @@ et al. (2022) recommend a consensus of several methods, Pelto et al. (2025) one
    way, choose the methods before you look at their results; trying methods until one finds what you
@@ -4600,7 +4600,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   ```text
   - **Update**: [function-shape](contracts/function-shape.md) (and rules.md R3.2): `pl.consensus` takes the table `da.consensus` returns. [phase-3-stats](roadmap/phase-3-stats.md) task 3.9 done.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add src/biotapy/pl/_consensus.py src/biotapy/pl/__init__.py tests/pl/test_consensus.py \
     docs/guide/differential_abundance.md docs/api.md rules.md .knowledge/contracts/function-shape.md \

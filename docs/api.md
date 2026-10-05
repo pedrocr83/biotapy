@@ -115,6 +115,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     pl.bar
+    pl.consensus
     pl.contributions
     pl.heatmap
     pl.ordination
