@@ -9,8 +9,8 @@ phase_state: done
 effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
 depends_on: [/roadmap/phase-0-foundation.md]
 paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 sources:
   - id: spec
     resource: ../../plan.md

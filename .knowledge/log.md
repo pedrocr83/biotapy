@@ -1,5 +1,13 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3, Checkpoint A)
+- **Update**: [pp](modules/pp.md) documents `clr`, `philr`, `pseudocounted` and `_binary_tree` (pseudocount rule, dense `layers["clr"]`, `obsm["X_philr"]` layout and sign, one-child and wide nodes) and the gotchas: `tree_basis`/`TreeNode.prune` conventions, `toy()`'s three-child root, plain slicing keeping stale derived slots, balance names, peak memory, `pseudocounted` moving to `_core` if 3B reuses it; description copied into [modules/index.md](modules/index.md).
+- **Update**: [core](modules/core.md) `get_skbio_tree`'s `split_root` and its one caller, `pp.philr`.
+- **Update**: [pl](modules/pl.md) invariant: `bar` and `heatmap` raise `ValueError` on a table with a negative value (`_common.py:table`); NaN is not checked.
+- **Update**: [regenerate-golden-files](playbooks/regenerate-golden-files.md) Common mistakes: `philr` needs `libuv1` in the R image.
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) ticks Checkpoint A's review (0 Critical / 1 Important / 5 Minor; fix pass `c920c7b..0de6cca` plus `6ade269`; re-review 14/14), exit-gate check (8 golden/network passed; 1039 passed in the full run) and knowledge boxes; push and the user's review stay open.
+- **Verification**: re-checked against `c015d3d..6ade269` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [phase-2-function](roadmap/phase-2-function.md), [data-model-slots](contracts/data-model-slots.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [tree-access](contracts/tree-access.md), [add-a-function](playbooks/add-a-function.md), [cut-a-release](playbooks/cut-a-release.md).
+
 ## 2026-10-05 (Phase 3, slice 3A)
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.1's `pp.clr` Notes block states the measured peak memory (3.1x to 4.8x one dense array), matching the code and the transforms guide.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.1 and 3.2 code, test and docs blocks match the Checkpoint A fix pass (`pseudocounted(columns=)` reorders while sparse, philr's wide-node message counts every wide node, narrowed mypy exclude, 57 passed). [data-model-slots](contracts/data-model-slots.md): `X_philr` has one column per internal node with two children, named as `vart["phylo"]` names it. [r-golden-parity](contracts/r-golden-parity.md): PhILR atol reason is about 1e-16 on both sides.

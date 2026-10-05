@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:08:33Z }
-commit: 2216894
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 sources:
   - id: spec
     resource: ../../plan.md

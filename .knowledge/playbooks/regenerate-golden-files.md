@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**", "tests/humann/**", "tests/data/humann/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T16:10:30Z }
-commit: 3b50719
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -82,6 +82,10 @@ uv run --group test pytest tests/test_data_files.py -q
   `tests/r/Dockerfile`'s final `RUN Rscript -e 'stopifnot(requireNamespace(...))'`
   layer catches this at build time; keep it, and add any new package's
   `requireNamespace()` call to that check when a golden function needs one.
+- Adding `philr` without `libuv1`: its `ggtree` -> `treeio` -> `fs` chain
+  installs `fs` as a binary that links libuv at load time, so the image needs
+  the system package (`tests/r/Dockerfile`). `philr` is installed only for
+  `pp.philr`'s golden file; biotapy never calls it.
 - Calling `distance()` unqualified: Biostrings, attached after phyloseq, masks
   it with IRanges' generic, so write `phyloseq::distance`.
 - Sharing one `set.seed(20260927)` across sections: every random call needs

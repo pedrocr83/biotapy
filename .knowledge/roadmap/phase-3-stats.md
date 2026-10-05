@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:08:33Z }
-commit: 2216894
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 sources:
   - id: spec
     resource: ../../plan.md
@@ -578,7 +578,7 @@ columns onto it.
 - [x] 3.0 CLR and PhILR golden files (philr in the R image)
 - [x] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
 - [x] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
-- [ ] Checkpoint A
+- [ ] Checkpoint A (review, exit-gate check and knowledge done; push and the user's review open)
 - [ ] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
 - [ ] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [ ] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
@@ -1724,12 +1724,19 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   ```
 
 ### Checkpoint A - review slice 3A
-- [ ] Review the whole slice (superpowers:requesting-code-review) against
+- [x] Review the whole slice (superpowers:requesting-code-review) against
   every contract, pure-by-default, the Phase 3 and slice 3A review focus;
   then a fix pass, one commit per finding, each with a test.
-- [ ] Run the exit-gate check for 3A: `uv run --group test pytest -m "golden or network" tests/pp -q`
-  and the full `uv run --group test pytest`.
-- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+  Record: review 0 Critical / 1 Important / 5 Minor (I1: `pl.bar` and
+  `pl.heatmap` accepted signed layers such as `layers["clr"]`; fixed in `pl`
+  through `pl/_common.py:table` and reported to the user). Fix pass
+  `c920c7b..0de6cca` plus controller commit `6ade269`; re-review 14/14
+  addressed.
+- [x] Run the exit-gate check for 3A: `uv run --group test pytest -m "golden or network" tests/pp -q`
+  and the full `uv run --group test pytest`. Record at `6ade269`: 8 passed,
+  107 deselected for the golden/network run; 1039 passed, 25 deselected for
+  `uv run --group test pytest -q -W error::UserWarning`.
+- [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Update `.knowledge/modules/pp.md`**: Responsibility gains CLR and
     PhILR; Entry points `_transform.py:clr`, `_transform.py:pseudocounted`,
     `_philr.py:philr`, `_philr.py:_binary_tree`; Invariants: pseudocount
