@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:55:25Z }
+commit: 0f81793
 sources:
   - id: spec
     resource: ../../plan.md
@@ -375,15 +375,15 @@ not exist yet.
 - [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
 - [x] 2.13 Coming-from-R check: "not in 0.2"
 - [x] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
-- [ ] Checkpoint D
+- [x] Checkpoint D
 - [x] 2.11 Knowledge
 - [ ] 2.15 Release 0.2.0
 
 # Exit gate
-- [ ] Tutorial 2.10 runs in CI (docs job, pooch cache).
-- [ ] `fn.func_glom` and `fn.renorm` equal `humann_regroup_table` /
+- [x] Tutorial 2.10 runs in CI (docs job, pooch cache): run 37305490515 executed `tutorials/function.md` in 10.65 s (PR #18).
+- [x] `fn.func_glom` and `fn.renorm` equal `humann_regroup_table` /
   `humann_renorm_table` (HUMAnN 3.9) on the fixtures: `tests/fn/*_golden.py`.
-- [ ] All Phase 1 gates still green.
+- [x] All Phase 1 gates still green (CI 20/20 on PR #18).
 
 # Risks
 - HUMAnN 4 is an alpha; its format may drift -> fixtures and goldens pin
@@ -8776,20 +8776,24 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
     `23 current, 0 stale, 12 uncheckable`.
 
   Confirm `~/.cache/biotapy` does not exist.
-- [ ] **Push** `phase-2d`, open the PR, and merge-commit on green (approved
+- [x] **Push** `phase-2d`, open the PR, and merge-commit on green (approved
   2026-10-03 for Phase 2 slice branches). CI must be green: every hatch-test
   job, `lint` (with `asv check`, which imports `fn.py`), `import-without-extras`,
   `network` (its log lists `test_hmp2_downloads_and_loads PASSED`) and
   `docs` (its log shows four `Executed notebook` lines, one of them
   `tutorials/function.md`). The `docs` job is the exit gate's "Tutorial 2.10
   runs in CI (docs job, pooch cache)": record its run id.
-- [ ] **After the merge**, once Read the Docs has built `master`:
+  Done 2026-10-05: PR #18 merged as `d1b89b6`, CI 20/20; docs run 37305490515
+  executed `tutorials/function.md` in 10.65 s.
+- [x] **After the merge**, once Read the Docs has built `master`:
   `curl -s -o /dev/null -w "%{http_code}\n" https://biotapy.readthedocs.io/en/latest/tutorials/function.html`
   prints `200`, and the page shows the three figures. Read the Docs keeps
   no pooch cache, so its build downloads the HMP2 files each time. If the
   page is missing, read the build log on readthedocs.org and report it; do
   not work around it.
-- [ ] **Ask the user, in one message:**
+  Done 2026-10-05: Read the Docs `latest` `tutorials/function.html` returned 200
+  with three figures.
+- [x] **Ask the user, in one message:**
   1. to review slice 2D before the release;
   2. to approve pushing `release-0.2.0`, opening its PR and merge-committing
      it on green (Task 2.15 Steps 3-9; R13.3: the standing approval names
@@ -8799,7 +8803,10 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
      `release.yaml`, environment `pypi`) that published 0.1.0, and that
      GitHub's `pypi` environment is unchanged.
 
-  Stop until the user answers.
+  Stop until the user answers. Answered 2026-10-05: "go" to the review and the
+  release branch's push, PR and merge; the controller found GitHub's `pypi`
+  environment present with no protection rules, and re-confirms the PyPI
+  publisher with the user at Task 2.15 Step 10.
 
 ### Task 2.11: Knowledge
 
@@ -9092,17 +9099,17 @@ step (R13.3).
 reaches the docs through package metadata), the workflows. `uv.lock` is
 git-ignored (`.gitignore`: `/uv.lock`), so the bump leaves no lock diff.
 
-- [ ] **Step 1: Approval in hand.** Checkpoint D's last box asked for the
+- [x] **Step 1: Approval in hand.** Checkpoint D's last box asked for the
   slice review, the release branch push/PR/merge and the PyPI publisher
   check. Do not start until the user has answered all three.
-- [ ] **Step 2: Check the publish action.**
+- [x] **Step 2: Check the publish action.**
   `gh api repos/pypa/gh-action-pypi-publish/releases/latest --jq .tag_name`
   prints `v1.14.2` (checked 2026-10-05; `release.yaml` pins `v1.14.2`). If
   it prints anything newer, stop and report it: a stale pin failed 0.0.1
   (the playbook's Common mistakes).
-- [ ] **Step 3: Branch.**
+- [x] **Step 3: Branch.**
   `git switch master && git pull --ff-only && git switch -c release-0.2.0`.
-- [ ] **Step 4: Version and changelog.**
+- [x] **Step 4: Version and changelog.**
   - `pyproject.toml`: `version = "0.1.0"` becomes `version = "0.2.0"`.
   - `CHANGELOG.md`: `## [Unreleased]` is empty (no slice 2A-2C PR wrote an
     entry). Write the 0.2.0 entries from
@@ -9175,7 +9182,7 @@ index 487d273..4f09d94 100644
   Each "Changed" line is a fix to a function 0.1.0 shipped: `e34b6e9` and
   `358e011` (`pp.relative`), `78a9146` (`pl.bar`), and Tasks 2.13 and 2.10b.
   If the fix pass changed another 0.1.0 function, add its line.
-- [ ] **Step 5: README** (PyPI's project page). Change only the Status
+- [x] **Step 5: README** (PyPI's project page). Change only the Status
   section and the licensing paragraph:
 
 ```diff
@@ -9256,7 +9263,7 @@ index 62b221c..cd201c8 100644
  [knowledge]: https://github.com/pedrocr83/biotapy/tree/master/.knowledge
 ```
 
-- [ ] **Step 6: Build check.**
+- [x] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
     print `PASSED`.
   - `tar tzf dist/biotapy-0.2.0.tar.gz | grep -c benchmarks` prints `0`.
@@ -9268,7 +9275,7 @@ index 62b221c..cd201c8 100644
     -> `896 passed, 23 deselected` (the sdist leaves out the repository-only
     tests: `tests/test_ci.py`, the knowledge tests, `tests/humann`, `tests/r`).
   - `rm -rf dist <scratchpad>/sdist`.
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add pyproject.toml CHANGELOG.md README.md
@@ -9279,7 +9286,7 @@ uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected
 uv run python -c "import biotapy; print(biotapy.__version__)"  # 0.2.0
 ```
 
-- [ ] **Step 8: Knowledge, second commit.**
+- [x] **Step 8: Knowledge, second commit.**
   - `bash scripts/knowledge_stale.sh --against HEAD`. The bump re-stales
     the concepts whose `paths` hold `pyproject.toml` or `CHANGELOG.md`; in
     the prototype: `phase-0-foundation`, `module-boundaries`,
