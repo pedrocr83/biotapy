@@ -151,7 +151,8 @@ table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
   `UNINTEGRATED` can be queried too.
 - **Regrouped tables work too.** `bt.fn.func_glom`'s output for the
   stratified modality has the same `var` columns, so
-  `contributions(by_class, "2.-.-.-")` shows the taxa behind an enzyme class.
+  `contributions(by_class["function_by_taxon"], "2.-.-.-")` shows the taxa
+  behind an enzyme class.
 
 An unknown id raises a `KeyError` listing up to three close ids, which
 catches typos and an `EC:` prefix.

@@ -77,7 +77,9 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     taxa with abundance in some sample: 8 bytes x taxa², 32 MB for 2,000
     taxa and 800 MB for 10,000. While it is built the peak is about 1.5 x
     8 bytes x taxa² (measured at 3,000 taxa), for the square and the
-    condensed half. ``traits`` is read once into a dense ``float64`` copy,
+    condensed half. Each of the two quadratic forms also builds a dense
+    samples x taxa product (8 bytes x samples x taxa), one after the
+    other, which exceeds the distances when samples outnumber taxa. ``traits`` is read once into a dense ``float64`` copy,
     all its rows, not only the taxa of ``adata``. Time grows as taxa² x
     genes: with 2,500 genes and 100 samples, 2,000 taxa took 5 s and 10,000
     taxa 6 minutes and 1.7 GB beyond the inputs (measured on one machine). On a large ASV table,
@@ -90,16 +92,14 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
 
     Examples
     --------
-    >>> import anndata as ad
     >>> import numpy as np
     >>> import pandas as pd
     >>> import biotapy as bt
-    >>> traits = pd.DataFrame([[2, 1, 0], [1, 1, 1], [0, 0, 3]], index=["A", "B", "C"], columns=["g1", "g2", "g3"])
-    >>> adata = ad.AnnData(
-    ...     np.array([[2.0, 1.0, 1.0]]), obs=pd.DataFrame(index=["s1"]), var=pd.DataFrame(index=["A", "B", "C"])
-    ... )
-    >>> bt.fn.functional_redundancy(adata, traits=traits).round(3).loc["s1"].tolist()
-    [0.625, 0.475, 0.15, 0.24]
+    >>> adata = bt.datasets.toy()
+    >>> genes = np.arange(adata.n_vars * 3).reshape(-1, 3) % 4  # a made-up genome per feature
+    >>> traits = pd.DataFrame(genes, index=adata.var_names, columns=["g1", "g2", "g3"])
+    >>> bt.fn.functional_redundancy(adata, traits=traits).round(3).iloc[:2].to_numpy().tolist()
+    [[0.691, 0.452, 0.239, 0.346], [0.717, 0.474, 0.244, 0.34]]
     """
     genomes = _genomes(traits)
     X, taxa = _abundances(adata, genomes.index)
