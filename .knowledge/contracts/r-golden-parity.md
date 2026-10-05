@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:49:35Z }
-commit: dfa71fe
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:58:35Z }
+commit: bcb8796
 sources:
   - id: spec
     resource: ../../plan.md
@@ -48,6 +48,7 @@ sources:
    | Rarefaction | invariants only: row sums == depth, dropped samples identical, no count exceeds original | exact |
    | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
    | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+   | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
 6. Golden files hold numbers derived from third-party example data, never the

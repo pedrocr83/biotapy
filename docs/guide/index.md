@@ -14,5 +14,6 @@ function
 filtering
 diversity
 ordination
+differential_abundance
 plotting
 ```

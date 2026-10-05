@@ -580,8 +580,8 @@ columns onto it.
 - [x] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
 - [x] Checkpoint A (PR #21 merged; the user approved slice 3A on 2026-10-05)
 - [x] 3.B0 `fix(core)`: count tables hold non-negative whole numbers (approved with slice 3B)
-- [ ] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
-- [ ] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
+- [x] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
+- [x] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [ ] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [ ] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [ ] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
@@ -2143,11 +2143,11 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   NDArray[float64]`, `dense_counts(adata, *, func: str) -> NDArray[float64]`;
   the `benchmark` test fixture; `linda.csv.gz`.
 
-- [ ] **Step 1: Approval on record.** MicrobiomeStat (CRAN, GPL-3) in the
+- [x] **Step 1: Approval on record.** MicrobiomeStat (CRAN, GPL-3) in the
   golden image was approved with the Phase 3 plan (Phase 3 decision 6,
   2026-10-05);
   it lives only in the image. Nothing new to ask.
-- [ ] **Step 2: Add MicrobiomeStat to the image.** `tests/r/Dockerfile`:
+- [x] **Step 2: Add MicrobiomeStat to the image.** `tests/r/Dockerfile`:
   ```diff
   @@ -18,6 +18,8 @@ RUN Rscript -e 'install.packages("picante")'
    # chain installs fs as a P3M binary that links libuv at load time.
@@ -2185,12 +2185,12 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   prints `1.4` (modeest 2.4.0 comes with it, as P3M binaries); phyloseq
   1.54.2, vegan 2.7.3, ape 5.8.1, picante 1.8.2, philr 1.36.0 and Matrix 1.7.4
   are unchanged.
-- [ ] **Step 3: Commit the image change on its own** (contract statement 1):
+- [x] **Step 3: Commit the image change on its own** (contract statement 1):
   ```bash
   git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
   git commit -m "build(r): add MicrobiomeStat to the golden image"
   ```
-- [ ] **Step 4: Export.** In `tests/r/export_golden.R`, insert the benchmark
+- [x] **Step 4: Export.** In `tests/r/export_golden.R`, insert the benchmark
   data and the LinDA section before `## Synthetic phyloseq fixtures`, and add
   MicrobiomeStat and modeest to `VERSIONS.txt`:
   ```diff
@@ -2250,13 +2250,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   the known `Found more than one class "phylo"` lines, `Warning message: In
   summary.lm(tmp) : essentially perfect fit` (LinDA's zero-handling check
   regresses log library size on `log_depth`); harmless.
-- [ ] **Step 5: Gate and commit.** `uv run --group test pytest
+- [x] **Step 5: Gate and commit.** `uv run --group test pytest
   tests/test_data_files.py -q` -> passes. Then `uvx prek run --all-files` and:
   ```bash
   git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/linda.csv.gz
   git commit -m "test(golden): export the LinDA golden file"
   ```
-- [ ] **Step 6: Failing tests.** `tests/da/conftest.py`:
+- [x] **Step 6: Failing tests.** `tests/da/conftest.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -2598,7 +2598,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
    @pytest.mark.parametrize(("name", "function"), PUBLIC, ids=[name for name, _ in PUBLIC])
   ```
-- [ ] **Step 7: Run, expect failure** -
+- [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da tests/test_docstrings.py -q --continue-on-collection-errors`
   -> `8 failed, 45 passed, 2 deselected, 2 errors`: `test_design.py` and
   `test_schema.py` fail to collect and the seven `test_linda.py` tests fail with
@@ -2606,7 +2606,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   `test_every_public_subpackage_is_covered` fails on the missing `"da"`.
   `uv run --group test pytest tests/da/test_linda_golden.py -q -m "golden or network"`
   -> `2 failed`.
-- [ ] **Step 8: Implement.** `src/biotapy/da/__init__.py`:
+- [x] **Step 8: Implement.** `src/biotapy/da/__init__.py`:
   ```python
   """Differential abundance: methods that share one result table (contracts/data-model-slots, DA results)."""
 
@@ -2924,9 +2924,9 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
    __version__ = version("biotapy")
   ```
-- [ ] **Step 9: Run, expect pass** - the same two commands -> `73 passed, 2 deselected`;
+- [x] **Step 9: Run, expect pass** - the same two commands -> `73 passed, 2 deselected`;
   `2 passed`. The property test also under `--hypothesis-seed=1`, `2`, `3`.
-- [ ] **Step 10: Docs.** Create `docs/guide/differential_abundance.md`:
+- [x] **Step 10: Docs.** Create `docs/guide/differential_abundance.md`:
   ````markdown
   # Differential abundance
 
@@ -3031,7 +3031,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
    per-user cache directory - CI caches it across runs the same way:
 
   ```
-- [ ] **Step 11: Contracts.** `.knowledge/contracts/data-model-slots.md`
+- [x] **Step 11: Contracts.** `.knowledge/contracts/data-model-slots.md`
   (frontmatter `paths` and a new "DA results" section before "Propagation"):
   ```diff
   @@ -4,7 +4,7 @@ title: Data-model slots
@@ -3087,7 +3087,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   ```text
   - **Update**: [data-model-slots](contracts/data-model-slots.md) gains "DA results": the schema `da` methods return, written by no slot; `paths` gains `src/biotapy/da/**`. [r-golden-parity](contracts/r-golden-parity.md): `da.linda` is compared elementwise with `MicrobiomeStat::linda`. [phase-3-stats](roadmap/phase-3-stats.md) tasks 3.3 and 3.5 done.
   ```
-- [ ] **Step 12: Gate and commit**
+- [x] **Step 12: Gate and commit**
   ```bash
   git add src/biotapy/da/__init__.py src/biotapy/da/_schema.py src/biotapy/da/_design.py src/biotapy/da/_linda.py \
     src/biotapy/__init__.py tests/da/conftest.py tests/da/test_linda.py tests/da/test_linda_golden.py \
