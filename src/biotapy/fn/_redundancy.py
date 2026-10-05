@@ -5,6 +5,7 @@ import numpy.typing as npt
 import pandas as pd
 import scipy.sparse as sp
 from anndata import AnnData
+from mudata import MuData
 from scipy.spatial.distance import pdist, squareform
 
 from biotapy._core import as_csr, divide_rows, warn_user
@@ -40,7 +41,7 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     Raises
     ------
     TypeError
-        ``adata`` is not an AnnData (for a MuData, pass one modality);
+        ``adata`` is not an AnnData (for a MuData, pass one of its modalities);
         ``traits`` is not a DataFrame or has a non-numeric column.
     ValueError
         ``traits`` repeats a row id or holds a missing, negative or
@@ -79,11 +80,12 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     8 bytes x taxa² (measured at 3,000 taxa), for the square and the
     condensed half. Each of the two quadratic forms also builds a dense
     samples x taxa product (8 bytes x samples x taxa), one after the
-    other, which exceeds the distances when samples outnumber taxa. ``traits`` is read once into a dense ``float64`` copy,
-    all its rows, not only the taxa of ``adata``. Time grows as taxa² x
-    genes: with 2,500 genes and 100 samples, 2,000 taxa took 5 s and 10,000
-    taxa 6 minutes and 1.7 GB beyond the inputs (measured on one machine). On a large ASV table,
-    filter rare taxa first with ``bt.pp.filter_features``.
+    other, which exceeds the distances when samples outnumber taxa.
+    ``traits`` is read once into a dense ``float64`` copy, all its rows,
+    not only the taxa of ``adata``. Time grows as taxa² x genes: with 2,500
+    genes and 100 samples, 2,000 taxa took 5 s and 10,000 taxa 6 minutes
+    and 1.7 GB beyond the inputs (measured on one machine). On a large ASV
+    table, filter rare taxa first with ``bt.pp.filter_features``.
 
     References
     ----------
@@ -147,7 +149,8 @@ def _genomes(traits: pd.DataFrame) -> pd.DataFrame:
 def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
     """``X`` over the taxa that have traits and abundance somewhere, and those taxa; warns about the others."""
     if not isinstance(adata, AnnData):
-        msg = f"adata must be an AnnData of samples x taxa, not {type(adata).__name__}; for a MuData, pass one modality"
+        hint = "; pass one modality of the MuData" if isinstance(adata, MuData) else ""
+        msg = f"adata must be an AnnData of samples x taxa, not {type(adata).__name__}{hint}"
         raise TypeError(msg)
     repeated = adata.var_names[adata.var_names.duplicated()].unique().tolist()
     if repeated:

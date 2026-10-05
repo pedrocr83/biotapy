@@ -244,13 +244,14 @@ def test_mudata_adata_raises_naming_adata_and_the_modality():
     import mudata
 
     mdata = mudata.MuData({"function": _adata([[2, 1, 1]])})
-    with pytest.raises(TypeError, match=r"adata must be an AnnData.*MuData.*pass one modality"):
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*MuData; pass one modality of the MuData"):
         bt.fn.functional_redundancy(mdata, traits=TRAITS)
 
 
 def test_dataframe_adata_raises_naming_adata():
-    with pytest.raises(TypeError, match=r"adata must be an AnnData.*DataFrame"):
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*DataFrame") as raised:
         bt.fn.functional_redundancy(pd.DataFrame([[2, 1, 1]], columns=["A", "B", "C"]), traits=TRAITS)  # type: ignore[arg-type]
+    assert "MuData" not in str(raised.value)
 
 
 def test_float32_abundances_give_the_float64_result():
