@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:00:00Z }
-commit: d9d6b15
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:30:00Z }
+commit: 2e9d268
 sources:
   - id: spec
     resource: ../../plan.md
@@ -374,7 +374,7 @@ not exist yet.
 - [x] 2.10 `datasets.hmp2() -> MuData`
 - [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
 - [x] 2.13 Coming-from-R check: "not in 0.2"
-- [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
+- [x] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
 - [ ] Checkpoint D
 - [ ] 2.11 Knowledge
 - [ ] 2.15 Release 0.2.0
@@ -8426,7 +8426,7 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
 workflows (the `lint` job's `asv check` already imports every module), any
 `src/` file. No optimisation (R10.1).
 
-- [ ] **Step 1: The suite.** In `benchmarks/benchmarks/_data.py`:
+- [x] **Step 1: The suite.** In `benchmarks/benchmarks/_data.py`:
 
 ```diff
 diff --git a/benchmarks/benchmarks/_data.py b/benchmarks/benchmarks/_data.py
@@ -8591,11 +8591,11 @@ class FunctionalRedundancy:
     directory for the class, and returns its path.
   - `FunctionalRedundancy` repeats the size the 2C plan measured by hand
     (5.4 s, 108 MB above the inputs) so the two can be compared.
-- [ ] **Step 2: Check it imports.**
+- [x] **Step 2: Check it imports.**
   `cd benchmarks && uv run --group dev asv check --python=same` ->
   `No problems found.` Then `uvx ruff check benchmarks` and
   `uvx ruff format --check benchmarks` pass.
-- [ ] **Step 3: Gate and commit the suite.**
+- [x] **Step 3: Gate and commit the suite.**
 
 ```bash
 git add benchmarks/benchmarks/_data.py benchmarks/benchmarks/fn.py
@@ -8605,7 +8605,7 @@ uvx prek run --all-files                             # all Passed
 uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected
 ```
 
-- [ ] **Step 4: Run the baseline** on that commit, with `git status
+- [x] **Step 4: Run the baseline** on that commit, with `git status
   --short` empty and other heavy work closed (the numbers are the record):
 
 ```bash
@@ -8624,7 +8624,7 @@ cat /proc/loadavg
   `time_functional_redundancy` 5.92 s, `peakmem_functional_redundancy`
   446 MB. A result more than twice these, or a failure, is reported before
   it is recorded (R14.1).
-- [ ] **Step 5: The performance page.** Add the section below before
+- [x] **Step 5: The performance page.** Add the section below before
   "## Running the benchmarks", replacing the commit, the load averages and
   every number with Step 4's run, and add the `--bench` sentence:
 
@@ -8678,13 +8678,13 @@ index 630dcb8..451711a 100644
  `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
 ````
 
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line becomes
     `- [x] 2.14 asv benchmarks for \`func_glom\`, \`read_humann\`, \`functional_redundancy\``;
     tick this task's step boxes; bump `generated` and `commit`.
   - Add under the slice 2D log heading:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.14 done: asv baselines for \`func_glom\`, \`read_humann\` and \`functional_redundancy\` in docs/performance.md.`
-- [ ] **Step 7: Gate and commit the page.**
+- [x] **Step 7: Gate and commit the page.**
 
 ```bash
 git add docs/performance.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
