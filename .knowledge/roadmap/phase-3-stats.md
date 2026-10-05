@@ -847,8 +847,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   `add_provenance`, `as_csr`, `warn_user`.
 - Produces: `bt.pp.clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData`
   (a copy with `layers["clr"]`, dense float64); private
-  `pp._transform.pseudocounted(adata: AnnData, pseudocount: float, *, func: str)
-  -> npt.NDArray[np.float64]` (dense `X + pseudocount`; raises on a bad
+  `pp._transform.pseudocounted(adata: AnnData, pseudocount: float, *, func: str,
+  columns: npt.NDArray[np.intp] | None = None) -> npt.NDArray[np.float64]` (dense
+  `X + pseudocount`, its `columns` in that order if given; raises on a bad
   pseudocount, a negative or non-finite `X`, or a remaining zero, naming
   `func`; warns when `pseudocount` exceeds the smallest non-zero value), used
   by 3.2.
@@ -1069,7 +1070,6 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       ``pseudocount = FALSE`` fails on zeros; biotapy defaults to 0.5, the value
       LinDA uses. The transform is scale invariant, so counts and their relative
       abundances give the same result only when the pseudocount is scaled with them.
-
       An all-zero sample gives an all-zero CLR row.
 
       CLR has no zeros, so ``X`` is densified once and ``layers['clr']`` is dense:
@@ -1095,8 +1095,10 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       return out
 
 
-  def pseudocounted(adata: AnnData, pseudocount: float, *, func: str) -> npt.NDArray[np.float64]:
-      """``X`` as a dense float64 array plus ``pseudocount``, checked to be strictly positive."""
+  def pseudocounted(
+      adata: AnnData, pseudocount: float, *, func: str, columns: npt.NDArray[np.intp] | None = None
+  ) -> npt.NDArray[np.float64]:
+      """``X`` (its ``columns``, in that order, if given) as a dense float64 array plus ``pseudocount``, checked > 0."""
       if isinstance(pseudocount, bool) or not isinstance(pseudocount, int | float | np.integer | np.floating):
           msg = f"pseudocount must be a real number, got {pseudocount!r}"
           raise TypeError(msg)
@@ -1104,6 +1106,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
           msg = f"pseudocount must be a finite number >= 0, got {pseudocount!r}"
           raise ValueError(msg)
       X = as_csr(adata.X).astype(np.float64)
+      if columns is not None:
+          # Reordered while sparse, so the dense copy below is the only one.
+          X = X[:, columns]
       if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
           msg = f"{func} needs finite, non-negative values in X"
           raise ValueError(msg)
@@ -1192,7 +1197,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
 - Consumes: `pseudocounted` (3.1); `philr.csv.gz`, `philr_sbp.csv.gz` (3.0).
 - Produces: `bt.pp.philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData`
   (a copy with `obsm["X_philr"]`: `pd.DataFrame`, index `obs_names`, one
-  column per internal node in preorder); `_core.get_skbio_tree(adata:
+  column per internal node with two children in preorder); `_core.get_skbio_tree(adata:
   AnnData, *, split_root: bool = True) -> TreeNode` (default unchanged).
 
 - [x] **Step 1: Failing tests.** `tests/pp/test_philr.py`:
@@ -1208,7 +1213,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   from hypothesis.extra.numpy import arrays
 
   import biotapy as bt
-  from biotapy._core import TreeData, tree_from_edges
+  from biotapy._core import TreeData, get_tree, tree_from_edges
 
 
   def _toy6() -> TreeData:
@@ -1239,8 +1244,10 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   def test_keeps_x_tree_and_input(assert_unchanged):
       tdata = _toy6()
       before = tdata.copy()
+      edges = [(u, v, dict(data)) for u, v, data in get_tree(tdata).edges(data=True)]
       out = bt.pp.philr(tdata)
       assert_unchanged(before, tdata)
+      assert list(get_tree(tdata).edges(data=True)) == edges
       assert isinstance(out, TreeData) and "phylo" in out.vart and (out.X != tdata.X).nnz == 0
 
 
@@ -1313,9 +1320,22 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       assert bt.pp.philr(_toy6()[:1].copy()).obsm["X_philr"].shape == (1, 5)
 
 
+  def test_philr_pseudocount_above_the_smallest_value_warns():
+      relative = _toy6()
+      relative.X = bt.pp.relative(relative).layers["relative"]
+      with pytest.warns(UserWarning, match=r"pseudocount=0.5 is larger than the smallest non-zero value in X \(0.0"):
+          bt.pp.philr(relative)
+
+
   def test_zero_without_pseudocount_raises():
       with pytest.raises(ValueError, match="pass pseudocount > 0 to pp.philr"):
           bt.pp.philr(_toy6(), pseudocount=0)
+
+
+  @pytest.mark.parametrize("pseudocount", [True, "0.5", None])
+  def test_non_numeric_pseudocount_raises(pseudocount):
+      with pytest.raises(TypeError, match="pseudocount must be a real number"):
+          bt.pp.philr(_toy6(), pseudocount=pseudocount)
 
 
   def test_records_provenance():
@@ -1346,6 +1366,28 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       balances = bt.pp.philr(tdata, pseudocount=pseudocount).obsm["X_philr"].to_numpy()
       clr = bt.pp.clr(tdata, pseudocount=pseudocount).layers["clr"]
       np.testing.assert_allclose(np.linalg.norm(balances, axis=1), np.linalg.norm(clr, axis=1), rtol=1e-9, atol=1e-9)
+
+
+  def test_wide_node_error_counts_every_wide_node():
+      # Five three-child nodes (q, p1-p4) under a binary root: the message lists the first three, in postorder, and counts all five.
+      edges = [("r", "q", 1.0), ("r", "p4", 1.0), ("q", "p1", 1.0), ("q", "p2", 1.0), ("q", "p3", 1.0)]
+      edges += [(f"p{i + 1}", name, 1.0) for i in range(4) for name in (f"x{i}", f"y{i}", f"z{i}")]
+      tips = [f"{letter}{i}" for i in range(4) for letter in "xyz"]
+      tdata = TreeData(
+          X=sp.csr_matrix(np.ones((2, len(tips)))),
+          obs=pd.DataFrame(index=["s1", "s2"]),
+          var=pd.DataFrame(index=tips),
+          vart={"phylo": tree_from_edges(edges)},
+          label=None,
+      )
+      with pytest.raises(ValueError, match=r"\['p1', 'p2', 'p3'\] have more than two children \(5 in total\)"):
+          bt.pp.philr(tdata)
+
+
+  def test_feature_order_does_not_change_the_balances():
+      tdata = _toy6()
+      shuffled = tdata[:, ["f4", "f1", "f6", "f3", "f5", "f2"]].copy()
+      pd.testing.assert_frame_equal(bt.pp.philr(shuffled).obsm["X_philr"], bt.pp.philr(tdata).obsm["X_philr"])
   ```
   `tests/pp/test_philr_golden.py`:
   ```python
@@ -1385,7 +1427,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       assert ours.keys() == r_names.keys()
       renamed = out.rename(columns={name: r_names[key] for key, name in ours.items()})
       expected = golden.pivot(index="sample_id", columns="balance", values="value")
-      # atol: a balance between taxa that are all absent from a sample is 0 here and about 1e-16 in R.
+      # atol: a balance between taxa that are all absent from a sample is about 1e-16 on both sides.
       np.testing.assert_allclose(renamed.loc[expected.index, expected.columns], expected, rtol=1e-7, atol=1e-12)
   ```
   Append to `tests/core/test_tree.py`:
@@ -1461,8 +1503,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       -------
       TreeData
           A copy of ``tdata`` with ``obsm['X_philr']``: a samples x balances
-          ``pandas.DataFrame`` with one column per internal node of the tree, named
-          after the node, in preorder. A balance is positive when its node's first
+          ``pandas.DataFrame`` with one column per internal node with two children,
+          named after the node in ``vart['phylo']`` (not as R's ``makeNodeLabel``
+          names it), in preorder. A balance is positive when its node's first
           child is more abundant than its second.
 
       Raises
@@ -1471,6 +1514,8 @@ create `tests/golden/global_patterns/clr.csv.gz`,
           ``tdata`` is an AnnData that is not a TreeData.
       KeyError
           ``tdata`` has no ``vart['phylo']``.
+      TypeError
+          ``pseudocount`` is a bool or not a real number.
       ValueError
           A node of the tree, the root included, has more than two children; a
           feature is not a tip of the tree; there are fewer than two features; or
@@ -1499,7 +1544,10 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       Aitchison distances, whatever the tree.
 
       ``X`` is densified once (8 bytes x samples x features); the balances take
-      8 bytes x samples x (features - 1).
+      8 bytes x samples x (features - 1). Peak memory is about five such arrays
+      (4.8x measured on a 400 x 512 table) plus scikit-bio's sparse basis, which
+      holds one value per tip under each node (113 MB on GlobalPatterns' 26 x 19,216,
+      28 arrays), so budget for that on large tables.
 
       References
       ----------
@@ -1522,7 +1570,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
       if len(tips) != tdata.n_vars:
           msg = f"pp.philr needs every feature to be a tip of the tree; {tdata.n_vars - len(tips)} feature(s) are not"
           raise ValueError(msg)
-      values = pseudocounted(tdata, pseudocount, func="pp.philr").take(tdata.var_names.get_indexer(tips), axis=1)
+      values = pseudocounted(tdata, pseudocount, func="pp.philr", columns=tdata.var_names.get_indexer(tips))
       basis, nodes = tree_basis(tree)
       # tree_basis puts a node's first child in the denominator; philr::philr puts it in the numerator.
       balances = pd.DataFrame(-(clr(values) @ basis.T), index=tdata.obs_names, columns=nodes)
@@ -1544,7 +1592,8 @@ create `tests/golden/global_patterns/clr.csv.gz`,
           kept[id(node)] = children[0] if len(children) == 1 else TreeNode(node.name, children=children)
       if wide:
           msg = (
-              f"pp.philr needs a rooted binary tree, but the node(s) {wide[:3]} have more than two children; "
+              f"pp.philr needs a rooted binary tree, but the node(s) {wide[:3]} have more than two children "
+              f"({len(wide)} in total); "
               "root the tree and resolve its polytomies first (for example with ape::multi2di in R)"
           )
           raise ValueError(msg)
@@ -1576,7 +1625,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   +  "biom",
   +  "mudata",
   +  "skbio.stats._subsample",
-  +  "skbio.stats.composition._base",
+  +  "skbio.stats.composition._base.tree_basis",
   +  "sklearn",
   +  "threadpoolctl",
   +]
@@ -1584,17 +1633,48 @@ create `tests/golden/global_patterns/clr.csv.gz`,
    strict = true
    overrides = [
   ```
-- [x] **Step 4: Run, expect pass** - the same commands -> `51 passed`; golden
+- [x] **Step 4: Run, expect pass** - the same commands -> `57 passed`; golden
   `1 passed`. Property test also under three extra Hypothesis seeds.
 - [x] **Step 5: Docs.** Append to `docs/guide/transforms.md`:
   ```markdown
   ## PhILR
 
-  `bt.pp.philr` turns a sample into balances along its phylogeny: one per internal node of the
-  tree, the log-ratio of the geometric means of the taxa under the node's two children, scaled so
+  `bt.pp.philr` turns a sample into balances along its phylogeny: one per internal node with two
+  children, the log-ratio of the geometric means of the taxa under the node's two children, scaled so
   that the balances are orthonormal coordinates. They go to `obsm["X_philr"]`, a table with one
-  column per node:
+  column per balance:
 
+  ```python
+  tdata = bt.datasets.toy()[:, :6].copy()
+  out = bt.pp.philr(tdata)  # pseudocount=0.5, as in pp.clr
+  out.obsm["X_philr"]  # columns root, n1, n4, n2, n5
+  ```
+
+  A balance is positive when the node's first child is more abundant than its second, as in
+  `philr::philr` with its default uniform weights. Distances between samples' balances equal
+  their Aitchison distances, the Euclidean distances between their CLR vectors.
+
+  PhILR needs a rooted binary tree. Filtering features leaves nodes with one child; those define
+  no balance and are skipped. A node with three or more children raises: that includes the root
+  of an unrooted tree (`bt.datasets.toy()` has one, which is why the example keeps f1-f6). Root
+  the tree and resolve its polytomies before reading it, for example with `ape::multi2di` in R, or
+  in Python with scikit-bio, which resolves them arbitrarily, as `multi2di` does:
+
+  ```python
+  from skbio import TreeNode
+
+  tree = TreeNode.read("tree.nwk")  # root it first (outgroup or midpoint) if it is unrooted: your choice
+  tree.bifurcate()  # in place; every node ends with two children
+  tree.write("binary.nwk")
+  # then read your table again with tree="binary.nwk"
+  ```
+
+  Balance names are the node names in `vart["phylo"]`, which differ from the ones `philr` in R
+  makes with `makeNodeLabel`; to compare balances across tools, match them by their numerator and
+  denominator taxa, not by name.
+
+  Filtering features with `bt.pp.filter_features` drops `layers["clr"]` and `obsm["X_philr"]`;
+  plain `adata[:, ...]` slicing keeps the old values, so transform after subsetting.
   ```python
   tdata = bt.datasets.toy()[:, :6].copy()
   out = bt.pp.philr(tdata)  # pseudocount=0.5, as in pp.clr
@@ -1618,9 +1698,10 @@ create `tests/golden/global_patterns/clr.csv.gz`,
 - [x] **Step 6: Contracts.**
   - `data-model-slots.md`: the `obsm` row's keys gain "; `X_philr` from
     `pp.philr` (a samples x balances `DataFrame`, one column per internal tree
-    node, named after it, in preorder)"; after the layer-adding Propagation
+    node with two children, named after the node in `vart["phylo"]`, in preorder; R's
+    names differ, so match balances across tools by their taxa)"; after the layer-adding Propagation
     row add `| Embedding-adding (`pp.philr`) | everything | nothing; adds `obsm["X_philr"]`, which a later feature change drops |`.
-  - `r-golden-parity.md` statement 4, after the PCoA row: `| PhILR balances | matched by partition (the taxa in each numerator and denominator, so signs must agree too), then elementwise | `rtol=1e-7`; `atol=1e-12`, because a balance between absent taxa is 0 here and about 1e-16 in R |`.
+  - `r-golden-parity.md` statement 4, after the PCoA row: `| PhILR balances | matched by partition (the taxa in each numerator and denominator, so signs must agree too), then elementwise | `rtol=1e-7`; `atol=1e-12`, because a balance between absent taxa is about 1e-16 on both sides |`.
   - `tree-access.md`, the last gotcha gains: "`pp.philr` passes
     `split_root=False`: a split would invent a balance, so it raises instead.
     Children keep the order of the stored edges (ape's edge order for a

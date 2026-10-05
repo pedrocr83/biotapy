@@ -42,7 +42,7 @@ sources:
    |---|---|---|
    | Deterministic numeric (glom sums, relative, CLR, alpha, Bray-Curtis, UniFrac) | elementwise | `rtol=1e-7` |
    | PCoA coordinates | per axis, up to sign flip; eigenvalues elementwise | `rtol=1e-6` |
-   | PhILR balances | matched by partition (the taxa in each numerator and denominator, so signs must agree too), then elementwise | `rtol=1e-7`; `atol=1e-12`, because a balance between absent taxa is 0 here and about 1e-16 in R |
+   | PhILR balances | matched by partition (the taxa in each numerator and denominator, so signs must agree too), then elementwise | `rtol=1e-7`; `atol=1e-12`, because a balance between absent taxa is about 1e-16 on both sides |
    | NMDS | stress within `0.02`; Procrustes correlation with R `> 0.95` | as stated |
    | Permutation tests (PERMANOVA) | test statistic elementwise; p-value within `0.02` at >= 9,999 permutations | as stated |
    | Rarefaction | invariants only: row sums == depth, dropped samples identical, no count exceeds original | exact |
