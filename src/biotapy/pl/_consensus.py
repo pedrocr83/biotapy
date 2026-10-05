@@ -18,6 +18,26 @@ _KINDS = {
 }
 
 
+def _check(table: pd.DataFrame, *, top: int) -> list[str]:
+    """The method names in ``table``, after checking it is a consensus table and ``top`` a positive int."""
+    if not isinstance(table, pd.DataFrame):
+        msg = f"table must be a pandas DataFrame, got {type(table).__name__}"
+        raise TypeError(msg)
+    methods = [column.removeprefix("significant_") for column in table.columns if column.startswith("significant_")]
+    needed = ["n_significant", "consensus", *[f"{kind}_{m}" for m in methods for kind in ("effect", "qvalue")]]
+    absent = [column for column in needed if column not in table.columns]
+    if not methods or absent:
+        msg = f"table lacks {absent or ['significant_<method>']}; pl.consensus draws the table bt.da.consensus returns"
+        raise KeyError(msg)
+    if isinstance(top, bool) or not isinstance(top, int | np.integer):
+        msg = f"top must be an integer, got {top!r}"
+        raise TypeError(msg)
+    if top < 1:
+        msg = f"top must be at least 1, got {top}"
+        raise ValueError(msg)
+    return methods
+
+
 def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -> "Axes":
     """A dot matrix of which methods call which features, from :func:`biotapy.da.consensus`.
 
@@ -27,7 +47,8 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
         The table :func:`biotapy.da.consensus` returns.
     top
         Draw at most this many features: those called by the most methods, then with
-        the largest mean absolute effect.
+        the largest mean absolute effect, then in table order. A ``top`` above 30
+        needs a taller figure, passed as ``ax``.
     ax
         Axes to draw on; by default a new figure's.
 
@@ -41,6 +62,8 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
 
     Raises
     ------
+    TypeError
+        ``table`` is not a DataFrame, or ``top`` is not an integer.
     KeyError
         ``table`` lacks the columns :func:`biotapy.da.consensus` writes.
     ValueError
@@ -64,15 +87,7 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
     >>> [label.get_text() for label in ax.get_yticklabels()]
     ['f6', 'f7', 'f8']
     """
-    methods = [column.removeprefix("significant_") for column in table.columns if column.startswith("significant_")]
-    needed = ["n_significant", "consensus", *[f"{kind}_{m}" for m in methods for kind in ("effect", "qvalue")]]
-    absent = [column for column in needed if column not in table.columns]
-    if not methods or absent:
-        msg = f"table lacks {absent or ['significant_<method>']}; pl.consensus draws the table bt.da.consensus returns"
-        raise KeyError(msg)
-    if top < 1:
-        msg = f"top must be at least 1, got {top}"
-        raise ValueError(msg)
+    methods = _check(table, top=top)
     called = table[table["n_significant"] > 0]
     if called.empty:
         msg = "no method calls any feature significant: nothing to draw"
@@ -94,5 +109,5 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
         tick.set_fontweight("bold" if bold else "normal")
     ax.set_xlim(-0.5, len(methods) - 0.5)
     ax.set_ylim(len(rows) - 0.5, -0.5)
-    ax.legend()
+    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1))
     return ax

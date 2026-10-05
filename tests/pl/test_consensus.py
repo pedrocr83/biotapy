@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.colors import to_rgba
 
 import biotapy as bt
 
@@ -72,3 +73,40 @@ def test_consensus_keeps_the_table(ax):
     before = table.copy()
     bt.pl.consensus(table, ax=ax)
     pd.testing.assert_frame_equal(table, before)
+
+
+def test_dots_sit_at_their_row_and_method_with_the_colour_of_their_sign(ax):
+    bt.pl.consensus(_consensus_table(), ax=ax)
+    by_label = {collection.get_label(): collection for collection in ax.collections}
+    # Rows are x, z, y (top first); columns are a, b. x is called up by both, y down by a only.
+    up, down = by_label["effect > 0"], by_label["effect < 0"]
+    assert sorted(map(tuple, up.get_offsets().tolist())) == [(0, 0), (1, 0), (1, 1)]
+    assert down.get_offsets().tolist() == [[0, 2]]
+    assert up.get_facecolor().tolist() == [list(to_rgba("#d62728"))]
+    assert down.get_facecolor().tolist() == [list(to_rgba("#1f77b4"))]
+
+
+def test_a_non_table_raises(ax):
+    with pytest.raises(TypeError, match="table must be a pandas DataFrame, got list"):
+        bt.pl.consensus([1, 2], ax=ax)
+
+
+@pytest.mark.parametrize("top", [2.5, True, "3"])
+def test_top_that_is_not_an_integer_raises(ax, top):
+    with pytest.raises(TypeError, match="top must be an integer"):
+        bt.pl.consensus(_consensus_table(), top=top, ax=ax)
+
+
+def test_numpy_integer_top_is_accepted(ax):
+    bt.pl.consensus(_consensus_table(), top=np.int64(1), ax=ax)
+    assert [label.get_text() for label in ax.get_yticklabels()] == ["x"]
+
+
+def test_an_empty_table_raises(ax):
+    with pytest.raises(ValueError, match="no method calls any feature significant: nothing to draw"):
+        bt.pl.consensus(_consensus_table().iloc[0:0], ax=ax)
+
+
+def test_the_legend_is_outside_the_axes(ax):
+    bt.pl.consensus(_consensus_table(), ax=ax)
+    assert ax.get_legend().get_bbox_to_anchor().transformed(ax.transAxes.inverted()).x0 > 1

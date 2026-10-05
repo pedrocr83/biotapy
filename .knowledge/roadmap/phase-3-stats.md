@@ -4348,6 +4348,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   import numpy as np
   import pandas as pd
   import pytest
+  from matplotlib.colors import to_rgba
 
   import biotapy as bt
 
@@ -4419,6 +4420,43 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       before = table.copy()
       bt.pl.consensus(table, ax=ax)
       pd.testing.assert_frame_equal(table, before)
+
+
+  def test_dots_sit_at_their_row_and_method_with_the_colour_of_their_sign(ax):
+      bt.pl.consensus(_consensus_table(), ax=ax)
+      by_label = {collection.get_label(): collection for collection in ax.collections}
+      # Rows are x, z, y (top first); columns are a, b. x is called up by both, y down by a only.
+      up, down = by_label["effect > 0"], by_label["effect < 0"]
+      assert sorted(map(tuple, up.get_offsets().tolist())) == [(0, 0), (1, 0), (1, 1)]
+      assert down.get_offsets().tolist() == [[0, 2]]
+      assert up.get_facecolor().tolist() == [list(to_rgba("#d62728"))]
+      assert down.get_facecolor().tolist() == [list(to_rgba("#1f77b4"))]
+
+
+  def test_a_non_table_raises(ax):
+      with pytest.raises(TypeError, match="table must be a pandas DataFrame, got list"):
+          bt.pl.consensus([1, 2], ax=ax)
+
+
+  @pytest.mark.parametrize("top", [2.5, True, "3"])
+  def test_top_that_is_not_an_integer_raises(ax, top):
+      with pytest.raises(TypeError, match="top must be an integer"):
+          bt.pl.consensus(_consensus_table(), top=top, ax=ax)
+
+
+  def test_numpy_integer_top_is_accepted(ax):
+      bt.pl.consensus(_consensus_table(), top=np.int64(1), ax=ax)
+      assert [label.get_text() for label in ax.get_yticklabels()] == ["x"]
+
+
+  def test_an_empty_table_raises(ax):
+      with pytest.raises(ValueError, match="no method calls any feature significant: nothing to draw"):
+          bt.pl.consensus(_consensus_table().iloc[0:0], ax=ax)
+
+
+  def test_the_legend_is_outside_the_axes(ax):
+      bt.pl.consensus(_consensus_table(), ax=ax)
+      assert ax.get_legend().get_bbox_to_anchor().transformed(ax.transAxes.inverted()).x0 > 1
   ```
 - [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/pl/test_consensus.py -q` -> `7 failed` (`AttributeError: module
@@ -4445,6 +4483,26 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   }
 
 
+  def _check(table: pd.DataFrame, *, top: int) -> list[str]:
+      """The method names in ``table``, after checking it is a consensus table and ``top`` a positive int."""
+      if not isinstance(table, pd.DataFrame):
+          msg = f"table must be a pandas DataFrame, got {type(table).__name__}"
+          raise TypeError(msg)
+      methods = [column.removeprefix("significant_") for column in table.columns if column.startswith("significant_")]
+      needed = ["n_significant", "consensus", *[f"{kind}_{m}" for m in methods for kind in ("effect", "qvalue")]]
+      absent = [column for column in needed if column not in table.columns]
+      if not methods or absent:
+          msg = f"table lacks {absent or ['significant_<method>']}; pl.consensus draws the table bt.da.consensus returns"
+          raise KeyError(msg)
+      if isinstance(top, bool) or not isinstance(top, int | np.integer):
+          msg = f"top must be an integer, got {top!r}"
+          raise TypeError(msg)
+      if top < 1:
+          msg = f"top must be at least 1, got {top}"
+          raise ValueError(msg)
+      return methods
+
+
   def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -> "Axes":
       """A dot matrix of which methods call which features, from :func:`biotapy.da.consensus`.
 
@@ -4454,7 +4512,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           The table :func:`biotapy.da.consensus` returns.
       top
           Draw at most this many features: those called by the most methods, then with
-          the largest mean absolute effect.
+          the largest mean absolute effect, then in table order. A ``top`` above 30
+          needs a taller figure, passed as ``ax``.
       ax
           Axes to draw on; by default a new figure's.
 
@@ -4468,6 +4527,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
       Raises
       ------
+      TypeError
+          ``table`` is not a DataFrame, or ``top`` is not an integer.
       KeyError
           ``table`` lacks the columns :func:`biotapy.da.consensus` writes.
       ValueError
@@ -4491,15 +4552,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       >>> [label.get_text() for label in ax.get_yticklabels()]
       ['f6', 'f7', 'f8']
       """
-      methods = [column.removeprefix("significant_") for column in table.columns if column.startswith("significant_")]
-      needed = ["n_significant", "consensus", *[f"{kind}_{m}" for m in methods for kind in ("effect", "qvalue")]]
-      absent = [column for column in needed if column not in table.columns]
-      if not methods or absent:
-          msg = f"table lacks {absent or ['significant_<method>']}; pl.consensus draws the table bt.da.consensus returns"
-          raise KeyError(msg)
-      if top < 1:
-          msg = f"top must be at least 1, got {top}"
-          raise ValueError(msg)
+      methods = _check(table, top=top)
       called = table[table["n_significant"] > 0]
       if called.empty:
           msg = "no method calls any feature significant: nothing to draw"
@@ -4521,7 +4574,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           tick.set_fontweight("bold" if bold else "normal")
       ax.set_xlim(-0.5, len(methods) - 0.5)
       ax.set_ylim(len(rows) - 0.5, -0.5)
-      ax.legend()
+      ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1))
       return ax
   ```
   `src/biotapy/pl/__init__.py`:
@@ -4537,7 +4590,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   -__all__ = ["bar", "contributions", "heatmap", "ordination", "richness", "scree"]
   +__all__ = ["bar", "consensus", "contributions", "heatmap", "ordination", "richness", "scree"]
   ```
-- [x] **Step 4: Run, expect pass** - the same command -> `7 passed`; the
+- [x] **Step 4: Run, expect pass** - the same command -> `15 passed`; the
   doctest (`uv run --group test pytest src/biotapy/pl/_consensus.py -q`) ->
   `1 passed`.
 - [x] **Step 5: Docs, contract and rule.**
