@@ -86,8 +86,8 @@ def ancombc2(
     Swapping ``reference`` changes more than the sign of ``effect``: the
     bias-corrected E-M is fitted against the reference level, as in R. On
     GlobalPatterns' genera (``host``) the calls at q < 0.05 go from 208 to 230,
-    and the effect and its swap differ by -0.40 to -0.37 log2. Choose
-    ``reference`` on the biology, not to change the results.
+    and the effect and its swap sum to -0.40 to -0.37 log2 (0 if only the sign
+    changed). Choose ``reference`` on the biology, not to change the results.
 
     scikit-bio needs a dense table, so ``X`` is densified once: 8 bytes x
     samples x features. Peak memory is about seven such arrays (7.2x to 7.5x
