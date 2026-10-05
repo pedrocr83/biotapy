@@ -5,3 +5,5 @@ vegan 2.7.3
 ape 5.8.1
 picante 1.8.2
 philr 1.36.0
+MicrobiomeStat 1.4
+modeest 2.4.0

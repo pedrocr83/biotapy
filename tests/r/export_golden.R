@@ -136,6 +136,29 @@ write_golden(
   file.path(gp, "philr_sbp.csv.gz")
 )
 
+## Slice 3B golden files: differential abundance (GlobalPatterns genera, human hosts vs the rest)
+# The genera in at least 20% of samples, as bt.pp.filter_features(min_prevalence=0.2) keeps them; feces, skin and
+# tongue samples against the other 17; log_depth (log library size) is the numeric covariate of the second model.
+gp_genus <- filter_taxa(tax_glom(GlobalPatterns, "Genus"), function(x) sum(x > 0) >= 0.2 * length(x), TRUE)
+da_counts <- t(samples_as_rows(gp_genus))
+human <- sample_data(gp_genus)$SampleType %in% c("Feces", "Skin", "Tongue")
+da_meta <- data.frame(
+  host = factor(ifelse(human, "human", "other"), levels = c("other", "human")),
+  log_depth = log(colSums(da_counts)),
+  row.names = colnames(da_counts)
+)
+da_formulas <- c("host", "host + log_depth")
+# is.winsor = FALSE: biotapy does not winsorise. MicrobiomeStat prints "Imputation approach is used." for the second
+# model but adds the 0.5 pseudocount in both (its switch tests "Imputation" == "imputation").
+linda_rows <- lapply(da_formulas, function(f) {
+  out <- MicrobiomeStat::linda(
+    da_counts, da_meta, paste0("~", f), feature.dat.type = "count", is.winsor = FALSE, verbose = FALSE
+  )$output$hosthuman
+  data.frame(formula = f, taxon_id = rownames(out), log2FoldChange = out$log2FoldChange, lfcSE = out$lfcSE,
+             pvalue = out$pvalue, padj = out$padj)
+})
+write_golden(do.call(rbind, linda_rows), file.path(gp, "linda.csv.gz"))
+
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
   c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
@@ -197,5 +220,7 @@ writeLines(c(
   paste0("vegan ", packageVersion("vegan")),
   paste0("ape ", packageVersion("ape")),
   paste0("picante ", packageVersion("picante")),
-  paste0("philr ", packageVersion("philr"))
+  paste0("philr ", packageVersion("philr")),
+  paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
+  paste0("modeest ", packageVersion("modeest"))
 ), "tests/golden/VERSIONS.txt")
