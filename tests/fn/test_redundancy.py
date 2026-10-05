@@ -268,27 +268,27 @@ def test_float32_abundances_give_the_float64_result():
 
 
 def test_guide_recipe_applies_the_nsti_cutoff_and_keeps_the_missing_traits_warning(tmp_path):
-    # Synthetic PICRUSt2-format files: ASVfar has NSTI 2.7 (cut by PICRUSt2's --max_nsti 2), ASVnone is in neither file.
+    # Synthetic PICRUSt2-format files (numbered ids such as 0042 must stay text): 0003 has NSTI 2.7 (cut by PICRUSt2's --max_nsti 2), 0004 is in neither file.
     (tmp_path / "EC.tsv").write_text(
         "sequence\tEC:1.1.1.1\tEC:2.7.1.1\tEC:3.2.1.1\tmetadata_NSTI\n"
-        "ASVa\t2\t1\t0\t0.1\nASVb\t1\t1\t1\t0.2\nASVfar\t0\t0\t3\t2.7\n"
+        "0001\t2\t1\t0\t0.1\n0042\t1\t1\t1\t0.2\n0003\t0\t0\t3\t2.7\n"
     )
     (tmp_path / "marker.tsv").write_text(
-        "sequence\t16S_rRNA_Count\tmetadata_NSTI\nASVa\t2\t0.1\nASVb\t1\t0.2\nASVfar\t3\t2.7\n"
+        "sequence\t16S_rRNA_Count\tmetadata_NSTI\n0001\t2\t0.1\n0042\t1\t0.2\n0003\t3\t2.7\n"
     )
-    reads = _adata([[4, 2, 9, 5]], taxa=("ASVa", "ASVb", "ASVfar", "ASVnone"))
+    reads = _adata([[4, 2, 9, 5]], taxa=("0001", "0042", "0003", "0004"))
     bt.io.write_biom(reads, tmp_path / "table.biom")
     # The recipe of docs/guide/function.md, step by step.
     asvs = bt.io.read_biom(tmp_path / "table.biom")
     traits = bt.io.read_picrust2_traits(tmp_path / "EC.tsv")
-    marker = pd.read_csv(tmp_path / "marker.tsv", sep="\t", index_col=0)
+    marker = pd.read_csv(tmp_path / "marker.tsv", sep="\t", index_col="sequence", dtype={"sequence": str})
     too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
     assert too_far.sum() == 1
     cells = asvs[:, ~too_far].copy()
     copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)
     cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
-    assert cells.var_names.tolist() == ["ASVa", "ASVb", "ASVnone"]
-    with pytest.warns(UserWarning, match=r"1 of 3 taxa have no row in traits.*\['ASVnone'\]"):
+    assert cells.var_names.tolist() == ["0001", "0042", "0004"]
+    with pytest.warns(UserWarning, match=r"1 of 3 taxa have no row in traits.*\['0004'\]"):
         out = bt.fn.functional_redundancy(cells, traits=traits)
-    # Cells: ASVa 4/2 = 2, ASVb 2/1 = 2, ASVnone left out by the warning; the same as the two-ASV case above.
+    # Cells: 0001 4/2 = 2, 0042 2/1 = 2, 0004 left out by the warning; the same as the two-ASV case above.
     np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.5, 0.25, 0.25, 0.5], rtol=1e-12)

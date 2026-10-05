@@ -213,7 +213,9 @@ import biotapy as bt
 
 asvs = bt.io.read_biom("table.biom")  # samples x ASVs, read counts
 traits = bt.io.read_picrust2_traits("picrust2_out/EC_predicted.tsv.gz")
-marker = pd.read_csv("picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col=0)
+marker = pd.read_csv(
+    "picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col="sequence", dtype={"sequence": str}
+)  # ids stay text
 
 too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
 print(f"{too_far.sum()} ASVs above NSTI 2 dropped")
