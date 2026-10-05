@@ -583,7 +583,7 @@ columns onto it.
 - [x] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
 - [x] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [x] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
-- [ ] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
+- [x] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [ ] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
 - [ ] Checkpoint B
 - [ ] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
@@ -3726,7 +3726,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   and `validate_result(table: object, *, arg: str) -> pd.DataFrame`; the
   Decision concept.
 
-- [ ] **Step 1: Failing tests.** `tests/da/test_consensus.py`:
+- [x] **Step 1: Failing tests.** `tests/da/test_consensus.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -3910,10 +3910,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +    with pytest.raises(TypeError, match=r"results\[1\] must be a result table of a bt.da method, got str"):
   +        bt.da.consensus([bt.da.linda(bt.datasets.toy(), "group"), "ancombc2"])
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/da -q`
-  -> `26 failed, 49 passed, 4 deselected` (`AttributeError: module
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/da -q`
+  -> `26 failed, 67 passed, 4 deselected` (`AttributeError: module
   'biotapy.da' has no attribute 'consensus'`).
-- [ ] **Step 3: Implement.** `src/biotapy/da/_consensus.py`:
+- [x] **Step 3: Implement.** `src/biotapy/da/_consensus.py`:
   ```python
   """Where differential abundance methods agree: one row per feature over the result tables the user computed."""
 
@@ -4093,11 +4093,11 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   -__all__ = ["ancombc2", "linda"]
   +__all__ = ["ancombc2", "consensus", "linda"]
   ```
-- [ ] **Step 4: Run, expect pass** - the same command -> `75 passed, 4 deselected`. The two
+- [x] **Step 4: Run, expect pass** - the same command -> `93 passed, 4 deselected`. The two
   property tests also under three extra seeds.
-- [ ] **Step 5: Decision concept.** Create
+- [x] **Step 5: Decision concept.** Create
   `.knowledge/decisions/da-consensus-agreement.md` (`generated.at` is the
-  commit's UTC time and `commit` the previous commit, task 3.4's):
+  commit's UTC time and `commit` the previous commit):
   ```markdown
   ---
   type: Decision
@@ -4106,8 +4106,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   tags: [da, statistics, api]
   status: stable
   paths: ["src/biotapy/da/_consensus.py", "src/biotapy/da/_schema.py"]
-  generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T18:00:00Z }
-  commit: 2b92fa9
+  generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:56:32Z }
+  commit: 1153e6a
   sources:
     - id: nearing
       resource: https://www.nature.com/articles/s41467-022-28034-z
@@ -4189,7 +4189,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
    * [No bundled KEGG mapping files](no-bundled-kegg.md) - Function hierarchies come from the user's local files or from ENZYME (CC BY 4.0, `bt.datasets.enzyme`); KEGG and MetaCyc are never shipped or fetched.
    * [Package name biotapy](package-name-biotapy.md) - Distribution and import name is biotapy, hosted at github.com/pedrocr83/biotapy.
   ```
-- [ ] **Step 6: Contract and rule (approved Phase 3 decision 9).**
+- [x] **Step 6: Contract and rule (approved Phase 3 decision 9).**
   `.knowledge/contracts/function-shape.md` statement 1:
   ```diff
   @@ -21,6 +21,8 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
@@ -4218,7 +4218,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   - **Create**: [da-consensus-agreement](decisions/da-consensus-agreement.md): what "methods agree" means in `da.consensus` (strict `q < alpha`, one BH, untested is not "not significant", same sign, conflict), the options rejected, and that the user picks the methods; listed in [decisions/index.md](decisions/index.md).
   - **Update**: [function-shape](contracts/function-shape.md) (and rules.md R3.2): `da.consensus` takes `da` result tables instead of an AnnData. [phase-3-stats](roadmap/phase-3-stats.md) task 3.8 done.
   ```
-- [ ] **Step 7: Docs.** Append to `docs/guide/differential_abundance.md` and
+- [x] **Step 7: Docs.** Append to `docs/guide/differential_abundance.md` and
   list the function:
   ````diff
   @@ -78,3 +78,27 @@ pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis
@@ -4260,7 +4260,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
    ```
 
   ````
-- [ ] **Step 8: Gate and commit**
+- [x] **Step 8: Gate and commit**
   ```bash
   git add src/biotapy/da/_consensus.py src/biotapy/da/_schema.py src/biotapy/da/__init__.py tests/da/test_consensus.py \
     tests/da/test_schema.py docs/guide/differential_abundance.md docs/api.md rules.md \

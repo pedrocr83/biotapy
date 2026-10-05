@@ -57,6 +57,7 @@ Full contract: [.knowledge/contracts/function-shape.md](.knowledge/contracts/fun
   `verb(data, <required>, *, <options>) -> result`. Options are keyword-only.
 - **R3.2** Annotate `data` with the widest type that works: `AnnData` unless the
   tree is needed (`TreeData`) or several modalities are (`MuData`).
+  `da.consensus` takes `da` result tables instead.
 - **R3.3** Purity ([pure-by-default](.knowledge/decisions/pure-by-default.md)):
   `io`/`pp`/`fn`/`da` return new objects and never mutate input; `tl` returns
   its result, and writes to the documented slot only with `inplace=True`;

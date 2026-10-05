@@ -101,6 +101,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     da.ancombc2
+    da.consensus
     da.linda
 ```
 

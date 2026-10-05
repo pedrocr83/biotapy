@@ -1,6 +1,8 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Create**: [da-consensus-agreement](decisions/da-consensus-agreement.md): what "methods agree" means in `da.consensus` (strict `q < alpha`, one BH, untested is not "not significant", same sign, conflict), the options rejected, and that the user picks the methods; listed in [decisions/index.md](decisions/index.md).
+- **Update**: [function-shape](contracts/function-shape.md) (and rules.md R3.2): `da.consensus` takes `da` result tables instead of an AnnData. [phase-3-stats](roadmap/phase-3-stats.md) task 3.8 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.ancombc2`'s tolerances are per model (`host` loose, `host + log_depth` 1e-6); [phase-3-stats](roadmap/phase-3-stats.md) task 3.4 code, tests and counts follow the fix round (a feature with no residual degrees of freedom is untested, scikit-bio errors are re-raised with the function name).
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.ancombc2` is compared with `ANCOMBC::ancombc2` at the measured tolerances. [phase-3-stats](roadmap/phase-3-stats.md) task 3.4 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `ANCOMBC` for the `da.ancombc2` golden file, with CVXR 1.0-15 and `libgsl27`. [regenerate-golden-files](playbooks/regenerate-golden-files.md) Common mistakes: why CVXR is pinned.

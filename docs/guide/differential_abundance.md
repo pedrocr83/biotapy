@@ -79,3 +79,27 @@ pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis
 use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the
 small difference comes from the bias estimate, whose iterations stop at R's cap of 100 before they
 have converged on that data, in R as in scikit-bio.
+
+## Where methods agree
+
+`bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,
+the methods that call it significant (`qvalue < alpha`, strictly) and whether they agree on its
+direction:
+
+```python
+results = [bt.da.ancombc2(tdata, "group"), bt.da.linda(tdata, "group")]
+table = bt.da.consensus(results)  # alpha=0.05, min_methods=2
+table[table["consensus"]]
+```
+
+A feature is a consensus hit when at least `min_methods` methods call it and all of them give it
+the same sign. Methods that call it in opposite directions mark a `conflict`, which is never a
+consensus. A method that could not test a feature does not count against it: `n_tested` says how
+many methods tested each feature. The tables must come from different methods and compare the same
+`contrast`, so run every method with the same `group` and `reference`.
+
+Methods disagree a lot on real data, and the literature is split on what to do about it: Nearing
+et al. (2022) recommend a consensus of several methods, Pelto et al. (2025) one simple method. Either
+way, choose the methods before you look at their results; trying methods until one finds what you
+hoped for is selective reporting, and a consensus table does not protect against it. Methods that
+share a model, such as ANCOM-BC and ANCOM-BC2, also agree more often for that reason alone.
