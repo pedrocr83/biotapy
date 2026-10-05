@@ -176,9 +176,16 @@ lint.pylint.max-statements = 30
 files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
 # biom-format and scikit-learn ship no type annotations at all, nor do scikit-bio's
-# subsample_counts, threadpoolctl's threadpool_limits and mudata's MuData.update; exempt only calls into them (not our
-# own code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
-untyped_calls_exclude = [ "biom", "mudata", "skbio.stats._subsample", "sklearn", "threadpoolctl" ]
+# subsample_counts and tree_basis, threadpoolctl's threadpool_limits and mudata's MuData.update; exempt only calls into
+# them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+untyped_calls_exclude = [
+  "biom",
+  "mudata",
+  "skbio.stats._subsample",
+  "skbio.stats.composition._base.tree_basis",
+  "sklearn",
+  "threadpoolctl",
+]
 # rules.md R7.2: strict on the package; tests stay unannotated
 strict = true
 overrides = [

@@ -5,8 +5,8 @@ description: Plots of what tl, pp and fn give - stacked bars, heatmap, a functio
 resource: /src/biotapy/pl/
 paths: ["src/biotapy/pl/**"]
 tags: [pl, plots, matplotlib]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
-commit: f5236e8
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 status: stable
 ---
 
@@ -72,6 +72,10 @@ It computes no diversity, distance or ordination; those are
   `_abundance.py:contributions`.
 - `bar` heights equal the sample (or `x` group) totals of the plotted table:
   features with a missing rank are a group, not dropped (a Hypothesis test).
+- `bar` and `heatmap` raise `ValueError` naming the plotted table (`adata: X`
+  or `layer=...`) and the function when it holds a negative value: signed
+  layers such as `layers["clr"]` are not abundances. NaN is not checked.
+  `_common.py:table`, `tests/pl/test_abundance.py`.
 - `heatmap` keeps `obs`/`var` order and densifies the table once (rules.md
   R6.2); it raises `ValueError` naming `adata` (for `X`) or `layer=` when
   nothing is positive.

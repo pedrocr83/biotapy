@@ -1,6 +1,6 @@
 # Active phase
 
-* [Phase 3 - Stats (0.3)](phase-3-stats.md) - CLR and PhILR; ANCOM-BC, LinDA, ALDEx2 and MaAsLin 3 behind one result schema; consensus runner. **phase_state: in-progress**
+* [Phase 3 - Stats (0.3)](phase-3-stats.md) - CLR and PhILR transforms; ANCOM-BC2 and LinDA natively and ALDEx2 and MaAsLin 3 through an optional R bridge, all behind one result schema; a consensus table and plot of where methods agree. **phase_state: in-progress**
 
 # Phases
 

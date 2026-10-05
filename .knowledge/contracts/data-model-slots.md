@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 sources:
   - id: spec
     resource: ../../plan.md
@@ -28,11 +28,11 @@ Extends the spec's data-model table with exact keys.[^spec]
 | Slot | Holds | Keys |
 |---|---|---|
 | `X` | samples x features, `scipy.sparse.csr_matrix` | kind recorded in `uns["biotapy"]["x_kind"]` |
-| `layers` | same-shape transforms of `X` | `relative`; `clr` from `pp.clr` (Phase 3, not yet written) |
+| `layers` | same-shape transforms of `X` | `relative` (sparse CSR); `clr` from `pp.clr` (dense float64 `ndarray`: CLR has no zeros) |
 | `obs` | sample metadata; `tl` per-sample results with `inplace=True` | `alpha_<metric>` (e.g. `alpha_shannon`) |
 | `var` | taxonomy, one lowercase column per rank; sequences; QIIME 2 assignment confidence | ranks from `kingdom, phylum, class, order, family, genus, species`; `sequence`; `confidence` (float, from a QIIME 2 `FeatureData[Taxonomy]` artifact's `Confidence` column); function tables: see Function tables |
 | `vart` | phylogeny as `networkx.DiGraph`, leaves = `var_names`, edge attribute `length` | `phylo` only |
-| `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`, `X_<plugin>` |
+| `obsm` | ordinations and embeddings | `X_pcoa`, `X_nmds`; `X_philr` from `pp.philr` (a samples x balances `DataFrame`, one column per internal tree node with two children, named after the node in `vart["phylo"]`, in preorder; R's names differ, so match balances across tools by their taxa); `X_<plugin>` |
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
 | `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
 
@@ -136,7 +136,8 @@ tables) stays a feature with every rank NaN, so every non-empty sample sums to 1
 |---|---|---|
 | Feature-changing (`pp.filter_features`, `pp.tax_glom`, `fn.func_glom`, `fn.renorm`, `pp.rarefy`) | `obs`, `var` rows kept, `vart` (pruned by TreeData), `uns["biotapy"]["x_kind"]` and `["provenance"]` | all `layers`, `obsm`, `obsp`, `varm`, `varp`, `uns["biotapy"]["pcoa"]`, `["nmds"]`, other `uns` keys |
 | Sample-only (`pp.filter_samples`) | everything, subset by AnnData indexing; a kept `obsm` ordination and its `pcoa`/`nmds` summary still reflect the dropped samples, so recompute them | nothing |
-| Layer-adding (`pp.relative`; `pp.clr` in Phase 3) | everything | nothing; adds one layer |
+| Layer-adding (`pp.relative`, `pp.clr`) | everything | nothing; adds one layer |
+| Embedding-adding (`pp.philr`) | everything | nothing; adds `obsm["X_philr"]`, which a later feature change drops |
 
 Feature-changing operations go through `_core.feature_subset`, or `_core.replace_features` when the new
 features are groups rather than a subset; both keep only `KEPT_META`, the

@@ -52,6 +52,8 @@ def bar(
         column, or ``layers[layer]`` is missing.
     TypeError
         ``fill`` or ``x`` is a numeric column.
+    ValueError
+        The plotted table holds a negative value, as ``layers["clr"]`` does.
 
     Notes
     -----
@@ -72,7 +74,7 @@ def bar(
     >>> len(ax.patches)  # 6 samples x 3 phyla
     18
     """
-    values = table(adata, layer)
+    values = table(adata, layer, func="pl.bar")
     segments, labels, colors = _segments(adata, values, fill)
     heights, names = _by_x(adata, segments, x)
     ax = new_axes(ax)
@@ -173,7 +175,8 @@ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = Non
     KeyError
         ``layers[layer]`` is missing.
     ValueError
-        The table holds no positive value, so the log scale has nothing to show.
+        The table holds a negative value, as ``layers["clr"]`` does, or no positive
+        value, so the log scale has nothing to show.
 
     Notes
     -----
@@ -197,7 +200,7 @@ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = Non
     from matplotlib.colors import LinearSegmentedColormap, LogNorm
 
     # matplotlib's imshow needs a dense array (rules.md R6.2): one dense copy, features x samples.
-    dense = table(adata, layer).T.toarray()
+    dense = table(adata, layer, func="pl.heatmap").T.toarray()
     if not (dense > 0).any():
         table_name = "adata: X" if layer is None else f"layer={layer!r}: layers[{layer!r}]"
         msg = f"{table_name} holds no positive value to draw on a log scale"

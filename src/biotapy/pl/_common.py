@@ -36,15 +36,20 @@ def new_axes(ax: "Axes | None") -> "Axes":
     return plt.figure().add_subplot()
 
 
-def table(adata: AnnData, layer: str | None) -> sp.csr_matrix:
-    """``X``, or ``layers[layer]``; a missing layer names the call that writes it."""
+def table(adata: AnnData, layer: str | None, *, func: str) -> sp.csr_matrix:
+    """``X``, or ``layers[layer]``; a missing layer names the call that writes it, a negative value names ``func``."""
     if layer is None:
-        return as_csr(adata.X)
-    if layer not in adata.layers:
+        values, name = as_csr(adata.X), "adata: X"
+    elif layer in adata.layers:
+        values, name = as_csr(adata.layers[layer]), f"layer={layer!r}"
+    else:
         call = _LAYER_WRITTEN_BY.get(layer, "the function that writes it")
         msg = f"layer={layer!r}: no layers[{layer!r}]; run {call} first"
         raise KeyError(msg)
-    return as_csr(adata.layers[layer])
+    if values.data.size and values.data.min() < 0:
+        msg = f"{name} holds negative values; {func} draws non-negative abundances"
+        raise ValueError(msg)
+    return values
 
 
 def obs_groups(adata: AnnData, column: str, *, arg: str) -> Groups:

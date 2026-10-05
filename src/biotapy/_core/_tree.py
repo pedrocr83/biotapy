@@ -65,15 +65,16 @@ def get_tree(tdata: TreeData) -> nx.DiGraph[str]:
     return cast("nx.DiGraph[str]", tdata.vart[PHYLO_KEY])
 
 
-def get_skbio_tree(adata: AnnData) -> TreeNode:
+def get_skbio_tree(adata: AnnData, *, split_root: bool = True) -> TreeNode:
     """The phylogeny in ``vart['phylo']`` as a scikit-bio ``TreeNode``, rooted where it is drawn.
 
     scikit-bio's Faith PD and UniFrac accept a root with at most two children. A
     root with more (an unrooted Newick tree, or the toy tree) keeps its first child
     and gets the others under one new zero-length node, which changes no
-    root-to-tip path length. Missing (NaN) branch lengths stay NaN; scikit-bio
-    counts them as zero. A plain AnnData raises ``TypeError``; a TreeData without
-    ``vart['phylo']`` raises ``KeyError``.
+    root-to-tip path length; ``split_root=False`` leaves it as stored (PhILR must
+    refuse it). Children keep the order of the stored edges. Missing (NaN) branch
+    lengths stay NaN; scikit-bio counts them as zero. A plain AnnData raises
+    ``TypeError``; a TreeData without ``vart['phylo']`` raises ``KeyError``.
     """
     if not isinstance(adata, TreeData):
         msg = f"needs a TreeData with a tree in vart[{PHYLO_KEY!r}], got {type(adata).__name__}"
@@ -85,7 +86,7 @@ def get_skbio_tree(adata: AnnData) -> TreeNode:
         nodes[child] = TreeNode(name=child, length=tree.edges[parent, child]["length"])
         nodes[parent].append(nodes[child])
     top = nodes[root]
-    if len(top.children) > 2:
+    if split_root and len(top.children) > 2:
         split = TreeNode(length=0.0)
         split.extend(top.children[1:])
         top.append(split)

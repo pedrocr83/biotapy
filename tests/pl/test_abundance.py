@@ -331,3 +331,20 @@ def test_contributions_a_mudata_or_the_community_modality_raises_as_fn_does(ax):
         bt.pl.contributions(mdata, "2.7.1.2", ax=ax)
     with pytest.raises(KeyError, match=r"adata needs var columns \['function', 'taxon'\].*function_by_taxon"):
         bt.pl.contributions(mdata["function"], "2.7.1.2", ax=ax)
+
+
+def test_heatmap_signed_layer_raises_naming_it(ax):
+    with pytest.raises(
+        ValueError, match=r"layer='clr' holds negative values; pl\.heatmap draws non-negative abundances"
+    ):
+        bt.pl.heatmap(bt.pp.clr(bt.datasets.toy()), layer="clr", ax=ax)
+
+
+def test_bar_signed_layer_raises_naming_it(ax):
+    with pytest.raises(ValueError, match=r"layer='clr' holds negative values; pl\.bar draws non-negative abundances"):
+        bt.pl.bar(bt.pp.clr(bt.datasets.toy()), "phylum", layer="clr", ax=ax)
+
+
+def test_heatmap_negative_x_raises_naming_x(ax):
+    with pytest.raises(ValueError, match=r"^adata: X holds negative values; pl\.heatmap draws"):
+        bt.pl.heatmap(_adata(np.array([[1.0, -1.0], [2.0, 3.0]])), ax=ax)

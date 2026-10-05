@@ -14,6 +14,10 @@ RUN Rscript -e 'install.packages("BiocManager")' \
 RUN Rscript -e 'BiocManager::install("phyloseq", version = "3.22", ask = FALSE, update = FALSE)'
 # picante (CRAN, same P3M snapshot): the Faith PD golden file. vegan and ape come with phyloseq.
 RUN Rscript -e 'install.packages("picante")'
-RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE))'
+# philr (Bioconductor, GPL-3): the pp.philr golden file; biotapy never calls it. Its ggtree -> treeio -> fs
+# chain installs fs as a P3M binary that links libuv at load time.
+RUN apt-get update && apt-get install -y --no-install-recommends libuv1 && rm -rf /var/lib/apt/lists/*
+RUN Rscript -e 'BiocManager::install("philr", version = "3.22", ask = FALSE, update = FALSE)'
+RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE))'
 WORKDIR /work
 CMD ["Rscript", "tests/r/export_golden.R"]

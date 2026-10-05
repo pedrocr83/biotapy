@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
-commit: f5236e8
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
+commit: 6ade269
 status: stable
 ---
 
@@ -110,7 +110,10 @@ none of them back.
   `TreeNode`, rooted where the networkx tree is drawn; a root with more than
   two children keeps its first child and moves the rest under one new
   zero-length node (scikit-bio's Faith PD and UniFrac reject a root with more
-  than two children). Used by `tl.alpha` (faith_pd) and `tl.unifrac`. Takes a
+  than two children); `split_root=False` leaves the root as stored, and its one
+  caller, `pp.philr`, passes it because a wide root has no single balance.
+  Children keep the order of the stored edges, which PhILR's signs rely on.
+  The default is used by `tl.alpha` (faith_pd) and `tl.unifrac`. Takes a
   plain `AnnData`, raising `TypeError` when it is not a `TreeData` and
   `KeyError` (from `get_tree`) when it has no `vart['phylo']`.
 - `_warnings.py:warn_user` - the single `UserWarning` entry point, attributed
