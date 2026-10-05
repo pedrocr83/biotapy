@@ -140,8 +140,9 @@ def contributions(adata: AnnData, function: str, *, top: int | None = 8, ax: "Ax
     strata = function_contributions(adata, function, top=top)
     # fn.contributions adds a column ("other") only when top leaves taxa out; it is drawn grey, as a missing group.
     other = top is not None and strata.shape[1] > top
+    n_taxa = strata.shape[1] - 1 if other else strata.shape[1]
     ax = new_axes(ax)
-    _stack(ax, strata.to_numpy(), strata.columns.tolist(), colors=_colors(strata.shape[1] - other, missing=other))
+    _stack(ax, strata.to_numpy(), strata.columns.tolist(), colors=_colors(n_taxa, missing=other))
     label_ticks(ax, strata.index.tolist(), axis="x")
     ax.set_xlabel("sample")
     ax.set_ylabel("abundance")

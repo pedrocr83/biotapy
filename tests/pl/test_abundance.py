@@ -268,3 +268,58 @@ def test_contributions_errors_name_the_argument(ax):
         bt.pl.contributions(_by_taxon(), "2.7.1.3", ax=ax)
     with pytest.raises(ValueError, match="top=0"):
         bt.pl.contributions(_by_taxon(), "2.7.1.2", top=0, ax=ax)
+
+
+def _function_with_taxa(n_taxa):
+    ids = pd.Index(["K1", *[f"K1|t{j:02d}" for j in range(n_taxa)]])
+    dense = np.arange(1, len(ids) + 1, dtype=np.float64)[None, :] * np.array([[1.0], [2.0]])
+    mdata = make_function_mudata(dense, obs=pd.DataFrame(index=["s1", "s2"]), row_ids=ids, x_kind="rpk", source="t")
+    return mdata["function_by_taxon"]
+
+
+def test_contributions_other_is_not_the_colour_of_any_taxon(ax):
+    bt.pl.contributions(_function_with_taxa(12), "K1", ax=ax)
+    colours = [to_hex(patch.get_facecolor()) for patch in ax.patches[::2]]  # one patch per segment, sample s1 first
+    assert len(colours) == 9
+    assert colours[-1] == "#7f7f7f"
+    assert "#7f7f7f" not in colours[:-1]
+    assert len(set(colours)) == 9
+
+
+def test_bar_na_group_has_a_colour_no_group_shares(ax):
+    adata = _adata(np.ones((2, 9)), var={"g": [f"g{i}" for i in range(8)] + [None]})
+    adata.var["g"] = pd.Categorical(adata.var["g"])
+    bt.pl.bar(adata, "g", ax=ax)
+    colours = [to_hex(patch.get_facecolor()) for patch in ax.patches[::2]]
+    assert colours[-1] == "#7f7f7f"
+    assert "#7f7f7f" not in colours[:-1]
+    assert len(set(colours)) == 9
+
+
+@pytest.mark.parametrize("n", [1, 5, 7])
+def test_colours_with_na_keep_the_first_seven_of_tab10(n):
+    from matplotlib import colormaps
+
+    from biotapy.pl._common import _colors
+
+    assert _colors(n, missing=True)[:n] == [colormaps["tab10"](i) for i in range(n)]
+
+
+@pytest.mark.parametrize("n", [3, 10, 11, 20, 25])
+def test_colours_without_na_are_tab10_tab20_or_turbo(n):
+    from matplotlib import colormaps
+
+    from biotapy.pl._common import _colors
+
+    cmap = colormaps["tab10"] if n <= 10 else colormaps["tab20"] if n <= 20 else colormaps["turbo"].resampled(n)
+    assert _colors(n, missing=False) == [cmap(i) for i in range(n)]
+
+
+@pytest.mark.parametrize("n", [8, 9, 10, 15, 19, 20, 25])
+def test_colours_with_na_never_hold_the_missing_grey(n):
+    from biotapy.pl._common import _colors
+
+    colours = [to_hex(colour) for colour in _colors(n, missing=True)]
+    assert colours[-1] == "#7f7f7f"
+    assert "#7f7f7f" not in colours[:-1]
+    assert len(set(colours)) == n + 1
