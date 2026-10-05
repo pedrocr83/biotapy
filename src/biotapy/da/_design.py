@@ -18,12 +18,17 @@ def model(
 
     Numeric columns become float64; any other column a ``Categorical`` without
     unused levels, the group's ``reference`` first. Raises when ``covariates`` is
-    a string, a column is missing or has missing values, the group does not have
-    two levels, or the design has no residual degrees of freedom or collinear
-    columns.
+    not a list of column names, a column is missing, has missing values or is
+    constant, the group does not have two levels, or the design has no residual
+    degrees of freedom or collinear columns.
     """
-    if isinstance(covariates, str):
-        msg = f"{func}: covariates must be a list of obs columns, such as [{covariates!r}]"
+    if (
+        not isinstance(covariates, Sequence)
+        or isinstance(covariates, str)
+        or not all(isinstance(c, str) for c in covariates)
+    ):
+        example = covariates if isinstance(covariates, str) else "age"
+        msg = f"{func}: covariates must be a list of obs columns, such as [{example!r}]"
         raise TypeError(msg)
     names = [group, *covariates]
     absent = [name for name in names if name not in adata.obs.columns]
@@ -41,6 +46,7 @@ def model(
     if design.shape[0] <= design.shape[1]:
         msg = f"{func} needs more samples ({design.shape[0]}) than model terms ({design.shape[1]}, with the intercept)"
         raise ValueError(msg)
+    _check_varies(frame, group, func=func)
     if np.linalg.matrix_rank(design) < design.shape[1]:
         msg = f"{func}: group={group!r} and covariates={list(covariates)} are collinear; drop the covariate that repeats another"
         raise ValueError(msg)
@@ -69,6 +75,9 @@ def design_matrix(frame: pd.DataFrame, *, scale: bool) -> npt.NDArray[np.float64
 def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
     """``X`` as a dense float64 array of raw counts with no empty sample."""
     require_counts(adata, func=func)
+    if adata.n_vars < 2:
+        msg = f"{func} needs at least two features: log-ratio methods compare each feature with the others"
+        raise ValueError(msg)
     X = as_csr(adata.X)
     empty = adata.obs_names[np.asarray(X.sum(axis=1)).ravel() == 0]
     if len(empty):
@@ -78,7 +87,19 @@ def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
         )
         raise ValueError(msg)
     # LinDA's log-ratios and scikit-bio's ancombc2 need a dense table (rules.md R6.2): the one dense copy of X.
-    return X.toarray().astype(np.float64)
+    return X.toarray().astype(np.float64, copy=False)
+
+
+def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:
+    """Raise for a constant column; a one-level categorical group is left to ``_group``'s two-level message."""
+    for name in frame.columns:
+        if frame[name].nunique() > 1 or (name == group and isinstance(frame[name].dtype, pd.CategoricalDtype)):
+            continue
+        if name == group:
+            msg = f"{func}: group column {name!r} is constant across samples; there is nothing to compare"
+        else:
+            msg = f"{func}: covariates column {name!r} is constant across samples; drop it"
+        raise ValueError(msg)
 
 
 def _column(values: pd.Series, *, func: str) -> pd.Series:
@@ -104,6 +125,9 @@ def _group(values: pd.Series, reference: str | None, *, func: str) -> tuple[pd.S
         raise ValueError(msg)
     if reference is None:
         reference = levels[0]
+    if not isinstance(reference, str):
+        msg = f"{func}: reference must be the level's name as a string, such as {levels[0]!r}, not {reference!r}"
+        raise TypeError(msg)
     if reference not in levels:
         msg = f"{func}: reference={reference!r} is not a level of obs[{values.name!r}], which has {levels}"
         raise ValueError(msg)

@@ -127,3 +127,38 @@ def test_relative_abundances_raise(method):
     relative.uns["biotapy"]["x_kind"] = "relative"
     with pytest.raises(ValueError, match="needs raw counts in X"):
         method(relative, "group")
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_single_feature_raises(method):
+    with pytest.raises(ValueError, match=r"needs at least two features"):
+        method(bt.datasets.toy()[:, :1].copy(), "group")
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_constant_numeric_group_raises(method):
+    tdata = _toy_with(ph=[5.0] * 6)
+    with pytest.raises(ValueError, match=r"group column 'ph' is constant across samples"):
+        method(tdata, "ph")
+
+
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize("values", [[3.0] * 6, ["x"] * 6])
+def test_constant_covariate_raises(method, values):
+    tdata = _toy_with(c=values)
+    with pytest.raises(ValueError, match=r"covariates column 'c' is constant across samples; drop it"):
+        method(tdata, "group", covariates=["c"])
+
+
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize("covariates", [None, [1], ("age", 2)])
+def test_covariates_must_be_a_sequence_of_names(method, covariates):
+    with pytest.raises(TypeError, match=r"covariates must be a list of obs columns"):
+        method(bt.datasets.toy(), "group", covariates=covariates)
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_reference_must_be_a_string(method):
+    tdata = _toy_with(treated=[False] * 3 + [True] * 3)
+    with pytest.raises(TypeError, match=r"reference must be the level's name as a string, such as 'False'"):
+        method(tdata, "treated", reference=True)

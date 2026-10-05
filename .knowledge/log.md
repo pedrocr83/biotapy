@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.5 code and tests synced with the review fixes: `da._design` also raises for fewer than two features, a constant `group` or covariate column, non-list `covariates` and a non-string `reference`, and densifies `X` without a second copy.
 - **Update**: [data-model-slots](contracts/data-model-slots.md) gains "DA results": the schema `da` methods return, written by no slot; `paths` gains `src/biotapy/da/**`. [r-golden-parity](contracts/r-golden-parity.md): `da.linda` is compared elementwise with `MicrobiomeStat::linda`. [phase-3-stats](roadmap/phase-3-stats.md) tasks 3.3 and 3.5 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs CRAN `MicrobiomeStat` for the `da.linda` golden file.
 - **Update**: [data-model-slots](contracts/data-model-slots.md) and [core](modules/core.md) state that `x_kind` `"counts"` means non-negative whole numbers (`infer_x_kind` and `require_counts` reject a table holding a negative value; Task 3.B0); [phase-3-stats](roadmap/phase-3-stats.md) ticks 3.B0.

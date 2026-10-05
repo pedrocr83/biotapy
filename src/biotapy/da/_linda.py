@@ -23,7 +23,7 @@ def linda(adata: AnnData, group: str, *, covariates: Sequence[str] = (), referen
         The ``obs`` column whose effect is reported: a categorical, string or bool
         column with two levels, or a numeric column.
     covariates
-        ``obs`` columns to adjust for: numeric ones as they are (scaled), others as
+        ``obs`` columns to adjust for: numeric ones scaled to unit variance, others as
         one indicator per level against their first level.
     reference
         The level of a categorical ``group`` that the other level is compared
@@ -43,12 +43,13 @@ def linda(adata: AnnData, group: str, *, covariates: Sequence[str] = (), referen
     KeyError
         ``group`` or a covariate is not an ``obs`` column.
     TypeError
-        ``covariates`` is a string rather than a list of column names.
+        ``covariates`` is not a list of column names, or ``reference`` is not a string.
     ValueError
-        ``X`` does not hold raw counts or has an empty sample; a used ``obs`` column
-        has missing values; ``group`` has other than two levels; ``reference`` is
-        not one of them or is given for a numeric ``group``; the model has as many
-        terms as samples, or collinear columns.
+        ``X`` does not hold raw counts, has an empty sample or fewer than two
+        features; a used ``obs`` column has missing values or is constant;
+        ``group`` has other than two levels; ``reference`` is not one of them or is
+        given for a numeric ``group``; the model has at least as many terms as
+        samples, or collinear columns.
 
     Notes
     -----

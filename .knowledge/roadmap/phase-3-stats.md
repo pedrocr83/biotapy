@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:38:45Z }
-commit: 9c1e8f2
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:10:45Z }
+commit: 5ec14a7
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2527,6 +2527,41 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       relative.uns["biotapy"]["x_kind"] = "relative"
       with pytest.raises(ValueError, match="needs raw counts in X"):
           method(relative, "group")
+
+
+  @pytest.mark.parametrize("method", METHODS)
+  def test_single_feature_raises(method):
+      with pytest.raises(ValueError, match=r"needs at least two features"):
+          method(bt.datasets.toy()[:, :1].copy(), "group")
+
+
+  @pytest.mark.parametrize("method", METHODS)
+  def test_constant_numeric_group_raises(method):
+      tdata = _toy_with(ph=[5.0] * 6)
+      with pytest.raises(ValueError, match=r"group column 'ph' is constant across samples"):
+          method(tdata, "ph")
+
+
+  @pytest.mark.parametrize("method", METHODS)
+  @pytest.mark.parametrize("values", [[3.0] * 6, ["x"] * 6])
+  def test_constant_covariate_raises(method, values):
+      tdata = _toy_with(c=values)
+      with pytest.raises(ValueError, match=r"covariates column 'c' is constant across samples; drop it"):
+          method(tdata, "group", covariates=["c"])
+
+
+  @pytest.mark.parametrize("method", METHODS)
+  @pytest.mark.parametrize("covariates", [None, [1], ("age", 2)])
+  def test_covariates_must_be_a_sequence_of_names(method, covariates):
+      with pytest.raises(TypeError, match=r"covariates must be a list of obs columns"):
+          method(bt.datasets.toy(), "group", covariates=covariates)
+
+
+  @pytest.mark.parametrize("method", METHODS)
+  def test_reference_must_be_a_string(method):
+      tdata = _toy_with(treated=[False] * 3 + [True] * 3)
+      with pytest.raises(TypeError, match=r"reference must be the level's name as a string, such as 'False'"):
+          method(tdata, "treated", reference=True)
   ```
   `tests/da/test_schema.py` (3.8 appends the `validate_result` tests):
   ```python
@@ -2672,12 +2707,17 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
       Numeric columns become float64; any other column a ``Categorical`` without
       unused levels, the group's ``reference`` first. Raises when ``covariates`` is
-      a string, a column is missing or has missing values, the group does not have
-      two levels, or the design has no residual degrees of freedom or collinear
-      columns.
+      not a list of column names, a column is missing, has missing values or is
+      constant, the group does not have two levels, or the design has no residual
+      degrees of freedom or collinear columns.
       """
-      if isinstance(covariates, str):
-          msg = f"{func}: covariates must be a list of obs columns, such as [{covariates!r}]"
+      if (
+          not isinstance(covariates, Sequence)
+          or isinstance(covariates, str)
+          or not all(isinstance(c, str) for c in covariates)
+      ):
+          example = covariates if isinstance(covariates, str) else "age"
+          msg = f"{func}: covariates must be a list of obs columns, such as [{example!r}]"
           raise TypeError(msg)
       names = [group, *covariates]
       absent = [name for name in names if name not in adata.obs.columns]
@@ -2695,6 +2735,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       if design.shape[0] <= design.shape[1]:
           msg = f"{func} needs more samples ({design.shape[0]}) than model terms ({design.shape[1]}, with the intercept)"
           raise ValueError(msg)
+      _check_varies(frame, group, func=func)
       if np.linalg.matrix_rank(design) < design.shape[1]:
           msg = f"{func}: group={group!r} and covariates={list(covariates)} are collinear; drop the covariate that repeats another"
           raise ValueError(msg)
@@ -2723,6 +2764,9 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
       """``X`` as a dense float64 array of raw counts with no empty sample."""
       require_counts(adata, func=func)
+      if adata.n_vars < 2:
+          msg = f"{func} needs at least two features: log-ratio methods compare each feature with the others"
+          raise ValueError(msg)
       X = as_csr(adata.X)
       empty = adata.obs_names[np.asarray(X.sum(axis=1)).ravel() == 0]
       if len(empty):
@@ -2732,7 +2776,19 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           )
           raise ValueError(msg)
       # LinDA's log-ratios and scikit-bio's ancombc2 need a dense table (rules.md R6.2): the one dense copy of X.
-      return X.toarray().astype(np.float64)
+      return X.toarray().astype(np.float64, copy=False)
+
+
+  def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:
+      """Raise for a constant column; a one-level categorical group is left to ``_group``'s two-level message."""
+      for name in frame.columns:
+          if frame[name].nunique() > 1 or (name == group and isinstance(frame[name].dtype, pd.CategoricalDtype)):
+              continue
+          if name == group:
+              msg = f"{func}: group column {name!r} is constant across samples; there is nothing to compare"
+          else:
+              msg = f"{func}: covariates column {name!r} is constant across samples; drop it"
+          raise ValueError(msg)
 
 
   def _column(values: pd.Series, *, func: str) -> pd.Series:
@@ -2758,6 +2814,9 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           raise ValueError(msg)
       if reference is None:
           reference = levels[0]
+      if not isinstance(reference, str):
+          msg = f"{func}: reference must be the level's name as a string, such as {levels[0]!r}, not {reference!r}"
+          raise TypeError(msg)
       if reference not in levels:
           msg = f"{func}: reference={reference!r} is not a level of obs[{values.name!r}], which has {levels}"
           raise ValueError(msg)
@@ -2792,7 +2851,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           The ``obs`` column whose effect is reported: a categorical, string or bool
           column with two levels, or a numeric column.
       covariates
-          ``obs`` columns to adjust for: numeric ones as they are (scaled), others as
+          ``obs`` columns to adjust for: numeric ones scaled to unit variance, others as
           one indicator per level against their first level.
       reference
           The level of a categorical ``group`` that the other level is compared
@@ -2812,12 +2871,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       KeyError
           ``group`` or a covariate is not an ``obs`` column.
       TypeError
-          ``covariates`` is a string rather than a list of column names.
+          ``covariates`` is not a list of column names, or ``reference`` is not a string.
       ValueError
-          ``X`` does not hold raw counts or has an empty sample; a used ``obs`` column
-          has missing values; ``group`` has other than two levels; ``reference`` is
-          not one of them or is given for a numeric ``group``; the model has as many
-          terms as samples, or collinear columns.
+          ``X`` does not hold raw counts, has an empty sample or fewer than two
+          features; a used ``obs`` column has missing values or is constant;
+          ``group`` has other than two levels; ``reference`` is not one of them or is
+          given for a numeric ``group``; the model has at least as many terms as
+          samples, or collinear columns.
 
       Notes
       -----
@@ -2924,7 +2984,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
 
    __version__ = version("biotapy")
   ```
-- [x] **Step 9: Run, expect pass** - the same two commands -> `73 passed, 2 deselected`;
+- [x] **Step 9: Run, expect pass** - the same two commands -> `81 passed, 2 deselected`;
   `2 passed`. The property test also under `--hypothesis-seed=1`, `2`, `3`.
 - [x] **Step 10: Docs.** Create `docs/guide/differential_abundance.md`:
   ````markdown

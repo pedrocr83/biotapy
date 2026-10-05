@@ -22,7 +22,7 @@ is then a slope. Covariates are numeric, or categorical with one indicator per l
 their first. There are no formula strings: R and patsy take the alphabetically first level as the
 reference and silently drop samples with a missing value. biotapy takes the reference you give, or
 the first category, says which way round the effect is in the `contrast` column, and raises on a
-missing value, on a group with more than two levels and on collinear covariates.
+missing value, on a constant column, on a group with more than two levels and on collinear covariates.
 
 The table has one row per feature, in `var_names` order:
 
