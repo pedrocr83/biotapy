@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T18:58:35Z }
-commit: bcb8796
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:38:11Z }
+commit: 5b2eda5
 sources:
   - id: spec
     resource: ../../plan.md
@@ -73,7 +73,7 @@ draws `fn.contributions`' table for the stratified function modality.
    (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
    phyloseq's `estimate_richness` refuses on non-integers; and
    `tl.unifrac(weighted=True)`) call `_core.require_counts`, which raises
-   unless `x_kind` is `counts` *and* every stored value in `X` is a whole
+   unless `x_kind` is `counts` *and* every stored value in `X` is a non-negative whole
    number (`_slots.py:require_counts`, through `infer_x_kind`'s rule, O(nnz)).
    The value check matters because fractions are otherwise truncated
    silently: `pp.rarefy` casts `X` to int64 for `subsample_counts`, and

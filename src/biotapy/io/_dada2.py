@@ -70,7 +70,7 @@ def read_dada2(seqtab: str | Path, *, taxa: str | Path | None = None, tree: str 
     R equivalent: ``phyloseq::phyloseq``
     Guide: :doc:`/guide/reading_data`
 
-    ``uns['biotapy']['x_kind']`` is inferred from the values: whole numbers
+    ``uns['biotapy']['x_kind']`` is inferred from the values: non-negative whole numbers
     are ``"counts"`` (as DADA2 writes them), rows that each sum to 1 are
     ``"relative"``, anything else is ``"abundance"``.
 

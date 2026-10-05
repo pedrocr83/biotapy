@@ -50,7 +50,7 @@ def read_biom(path: str | Path, *, tree: str | Path | None = None) -> TreeData:
     Guide: :doc:`/guide/reading_data`
 
     BIOM does not record what ``X`` holds, so ``uns['biotapy']['x_kind']`` is
-    inferred from the values: whole numbers are ``"counts"``, rows that each
+    inferred from the values: non-negative whole numbers are ``"counts"``, rows that each
     sum to 1 are ``"relative"``, anything else is ``"abundance"``.
 
     Only the ``taxonomy`` (or ``Taxonomy``) observation metadata key is read;

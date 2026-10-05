@@ -72,7 +72,7 @@ def read_qiime2(
     Guide: :doc:`/guide/reading_data`
 
     Artifacts are recognized by their payload file, not by ``metadata.yaml``,
-    so ``uns['biotapy']['x_kind']`` is inferred from the values: whole numbers
+    so ``uns['biotapy']['x_kind']`` is inferred from the values: non-negative whole numbers
     are ``"counts"``, rows that each sum to 1 are ``"relative"``, anything
     else is ``"abundance"``.
 
