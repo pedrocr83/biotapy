@@ -80,6 +80,12 @@ use, biotapy's effects are within 0.012 log2 of R's and the significant genera a
 small difference comes from the bias estimate, whose iterations stop at R's cap of 100 before they
 have converged on that data, in R as in scikit-bio.
 
+Unlike `da.linda`, ANCOM-BC2 is not antisymmetric in `reference`: swapping it changes more than the
+sign of `effect`, because the bias-corrected E-M is fitted against the reference level, in R as
+here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to 230, and `effect`
+plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
+Choose `reference` on the biology (the control or baseline level), not to change the results.
+
 ## Where methods agree
 
 `bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,

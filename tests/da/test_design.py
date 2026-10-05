@@ -6,7 +6,8 @@ import scipy.sparse as sp
 import biotapy as bt
 
 METHODS = [bt.da.ancombc2, bt.da.linda]
-# ANCOM-BC2's bias E-M starts from asymmetric quantiles, so swapping the reference flips its effects only to ~1e-3.
+# ANCOM-BC2's bias E-M is fitted against the reference level, so swapping it flips the effects only approximately:
+# 9e-4 log2 on toy(), which 2e-3 covers, but 0.08-0.40 log2 on GlobalPatterns genera (in R too), where this would fail.
 SWAP_ATOL = {"ancombc2": 2e-3, "linda": 1e-12}
 
 

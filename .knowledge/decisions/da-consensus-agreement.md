@@ -5,8 +5,8 @@ description: A feature is a consensus hit when at least min_methods methods call
 tags: [da, statistics, api]
 status: stable
 paths: ["src/biotapy/da/_consensus.py", "src/biotapy/da/_schema.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:05:08Z }
-commit: 95a35a1
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:38:02Z }
+commit: 9f45c28
 sources:
   - id: nearing
     resource: https://www.nature.com/articles/s41467-022-28034-z
@@ -72,6 +72,9 @@ Per feature `f` and method `m`, over result tables the user computed:
   `da.consensus`'s Notes say to fix the methods before looking.
 - Methods that share a model (ANCOM-BC and ANCOM-BC2) agree more often for that
   reason alone; consensus counts methods, not independent evidence.
+- Consensus counts depend on `reference` through ANCOM-BC2, which is not antisymmetric in it
+  (the bias E-M is fitted against the reference level, as in R): 104 against 112 genera on
+  GlobalPatterns `host` with LinDA. Fix `reference` on the biology before looking.
 - Each method's call is stored as `significant_<method>`, so a reader of the
   table, or a plot of it, needs no `alpha`.
 
