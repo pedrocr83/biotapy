@@ -71,11 +71,18 @@ def groups(values: pd.Series, *, arg: str) -> Groups:
 
 def _colors(n: int, *, missing: bool) -> list[RGBA]:
     from matplotlib import colormaps
-    from matplotlib.colors import to_rgba
+    from matplotlib.colors import to_hex, to_rgba
 
     # tab10 and tab20 as long as they last; past 20 groups, n evenly spaced colours, as ggplot2's hue scale.
-    cmap = colormaps["tab10"] if n <= 10 else colormaps["tab20"] if n <= 20 else colormaps["turbo"].resampled(n)
-    colors = [cmap(i) for i in range(n)]
+    # tab10 and tab20 each hold MISSING_COLOR, which marks NA or "other": with it drawn, no group may take it.
+    for name in ("tab10", "tab20"):
+        palette = [to_rgba(color) for color in colormaps[name].colors]  # type: ignore[attr-defined]
+        if missing:
+            palette = [color for color in palette if to_hex(color) != MISSING_COLOR]
+        if n <= len(palette):
+            return [*palette[:n], to_rgba(MISSING_COLOR)] if missing else palette[:n]
+    turbo = colormaps["turbo"].resampled(n)
+    colors = [turbo(i) for i in range(n)]
     return [*colors, to_rgba(MISSING_COLOR)] if missing else colors
 
 

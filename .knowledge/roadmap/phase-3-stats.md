@@ -9,8 +9,8 @@ phase_state: not-started
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**"]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 sources:
   - id: spec
     resource: ../../plan.md

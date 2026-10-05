@@ -124,3 +124,124 @@ is `bt.pp.relative` applied to each modality.
 
 A sample whose community total is zero stays all zero, and `renorm` warns
 once, naming up to three such samples and how many there are, as HUMAnN does.
+
+## Contributions
+
+`bt.fn.contributions` answers "which taxa carry this function?". It takes the
+stratified modality and one function id, and returns a samples x taxa
+`DataFrame` of that function's strata, as stored:
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
+```
+
+- **Raw strata.** Each row sums to the function's strata in that sample. For
+  pathways that is not the community value, because a pathway's strata need
+  not add up to it. Pass the stratified modality of
+  `bt.fn.renorm(mdata, "relab")` to read the values as shares of each
+  sample's community total.
+- **Order.** Taxa are ordered by their total over all samples, largest first
+  (ties by id). `top=5` keeps the five largest and sums the rest into a last
+  column, `"other"`.
+- **Every stratum is a taxon.** `unclassified` (HUMAnN) and `RARE`
+  (PICRUSt2) are columns like any other; special functions such as
+  `UNINTEGRATED` can be queried too.
+- **Regrouped tables work too.** `bt.fn.func_glom`'s output for the
+  stratified modality has the same `var` columns, so
+  `contributions(by_class["function_by_taxon"], "2.-.-.-")` shows the taxa
+  behind an enzyme class.
+
+An unknown id raises a `KeyError` listing up to three close ids, which
+catches typos and an `EC:` prefix.
+
+`bt.pl.contributions` draws the same table as stacked bars, one per sample;
+see the [plotting guide](plotting.md).
+
+## Functional redundancy
+
+`bt.fn.functional_redundancy(adata, traits=traits)` measures, per sample, how
+much the taxa present overlap in what their genomes can do. It follows Tian
+et al. (2020, *Nature Communications* 11:6217; the equation numbers below are
+theirs). For the taxa of a sample, with relative abundances $p_i$ summing
+to 1, and a functional distance $d_{ij}$ between taxa $i$ and $j$:
+
+$$
+\mathrm{TD} = \sum_{i} \sum_{j \ne i} p_i p_j = 1 - \sum_i p_i^2 \qquad \text{(Gini-Simpson, Eq. 2)}
+$$
+
+$$
+\mathrm{FD} = \sum_{i} \sum_{j \ne i} d_{ij} p_i p_j \qquad \text{(Rao's quadratic entropy, Eq. 3)}
+$$
+
+$$
+\mathrm{FR} = \mathrm{TD} - \mathrm{FD} = \sum_{i} \sum_{j \ne i} (1 - d_{ij}) p_i p_j \qquad \text{(Eqs. 1 and 4)}
+$$
+
+$d_{ij}$ is the weighted Jaccard distance between the two taxa's gene copy
+numbers $G_{ia}$ (Eq. 7):
+
+$$
+d_{ij} = 1 - \frac{\sum_a \min(G_{ia}, G_{ja})}{\sum_a \max(G_{ia}, G_{ja})}
+$$
+
+FR is the chance that two individuals drawn from the sample belong to
+different taxa, weighted by how much of their genomes those taxa share. The
+result also holds `normalized_redundancy`, $\mathrm{FR} / \mathrm{TD}$, which
+compares samples whose taxonomic diversity differs; Tian et al. report about
+0.4 for most human body sites. biotapy computes $d_{ij}$ with SciPy's Bray-Curtis
+dissimilarity $\mathrm{BC}$, as $2\,\mathrm{BC} / (1 + \mathrm{BC})$, which
+equals the weighted Jaccard distance for non-negative vectors. Two taxa
+with no gene at all share nothing: their distance is 1.
+
+**Inputs.** `traits` is a taxa x genes table of copy numbers, such as
+PICRUSt2's per-ASV predictions read by `bt.io.read_picrust2_traits`.
+`adata` holds the same taxa as features. Tian et al. use relative organism
+abundances (MetaPhlAn2 profiles), so divide 16S read counts by each ASV's
+predicted 16S copy number first. PICRUSt2 writes those copy numbers and each ASV's NSTI to a
+marker file. Its `hsp.py` predicts every ASV it placed; the NSTI cutoff (`--max_nsti`,
+default 2) is applied later, by `metagenome_pipeline.py`. Apply it yourself,
+and divide only the ASVs that have a copy number, so
+`functional_redundancy` still sees the others and warns about them:
+
+```python
+import pandas as pd
+
+import biotapy as bt
+
+asvs = bt.io.read_biom("table.biom")  # samples x ASVs, read counts
+traits = bt.io.read_picrust2_traits("picrust2_out/EC_predicted.tsv.gz")
+marker = pd.read_csv(
+    "picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col="sequence", dtype={"sequence": str}
+)  # ids stay text
+
+too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
+print(f"{too_far.sum()} ASVs above NSTI 2 dropped")
+cells = asvs[:, ~too_far].copy()
+copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)  # no copy number: left unscaled
+cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
+fr = bt.fn.functional_redundancy(cells, traits=traits)
+```
+
+PICRUSt2 2.6 prefixes its pipeline's output files with `combined_`:
+`combined_EC_predicted.tsv.gz` and `combined_marker_nsti_predicted.tsv.gz`
+(earlier versions: `EC_predicted.tsv.gz` and
+`marker_predicted_and_nsti.tsv.gz`, used above). The marker file needs the
+columns `16S_rRNA_Count` and `metadata_NSTI`.
+
+The corrected table is no longer read counts; use it for this calculation
+only. A MetaPhlAn profile is already in organism abundances.
+
+- **Taxa without traits** (ASVs PICRUSt2 has no prediction for, such as
+  ones it did not place or that were not in its input) are left out with a
+  warning, abundance included, so each sample's $p$ sums to 1 over the taxa
+  that have a genome, as in the paper. PICRUSt2's `RARE` group exists only
+  in contribution tables, never in an ASV table.
+- **Empty samples.** A sample with no abundance on a taxon with traits gets
+  NaN in every column; a sample with a single such taxon has no diversity
+  (0) and an undefined `normalized_redundancy` (NaN).
+- **Size.** The distances form a dense taxa x taxa matrix, and the time grows
+  as taxa² x genes: 2,000 ASVs take seconds, 10,000 take minutes and over a
+  gigabyte. Filter rare ASVs first with `bt.pp.filter_features`.

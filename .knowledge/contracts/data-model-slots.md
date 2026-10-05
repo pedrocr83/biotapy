@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 sources:
   - id: spec
     resource: ../../plan.md
@@ -36,7 +36,8 @@ Extends the spec's data-model table with exact keys.[^spec]
 | `obsp` | sample-sample distance matrices | metric name: `braycurtis`, `jaccard`, `unweighted_unifrac`, `weighted_unifrac` |
 | `uns["biotapy"]` | biotapy metadata, nothing else | `x_kind`, `provenance`, `pcoa` (`eigenvalues`, `proportion_explained`), `nmds` (`stress`) |
 
-`pl` reads these slots and writes none ([pl](/modules/pl.md)).
+`pl` reads these slots and writes none ([pl](/modules/pl.md)); `pl.contributions`
+draws `fn.contributions`' table for the stratified function modality.
 
 ## Conventions
 1. **Missing taxonomy** is `NaN`. Readers convert `""`, whitespace, `"NA"`, and

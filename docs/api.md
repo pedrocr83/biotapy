@@ -64,7 +64,9 @@ Public functions are listed here as they ship, from Phase 1 onward.
 .. autosummary::
     :toctree: generated
 
+    fn.contributions
     fn.func_glom
+    fn.functional_redundancy
     fn.load_hierarchy
     fn.renorm
 ```
@@ -96,6 +98,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     pl.bar
+    pl.contributions
     pl.heatmap
     pl.ordination
     pl.richness

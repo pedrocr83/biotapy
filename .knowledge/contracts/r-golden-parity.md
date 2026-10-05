@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 sources:
   - id: spec
     resource: ../../plan.md
@@ -61,7 +61,9 @@ sources:
    column headers.
 7. `pl` functions have an R equivalent but no golden test. They draw numbers
    that `tl` stores, and `tl`'s golden tests check those numbers (controller
-   ruling 2026-09-27; rules.md R11.2).
+   ruling 2026-09-27; rules.md R11.2). `pl.contributions` has no R
+   equivalent and draws `fn.contributions`, which has none either (hand-computed
+   cases and Hypothesis properties check it, `tests/fn/test_contributions.py`).
 8. A reader's R parity may come from a tool's own golden files downstream,
    when an R golden for the reader would only re-check parsed numbers.
    `io.read_humann` (R equivalent `mia::importHUMAnN`) is checked this way:

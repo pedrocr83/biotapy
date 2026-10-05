@@ -1,4 +1,4 @@
-"""Abundance plots: stacked bars and a heatmap of the table."""
+"""Abundance plots: stacked bars, a heatmap of the table, and the taxa behind one function."""
 
 from typing import TYPE_CHECKING, cast
 
@@ -9,8 +9,9 @@ import scipy.sparse as sp
 from anndata import AnnData
 
 from biotapy._core import sum_by
+from biotapy.fn import contributions as function_contributions
 
-from ._common import RGBA, groups, label_ticks, new_axes, obs_groups, table
+from ._common import RGBA, _colors, groups, label_ticks, new_axes, obs_groups, table
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -75,14 +76,78 @@ def bar(
     segments, labels, colors = _segments(adata, values, fill)
     heights, names = _by_x(adata, segments, x)
     ax = new_axes(ax)
-    positions, bottom = np.arange(len(names)), np.zeros(len(names))
-    for column, (label, color) in enumerate(zip(labels, colors, strict=True)):
-        ax.bar(positions, heights[:, column], bottom=bottom, color=color, label=label)
-        bottom += heights[:, column]
+    _stack(ax, heights, labels, colors=colors)
     label_ticks(ax, names, axis="x")
     ax.set_xlabel(x or "sample")
     ax.set_ylabel(layer or "abundance")
     ax.legend(title=fill)
+    return ax
+
+
+def contributions(adata: AnnData, function: str, *, top: int | None = 8, ax: "Axes | None" = None) -> "Axes":
+    """Stacked bars of one function's abundance per sample, one segment per taxon.
+
+    Parameters
+    ----------
+    adata
+        A stratified function table: the ``"function_by_taxon"`` modality of
+        ``bt.io.read_humann`` or ``bt.io.read_picrust2``, or
+        ``bt.fn.func_glom``'s or ``bt.fn.renorm``'s output for it.
+    function
+        A function id as it appears in ``var["function"]``.
+    top
+        Draw the ``top`` taxa with the largest total over all samples and sum
+        the rest into a last, grey segment, ``"other"``; ``None`` draws every
+        taxon.
+    ax
+        Axes to draw on; by default a new figure's.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        One bar per sample in ``obs`` order, segments as the columns of
+        ``bt.fn.contributions(adata, function, top=top)``, a legend titled
+        ``taxon`` and the function id as the title.
+
+    Raises
+    ------
+    TypeError
+        ``adata`` is not an AnnData.
+    KeyError
+        ``adata`` lacks the ``function`` or ``taxon`` column; ``function`` has
+        no stratified row (the message lists close ids).
+    ValueError
+        ``top`` is not a positive integer or ``None``, or would hide a taxon
+        named ``"other"``.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/plotting`
+
+    The bars are ``bt.fn.contributions``' table, drawn as stored: for a
+    pathway they need not reach its community value. Plot the stratified
+    modality of ``bt.fn.renorm(mdata, "relab")`` for shares of each sample's
+    community total.
+
+    Examples
+    --------
+    >>> import biotapy as bt
+    >>> ax = bt.pl.contributions(bt.datasets.toy_humann()["function_by_taxon"], "2.7.1.2")
+    >>> len(ax.patches)  # 6 samples x 2 taxa
+    12
+    """
+    strata = function_contributions(adata, function, top=top)
+    # fn.contributions adds a column ("other") only when top leaves taxa out; it is drawn grey, as a missing group.
+    other = top is not None and strata.shape[1] > top
+    n_taxa = strata.shape[1] - 1 if other else strata.shape[1]
+    ax = new_axes(ax)
+    _stack(ax, strata.to_numpy(), strata.columns.tolist(), colors=_colors(n_taxa, missing=other))
+    label_ticks(ax, strata.index.tolist(), axis="x")
+    ax.set_xlabel("sample")
+    ax.set_ylabel("abundance")
+    ax.set_title(function)
+    ax.legend(title="taxon")
     return ax
 
 
@@ -146,6 +211,14 @@ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = Non
     ax.set_xlabel("sample")
     ax.set_ylabel("feature")
     return ax
+
+
+def _stack(ax: "Axes", heights: npt.NDArray[np.float64], labels: list[str], *, colors: list[RGBA]) -> None:
+    """One bar per row of ``heights``, stacking one coloured segment per column in column order."""
+    positions, bottom = np.arange(heights.shape[0]), np.zeros(heights.shape[0])
+    for column, (label, color) in enumerate(zip(labels, colors, strict=True)):
+        ax.bar(positions, heights[:, column], bottom=bottom, color=color, label=label)
+        bottom += heights[:, column]
 
 
 def _segments(

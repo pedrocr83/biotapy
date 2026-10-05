@@ -1,12 +1,12 @@
 ---
 type: Module
 title: fn
-description: Function hierarchies, aggregation along them and HUMAnN-style renormalisation over function tables; owns no reader and no download.
+description: Function hierarchies, aggregation along them, HUMAnN-style renormalisation, per-taxon contributions and functional redundancy (Tian 2020) over function tables; owns no reader and no download.
 resource: /src/biotapy/fn/
 paths: ["src/biotapy/fn/**"]
 tags: [fn, function, humann]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 status: stable
 ---
 
@@ -17,6 +17,12 @@ Owns `bt.fn.*`: reading a user's mapping file into an edge table
 table (`_glom.py:func_glom`) and rescaling a function MuData to community
 totals (`_renorm.py:renorm`). Both verbs reproduce HUMAnN 3.9
 (`humann_regroup_table`, `humann_renorm_table`); the golden tests compare them.
+It also reads the taxa-to-function link: one function's strata as a samples x
+taxa table (`_contributions.py:contributions`), and Tian et al. 2020's
+functional redundancy from taxon abundances and per-taxon gene copy numbers
+(`_redundancy.py:functional_redundancy`). Neither has an R equivalent or a
+golden file; hand-computed cases and Hypothesis properties check them
+(`tests/fn/test_contributions.py`, `tests/fn/test_redundancy.py`).
 
 Does NOT own: reading HUMAnN tables or building the two-modality MuData
 (`io.read_humann`, [io](/modules/io.md), over `_core.make_function_mudata`);
@@ -36,6 +42,14 @@ any download (the ENZYME hierarchy is `datasets.enzyme`,
   protected, else `UNGROUPED`. It is where the HUMAnN semantics live.
 - `_renorm.py:renorm` - the whole MuData in, a copy out with both function
   modalities divided by each sample's community total.
+- `_contributions.py:contributions` - one stratified AnnData (the
+  `"function_by_taxon"` modality, or `func_glom`/`renorm` output for it) and a
+  function id to a samples x taxa `DataFrame`.
+- `_redundancy.py:functional_redundancy` - a samples x taxa AnnData and a taxa
+  x genes `DataFrame` (`io.read_picrust2_traits`) to a samples x
+  `taxonomic_diversity, functional_diversity, redundancy,
+  normalized_redundancy` `DataFrame`. `_redundancy.py:_weighted_jaccard` is
+  Eq. 7 through SciPy's Bray-Curtis.
 
 # Invariants
 
@@ -87,6 +101,28 @@ any download (the ENZYME hierarchy is `datasets.enzyme`,
   [no-bundled-kegg](/decisions/no-bundled-kegg.md).
 - Text columns of `var` use the pandas `str` dtype, never `object`
   (`_glom.py:_group_var`), so h5ad/h5mu can be written.
+- **`contributions` takes the AnnData modality, never the MuData** (a MuData
+  raises `TypeError` naming `mdata['function_by_taxon']`; the community
+  modality raises `KeyError` for its missing `function`/`taxon` columns).
+  Values are the strata as stored, so a pathway's row need not reach its
+  community value. Columns are ordered by total, largest first, ties by
+  taxon id; `top` sums the rest into a last `"other"` column, and raises
+  rather than merge a real taxon named `"other"`. An unknown function is a
+  `KeyError` listing `difflib`'s three closest ids.
+  `_contributions.py:contributions`, `_contributions.py:_stratified_var`.
+- **Functional redundancy follows Tian et al. 2020's equations** (Eqs. 1-4,
+  7 of PMC7719190), never their MATLAB code, which has no licence. Taxa of
+  `adata` without a `traits` row are dropped with a `warn_user` count, so
+  each sample's `p` sums to 1 over taxa with a genome. TD is computed as
+  FD + FR, so `0 <= FD, FR <= TD` hold exactly in floating point. Two taxa
+  with no gene have distance 1. A sample with no abundance left is NaN in
+  every column; a single-taxon sample is 0, 0, 0, NaN.
+  `_redundancy.py:functional_redundancy`, `_redundancy.py:_weighted_jaccard`.
+- **`functional_redundancy` validates at the boundary**: a non-AnnData
+  `adata` raises `TypeError` naming `adata` (a MuData also gets a hint to pass
+  a modality; any other type does not); repeated taxon ids in `adata` or
+  `traits`, and a sample total that overflows float64, raise `ValueError`.
+  `_redundancy.py:_abundances`, `_redundancy.py:_genomes`.
 
 # Dependencies
 
@@ -96,6 +132,9 @@ any download (the ENZYME hierarchy is `datasets.enzyme`,
   `PROTECTED_FEATURES`, `UNGROUPED`, `RANKS`).
 - `mudata` (`_renorm.py`): the `MuData` type and `MuData.update`; see
   [function-tables-as-mudata](/decisions/function-tables-as-mudata.md).
+  `_redundancy.py` imports `MuData` only to tailor one error hint.
+- SciPy's `scipy.spatial.distance.pdist` and `squareform`
+  (`_redundancy.py:_weighted_jaccard`).
 
 # Verification
 
@@ -129,3 +168,25 @@ any download (the ENZYME hierarchy is `datasets.enzyme`,
 - **`special=False` can empty the `"function"` modality** (a table holding
   only `UNMAPPED`/`UNINTEGRATED`); `renorm` then raises a `ValueError` that
   says so rather than "needs community rows". `_renorm.py:renorm`.
+- **SciPy's Bray-Curtis of two all-zero vectors is NaN** (scipy 1.18.1, no
+  warning), not 0. `_weighted_jaccard` sets those pairs to 1.
+- **Tian's `p` is organism abundance.** 16S read counts must be divided by
+  each ASV's predicted 16S copy number first (the marker file
+  `marker_predicted_and_nsti` holds `16S_rRNA_Count` and `metadata_NSTI`);
+  `functional_redundancy` cannot tell whether that was done. The recipe is in
+  `docs/guide/function.md`; it applies the NSTI cutoff itself (PICRUSt2's
+  `hsp.py` predicts every placed ASV and `metagenome_pipeline.py` applies
+  `--max_nsti`, default 2, later), so a high-NSTI ASV has a trait row. Taxa
+  without one are ASVs PICRUSt2 has no prediction for, and `RARE`, which
+  exists only in contribution tables.
+- **Redundancy is O(taxa² x genes)** in time. Peak memory is about
+  1.5 x 8 bytes x taxa² while the distances are built, plus a dense samples
+  x taxa product (8 bytes x samples x taxa) per quadratic form; `traits` is
+  also copied dense. The measured figures are in the docstring Notes
+  (`_redundancy.py:functional_redundancy`); Task 2.14 benchmarks it.
+- **Divide each stored value by its total, never multiply by a reciprocal**:
+  Hypothesis found `1 / total` overflowing for subnormal totals. The division
+  lives in `_core._matrix.py:divide_rows`, used by `pp._transform.py:relative`,
+  `_renorm.py:_rescaled` and `_redundancy.py:functional_redundancy`; sample
+  totals are summed in float64 (`dtype=np.float64`) so float32 input gives the
+  float64 result.

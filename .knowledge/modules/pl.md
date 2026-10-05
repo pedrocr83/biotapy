@@ -1,12 +1,12 @@
 ---
 type: Module
 title: pl (plots)
-description: Plots of what tl and pp stored - stacked bars, heatmap, richness, ordination and scree - drawn with matplotlib on the given or a new Axes, computing nothing.
+description: Plots of what tl, pp and fn give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination and scree - drawn with matplotlib on the given or a new Axes, computing nothing.
 resource: /src/biotapy/pl/
 paths: ["src/biotapy/pl/**"]
 tags: [pl, plots, matplotlib]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-03T08:10:00Z }
-commit: 2b9fc24
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 status: stable
 ---
 
@@ -14,6 +14,7 @@ status: stable
 
 Owns the `bt.pl.*` verbs that draw stored results:
 - `bar` and `heatmap` draw `X` or a layer;
+- `contributions` draws `fn.contributions`' table for one function;
 - `richness` draws `obs["alpha_<metric>"]`;
 - `ordination` draws `obsm["X_pcoa" | "X_nmds"]` with its `uns["biotapy"]`
   summary;
@@ -27,6 +28,11 @@ It computes no diversity, distance or ordination; those are
 # Entry points
 - `_abundance.py:bar` - stacked bars. `_segments` sums features per `fill`
   group (a `var` or an `obs` column); `_by_x` sums samples per `x` group.
+- `_abundance.py:contributions` - stacked bars of `fn.contributions(adata,
+  function, top=top)`, one per sample, drawn with `_colors`; an `"other"`
+  segment is grey.
+- `_abundance.py:_stack` - the stacked-bar drawing `bar` and `contributions`
+  share (one `ax.bar` call per segment column).
 - `_abundance.py:heatmap` - `imshow` of the table densified once, features x
   samples, on a `LogNorm` scale with phyloseq's colours.
 - `_richness.py:richness` - one point per sample; NaN values are left out,
@@ -51,6 +57,19 @@ It computes no diversity, distance or ordination; those are
   values. Missing values are a last `NA` group, drawn grey. A numeric column
   raises `TypeError` through `_core.require_categorical`, as `tl.permanova`
   does.
+- **No group takes the NA/"other" grey.** When `missing=True`, `_colors` drops
+  `#7f7f7f` (`MISSING_COLOR`; tab10's grey is one) from the palette, so no
+  group colour equals the grey of `NA` or `"other"`. Output is unchanged
+  with `missing=False` and for up to 7 groups plus `NA`; `pl.bar` colours
+  changed for 8 or more groups plus `NA` (a Phase 1 behaviour fixed in
+  slice 2C). `_common.py:_colors`, `tests/pl/test_abundance.py`.
+- `pl` imports `fn` (a lower layer) for `contributions` only, and calls its
+  public function; it computes nothing `fn` does not
+  ([module-boundaries](/contracts/module-boundaries.md)).
+- `contributions` greys the last segment only when `top` summed taxa into
+  `"other"`; a real taxon named `other` keeps a palette colour (and `top`
+  raises rather than merge one, in `fn.contributions`).
+  `_abundance.py:contributions`.
 - `bar` heights equal the sample (or `x` group) totals of the plotted table:
   features with a missing rank are a group, not dropped (a Hypothesis test).
 - `heatmap` keeps `obs`/`var` order and densifies the table once (rules.md
@@ -61,6 +80,7 @@ It computes no diversity, distance or ordination; those are
 
 # Dependencies
 - [core](/modules/core.md): `as_csr`, `sum_by`, `require_categorical`.
+- [fn](/modules/fn.md): `contributions`.
 - matplotlib `>=3.8`, a runtime dependency
   ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
 - The slots [tl](/modules/tl.md) and `pp.relative` write

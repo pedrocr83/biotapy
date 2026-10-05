@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-sonnet-5, at: 2026-10-03T00:50:26Z }
-commit: 1ad037b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 status: stable
 ---
 
@@ -20,8 +20,10 @@ does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
 
 # Entry points
 
-- `_transform.py:relative` - per-sample scaling to relative abundance;
-  all-zero samples stay all-zero, which differs from phyloseq's
+- `_transform.py:relative` - per-sample scaling to relative abundance (each
+  stored value divided by its float64 sample total through
+  `_core._matrix.py:divide_rows`, never multiplied by a reciprocal, which
+  overflows for a subnormal total); all-zero samples stay all-zero, which differs from phyloseq's
   `transform_sample_counts` (returns `NaN` there).
 - `_glom.py:tax_glom` - aggregate features sharing a lineage down to `rank`
   into their most abundant member.

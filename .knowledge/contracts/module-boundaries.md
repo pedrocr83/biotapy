@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public 
 tags: [architecture, modularization]
 status: stable
 paths: ["src/biotapy/**", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 sources:
   - id: spec
     resource: ../../plan.md
@@ -54,7 +54,7 @@ _core               (imports only third-party)
 
 # Why
 Layering keeps `_core` small and stable and stops `pl` from computing things
-(`pl` reads slots; `tl` computes). Explicit `__all__` makes the public surface
+(`pl` draws what `tl`, `pp` and `fn` give; `tl` and `fn` compute). Explicit `__all__` makes the public surface
 reviewable in one file per module.
 
 # Enforced by

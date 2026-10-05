@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+commit: f5236e8
 sources:
   - id: spec
     resource: ../../plan.md
@@ -22,8 +22,8 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Slice 2A has full TDD steps;
-> slices 2B-2D are outlines, expanded with superpowers:writing-plans when
+> (recommended) or superpowers:executing-plans. Slices 2A-2C have full TDD steps;
+> slice 2D is an outline, expanded with superpowers:writing-plans when
 > reached (rules.md R1.2a).
 
 **Goal:** 0.2 makes function a first-class hierarchy: HUMAnN, MetaPhlAn and
@@ -369,9 +369,9 @@ not exist yet.
 - [x] 2.2 io.read_metaphlan(path) -> TreeData
 - [x] 2.4 io.read_picrust2(path, *, contrib=None) -> MuData and 2.4b io.read_picrust2_traits(path) -> pd.DataFrame
 - [ ] Checkpoint B
-- [ ] 2.7 `fn.contributions(mdata, function, *, top=None) -> pd.DataFrame` (outline)
-- [ ] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame` (outline)
-- [ ] 2.9 `pl.contributions(...) -> Axes` (outline)
+- [x] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
+- [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
+- [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
 - [ ] 2.10 `datasets.hmp2()` and the tutorial (outline)
 - [ ] 2.11 Knowledge (outline)
@@ -5238,102 +5238,1917 @@ checklist.
 
 ---
 
-## Slice 2C - Analysis (outline)
+## Slice 2C - Analysis
+
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
+> (recommended) or superpowers:executing-plans. Steps use checkbox (`- [ ]`)
+> syntax for tracking. This section replaces the slice 2C outline (rules.md
+> R1.2a).
+
+**Goal:** a HUMAnN or PICRUSt2 user sees which taxa carry a function, as a
+table (`fn.contributions`) and as stacked bars (`pl.contributions`), and
+measures each sample's functional redundancy from PICRUSt2's per-ASV gene
+copy numbers (`fn.functional_redundancy`, Tian et al. 2020).
+
+**Architecture:** two new `fn` topic files and one new `pl` function.
+`fn/_contributions.py` selects one function's columns of the stratified
+modality. `fn/_redundancy.py` turns a samples x taxa table and a taxa x
+genes table into four per-sample numbers, with SciPy's `pdist` as the
+distance kernel. `pl.contributions` lives beside `pl.bar` in
+`pl/_abundance.py` and draws through one private stacked-bar helper that
+both share. `pl` imports `fn` (a lower layer); nothing else crosses layers.
+
+**Tech stack:** anndata 0.13.4 · mudata 0.4.1 · numpy 2.5.3 · scipy 1.18.1
+(`scipy.spatial.distance.pdist`, `squareform`) · pandas 3.0.6 · matplotlib
+3.11.2 · hypothesis 6.168.3. No new dependency.
+
+**Spec:** this concept's Phase 2 design notes (note 7: Tian 2020, no
+`method=`), the slice 2C outline it replaces, rules.md, and Tian L et al.
+(2020) *Deciphering functional redundancy in the human microbiome*, Nature
+Communications 11:6217 (CC BY 4.0, PMC7719190) with its Supplementary
+Information.
+
+**How this slice was checked.** Every file below was written into a scratch
+clone of the repository at `c49aeb4` (master after slice 2B). The clone was
+replayed as one commit per task (2.7, 2.8, 2.9) plus the Checkpoint C
+knowledge draft, and each committed state was gated with a clean tree:
+
+| Task state | `uvx prek run --all-files` | `uv run --group test pytest -q -W error::UserWarning` | `sphinx-build -W` |
+|---|---|---|---|
+| `c49aeb4` (baseline) | - | 871 passed, 22 deselected | - |
+| 2.7 | passed | 895 passed, 22 deselected | build succeeded |
+| 2.8 | passed | 926 passed, 22 deselected | build succeeded |
+| 2.9 | passed | 936 passed, 22 deselected | build succeeded |
+| Checkpoint C knowledge draft | passed | 936 passed, 22 deselected | (no docs change) |
+
+- prek covers ruff 0.16.9 check and format, `mypy --strict`, import-linter
+  and pyproject-fmt. The code below is the state after prek: ruff format
+  rewrapped a few long lines in 2.8 and 2.9, ruff's `PLR0917` made
+  `_stack`'s `colors` keyword-only, and mypy rejected one redundant `cast`;
+  each was fixed and amended before the gate run in the table.
+- Coverage on the final state: `fn/_contributions.py`, `fn/_redundancy.py`
+  and `pl/_abundance.py` 100%; overall 99%.
+- The new property tests also passed under Hypothesis seeds 1, 2 and 3 with
+  `-W error` (81 passed each). They first found a real bug: dividing by a
+  reciprocal overflowed for subnormal sample totals (now fixed, see 2.8).
+- `uv run --group test pytest -m golden tests/fn -q`: 7 passed.
+- `pl.bar`'s output is byte-identical before and after its drawing loop moved
+  into `_stack`: PNG and patch-list hashes for four `fill`/`x` cases match.
+- `fn.contributions` was run on the HUMAnN fixtures `pathabundance.tsv` and
+  `genefamilies.tsv`, raw and after `fn.renorm`.
+- Every run set `BIOTAPY_DATA_DIR=<scratchpad>/pooch`; `~/.cache/biotapy`
+  does not exist afterwards.
+- The RED counts in each Step 2 come from the scratch runs (the module file
+  written but not exported gives the same `AttributeError`).
+
+### Slice 2C design
+
+Each settled question gives the answer and the reason. **(user)** marks the
+ones repeated under "Slice 2C decisions for the user".
+
+#### Where the code goes
+
+| File | Holds |
+|---|---|
+| `fn/_contributions.py` (new, 2.7) | `contributions`, `_stratified_var`, the `OTHER` constant |
+| `fn/_redundancy.py` (new, 2.8) | `functional_redundancy`, `_genomes`, `_abundances`, `_weighted_jaccard`, `_quadratic` |
+| `pl/_abundance.py` (2.9) | `contributions` beside `bar` and `heatmap`; `_stack`, the stacked-bar loop moved out of `bar` |
+
+`pl/_abundance.py` grows from 176 to 248 lines and three public functions,
+inside R5's 300 and 6. Keeping `pl.contributions` in the file that already
+holds the stacked-bar code makes `_stack` a topic-file helper with two
+callers (R4.3), with no new cross-file private import except `_common._colors`
+(module-boundaries rule 1 allows a sibling topic file of the same
+subpackage, as `io/_qiime2.py` does with `_biom_parts`).
+
+#### 1. `fn.contributions`
+
+`contributions(adata: AnnData, function: str, *, top: int | None = None) -> pd.DataFrame`.
+
+- **Input: the stratified AnnData modality, not the MuData. (user)** Only
+  `"function_by_taxon"` is read, so R3.2's widest type that works is
+  `AnnData`, and the outline's `MuData` was narrower than needed. It also
+  makes `func_glom`'s output usable as is: `func_glom` returns an AnnData,
+  which a MuData-only signature would force users to re-wrap. It matches the
+  `fn` convention (fn module concept: callers pass `mdata["function"]` to
+  AnnData verbs). A MuData raises `TypeError` naming
+  `mdata['function_by_taxon']`; the community modality raises `KeyError`
+  for its missing `function`/`taxon` columns.
+- **Raw strata, not shares. (user)** For pathways the strata do not sum to
+  the community value (HUMAnN and PICRUSt2), so a share would need a choice
+  of denominator. `fn.renorm(mdata, "relab")` already gives HUMAnN's own
+  answer (shares of the community total), so the docs point there instead
+  of adding an option (R2.3).
+- **`func_glom` and `renorm` output** work unchanged: both keep the
+  `function` and `taxon` columns. Tested.
+- **A missing function** raises `KeyError`:
+  `function='2.7.1.3' has no rows in adata; close function ids: ['2.7.1.2', '2.7.1.1']`.
+  The close ids come from the standard library's
+  `difflib.get_close_matches` (cutoff 0.6), which also catches an `EC:`
+  prefix (`EC:1.1.1.1` -> `['1.1.1.1']`, checked) and a missing last
+  character. A substring rule (the outline's idea) misses both.
+- **Column order and `top` ties.** Columns are ordered by total over all
+  samples, largest first; equal totals are ordered by taxon id, so which
+  taxa `top` keeps never depends on input order. A `top` at or above the
+  number of taxa adds no `"other"` column.
+- **`"other"` colliding with a real taxon.** When `top` would lump taxa and
+  a taxon is itself named `other`, `contributions` raises `ValueError`
+  naming `top`. Renaming the lumped column would surprise more than it
+  helps, and no HUMAnN stratum or PICRUSt2 ASV id is likely to be `other`;
+  without lumping the taxon is an ordinary column. Tested.
+- **`top` validation:** a positive integer (Python or NumPy) or `None`;
+  `0`, negatives, floats, `bool` and strings raise `ValueError` naming
+  `top`.
+- **`unclassified`, `RARE` and special functions** are ordinary. A HUMAnN
+  `unclassified` stratum and PICRUSt2's `RARE` group are columns like any
+  taxon (they may be lumped into `"other"`). `UNINTEGRATED|<taxon>` and
+  `UNGROUPED|unclassified` rows exist, so `contributions(adata,
+  "UNINTEGRATED")` works; `UNMAPPED` has no strata and raises the
+  missing-function `KeyError`.
+- **Return:** samples x taxa, `float64`, index `obs_names` (copied),
+  column index named `"taxon"`, `"other"` last. Only the function's columns
+  of `X` are densified (a samples x its-taxa slice).
+
+#### 2. `fn.functional_redundancy` inputs: where Tian's `p` comes from
+
+`functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFrame`
+(signature unchanged from design note 7).
+
+What exists today (checked in the code):
+- `read_picrust2` keeps only `taxon_function_abun` from the contribution
+  table (`_picrust2.py:_CONTRIB_COLUMNS`); `taxon_abun` is never read.
+- `read_picrust2_traits` already reads PICRUSt2's marker file: its header is
+  `sequence<TAB>16S_rRNA_Count[<TAB>metadata_NSTI]` (header line read from
+  PICRUSt2's `tests/test_data/metagenome_pipeline/test_predicted_marker.tsv.gz`;
+  no data copied), the first cell is `sequence`, and `metadata_NSTI` is
+  dropped. So `read_picrust2_traits(marker)["16S_rRNA_Count"]` is a
+  per-ASV copy-number Series. Tested in 2.8.
+- Readers for a samples x ASVs table exist: `read_biom`, `read_dada2`,
+  `read_qiime2`. PICRUSt2's `seqtab_norm.tsv.gz` (header
+  `normalized<TAB>samples`, ASVs as rows) has no reader; `read_picrust2`
+  rejects its first cell.
+
+The deciding evidence, from the paper:
+- Methods, "Genomic content network": `p` is "the relative abundance of the
+  ith taxon" and sums to 1.
+- Supplementary Sec. 2.1.2-2.1.3: the taxonomic profiles are MetaPhlAn2
+  strain-level profiles, and "the annotated genomes of all the strains can
+  be found"; "samples with less than 5 strains with known genomes were
+  excluded". After a randomization "we normalize them again before the
+  calculations of FR, FD, and TD" (Supp. Sec. 3.2).
+
+MetaPhlAn estimates organism (cell) abundances, not read shares. For 16S
+data the organism abundance of an ASV is its reads divided by its 16S copy
+number, which is exactly what PICRUSt2's `seqtab_norm` holds.
+
+**Recommendation (user):** keep the signature. `adata` is any samples x
+taxa table; the docstring and the guide say Tian's `p` is organism
+abundance and show the correction with existing readers. PICRUSt2's
+`hsp.py` predicts a trait row for every ASV it placed; the NSTI cutoff
+(`--max_nsti`, default 2) is applied later by `metagenome_pipeline.py`, so
+the recipe applies it from the marker file's `metadata_NSTI` (read with
+pandas, `sequence` as text) and divides only the ASVs that have a copy
+number, keeping the others so `functional_redundancy` still warns. The
+guide's recipe at Checkpoint C (`docs/guide/function.md`):
+
+```python
+marker = pd.read_csv(
+    "picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col="sequence", dtype={"sequence": str}
+)  # ids stay text
+
+too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
+print(f"{too_far.sum()} ASVs above NSTI 2 dropped")
+cells = asvs[:, ~too_far].copy()
+copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)  # no copy number: left unscaled
+cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
+```
+
+(checked end to end on a BIOM file written by `write_biom`, by
+`test_guide_recipe_applies_the_nsti_cutoff_and_keeps_the_missing_traits_warning`).
+Rejected:
+- **a `copies=` keyword:** a second way to pass the same table, one
+  division long, and wrong for MetaPhlAn profiles, which need none (R2.3);
+- **a `seqtab_norm` reader:** a new public function for a file PICRUSt2
+  rounds to two decimals, whose content is the two lines above;
+- **`taxon_abun` from the contribution table:** changes `read_picrust2`,
+  exists only with `--stratified`, holds only samples x taxa pairs with a
+  nonzero contribution, and brings `RARE`, which has no genome.
+
+The function cannot tell whether the correction was done (corrected values
+are not integers, but neither are MetaPhlAn's), so it does not warn. Review
+focus item 1 covers it.
+
+#### 3. Taxa without traits, `RARE`, and the other edge cases
+
+- **Taxa without a `traits` row are dropped, with a `warn_user` count, and
+  `p` is renormalised over the taxa kept. (user)** The paper's definitions
+  decide it: Eq. 2 writes Gini-Simpson as both `1 - sum p_i^2` and
+  `sum_{i != j} p_i p_j`, which are equal only when `p` sums to 1, and
+  every taxon in their profiles had a genome. Keeping a taxon in the
+  denominator without a trait vector would break that identity and give it
+  no defined `d_ij`. Who is affected: ASVs PICRUSt2 has no prediction for
+  (`hsp.py` predicts every placed ASV; the `--max_nsti` cutoff is applied
+  later, so a high-NSTI ASV still has a row). `RARE` exists only
+  in contribution tables, never in an ASV table, so the outline's design
+  question 0 does not arise on the recommended input; if a user builds `p`
+  from contributions, `RARE` is dropped with the same warning. The warning
+  names the count of all taxa and up to three ids, as `fn.renorm`'s does.
+- **No taxon in common** raises `ValueError` showing three ids from each
+  side (`adata: [...], traits: [...]`), as `func_glom` does for an id
+  mismatch. Integer trait ids are matched as text (`traits.index.astype(str)`;
+  `var_names` are always text).
+- **All-zero gene vectors. (user)** SciPy 1.18.1's `braycurtis` of two
+  all-zero vectors is NaN, silently (checked; the outline said 0). Eq. 7 is
+  0/0 there. biotapy sets that distance to 1: the paper reads `1 - d_ij` as
+  the functional overlap of two taxa, and two empty genomes overlap in
+  nothing. A taxon with no gene against one with genes is 1 by Eq. 7. All-
+  zero taxa are kept (no warning).
+- **All-zero sample, or one whose abundance is all on taxa without traits:**
+  NaN in all four columns, never an error, as `tl.alpha` gives NaN for
+  Shannon and Simpson.
+- **Single-taxon sample:** TD = FD = FR = 0 and `normalized_redundancy` NaN
+  (0/0).
+- **Numerics. (user)** TD is computed as FD + FR, which equals
+  `1 - sum p_i^2` up to rounding (tested against `tl.alpha`'s Simpson at
+  `rtol=1e-12`). Then FD = p'Dp and FR = p'Sp (S = 1 - D with a zero
+  diagonal) are sums of non-negative terms, so `0 <= FD, FR <= TD` and
+  `0 <= nFR <= 1` hold exactly, and disjoint genomes give FR = 0, not
+  -1e-17. S is written over D in place, so no second N x N matrix exists.
+- **Shares** divide each stored value by its sample total, never by a
+  reciprocal: Hypothesis found `1 / total` overflowing to inf for a
+  subnormal total. (`pp.relative` had that bug; fixed in `e34b6e9`, and now
+  both share `_core.divide_rows`.)
+- **Validation (R3.5):** `traits` must be a DataFrame (`TypeError`), with
+  numeric columns (`TypeError` naming them), unique row ids and finite
+  non-negative values (`ValueError` naming `traits`); pandas missing values
+  in nullable columns become NaN first, so they get the same message. `X`
+  must be finite and non-negative (`ValueError` naming `adata`). Extra trait
+  rows and trait row order do not matter.
+- **Weighted Jaccard via SciPy:** for non-negative vectors,
+  `1 - sum(min)/sum(max) = 2 BC / (1 + BC)`, with `BC = sum|u - v| / sum(u + v)`.
+  Re-checked numerically on 30 random genomes (max difference 1.1e-16), and
+  again in every Hypothesis run against Eq. 7 written out.
+
+**Memory and time, measured (R10.1, R6.2).** Random copy numbers (70%
+zeros), 2,500 genes, 100 samples, 5% dense abundances, one machine:
+
+| Taxa | Time | Peak RSS above the inputs |
+|---|---|---|
+| 2,000 | 5.4 s | 108 MB |
+| 10,000 | 339 s | 1.7 GB |
+
+Time is `pdist`, O(taxa^2 x genes). D is restricted to taxa with abundance
+in some sample. No optimisation is planned (R10.1): task 2.14 benchmarks
+it, and the docstring `Notes` and the guide state the cost and suggest
+`pp.filter_features` first.
+
+#### 4. `pl.contributions`
+
+`contributions(adata: AnnData, function: str, *, top: int | None = 8, ax: Axes | None = None) -> Axes`.
+
+- **AnnData, as `fn.contributions`. (user)**
+- **No `plot_kwargs`. (user)** No `pl` function has one: Phase 1 ruling 10
+  removed label, title, colour-map and `plot_kwargs` options (R2.3), and
+  every `pl` function returns the `Axes` so users finish the plot in
+  matplotlib.
+- **Reuse.** `bar`'s stacking loop moves into `_stack(ax, heights, labels,
+  *, colors)` in the same file; `bar` calls it. `bar`'s tests are unchanged
+  and pass, and its PNG output is byte-identical. Colours come from
+  `_common._colors`, the palette `groups` uses (tab10, tab20, then turbo).
+- **`"other"` is drawn grey** (`_common`'s missing-group grey) when `top`
+  lumped taxa, so it does not look like one taxon. A real taxon named
+  `other` (only possible without lumping) keeps a palette colour. Tested.
+- **Order and labels:** one bar per sample in `obs` order (as `bar`);
+  segments in `fn.contributions`' column order (largest total at the
+  bottom); legend titled `taxon`; x label `sample`, y label `abundance`;
+  the function id as the title. Past 250 samples, tick labels are dropped,
+  as for `bar`.
+- **Shares** are not a display option (R2.3): plot `fn.renorm`'s output.
+  No grouping or faceting by `obs` (outline question 2): the tutorial does
+  not need it, and `bar`'s facet recipe applies to an `ax` loop.
+- `top` defaults to 8: a legend past about ten entries is unreadable.
+
+#### 5. Where the method text goes
+
+Following R8.3 and the outline (no `docs/methods/`):
+- `docs/guide/function.md` gains `## Contributions` (2.7, plus one paragraph
+  in 2.9) and `## Functional redundancy` (2.8), with Eqs. 1-4 and 7 typeset
+  through MyST `dollarmath` (already enabled in `docs/conf.py`).
+- `docs/guide/plotting.md` gains a table row and `## Contributions:
+  pl.contributions` (2.9).
+- The docstrings carry the definitions with equation numbers, the R
+  equivalent `none` and the memory cost.
+
+#### 6. Contracts
+
+No contract changes. `fn.contributions` and `fn.functional_redundancy`
+return DataFrames and write no slot (data-model-slots: unchanged;
+pure-by-default: `fn` returns "new object or result `pd.DataFrame`").
+`pl` importing `fn` is already allowed by import-linter's layers. None of
+the three has an R equivalent, so r-golden-parity needs no statement; `pl`
+has no golden (statement 7). The module concepts `fn.md` and `pl.md` change
+at Checkpoint C.
+
+### Slice 2C global constraints (in addition to the Phase 2 list)
+
+- No new dependency (runtime, extra or dev). SciPy's `pdist`/`squareform`,
+  the standard library's `difflib` and `numbers.Integral` are the only new
+  calls; each was run in the installed versions.
+- **Tian et al.'s MATLAB code (liangtian85/FR) has no licence: never read,
+  copied or translated.** The implementation comes from the paper's
+  equations (CC BY 4.0), cited in the docstring and the guide.
+- **PICRUSt2 (GPL-3) is never installed, imported or copied.** Its fixtures
+  stay synthetic strings in the tests. Only the header lines of two of its
+  test files were read for this plan (`seqtab_norm.tsv.gz`:
+  `normalized<TAB>sample1...`; `test_predicted_marker.tsv.gz`:
+  `sequence<TAB>16S_rRNA_Count`), as slice 2B did.
+- Every error a user can hit names its argument (`adata`, `function`, `top`,
+  `traits`), including those `pl.contributions` passes through from
+  `fn.contributions`.
+- Tests call `bt.*`; like `tests/fn/test_renorm.py`, they may build function
+  tables with `biotapy._core.make_function_mudata`.
+- Slow Hypothesis tests carry `@settings(deadline=None)` (they run under
+  coverage in CI).
+- Run every pytest, Python and Sphinx command with
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch`; afterwards `~/.cache/biotapy` must
+  not exist.
+- Diff blocks below are for reading, not `git apply`.
+- Branch `phase-2c` from `master` (`c49aeb4`). Push, PR and merge-commit on
+  green are approved for Phase 2 slice branches (user, 2026-10-03).
+- Module concepts (`fn.md`, `pl.md`) are refreshed at Checkpoint C, not in
+  the tasks (dispatch rule F15).
+
+### Slice 2C review focus
+
+The five ways a real user is most likely to get a wrong answer from this
+slice without an error, most likely first, each pinned by a test in its
+task:
+
+1. **16S read counts used as Tian's `p`**, so taxa with many 16S copies look
+   more abundant and FR shifts. No error is possible (the function cannot
+   tell). Expected: the docstring's `adata` entry and the guide say to
+   divide by predicted 16S copies, with a recipe that runs on PICRUSt2's
+   marker file through `read_picrust2_traits`. Test (2.8):
+   `test_reads_picrust2_traits_and_16s_corrected_abundances`.
+2. **Taxa silently missing from the calculation** (ASVs PICRUSt2 has no
+   prediction for; `RARE`), shrinking `p`'s support. Expected: dropped with a warning
+   naming the count and ids, `p` renormalised, and a sample left with
+   nothing is NaN. Tests (2.8):
+   `test_taxa_without_traits_are_left_out_with_a_warning`,
+   `test_sample_whose_taxa_all_lack_traits_is_nan`.
+3. **ASV ids that do not match the trait table** (a taxonomy-labelled
+   table, or numeric-looking ids). Expected: no overlap raises with ids from
+   both sides; integer trait ids match text `var_names`. Tests (2.8):
+   `test_no_shared_ids_raise_with_examples`,
+   `test_integer_trait_ids_match_text_var_names`.
+4. **The wrong object or modality passed** (the whole MuData, or
+   `mdata["function"]`). Expected: an error naming
+   `mdata['function_by_taxon']`, from `fn` and `pl` alike. Tests (2.7):
+   `test_mudata_is_refused_naming_the_modality`,
+   `test_community_modality_names_the_one_to_pass`; (2.9)
+   `test_contributions_errors_name_the_argument`.
+5. **A function id that is almost right** (typo, `EC:` prefix, a pathway
+   with no strata), or `top` hiding a taxon named `other`. Expected: a
+   `KeyError` listing close ids; a `ValueError` naming `top`. Tests (2.7):
+   `test_unknown_function_names_close_ids`,
+   `test_a_taxon_named_other_cannot_be_hidden_by_top`.
+
+Execution order: **2.7 -> 2.8 -> 2.9 -> Checkpoint C.** 2.9 draws 2.7's
+table; 2.8 is independent of both but shares `docs/guide/function.md` with
+2.7, so it goes second to keep that file's diffs in order.
+
+---
 
 ### Task 2.7: `fn.contributions`
-**Interface:** `bt.fn.contributions(mdata: MuData, function: str, *, top: int | None = None) -> pd.DataFrame`.
-Returns samples x taxa (samples as rows, like `tl.alpha`): the
-`"function_by_taxon"` rows whose `var["function"] == function`, columns =
-`taxon`. With `top`, the `top` taxa by total are kept and the rest summed
-into `"other"`. R equivalent: none.
 
-**Design questions:**
-1. **Raw values or shares of the community value?** For pathways the strata
-   do not sum to the community value. Proposed: raw values, the strata as
-   HUMAnN wrote them. A share of the community value is a display choice; it
-   goes into `pl.contributions` only if the tutorial needs it (R2.3).
-2. **Accepting `func_glom` output** (stratified groups): yes, since it has
-   the same `var` columns. Test it.
-3. **A function absent from the table:** `KeyError` naming up to three ids
-   that contain the string.
+**Files:**
+- Create: `src/biotapy/fn/_contributions.py`, `tests/fn/test_contributions.py`.
+- Modify: `src/biotapy/fn/__init__.py`, `docs/api.md`,
+  `docs/guide/function.md`.
 
-**Tests:** row sums equal the sum of that function's strata (Hypothesis, with
-and without `top`); an all-zero sample; one sample; `unclassified` kept;
-purity.
+**Interfaces:**
+- Consumes: `_core.as_csr`, `_core.BY_TAXON_KEY`; the stratified `var`
+  layout of `_core.make_function_mudata` (`function`, `taxon` columns),
+  which `read_humann`, `read_picrust2`, `func_glom` and `renorm` all keep.
+- Produces:
+  `bt.fn.contributions(adata: AnnData, function: str, *, top: int | None = None) -> pd.DataFrame`
+  (samples x taxa, `float64`, column index named `"taxon"`, `"other"`
+  last). Task 2.9 calls it.
+
+**Will not touch:** `fn/_glom.py`, `fn/_renorm.py`, `_core`, any reader.
+
+- [x] **Step 1: Failing tests.** Create `tests/fn/test_contributions.py`:
+
+```python
+import numpy as np
+import pandas as pd
+import pytest
+import scipy.sparse as sp
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
+
+import biotapy as bt
+from biotapy._core import make_function_mudata
+
+EC = pd.DataFrame({"child": ["2.7.1.1", "2.7.1.2"], "parent": ["kinase", "kinase"], "level": "role"})
+
+
+def _by_taxon():
+    return bt.datasets.toy_humann()["function_by_taxon"]
+
+
+def _strata(adata, function):
+    """The function's stratified columns, samples x var_names, straight from X."""
+    columns = adata.var_names[adata.var["function"] == function]
+    return adata[:, columns].X.toarray()
+
+
+def test_one_column_per_taxon_ordered_by_total():
+    out = bt.fn.contributions(_by_taxon(), "2.7.1.2")
+    # Totals over the six samples: Blautia obeum 25, Bacteroides ovatus 21.
+    assert out.columns.tolist() == ["g__Blautia.s__Blautia_obeum", "g__Bacteroides.s__Bacteroides_ovatus"]
+    assert out.columns.name == "taxon" and out.index.tolist() == ["s1", "s2", "s3", "s4", "s5", "s6"]
+    np.testing.assert_array_equal(out.loc["s4"].to_numpy(), [7.0, 1.0])
+    assert out.dtypes.eq(np.float64).all()
+
+
+def test_unclassified_is_an_ordinary_taxon():
+    out = bt.fn.contributions(_by_taxon(), "1.1.1.1")
+    assert out.columns.tolist() == ["g__Bacteroides.s__Bacteroides_ovatus", "unclassified"]
+    np.testing.assert_array_equal(out["unclassified"].to_numpy(), [3, 2, 4, 1, 0, 1])
+
+
+def test_special_functions_are_queried_like_any_other():
+    out = bt.fn.contributions(_by_taxon(), "UNGROUPED")
+    assert out.columns.tolist() == ["unclassified"]
+
+
+def test_top_keeps_the_largest_taxa_and_sums_the_rest_into_other():
+    out = bt.fn.contributions(_by_taxon(), "2.7.1.2", top=1)
+    assert out.columns.tolist() == ["g__Blautia.s__Blautia_obeum", "other"] and out.columns.name == "taxon"
+    np.testing.assert_array_equal(out["other"].to_numpy(), [6, 5, 7, 1, 0, 2])
+
+
+def test_top_at_or_above_the_taxon_count_adds_no_other():
+    assert "other" not in bt.fn.contributions(_by_taxon(), "2.7.1.2", top=2).columns
+
+
+def test_ties_are_broken_by_taxon_name():
+    obs = pd.DataFrame(index=["s1", "s2"])
+    ids = pd.Index(["K1", "K1|c", "K1|a", "K1|b"])
+    mdata = make_function_mudata(np.array([[3, 1, 1, 1], [3, 1, 1, 1]]), obs=obs, row_ids=ids, x_kind="rpk", source="t")
+    out = bt.fn.contributions(mdata["function_by_taxon"], "K1", top=2)
+    assert out.columns.tolist() == ["a", "b", "other"]
+
+
+def test_reads_regrouped_and_renormalised_tables():
+    by_role = bt.fn.func_glom(_by_taxon(), "role", hierarchy=EC)
+    out = bt.fn.contributions(by_role, "kinase")
+    np.testing.assert_array_equal(out.sum(axis=1).to_numpy(), _strata(by_role, "kinase").sum(axis=1))
+    renormed = bt.fn.renorm(bt.datasets.toy_humann(), "relab")["function_by_taxon"]
+    shares = bt.fn.contributions(renormed, "2.7.1.2")
+    np.testing.assert_allclose(shares.sum(axis=1).to_numpy(), _strata(renormed, "2.7.1.2").sum(axis=1))
+
+
+def test_reads_a_picrust2_table(tmp_path):
+    (tmp_path / "unstrat.tsv").write_text("function\tS1\tS2\nEC:1.1.1.1\t6\t4\n")
+    header = "sample\tfunction\ttaxon\ttaxon_abun\ttaxon_rel_abun\tgenome_function_count"
+    header += "\ttaxon_function_abun\ttaxon_rel_function_abun\tnorm_taxon_function_contrib\n"
+    rows = "S1\tEC:1.1.1.1\tASV1\t3\t50\t2\t6\t100\t1\nS2\tEC:1.1.1.1\tRARE\t4\t100\t1\t4\t100\t1\n"
+    (tmp_path / "contrib.tsv").write_text(header + rows)
+    mdata = bt.io.read_picrust2(tmp_path / "unstrat.tsv", contrib=tmp_path / "contrib.tsv")
+    out = bt.fn.contributions(mdata["function_by_taxon"], "1.1.1.1")
+    assert out.columns.tolist() == ["ASV1", "RARE"] and out.loc["S2"].tolist() == [0.0, 4.0]
+
+
+def test_input_unchanged(assert_unchanged):
+    by_taxon = _by_taxon()
+    before = by_taxon.copy()
+    bt.fn.contributions(by_taxon, "2.7.1.2", top=1)
+    assert_unchanged(before, by_taxon)
+
+
+def test_all_zero_sample_is_a_row_of_zeros():
+    by_taxon = _by_taxon()
+    dense = by_taxon.X.toarray()
+    dense[0] = 0
+    by_taxon.X = sp.csr_matrix(dense)
+    assert bt.fn.contributions(by_taxon, "2.7.1.2", top=1).loc["s1"].tolist() == [0.0, 0.0]
+
+
+def test_all_zero_taxon_is_kept_last():
+    by_taxon = _by_taxon()
+    dense = by_taxon.X.toarray()
+    dense[:, by_taxon.var_names.get_loc("2.7.1.2|g__Blautia.s__Blautia_obeum")] = 0
+    by_taxon.X = sp.csr_matrix(dense)
+    out = bt.fn.contributions(by_taxon, "2.7.1.2")
+    assert out.columns[-1] == "g__Blautia.s__Blautia_obeum" and out.iloc[:, -1].eq(0).all()
+
+
+def test_single_sample():
+    out = bt.fn.contributions(_by_taxon()[:1].copy(), "2.7.1.2")
+    assert out.shape == (1, 2)
+
+
+def test_unknown_function_names_close_ids():
+    match = r"function='2\.7\.1\.3' has no rows in adata; close function ids: \['2\.7\.1\.2', '2\.7\.1\.1'\]"
+    with pytest.raises(KeyError, match=match):
+        bt.fn.contributions(_by_taxon(), "2.7.1.3")
+
+
+def test_community_modality_names_the_one_to_pass():
+    with pytest.raises(KeyError, match=r"adata needs var columns \['function', 'taxon'\].*function_by_taxon"):
+        bt.fn.contributions(bt.datasets.toy_humann()["function"], "2.7.1.2")
+
+
+def test_mudata_is_refused_naming_the_modality():
+    with pytest.raises(TypeError, match=r"mdata\['function_by_taxon'\]"):
+        bt.fn.contributions(bt.datasets.toy_humann(), "2.7.1.2")
+
+
+@pytest.mark.parametrize("top", [0, -1, 1.5, True, "3"])
+def test_top_must_be_a_positive_integer(top):
+    with pytest.raises(ValueError, match="top="):
+        bt.fn.contributions(_by_taxon(), "2.7.1.2", top=top)
+
+
+def test_a_taxon_named_other_cannot_be_hidden_by_top():
+    obs = pd.DataFrame(index=["s1"])
+    ids = pd.Index(["K1", "K1|other", "K1|a", "K1|b"])
+    mdata = make_function_mudata(np.array([[3, 1, 1, 1]]), obs=obs, row_ids=ids, x_kind="rpk", source="t")
+    with pytest.raises(ValueError, match="top=1.*'other'"):
+        bt.fn.contributions(mdata["function_by_taxon"], "K1", top=1)
+    assert "other" in bt.fn.contributions(mdata["function_by_taxon"], "K1").columns
+
+
+@settings(deadline=None)
+@given(
+    arrays(np.float64, st.tuples(st.integers(1, 4), st.integers(1, 6)), elements=st.floats(0, 1e6)),
+    st.none() | st.integers(1, 7),
+)
+def test_rows_sum_to_the_functions_strata(strata, top):
+    n_obs, n_taxa = strata.shape
+    ids = pd.Index(["K1", "K2", *(f"K1|t{j}" for j in range(n_taxa)), "K2|t0"])
+    X = np.hstack([strata.sum(axis=1, keepdims=True), np.ones((n_obs, 1)), strata, np.ones((n_obs, 1))])
+    obs = pd.DataFrame(index=[f"s{i}" for i in range(n_obs)])
+    by_taxon = make_function_mudata(X, obs=obs, row_ids=ids, x_kind="rpk", source="t")["function_by_taxon"]
+    out = bt.fn.contributions(by_taxon, "K1", top=top)
+    np.testing.assert_allclose(out.sum(axis=1).to_numpy(), strata.sum(axis=1), rtol=1e-12)
+    assert out.shape[1] == (n_taxa if top is None or top >= n_taxa else top + 1)
+```
+
+- [x] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/fn/test_contributions.py -q`
+  -> `22 failed`: `AttributeError: module 'biotapy.fn' has no attribute 'contributions'`.
+- [x] **Step 3: Implement.** Create `src/biotapy/fn/_contributions.py`:
+
+```python
+"""The taxa behind one function: its stratified rows as a samples x taxa table."""
+
+import difflib
+from numbers import Integral
+from typing import cast
+
+import numpy as np
+import pandas as pd
+from anndata import AnnData
+
+from biotapy._core import BY_TAXON_KEY, as_csr
+
+OTHER = "other"
+_STRATIFIED_COLUMNS = ("function", "taxon")
+
+
+def contributions(adata: AnnData, function: str, *, top: int | None = None) -> pd.DataFrame:
+    """Per-taxon abundance of one function in every sample.
+
+    Parameters
+    ----------
+    adata
+        A stratified function table: the ``"function_by_taxon"`` modality of
+        ``bt.io.read_humann`` or ``bt.io.read_picrust2``, or
+        ``bt.fn.func_glom``'s or ``bt.fn.renorm``'s output for it (``var``
+        columns ``function`` and ``taxon``).
+    function
+        A function id as it appears in ``var["function"]``, for example
+        ``"PWY-5100"``, ``"2.7.1.1"`` or ``"UNINTEGRATED"``.
+    top
+        Keep the ``top`` taxa with the largest total over all samples and sum
+        the rest into one column, ``"other"``. By default every taxon is a
+        column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Samples x taxa, ``float64``, indexed by ``obs_names``; the column
+        index is named ``"taxon"``. Values are the stratified rows as stored
+        in ``X``, so each row sums to the function's strata in that sample.
+        Columns are ordered by total over all samples, largest first (ties by
+        taxon id), and ``"other"`` comes last. ``unclassified`` and ``RARE``
+        are ordinary taxa.
+
+    Raises
+    ------
+    TypeError
+        ``adata`` is not an AnnData (for example the whole MuData).
+    KeyError
+        ``adata`` lacks the ``function`` or ``taxon`` column (for example the
+        ``"function"`` modality); ``function`` has no stratified row in
+        ``adata``. The message lists up to three close function ids.
+    ValueError
+        ``top`` is not a positive integer or ``None``; ``top`` would sum
+        taxa into ``"other"`` while a taxon is itself named ``"other"``.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/function`
+
+    For HUMAnN and PICRUSt2 pathways the strata need not sum to the
+    community value, so the rows are not shares of it. To read them as
+    shares of each sample's community total, pass the stratified modality
+    of ``bt.fn.renorm(mdata, "relab")``. Only the function's columns of
+    ``X`` are densified.
+
+    Examples
+    --------
+    >>> import biotapy as bt
+    >>> by_taxon = bt.datasets.toy_humann()["function_by_taxon"]
+    >>> table = bt.fn.contributions(by_taxon, "2.7.1.2")
+    >>> table.columns.tolist()
+    ['g__Blautia.s__Blautia_obeum', 'g__Bacteroides.s__Bacteroides_ovatus']
+    >>> table.loc["s4"].tolist()
+    [7.0, 1.0]
+    """
+    var = _stratified_var(adata)
+    if top is not None and (isinstance(top, bool) or not isinstance(top, Integral) or top < 1):
+        msg = f"top={top!r} must be a positive integer or None"
+        raise ValueError(msg)
+    columns = np.flatnonzero((var["function"] == function).to_numpy())
+    if columns.size == 0:
+        close = difflib.get_close_matches(function, var["function"].unique().tolist(), n=3)
+        msg = f"function={function!r} has no rows in adata; close function ids: {close}"
+        raise KeyError(msg)
+    # One function's columns only: samples x its taxa, small next to X.
+    values = as_csr(adata.X)[:, columns].toarray().astype(np.float64)
+    taxa = pd.Index(var["taxon"].to_numpy()[columns], name="taxon")
+    table = pd.DataFrame(values, index=adata.obs_names.copy(), columns=taxa)
+    table = table.iloc[:, np.lexsort((taxa.to_numpy(), -values.sum(axis=0)))]
+    if top is None or top >= table.shape[1]:
+        return table
+    if OTHER in table.columns:
+        msg = f"top={top} would sum taxa into a column named {OTHER!r}, but adata has a taxon named {OTHER!r}; pass top=None"
+        raise ValueError(msg)
+    kept = table.iloc[:, :top].copy()
+    kept[OTHER] = table.iloc[:, top:].sum(axis=1)
+    return kept
+
+
+def _stratified_var(adata: AnnData) -> pd.DataFrame:
+    """``adata.var``, after checking it is a stratified function table."""
+    if not isinstance(adata, AnnData):
+        msg = f"adata must be an AnnData such as mdata[{BY_TAXON_KEY!r}], not {type(adata).__name__}"
+        raise TypeError(msg)
+    var = cast("pd.DataFrame", adata.var)
+    if not all(column in var.columns for column in _STRATIFIED_COLUMNS):
+        msg = (
+            f"adata needs var columns {list(_STRATIFIED_COLUMNS)}, as the {BY_TAXON_KEY!r} modality has; "
+            f"pass mdata[{BY_TAXON_KEY!r}]"
+        )
+        raise KeyError(msg)
+    return var
+```
+
+`src/biotapy/fn/__init__.py` becomes:
+
+```python
+from ._contributions import contributions
+from ._glom import func_glom
+from ._hierarchy import load_hierarchy
+from ._renorm import renorm
+
+__all__ = ["contributions", "func_glom", "load_hierarchy", "renorm"]
+```
+
+- [x] **Step 4: Run, expect pass.**
+  `uv run --group test pytest tests/fn/test_contributions.py src/biotapy/fn/_contributions.py -q`
+  -> `23 passed` (22 tests and the doctest).
+- [x] **Step 5: Docs.** In `docs/api.md`, add `fn.contributions` before
+  `fn.func_glom` under "Function". Append to `docs/guide/function.md`:
+
+````markdown
+## Contributions
+
+`bt.fn.contributions` answers "which taxa carry this function?". It takes the
+stratified modality and one function id, and returns a samples x taxa
+`DataFrame` of that function's strata, as stored:
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.toy_humann()
+table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
+```
+
+- **Raw strata.** Each row sums to the function's strata in that sample. For
+  pathways that is not the community value, because a pathway's strata need
+  not add up to it. Pass the stratified modality of
+  `bt.fn.renorm(mdata, "relab")` to read the values as shares of each
+  sample's community total.
+- **Order.** Taxa are ordered by their total over all samples, largest first
+  (ties by id). `top=5` keeps the five largest and sums the rest into a last
+  column, `"other"`.
+- **Every stratum is a taxon.** `unclassified` (HUMAnN) and `RARE`
+  (PICRUSt2) are columns like any other; special functions such as
+  `UNINTEGRATED` can be queried too.
+- **Regrouped tables work too.** `bt.fn.func_glom`'s output for the
+  stratified modality has the same `var` columns, so
+  `contributions(by_class, "2.-.-.-")` shows the taxa behind an enzyme class.
+
+An unknown id raises a `KeyError` listing up to three close ids, which
+catches typos and an `EC:` prefix.
+````
+
+  Build the docs -> `build succeeded.`
+- [x] **Step 6: Bookkeeping.**
+  - In "# Tasks (checklist)", the line becomes
+    `- [x] 2.7 \`fn.contributions(adata, function, *, top=None) -> pd.DataFrame\``;
+    tick this task's step boxes. Bump `generated` and `commit` on this
+    concept.
+  - Add to `.knowledge/log.md`, under a new heading
+    `## <date> (Phase 2, slice 2C)`:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.7 done: \`fn.contributions\` returns one function's strata as a samples x taxa table.`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+git add src/biotapy/fn/_contributions.py src/biotapy/fn/__init__.py tests/fn/test_contributions.py docs/api.md \
+  docs/guide/function.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(fn): add contributions, one function's strata per taxon"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 895 passed, 22 deselected
+BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
 
 ### Task 2.8: `fn.functional_redundancy`
-**Interface:** `bt.fn.functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFrame`.
-- `adata`: samples x taxa abundances (PICRUSt2's `"taxa"` modality, or any
-  taxa table whose `var_names` match `traits.index`).
-- `traits`: taxa x genes copy numbers (2.4b).
-- Returns samples x `["taxonomic_diversity", "functional_diversity",
-  "redundancy", "normalized_redundancy"]`. Tian 2020 terms:
-  - TD = Gini-Simpson, 1 - Σp²;
-  - FD = Rao's Q, pᵀDp;
-  - FR = TD - FD;
-  - nFR = FR / TD.
-- R equivalent: none. References: Tian L et al. (2020) Deciphering
-  functional redundancy in the human microbiome. *Nat Commun* 11:6217.
 
-**Method facts (checked):**
-- Tian's taxon dissimilarity is weighted Jaccard,
-  d = 1 - Σmin(Gᵢ,Gⱼ)/Σmax(Gᵢ,Gⱼ). For non-negative vectors it equals
-  2·BC/(1+BC), where BC is SciPy's `pdist(G, "braycurtis")`. Verified
-  numerically 2026-10-03 with scipy 1.18.1. So the kernel is one SciPy
-  call (R2.1), not a custom loop.
-- The reference implementation (MATLAB, liangtian85/FR) has no licence. Do
-  not read it into the code; implement from the paper's equations (CC BY
-  4.0 article).
+**Files:**
+- Create: `src/biotapy/fn/_redundancy.py`, `tests/fn/test_redundancy.py`.
+- Modify: `src/biotapy/fn/__init__.py`, `docs/api.md`,
+  `docs/guide/function.md`.
 
-**Design questions:**
-0. **PICRUSt2's `RARE` taxon has no trait row** (forward note from the
-   Checkpoint B review). `read_picrust2` keeps it as an ordinary taxon in
-   `var["taxon"]` (`_picrust2.py:read_picrust2`, decision 5), but a trait
-   table from `read_picrust2_traits` never lists it. On the review's probe, the taxa missing from
-   the traits were exactly `{'RARE'}`. 2.8 must decide what `RARE`'s
-   abundance does: drop it, or keep it in the denominators of `p` without a
-   trait vector. Unknown until 2.8; question 1 (taxa without traits) is the
-   place to settle it.
-1. **Taxa without traits, or with all-zero gene vectors.** BC of zero
-   against zero is 0 in SciPy; against non-zero it is 1. Proposed: drop taxa
-   absent from `traits` with a `warn_user` count. Keep all-zero taxa
-   (d = 1 to others).
-2. **Memory.** D is N x N dense (10,000 ASVs = 800 MB). Proposed: restrict to
-   taxa present in at least one sample, compute D once, and state the cost in
-   `Notes` (R6.2). Measure before any optimisation (R10.1).
-3. **Normalising p:** per sample over the taxa kept; an all-zero sample
-   gives NaN for all four (never raises), as `tl.alpha` does.
-4. **A method note in docs:** a "Functional redundancy" section in
-   `docs/guide/function.md` with the equations (R8.3: method math lives in
-   `docs/`), instead of the roadmap's non-existent `docs/methods/`.
+**Interfaces:**
+- Consumes: `_core.as_csr`, `_core.warn_user`;
+  `scipy.spatial.distance.pdist(X, "braycurtis")` and `squareform`;
+  `bt.io.read_picrust2_traits` (2.4b) in a test and the guide.
+- Produces:
+  `bt.fn.functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFrame`,
+  index `obs_names`, columns `taxonomic_diversity`, `functional_diversity`,
+  `redundancy`, `normalized_redundancy`. Task 2.14 benchmarks it.
 
-**Tests (no golden: no R equivalent):**
-- hand-computed toy cases from the paper's equations;
-- Hypothesis properties: 0 <= FD <= TD; 0 <= FR <= TD; identical genomes
-  give FR = TD (D = 0); disjoint gene sets give FR = 0 (D = 1 off the
-  diagonal);
-- permutation of taxa leaves results unchanged;
-- purity.
+**Will not touch:** `io/_picrust2.py` (no `taxon_abun`, no `seqtab_norm`
+reader), `tl`. (`pp.relative`'s overflow was fixed first, in `e34b6e9`; at Checkpoint C
+`pp.relative`, `fn.renorm` and `functional_redundancy` share `_core.divide_rows`.)
+
+**Hand-computed cases** (the tests' `TRAITS`): genomes A = (2, 1, 0),
+B = (1, 1, 1), C = (0, 0, 3). Eq. 7: d(A,B) = 1 - 2/4 = 0.5,
+d(A,C) = 1 - 0/4 = 1, d(B,C) = 1 - 1/5 = 0.8.
+- Abundances (2, 1, 1): p = (1/2, 1/4, 1/4); TD = 1 - 3/8 = 0.625;
+  FD = 2 (0.5/8 + 1/8 + 0.8/16) = 0.475; FR = 0.15; nFR = 0.24.
+- Abundances (0, 3, 1): p = (0, 3/4, 1/4); TD = 0.375; FD = 2 x 0.8 x 3/16
+  = 0.3; FR = 0.075; nFR = 0.2.
+- Two ASVs with 2 and 1 16S copies, reads (4, 2), genomes (2, 1, 0) and
+  (1, 1, 1): cells (2, 2), p = (1/2, 1/2), d = 0.5, TD = 0.5, FD = 0.25,
+  FR = 0.25, nFR = 0.5.
+- Two taxa with no gene, p = (1/2, 1/2): d = 1, so TD = FD = 0.5, FR = 0.
+
+- [x] **Step 1: Failing tests.** Create `tests/fn/test_redundancy.py`:
+
+```python
+import anndata as ad
+import numpy as np
+import pandas as pd
+import pytest
+import scipy.sparse as sp
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
+
+import biotapy as bt
+
+COLUMNS = ["taxonomic_diversity", "functional_diversity", "redundancy", "normalized_redundancy"]
+# Three genomes over three genes. Weighted Jaccard (Tian et al. Eq. 7): d(A,B) = 1 - 2/4 = 0.5,
+# d(A,C) = 1 - 0/4 = 1, d(B,C) = 1 - 1/5 = 0.8.
+TRAITS = pd.DataFrame([[2, 1, 0], [1, 1, 1], [0, 0, 3]], index=["A", "B", "C"], columns=["g1", "g2", "g3"])
+
+
+def _adata(dense, taxa=("A", "B", "C")):
+    dense = np.asarray(dense, dtype=np.float64)
+    return ad.AnnData(
+        X=sp.csr_matrix(dense),
+        obs=pd.DataFrame(index=[f"s{i}" for i in range(dense.shape[0])]),
+        var=pd.DataFrame(index=list(taxa)),
+    )
+
+
+def test_hand_computed_samples():
+    out = bt.fn.functional_redundancy(_adata([[2, 1, 1], [0, 3, 1]]), traits=TRAITS)
+    assert out.columns.tolist() == COLUMNS and out.index.tolist() == ["s0", "s1"]
+    # s0: p = (1/2, 1/4, 1/4). TD = 1 - 3/8 = 0.625; FD = 2 (0.5/8 + 1/8 + 0.8/16) = 0.475; FR = 0.15.
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.625, 0.475, 0.15, 0.24], rtol=1e-12)
+    # s1: p = (0, 3/4, 1/4). TD = 0.375; FD = 2 x 0.8 x 3/16 = 0.3; FR = 0.075; nFR = 0.2.
+    np.testing.assert_allclose(out.loc["s1"].to_numpy(), [0.375, 0.3, 0.075, 0.2], rtol=1e-12)
+
+
+def test_taxonomic_diversity_is_gini_simpson():
+    adata = _adata([[2, 1, 1], [0, 3, 1], [5, 0, 1]])
+    out = bt.fn.functional_redundancy(adata, traits=TRAITS)
+    simpson = bt.tl.alpha(adata, metrics=["simpson"])["simpson"]
+    np.testing.assert_allclose(out["taxonomic_diversity"].to_numpy(), simpson.to_numpy(), rtol=1e-12)
+
+
+def test_scale_of_each_sample_does_not_matter():
+    out = bt.fn.functional_redundancy(_adata([[2, 1, 1], [200, 100, 100]]), traits=TRAITS)
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), out.loc["s1"].to_numpy(), rtol=1e-12)
+
+
+def test_taxa_without_traits_are_left_out_with_a_warning():
+    adata = _adata([[2, 1, 1, 7], [0, 3, 1, 0]], taxa=("A", "B", "C", "RARE"))
+    with pytest.warns(UserWarning, match=r"1 of 4 taxa have no row in traits.*\['RARE'\]"):
+        out = bt.fn.functional_redundancy(adata, traits=TRAITS)
+    expected = bt.fn.functional_redundancy(_adata([[2, 1, 1], [0, 3, 1]]), traits=TRAITS)
+    pd.testing.assert_frame_equal(out, expected)
+
+
+def test_extra_trait_rows_and_order_do_not_matter():
+    traits = pd.concat([TRAITS, pd.DataFrame([[9, 9, 9]], index=["Z"], columns=TRAITS.columns)]).iloc[::-1]
+    out = bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=traits)
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.625, 0.475, 0.15, 0.24], rtol=1e-12)
+
+
+def test_integer_trait_ids_match_text_var_names():
+    traits = TRAITS.set_axis([1, 2, 3])
+    out = bt.fn.functional_redundancy(_adata([[2, 1, 1]], taxa=("1", "2", "3")), traits=traits)
+    np.testing.assert_allclose(out.loc["s0", "redundancy"], 0.15, rtol=1e-12)
+
+
+def test_reads_picrust2_traits_and_16s_corrected_abundances(tmp_path):
+    (tmp_path / "EC_predicted.tsv").write_text(
+        "sequence\tEC:1.1.1.1\tEC:2.7.1.1\tEC:3.2.1.1\tmetadata_NSTI\nASV1\t2\t1\t0\t0.1\n0042\t1\t1\t1\t0.2\n"
+    )
+    (tmp_path / "marker.tsv").write_text("sequence\t16S_rRNA_Count\tmetadata_NSTI\nASV1\t2\t0.1\n0042\t1\t0.2\n")
+    traits = bt.io.read_picrust2_traits(tmp_path / "EC_predicted.tsv")
+    copies = bt.io.read_picrust2_traits(tmp_path / "marker.tsv")["16S_rRNA_Count"]
+    reads = _adata([[4, 2]], taxa=("ASV1", "0042"))
+    cells = reads.copy()
+    cells.X = sp.csr_matrix(reads.X.multiply(1 / copies[reads.var_names].to_numpy()))
+    # Cells: ASV1 4/2 = 2, 0042 2/1 = 2, so p = (1/2, 1/2); d = 0.5, TD = 0.5, FD = 0.25.
+    out = bt.fn.functional_redundancy(cells, traits=traits)
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.5, 0.25, 0.25, 0.5], rtol=1e-12)
+
+
+def test_inputs_unchanged(assert_unchanged):
+    adata, traits = _adata([[2, 1, 1], [0, 3, 1]]), TRAITS.copy()
+    before = adata.copy()
+    bt.fn.functional_redundancy(adata, traits=traits)
+    assert_unchanged(before, adata)
+    pd.testing.assert_frame_equal(traits, TRAITS)
+
+
+def test_all_zero_sample_is_nan():
+    out = bt.fn.functional_redundancy(_adata([[0, 0, 0], [2, 1, 1]]), traits=TRAITS)
+    assert out.loc["s0"].isna().all() and out.loc["s1"].notna().all()
+
+
+def test_sample_whose_taxa_all_lack_traits_is_nan():
+    adata = _adata([[0, 0, 0, 5], [2, 1, 1, 0]], taxa=("A", "B", "C", "RARE"))
+    with pytest.warns(UserWarning, match="no row in traits"):
+        out = bt.fn.functional_redundancy(adata, traits=TRAITS)
+    assert out.loc["s0"].isna().all()
+
+
+def test_single_taxon_sample_has_no_diversity_and_undefined_normalized_redundancy():
+    out = bt.fn.functional_redundancy(_adata([[0, 0, 5]]), traits=TRAITS)
+    assert out.loc["s0", COLUMNS[:3]].tolist() == [0.0, 0.0, 0.0] and np.isnan(out.loc["s0", COLUMNS[3]])
+
+
+def test_all_zero_taxon_changes_nothing():
+    out = bt.fn.functional_redundancy(
+        _adata([[2, 1, 1, 0]], taxa=("A", "B", "C", "D")), traits=TRAITS.reindex(["A", "B", "C", "D"], fill_value=1)
+    )
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.625, 0.475, 0.15, 0.24], rtol=1e-12)
+
+
+def test_taxa_without_genes_share_nothing():
+    traits = pd.DataFrame(np.zeros((2, 3)), index=["E", "F"], columns=["g1", "g2", "g3"])
+    out = bt.fn.functional_redundancy(_adata([[1, 1]], taxa=("E", "F")), traits=traits)
+    assert out.loc["s0", COLUMNS].tolist() == [0.5, 0.5, 0.0, 0.0]
+
+
+def test_single_sample():
+    assert bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=TRAITS).shape == (1, 4)
+
+
+def test_no_shared_ids_raise_with_examples():
+    with pytest.raises(ValueError, match=r"adata: \['f1', 'f2', 'f3'\], traits: \['A', 'B', 'C'\]"):
+        bt.fn.functional_redundancy(_adata([[2, 1, 1]], taxa=("f1", "f2", "f3")), traits=TRAITS)
+
+
+@pytest.mark.parametrize(
+    ("traits", "error", "message"),
+    [
+        (TRAITS.to_numpy(), TypeError, "traits must be a pandas.DataFrame"),
+        (TRAITS.assign(g4="x"), TypeError, r"non-numeric columns: \['g4'\]"),
+        (TRAITS.set_axis(["A", "A", "C"]), ValueError, r"traits repeats row ids: \['A'\]"),
+        (TRAITS.assign(g1=[np.nan, 1, 0]), ValueError, "traits holds a missing, negative or infinite"),
+        (TRAITS.assign(g1=[-1, 1, 0]), ValueError, "traits holds a missing, negative or infinite"),
+        (TRAITS.assign(g1=[np.inf, 1, 0]), ValueError, "traits holds a missing, negative or infinite"),
+    ],
+    ids=["array", "text-column", "repeated-id", "nan", "negative", "infinite"],
+)
+def test_bad_traits_raise_naming_traits(traits, error, message):
+    with pytest.raises(error, match=message):
+        bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=traits)
+
+
+@pytest.mark.parametrize("value", [-1.0, np.nan, np.inf])
+def test_bad_abundances_raise_naming_adata(value):
+    with pytest.raises(ValueError, match="adata: X holds a missing, negative or infinite"):
+        bt.fn.functional_redundancy(_adata([[2, 1, value]]), traits=TRAITS)
+
+
+def test_overflowing_sample_total_raises_naming_adata():
+    with pytest.raises(ValueError, match=r"adata: the total abundance of a sample overflows: \['s0'\]"):
+        bt.fn.functional_redundancy(_adata([[1e308, 1e308, 0], [1, 1, 1]]), traits=TRAITS)
+
+
+def test_repeated_taxon_ids_raise_naming_adata():
+    with pytest.warns(UserWarning, match="not unique"):  # AnnData itself warns on construction
+        adata = _adata([[2, 1, 1]], taxa=("A", "A", "C"))
+    with pytest.raises(ValueError, match=r"adata repeats taxon ids: \['A'\]"):
+        bt.fn.functional_redundancy(adata, traits=TRAITS)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+def test_nullable_missing_trait_raises_naming_traits(dtype):
+    traits = TRAITS.astype(dtype)
+    traits.iloc[0, 0] = pd.NA
+    with pytest.raises(ValueError, match="traits holds a missing, negative or infinite"):
+        bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=traits)
+
+
+@st.composite
+def _cases(draw):
+    n_taxa, n_genes, n_obs = draw(st.integers(1, 6)), draw(st.integers(1, 5)), draw(st.integers(1, 3))
+    genomes = draw(arrays(np.int64, (n_taxa, n_genes), elements=st.integers(0, 4)))
+    abundances = draw(arrays(np.float64, (n_obs, n_taxa), elements=st.floats(0, 1e3)))
+    return genomes, abundances
+
+
+def _run(genomes, abundances, order=None):
+    order = np.arange(genomes.shape[0]) if order is None else order
+    taxa = [f"t{i}" for i in order]
+    traits = pd.DataFrame(genomes[order], index=taxa)
+    return bt.fn.functional_redundancy(_adata(abundances[:, order], taxa=taxa), traits=traits)
+
+
+def _weighted_jaccard(u, v):
+    # Eq. 7 written out, independent of SciPy; two empty genomes share nothing.
+    larger = np.maximum(u, v).sum()
+    return 1 - np.minimum(u, v).sum() / larger if larger > 0 else 1.0
+
+
+@settings(deadline=None)
+@given(_cases())
+def test_diversities_are_ordered(case):
+    out = _run(*case).dropna(subset=["taxonomic_diversity"])
+    td, fd, fr = (out[column].to_numpy() for column in COLUMNS[:3])
+    assert (fd >= 0).all() and (fr >= 0).all() and (fd <= td).all() and (fr <= td).all()
+    np.testing.assert_allclose(fd + fr, td, rtol=1e-12, atol=1e-15)
+
+
+@settings(deadline=None)
+@given(_cases())
+def test_matches_the_paper_equations(case):
+    genomes, abundances = case
+    out = _run(genomes, abundances)
+    for sample, row in enumerate(abundances):
+        if row.sum() == 0:
+            assert out.iloc[sample].isna().all()
+            continue
+        p = row / row.sum()
+        pairs = [(i, j) for i in range(p.size) for j in range(p.size) if i != j]
+        fd = sum(_weighted_jaccard(genomes[i], genomes[j]) * p[i] * p[j] for i, j in pairs)
+        # atol: values are sums of products of shares, so near-zero results carry absolute rounding.
+        np.testing.assert_allclose(out.iloc[sample, :3], [1 - p @ p, fd, 1 - p @ p - fd], rtol=1e-9, atol=1e-12)
+
+
+@settings(deadline=None)
+@given(_cases(), st.randoms(use_true_random=False))
+def test_taxon_order_does_not_matter(case, random):
+    genomes, abundances = case
+    order = np.array(random.sample(range(genomes.shape[0]), genomes.shape[0]))
+    pd.testing.assert_frame_equal(_run(genomes, abundances, order), _run(genomes, abundances), rtol=1e-12)
+
+
+@settings(deadline=None)
+@given(_cases())
+def test_identical_genomes_are_fully_redundant(case):
+    genomes, abundances = case
+    out = _run(np.tile(genomes[:1] + 1, (genomes.shape[0], 1)), abundances)
+    np.testing.assert_array_equal(out["redundancy"].to_numpy(), out["taxonomic_diversity"].to_numpy())
+
+
+@settings(deadline=None)
+@given(_cases())
+def test_disjoint_genomes_have_no_redundancy(case):
+    genomes, abundances = case
+    out = _run(np.diag(np.arange(1, genomes.shape[0] + 1)), abundances)
+    assert (out["redundancy"].dropna() == 0).all()
+
+
+def test_mudata_adata_raises_naming_adata_and_the_modality():
+    import mudata
+
+    mdata = mudata.MuData({"function": _adata([[2, 1, 1]])})
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*MuData; pass one modality of the MuData"):
+        bt.fn.functional_redundancy(mdata, traits=TRAITS)
+
+
+def test_dataframe_adata_raises_naming_adata():
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*DataFrame") as raised:
+        bt.fn.functional_redundancy(pd.DataFrame([[2, 1, 1]], columns=["A", "B", "C"]), traits=TRAITS)  # type: ignore[arg-type]
+    assert "MuData" not in str(raised.value)
+
+
+def test_float32_abundances_give_the_float64_result():
+    dense = np.array([[2.1, 1.3, 1.7], [0.3, 3.9, 1.1]])
+    narrow = _adata(dense)
+    narrow.X = sp.csr_matrix(narrow.X, dtype=np.float32)
+    # Compare with the float32-rounded values widened back, so only the summation precision differs.
+    widened = _adata(np.asarray(narrow.X.toarray(), dtype=np.float64))
+    pd.testing.assert_frame_equal(
+        bt.fn.functional_redundancy(narrow, traits=TRAITS),
+        bt.fn.functional_redundancy(widened, traits=TRAITS),
+        rtol=1e-12,
+        atol=0,
+    )
+
+
+def test_guide_recipe_applies_the_nsti_cutoff_and_keeps_the_missing_traits_warning(tmp_path):
+    # Synthetic PICRUSt2-format files (numbered ids such as 0042 must stay text): 0003 has NSTI 2.7 (cut by PICRUSt2's --max_nsti 2), 0004 is in neither file.
+    (tmp_path / "EC.tsv").write_text(
+        "sequence\tEC:1.1.1.1\tEC:2.7.1.1\tEC:3.2.1.1\tmetadata_NSTI\n"
+        "0001\t2\t1\t0\t0.1\n0042\t1\t1\t1\t0.2\n0003\t0\t0\t3\t2.7\n"
+    )
+    (tmp_path / "marker.tsv").write_text(
+        "sequence\t16S_rRNA_Count\tmetadata_NSTI\n0001\t2\t0.1\n0042\t1\t0.2\n0003\t3\t2.7\n"
+    )
+    reads = _adata([[4, 2, 9, 5]], taxa=("0001", "0042", "0003", "0004"))
+    bt.io.write_biom(reads, tmp_path / "table.biom")
+    # The recipe of docs/guide/function.md, step by step.
+    asvs = bt.io.read_biom(tmp_path / "table.biom")
+    traits = bt.io.read_picrust2_traits(tmp_path / "EC.tsv")
+    marker = pd.read_csv(tmp_path / "marker.tsv", sep="\t", index_col="sequence", dtype={"sequence": str})
+    too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
+    assert too_far.sum() == 1
+    cells = asvs[:, ~too_far].copy()
+    copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)
+    cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
+    assert cells.var_names.tolist() == ["0001", "0042", "0004"]
+    with pytest.warns(UserWarning, match=r"1 of 3 taxa have no row in traits.*\['0004'\]"):
+        out = bt.fn.functional_redundancy(cells, traits=traits)
+    # Cells: 0001 4/2 = 2, 0042 2/1 = 2, 0004 left out by the warning; the same as the two-ASV case above.
+    np.testing.assert_allclose(out.loc["s0"].to_numpy(), [0.5, 0.25, 0.25, 0.5], rtol=1e-12)
+```
+
+- [x] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/fn/test_redundancy.py -q`
+  -> `29 failed`: `AttributeError: module 'biotapy.fn' has no attribute 'functional_redundancy'`.
+- [x] **Step 3: Implement.** Create `src/biotapy/fn/_redundancy.py`:
+
+```python
+"""Functional redundancy of each sample from taxon abundances and genome contents (Tian et al. 2020)."""
+
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+import scipy.sparse as sp
+from anndata import AnnData
+from mudata import MuData
+from scipy.spatial.distance import pdist, squareform
+
+from biotapy._core import as_csr, divide_rows, warn_user
+
+COLUMNS = ["taxonomic_diversity", "functional_diversity", "redundancy", "normalized_redundancy"]
+
+
+def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFrame:
+    r"""Taxonomic diversity, functional diversity and functional redundancy of every sample.
+
+    Parameters
+    ----------
+    adata
+        Samples x taxa abundances whose ``var_names`` are ``traits``' row
+        ids, such as an ASV table. Tian et al. use relative organism
+        abundances: divide 16S read counts by each ASV's predicted 16S copy
+        number first (see the guide).
+    traits
+        Taxa x genes copy numbers, the genome content of each taxon, such as
+        ``bt.io.read_picrust2_traits("EC_predicted.tsv.gz")``. Non-negative
+        and finite; row ids unique.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per sample (index ``obs_names``) and the columns
+        ``taxonomic_diversity`` (Gini-Simpson), ``functional_diversity``
+        (Rao's quadratic entropy), ``redundancy`` (their difference) and
+        ``normalized_redundancy`` (``redundancy / taxonomic_diversity``). A
+        sample with no abundance on a taxon in ``traits`` gets NaN in every
+        column; a sample with one such taxon gets 0, 0, 0 and NaN.
+
+    Raises
+    ------
+    TypeError
+        ``adata`` is not an AnnData (for a MuData, pass one of its modalities);
+        ``traits`` is not a DataFrame or has a non-numeric column.
+    ValueError
+        ``traits`` repeats a row id or holds a missing, negative or
+        infinite value; ``adata`` repeats a taxon id, its ``X`` holds a
+        missing, negative or infinite value, or a sample's total abundance
+        overflows; no taxon of ``adata`` has a row in ``traits`` (the
+        message shows ids from both, usually an id mismatch).
+
+    Warns
+    -----
+    UserWarning
+        Some taxa of ``adata`` have no row in ``traits``: for PICRUSt2,
+        ASVs it has no prediction for (its ``hsp.py`` predicts every placed
+        ASV and applies the ``--max_nsti`` cutoff later, so a high-NSTI ASV
+        has a row), and its ``RARE`` group, which has no genome. They are
+        left out, abundance included, and the warning names up to three and
+        the count.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/function`
+
+    With :math:`p_i` the relative abundance of taxon :math:`i` over the taxa
+    in ``traits``, and :math:`d_{ij}` the weighted Jaccard distance between
+    the gene copy numbers of taxa :math:`i` and :math:`j` (Tian et al.,
+    Eq. 7), ``taxonomic_diversity`` is :math:`\sum_{i \ne j} p_i p_j`
+    (Eq. 2), ``functional_diversity`` is
+    :math:`\sum_{i \ne j} d_{ij} p_i p_j` (Eq. 3) and ``redundancy`` is
+    :math:`\sum_{i \ne j} (1 - d_{ij}) p_i p_j` (Eqs. 1 and 4). Two taxa
+    with no gene at all share nothing, so their distance is 1.
+
+    The distances form one dense taxa x taxa ``float64`` matrix over the
+    taxa with abundance in some sample: 8 bytes x taxa², 32 MB for 2,000
+    taxa and 800 MB for 10,000. While it is built the peak is about 1.5 x
+    8 bytes x taxa² (measured at 3,000 taxa), for the square and the
+    condensed half. Each of the two quadratic forms also builds a dense
+    samples x taxa product (8 bytes x samples x taxa), one after the
+    other, which exceeds the distances when samples outnumber taxa.
+    ``traits`` is read once into a dense ``float64`` copy, all its rows,
+    not only the taxa of ``adata``. Time grows as taxa² x genes: with 2,500
+    genes and 100 samples, 2,000 taxa took 5 s and 10,000 taxa 6 minutes
+    and 1.7 GB beyond the inputs (measured on one machine). On a large ASV
+    table, filter rare taxa first with ``bt.pp.filter_features``.
+
+    References
+    ----------
+    Tian L et al. (2020) Deciphering functional redundancy in the human microbiome.
+    Nature Communications 11:6217.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import biotapy as bt
+    >>> adata = bt.datasets.toy()
+    >>> genes = np.arange(adata.n_vars * 3).reshape(-1, 3) % 4  # a made-up genome per feature
+    >>> traits = pd.DataFrame(genes, index=adata.var_names, columns=["g1", "g2", "g3"])
+    >>> bt.fn.functional_redundancy(adata, traits=traits).round(3).iloc[:2].to_numpy().tolist()
+    [[0.691, 0.452, 0.239, 0.346], [0.717, 0.474, 0.244, 0.34]]
+    """
+    genomes = _genomes(traits)
+    X, taxa = _abundances(adata, genomes.index)
+    totals = np.asarray(X.sum(axis=1, dtype=np.float64)).ravel()
+    shares = divide_rows(X, totals)
+    distance = _weighted_jaccard(genomes.loc[taxa].to_numpy())
+    diversity = _quadratic(shares, distance)
+    # The similarity 1 - d, built in place over the distances, with i = j left out as in Eq. 4.
+    np.subtract(1.0, distance, out=distance)
+    np.fill_diagonal(distance, 0.0)
+    redundancy = _quadratic(shares, distance)
+    # TD as FD + FR (equal to 1 - sum(p**2) up to rounding), so 0 <= FD, FR <= TD hold exactly.
+    total = diversity + redundancy
+    normalized = np.divide(redundancy, total, out=np.full_like(total, np.nan), where=total > 0)
+    out = pd.DataFrame(
+        dict(zip(COLUMNS, (total, diversity, redundancy, normalized), strict=True)), index=adata.obs_names
+    )
+    out.loc[totals == 0] = np.nan
+    return out
+
+
+def _genomes(traits: pd.DataFrame) -> pd.DataFrame:
+    """``traits`` as float64 with text row ids, after checking it is a copy-number table."""
+    if not isinstance(traits, pd.DataFrame):
+        msg = f"traits must be a pandas.DataFrame of taxa x genes, such as bt.io.read_picrust2_traits returns, not {type(traits).__name__}"
+        raise TypeError(msg)
+    text = [str(column) for column, dtype in traits.dtypes.items() if not pd.api.types.is_numeric_dtype(dtype)]
+    if text:
+        msg = f"traits must hold copy numbers; non-numeric columns: {text[:3]}"
+        raise TypeError(msg)
+    genomes = pd.DataFrame(
+        traits.to_numpy(dtype=np.float64, na_value=np.nan), index=traits.index.astype(str), columns=traits.columns
+    )
+    repeated = genomes.index[genomes.index.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"traits repeats row ids: {repeated[:3]}"
+        raise ValueError(msg)
+    values = genomes.to_numpy()
+    if not np.isfinite(values).all() or (values < 0).any():
+        msg = "traits holds a missing, negative or infinite copy number"
+        raise ValueError(msg)
+    return genomes
+
+
+def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
+    """``X`` over the taxa that have traits and abundance somewhere, and those taxa; warns about the others."""
+    if not isinstance(adata, AnnData):
+        hint = "; pass one modality of the MuData" if isinstance(adata, MuData) else ""
+        msg = f"adata must be an AnnData of samples x taxa, not {type(adata).__name__}{hint}"
+        raise TypeError(msg)
+    repeated = adata.var_names[adata.var_names.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"adata repeats taxon ids: {repeated[:3]}"
+        raise ValueError(msg)
+    X = as_csr(adata.X)
+    if not np.isfinite(X.data).all() or (X.data < 0).any():
+        msg = "adata: X holds a missing, negative or infinite abundance"
+        raise ValueError(msg)
+    found = adata.var_names.isin(known)
+    if not found.any():
+        msg = (
+            "no taxon of adata has a row in traits; "
+            f"adata: {adata.var_names[:3].tolist()}, traits: {known[:3].tolist()}"
+        )
+        raise ValueError(msg)
+    if not found.all():
+        missing = adata.var_names[~found]
+        warn_user(
+            f"fn.functional_redundancy: {len(missing)} of {adata.n_vars} taxa have no row in traits "
+            f"and are left out, with their abundance: {missing[:3].tolist()}"
+        )
+    keep = np.flatnonzero(found & (np.asarray(X.sum(axis=0)).ravel() > 0))
+    X = X[:, keep]
+    with np.errstate(over="ignore"):
+        overflowing = ~np.isfinite(np.asarray(X.sum(axis=1, dtype=np.float64)).ravel())
+    if overflowing.any():
+        msg = f"adata: the total abundance of a sample overflows: {adata.obs_names[overflowing][:3].tolist()}"
+        raise ValueError(msg)
+    return X, adata.var_names[keep]
+
+
+def _weighted_jaccard(genomes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    """Tian et al.'s Eq. 7 for every pair of rows, as a square matrix with a zero diagonal."""
+    if genomes.shape[0] < 2:
+        return np.zeros((genomes.shape[0], genomes.shape[0]))
+    # For non-negative vectors, 1 - sum(min)/sum(max) = 2 BC / (1 + BC), with BC the Bray-Curtis dissimilarity.
+    bray_curtis = pdist(genomes, "braycurtis")
+    # In place on the condensed array, so only one other condensed-sized temporary exists at a time.
+    np.divide(bray_curtis, 1 + bray_curtis, out=bray_curtis)
+    bray_curtis *= 2
+    # Two taxa without any gene give 0/0 (SciPy returns NaN): they share nothing, so their distance is 1.
+    bray_curtis[np.isnan(bray_curtis)] = 1.0
+    return squareform(bray_curtis)
+
+
+def _quadratic(shares: sp.csr_matrix, matrix: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    """``p @ matrix @ p`` for every sample's row ``p`` of ``shares``."""
+    return np.asarray(shares.multiply(shares @ matrix).sum(axis=1), dtype=np.float64).ravel()
+```
+
+`src/biotapy/fn/__init__.py` becomes:
+
+```python
+from ._contributions import contributions
+from ._glom import func_glom
+from ._hierarchy import load_hierarchy
+from ._redundancy import functional_redundancy
+from ._renorm import renorm
+
+__all__ = ["contributions", "func_glom", "functional_redundancy", "load_hierarchy", "renorm"]
+```
+
+- [x] **Step 4: Run, expect pass.**
+  `uv run --group test pytest tests/fn/test_redundancy.py src/biotapy/fn/_redundancy.py -q -W error`
+  -> `30 passed` (29 tests and the doctest), no warning. Then
+  `uv run --group test pytest tests/fn/test_redundancy.py tests/fn/test_contributions.py -q -W error --hypothesis-seed=1`
+  (and seeds 2 and 3) -> `51 passed` each.
+- [x] **Step 5: Docs.** In `docs/api.md`, add `fn.functional_redundancy`
+  after `fn.func_glom`. Append to `docs/guide/function.md`:
+
+````markdown
+## Functional redundancy
+
+`bt.fn.functional_redundancy(adata, traits=traits)` measures, per sample, how
+much the taxa present overlap in what their genomes can do. It follows Tian
+et al. (2020, *Nature Communications* 11:6217; the equation numbers below are
+theirs). For the taxa of a sample, with relative abundances $p_i$ summing
+to 1, and a functional distance $d_{ij}$ between taxa $i$ and $j$:
+
+$$
+\mathrm{TD} = \sum_{i} \sum_{j \ne i} p_i p_j = 1 - \sum_i p_i^2 \qquad \text{(Gini-Simpson, Eq. 2)}
+$$
+
+$$
+\mathrm{FD} = \sum_{i} \sum_{j \ne i} d_{ij} p_i p_j \qquad \text{(Rao's quadratic entropy, Eq. 3)}
+$$
+
+$$
+\mathrm{FR} = \mathrm{TD} - \mathrm{FD} = \sum_{i} \sum_{j \ne i} (1 - d_{ij}) p_i p_j \qquad \text{(Eqs. 1 and 4)}
+$$
+
+$d_{ij}$ is the weighted Jaccard distance between the two taxa's gene copy
+numbers $G_{ia}$ (Eq. 7):
+
+$$
+d_{ij} = 1 - \frac{\sum_a \min(G_{ia}, G_{ja})}{\sum_a \max(G_{ia}, G_{ja})}
+$$
+
+FR is the chance that two individuals drawn from the sample belong to
+different taxa, weighted by how much of their genomes those taxa share. The
+result also holds `normalized_redundancy`, $\mathrm{FR} / \mathrm{TD}$, which
+compares samples whose taxonomic diversity differs; Tian et al. report about
+0.4 for most human body sites. biotapy computes $d_{ij}$ with SciPy's Bray-Curtis
+dissimilarity $\mathrm{BC}$, as $2\,\mathrm{BC} / (1 + \mathrm{BC})$, which
+equals the weighted Jaccard distance for non-negative vectors. Two taxa
+with no gene at all share nothing: their distance is 1.
+
+**Inputs.** `traits` is a taxa x genes table of copy numbers, such as
+PICRUSt2's per-ASV predictions read by `bt.io.read_picrust2_traits`.
+`adata` holds the same taxa as features. Tian et al. use relative organism
+abundances (MetaPhlAn2 profiles), so divide 16S read counts by each ASV's
+predicted 16S copy number first. PICRUSt2 writes those copy numbers and each ASV's NSTI to a
+marker file. Its `hsp.py` predicts every ASV it placed; the NSTI cutoff (`--max_nsti`,
+default 2) is applied later, by `metagenome_pipeline.py`. Apply it yourself,
+and divide only the ASVs that have a copy number, so
+`functional_redundancy` still sees the others and warns about them:
+
+```python
+import pandas as pd
+
+import biotapy as bt
+
+asvs = bt.io.read_biom("table.biom")  # samples x ASVs, read counts
+traits = bt.io.read_picrust2_traits("picrust2_out/EC_predicted.tsv.gz")
+marker = pd.read_csv(
+    "picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col="sequence", dtype={"sequence": str}
+)  # ids stay text
+
+too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
+print(f"{too_far.sum()} ASVs above NSTI 2 dropped")
+cells = asvs[:, ~too_far].copy()
+copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)  # no copy number: left unscaled
+cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
+fr = bt.fn.functional_redundancy(cells, traits=traits)
+```
+
+PICRUSt2 2.6 prefixes its pipeline's output files with `combined_`:
+`combined_EC_predicted.tsv.gz` and `combined_marker_nsti_predicted.tsv.gz`
+(earlier versions: `EC_predicted.tsv.gz` and
+`marker_predicted_and_nsti.tsv.gz`, used above). The marker file needs the
+columns `16S_rRNA_Count` and `metadata_NSTI`.
+
+The corrected table is no longer read counts; use it for this calculation
+only. A MetaPhlAn profile is already in organism abundances.
+
+- **Taxa without traits** (ASVs PICRUSt2 has no prediction for, such as
+  ones it did not place or that were not in its input) are left out with a
+  warning, abundance included, so each sample's $p$ sums to 1 over the taxa
+  that have a genome, as in the paper. PICRUSt2's `RARE` group exists only
+  in contribution tables, never in an ASV table.
+- **Empty samples.** A sample with no abundance on a taxon with traits gets
+  NaN in every column; a sample with a single such taxon has no diversity
+  (0) and an undefined `normalized_redundancy` (NaN).
+- **Size.** The distances form a dense taxa x taxa matrix, and the time grows
+  as taxa² x genes: 2,000 ASVs take seconds, 10,000 take minutes and over a
+  gigabyte. Filter rare ASVs first with `bt.pp.filter_features`.
+````
+
+  Build the docs -> `build succeeded.`
+- [x] **Step 6: Bookkeeping.**
+  - The checklist line becomes
+    `- [x] 2.8 \`fn.functional_redundancy(adata, *, traits) -> pd.DataFrame\``;
+    tick this task's step boxes; bump `generated` and `commit`.
+  - Add under the slice 2C log heading:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 done: \`fn.functional_redundancy\` computes Tian et al. 2020's TD, FD, FR and nFR per sample.`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+git add src/biotapy/fn/_redundancy.py src/biotapy/fn/__init__.py tests/fn/test_redundancy.py docs/api.md \
+  docs/guide/function.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(fn): add functional_redundancy (Tian et al. 2020)"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 926 passed, 22 deselected
+BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
 
 ### Task 2.9: `pl.contributions`
-**Interface:** `bt.pl.contributions(mdata: MuData, function: str, *, top: int = 8, ax: Axes | None = None, plot_kwargs: dict[str, object] | None = None) -> Axes`.
-A stacked bar per sample of `fn.contributions(mdata, function, top=top)`.
-It computes nothing new: `pl` may import `fn`, a lower layer. R equivalent:
-none.
 
-**Design questions:**
-1. Reuse `pl/_abundance.py`'s stacked-bar drawing (same subpackage) rather
-   than a second implementation (R4.3). Check its private helper's
-   signature first.
-2. Optional grouping/faceting by an `obs` column, as `pl.bar` does: only if
-   the tutorial needs it (R2.3).
+**Files:**
+- Modify: `src/biotapy/pl/_abundance.py`, `src/biotapy/pl/__init__.py`,
+  `tests/pl/test_abundance.py`, `docs/api.md`, `docs/guide/plotting.md`,
+  `docs/guide/function.md`.
 
-**Tests:** returns `Axes`; one bar per sample, one segment per taxon;
-`other` present with `top`; purity; no golden (r-golden-parity statement 7).
+**Interfaces:**
+- Consumes: `bt.fn.contributions` (2.7, imported as
+  `from biotapy.fn import contributions as function_contributions`, as
+  `datasets/_remote.py` imports `biotapy.io`); `_common.new_axes`,
+  `label_ticks`, `_colors`.
+- Produces:
+  `bt.pl.contributions(adata: AnnData, function: str, *, top: int | None = 8, ax: Axes | None = None) -> Axes`,
+  and the private `_abundance.py:_stack(ax, heights, labels, *, colors) -> None`
+  that `bar` now calls.
 
-### Checkpoint C
-Review; `modules/fn.md` and `modules/pl.md` updates; ask the user to review
-before 2D.
+**Will not touch:** `bar`'s signature, behaviour and tests (its loop moves
+into `_stack` unchanged; its tests must pass unedited), `pl/_common.py`,
+`heatmap`, `fn`.
+
+- [x] **Step 1: Failing tests.** In `tests/pl/test_abundance.py`, add the two
+  imports and append the tests:
+
+```diff
+diff --git a/tests/pl/test_abundance.py b/tests/pl/test_abundance.py
+--- a/tests/pl/test_abundance.py
++++ b/tests/pl/test_abundance.py
+@@ -7,9 +7,11 @@ import scipy.sparse as sp
+ from hypothesis import given
+ from hypothesis import strategies as st
+ from hypothesis.extra.numpy import arrays
++from matplotlib.colors import to_hex
+ from matplotlib.figure import Figure
+
+ import biotapy as bt
++from biotapy._core import make_function_mudata
+
+
+ def _adata(dense, var=None) -> ad.AnnData:
+@@ -198,3 +200,71 @@ def test_heatmap_input_unchanged(assert_unchanged, ax):
+     before = tdata.copy()
+     bt.pl.heatmap(tdata, ax=ax)
+     assert_unchanged(before, tdata)
++
++
++def _by_taxon():
++    return bt.datasets.toy_humann()["function_by_taxon"]
++
++
++def test_contributions_stacks_one_segment_per_taxon(ax):
++    by_taxon = _by_taxon()
++    assert bt.pl.contributions(by_taxon, "2.7.1.2", ax=ax) is ax
++    expected = bt.fn.contributions(by_taxon, "2.7.1.2")
++    np.testing.assert_array_equal(_heights(ax, 6), expected.to_numpy())
++    assert _legend(ax) == expected.columns.tolist() and ax.get_legend().get_title().get_text() == "taxon"
++    assert [label.get_text() for label in ax.get_xticklabels()] == list(by_taxon.obs_names)
++    assert ax.get_title() == "2.7.1.2" and ax.get_xlabel() == "sample"
++
++
++def test_contributions_top_draws_other_last_in_grey(ax):
++    bt.pl.contributions(_by_taxon(), "2.7.1.2", top=1, ax=ax)
++    assert _legend(ax) == ["g__Blautia.s__Blautia_obeum", "other"]
++    assert to_hex(ax.patches[-1].get_facecolor()) == "#7f7f7f"
++    np.testing.assert_array_equal(_heights(ax, 6)[:, 1], [6, 5, 7, 1, 0, 2])
++
++
++def test_contributions_a_taxon_named_other_keeps_its_colour(ax):
++    ids = pd.Index(["K1", "K1|other", "K1|a"])
++    mdata = make_function_mudata(
++        np.array([[2, 1, 1]]), obs=pd.DataFrame(index=["s1"]), row_ids=ids, x_kind="rpk", source="t"
++    )
++    bt.pl.contributions(mdata["function_by_taxon"], "K1", ax=ax)
++    assert "#7f7f7f" not in [to_hex(patch.get_facecolor()) for patch in ax.patches]
++
++
++def test_contributions_draws_regrouped_tables(ax):
++    edges = pd.DataFrame({"child": ["2.7.1.1", "2.7.1.2"], "parent": "kinase", "level": "role"})
++    by_role = bt.fn.func_glom(_by_taxon(), "role", hierarchy=edges)
++    bt.pl.contributions(by_role, "kinase", ax=ax)
++    np.testing.assert_array_equal(_heights(ax, 6), bt.fn.contributions(by_role, "kinase").to_numpy())
++
++
++def test_contributions_all_zero_sample_and_single_sample(ax):
++    by_taxon = _by_taxon()
++    dense = by_taxon.X.toarray()
++    dense[0] = 0
++    by_taxon.X = sp.csr_matrix(dense)
++    bt.pl.contributions(by_taxon, "2.7.1.2", ax=ax)
++    assert _heights(ax, 6)[0].tolist() == [0.0, 0.0]
++    single = bt.pl.contributions(_by_taxon()[:1].copy(), "2.7.1.2", ax=Figure().add_subplot())
++    assert len(single.patches) == 2
++
++
++def test_contributions_input_unchanged(assert_unchanged, ax):
++    by_taxon = _by_taxon()
++    before = by_taxon.copy()
++    bt.pl.contributions(by_taxon, "2.7.1.2", top=1, ax=ax)
++    assert_unchanged(before, by_taxon)
++
++
++def test_contributions_without_ax_draws_on_a_new_pyplot_figure():
++    ax = bt.pl.contributions(_by_taxon(), "2.7.1.2")
++    assert ax.figure.number in plt.get_fignums()
++    plt.close(ax.figure)
++
++
++def test_contributions_errors_name_the_argument(ax):
++    with pytest.raises(KeyError, match="function='2.7.1.3'"):
++        bt.pl.contributions(_by_taxon(), "2.7.1.3", ax=ax)
++    with pytest.raises(ValueError, match="top=0"):
++        bt.pl.contributions(_by_taxon(), "2.7.1.2", top=0, ax=ax)
+```
+
+- [x] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/pl/test_abundance.py -q`
+  -> `8 failed, 22 passed`: `AttributeError: module 'biotapy.pl' has no attribute 'contributions'`.
+- [x] **Step 3: Implement.** In `src/biotapy/pl/_abundance.py`: the module
+  docstring, the two imports, `bar`'s loop replaced by `_stack`, the new
+  public function before `heatmap`, and `_stack` before `_segments`:
+
+```diff
+diff --git a/src/biotapy/pl/_abundance.py b/src/biotapy/pl/_abundance.py
+--- a/src/biotapy/pl/_abundance.py
++++ b/src/biotapy/pl/_abundance.py
+@@ -1,4 +1,4 @@
+-"""Abundance plots: stacked bars and a heatmap of the table."""
++"""Abundance plots: stacked bars, a heatmap of the table, and the taxa behind one function."""
+
+ from typing import TYPE_CHECKING, cast
+
+@@ -9,8 +9,9 @@ import scipy.sparse as sp
+ from anndata import AnnData
+
+ from biotapy._core import sum_by
++from biotapy.fn import contributions as function_contributions
+
+-from ._common import RGBA, groups, label_ticks, new_axes, obs_groups, table
++from ._common import RGBA, _colors, groups, label_ticks, new_axes, obs_groups, table
+
+ if TYPE_CHECKING:
+     from matplotlib.axes import Axes
+@@ -75,10 +76,7 @@ def bar(
+     segments, labels, colors = _segments(adata, values, fill)
+     heights, names = _by_x(adata, segments, x)
+     ax = new_axes(ax)
+-    positions, bottom = np.arange(len(names)), np.zeros(len(names))
+-    for column, (label, color) in enumerate(zip(labels, colors, strict=True)):
+-        ax.bar(positions, heights[:, column], bottom=bottom, color=color, label=label)
+-        bottom += heights[:, column]
++    _stack(ax, heights, labels, colors=colors)
+     label_ticks(ax, names, axis="x")
+     ax.set_xlabel(x or "sample")
+     ax.set_ylabel(layer or "abundance")
+@@ -86,6 +84,72 @@ def bar(
+     return ax
+
+
++def contributions(adata: AnnData, function: str, *, top: int | None = 8, ax: "Axes | None" = None) -> "Axes":
++    """Stacked bars of one function's abundance per sample, one segment per taxon.
++
++    Parameters
++    ----------
++    adata
++        A stratified function table: the ``"function_by_taxon"`` modality of
++        ``bt.io.read_humann`` or ``bt.io.read_picrust2``, or
++        ``bt.fn.func_glom``'s or ``bt.fn.renorm``'s output for it.
++    function
++        A function id as it appears in ``var["function"]``.
++    top
++        Draw the ``top`` taxa with the largest total over all samples and sum
++        the rest into a last, grey segment, ``"other"``; ``None`` draws every
++        taxon.
++    ax
++        Axes to draw on; by default a new figure's.
++
++    Returns
++    -------
++    matplotlib.axes.Axes
++        One bar per sample in ``obs`` order, segments as the columns of
++        ``bt.fn.contributions(adata, function, top=top)``, a legend titled
++        ``taxon`` and the function id as the title.
++
++    Raises
++    ------
++    TypeError
++        ``adata`` is not an AnnData.
++    KeyError
++        ``adata`` lacks the ``function`` or ``taxon`` column; ``function`` has
++        no stratified row (the message lists close ids).
++    ValueError
++        ``top`` is not a positive integer or ``None``, or would hide a taxon
++        named ``"other"``.
++
++    Notes
++    -----
++    R equivalent: none
++    Guide: :doc:`/guide/plotting`
++
++    The bars are ``bt.fn.contributions``' table, drawn as stored: for a
++    pathway they need not reach its community value. Plot the stratified
++    modality of ``bt.fn.renorm(mdata, "relab")`` for shares of each sample's
++    community total.
++
++    Examples
++    --------
++    >>> import biotapy as bt
++    >>> ax = bt.pl.contributions(bt.datasets.toy_humann()["function_by_taxon"], "2.7.1.2")
++    >>> len(ax.patches)  # 6 samples x 2 taxa
++    12
++    """
++    strata = function_contributions(adata, function, top=top)
++    # fn.contributions adds a column ("other") only when top leaves taxa out; it is drawn grey, as a missing group.
++    other = top is not None and strata.shape[1] > top
++    n_taxa = strata.shape[1] - 1 if other else strata.shape[1]
++    ax = new_axes(ax)
++    _stack(ax, strata.to_numpy(), strata.columns.tolist(), colors=_colors(n_taxa, missing=other))
++    label_ticks(ax, strata.index.tolist(), axis="x")
++    ax.set_xlabel("sample")
++    ax.set_ylabel("abundance")
++    ax.set_title(function)
++    ax.legend(title="taxon")
++    return ax
++
++
+ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = None) -> "Axes":
+     """Heatmap of the table, samples as columns and features as rows, on a log colour scale.
+
+@@ -148,6 +212,14 @@ def heatmap(adata: AnnData, *, layer: str | None = None, ax: "Axes | None" = Non
+     return ax
+
+
++def _stack(ax: "Axes", heights: npt.NDArray[np.float64], labels: list[str], *, colors: list[RGBA]) -> None:
++    """One bar per row of ``heights``, stacking one coloured segment per column in column order."""
++    positions, bottom = np.arange(heights.shape[0]), np.zeros(heights.shape[0])
++    for column, (label, color) in enumerate(zip(labels, colors, strict=True)):
++        ax.bar(positions, heights[:, column], bottom=bottom, color=color, label=label)
++        bottom += heights[:, column]
++
++
+ def _segments(
+     adata: AnnData, values: sp.csr_matrix, fill: str
+ ) -> tuple[npt.NDArray[np.float64], list[str], list[RGBA]]:
+```
+
+`src/biotapy/pl/__init__.py` becomes (its docstring no longer says `pl`
+only reads `tl` and `pp` output):
+
+```python
+"""Plots of what tl, pp and fn give; pl computes nothing itself (contracts/module-boundaries)."""
+
+from ._abundance import bar, contributions, heatmap
+from ._ordination import ordination, scree
+from ._richness import richness
+
+__all__ = ["bar", "contributions", "heatmap", "ordination", "richness", "scree"]
+```
+
+- [x] **Step 4: Run, expect pass.**
+  `uv run --group test pytest tests/pl src/biotapy/pl -q -W error`
+  -> `56 passed`. `bar`'s 22 earlier tests in the file pass unedited. Check
+  `bar`'s output is unchanged: render `bt.pl.bar` on `bt.datasets.toy()`
+  for `fill="phylum"`, `fill="genus", x="group"`, `fill="group"` and a
+  categorical `x` with missing values, before and after the change, and
+  compare the PNG bytes (`savefig(..., metadata={"Software": None})`);
+  they must be identical.
+- [x] **Step 5: Docs.** In `docs/api.md`, add `pl.contributions` after
+  `pl.bar`. Edit the two guides:
+
+```diff
+diff --git a/docs/guide/plotting.md b/docs/guide/plotting.md
+--- a/docs/guide/plotting.md
++++ b/docs/guide/plotting.md
+@@ -1,6 +1,6 @@
+ # Plotting
+
+-`bt.pl` draws what `tl` and `pp` stored; it computes no diversity and no ordination. Each
++`bt.pl` draws what `tl`, `pp` and `fn` give; it computes no diversity and no ordination. Each
+ function takes `ax=` to draw on existing axes, or makes a new figure, and returns the
+ `matplotlib.axes.Axes`, so you finish the plot with matplotlib. When a stored result is
+ missing, the error names the call to run:
+@@ -9,6 +9,7 @@ missing, the error names the call to run:
+ |---|---|---|
+ | `pl.bar` | `X` or `layers[layer]`, and `var`/`obs` columns | `pp.relative` for `layer="relative"` |
+ | `pl.heatmap` | `X` or `layers[layer]` | `pp.relative` for `layer="relative"` |
++| `pl.contributions` | a stratified function table's `X` and `var["function"]`, `var["taxon"]` | `io.read_humann`, `io.read_picrust2` (the `"function_by_taxon"` modality) |
+ | `pl.richness` | `obs["alpha_<metric>"]` | `tl.alpha(..., inplace=True)` |
+ | `pl.ordination` | `obsm["X_pcoa"]` or `obsm["X_nmds"]`, and `uns["biotapy"]["pcoa"]` or `["nmds"]` | `tl.pcoa` or `tl.nmds` with `inplace=True` |
+ | `pl.scree` | `uns["biotapy"]["pcoa"]["proportion_explained"]` | `tl.pcoa(..., inplace=True)` |
+@@ -59,6 +60,20 @@ for ax, phylum in zip(axes, ["Bacteroidota", "Firmicutes", "Proteobacteria"]):
+     ax.set_title(phylum)
+ ```
+
++## Contributions: `pl.contributions`
++
++`pl.contributions(mdata["function_by_taxon"], "PWY-5100")` draws one bar per sample for one
++function, one segment per taxon carrying it: the table `bt.fn.contributions` returns. `top=8`
++(the default) keeps the eight taxa with the largest total and draws the rest as one grey
++segment, `other`; `top=None` draws every taxon. Bars are the strata as stored, so a pathway's
++bar need not reach its community value; plot the stratified modality of
++`bt.fn.renorm(mdata, "relab")` to read shares of each sample's community total.
++
++```python
++mdata = bt.datasets.toy_humann()
++bt.pl.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
++```
++
+ ## Heatmaps: `pl.heatmap`
+
+ `pl.heatmap` draws the table in `obs` and `var` order, features as rows, on phyloseq's log
+diff --git a/docs/guide/function.md b/docs/guide/function.md
+--- a/docs/guide/function.md
++++ b/docs/guide/function.md
+@@ -156,6 +156,9 @@ table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
+ An unknown id raises a `KeyError` listing up to three close ids, which
+ catches typos and an `EC:` prefix.
+
++`bt.pl.contributions` draws the same table as stacked bars, one per sample;
++see the [plotting guide](plotting.md).
++
+ ## Functional redundancy
+
+ `bt.fn.functional_redundancy(adata, traits=traits)` measures, per sample, how
+```
+
+  Build the docs -> `build succeeded.`
+- [x] **Step 6: Bookkeeping.**
+  - The checklist line becomes
+    `- [x] 2.9 \`pl.contributions(adata, function, *, top=8, ax=None) -> Axes\``;
+    tick this task's step boxes; bump `generated` and `commit`.
+  - Add under the slice 2C log heading:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.9 done: \`pl.contributions\` draws \`fn.contributions\`' table as stacked bars, sharing \`bar\`'s drawing (\`_abundance.py:_stack\`).`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+git add src/biotapy/pl/_abundance.py src/biotapy/pl/__init__.py tests/pl/test_abundance.py docs/api.md \
+  docs/guide/plotting.md docs/guide/function.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(pl): add contributions, stacked bars of one function per taxon"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 936 passed, 22 deselected
+BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+### Checkpoint C - review slice 2C
+
+- [x] **Review the whole slice** with superpowers:requesting-code-review,
+  against:
+  - data-model-slots, function-shape, module-boundaries and r-golden-parity;
+  - pure-by-default, function-tables-as-mudata and no-bundled-kegg;
+  - the slice 2C design and review focus above, and Tian et al.'s Eqs. 1-4
+    and 7 (PMC7719190).
+
+  Then a fix pass, one commit per finding, each with a test. Reviewers may
+  run the verbs on real HUMAnN or PICRUSt2 outputs they hold. Never commit
+  those files, never copy a PICRUSt2 output into `tests/` (GPL), and never
+  open the FR MATLAB repository (no licence).
+
+  Record: review 0 Critical / 3 Important / 7 Minor; fix pass
+  `78a9146..feb6756`; controller fixes `7590c16` (numbered ASV ids as text in
+  the recipe) and `f5236e8` (MuData hint only for a MuData); re-review 10/10
+  addressed.
+- [x] **Run the gates** on the committed tree (`git status --short` empty
+  first):
+  - `uvx prek run --all-files`;
+  - `uv run --group test pytest -q -W error::UserWarning` (936 passed, 22
+    deselected before the fix pass);
+  - `uv run --group test pytest -m golden tests/fn -q` (7 passed);
+  - `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`.
+
+  Confirm `~/.cache/biotapy` does not exist.
+- [x] **Knowledge** (codebase-map templates; R12.2-R12.4). Make these
+  edits, bump `generated` and `commit` on each changed concept, and copy
+  each changed `description` into `modules/index.md`:
+
+  Done at Checkpoint C (the pre-fix-pass draft diff is dropped; the
+  concepts are the record): `modules/fn.md` (entry points, invariants,
+  gotchas), `modules/pl.md` (`contributions`, `_stack`, the `fn` import, the
+  `_colors` NA-grey rule), `modules/core.md` (`divide_rows` and its three
+  callers), `modules/pp.md` (`relative` divides each value), the contracts
+  and the roadmap concepts that named `pl` as drawing only `tl`/`pp`
+  results or whose paths changed, each re-checked.
+
+  Add to `.knowledge/log.md`, under `## <date> (Phase 2, Checkpoint C)`:
+  `- **Update**: [fn](modules/fn.md) documents \`contributions\` and \`functional_redundancy\` (entry points, invariants, the SciPy zero-vector NaN, 16S correction, measured cost); [pl](modules/pl.md) documents \`contributions\`, \`_stack\` and the \`fn\` import; both descriptions copied into [modules/index.md](modules/index.md).`
+  Re-check every concept `scripts/knowledge_stale.sh` flags; bump only
+  `commit`/`generated` where nothing it states became false, with a log line.
+  Commit: `docs(knowledge): document fn.contributions, fn.functional_redundancy and pl.contributions`.
+- [ ] **Push** `phase-2c`, open the PR, and merge-commit on green (approved
+  2026-10-03). CI must be green, including docs and the network job.
+- [ ] **Ask the user to review slice 2C** before slice 2D.
+
+### Slice 2C decisions for the user
+
+Each changes an outline signature, a contract, the public surface or an
+earlier slice, or is a judgement call. The recommended answer comes first.
+
+1. **`fn.contributions(adata, function, *, top=None)` takes the
+   `"function_by_taxon"` AnnData, not the MuData** (outline signature
+   change). R3.2's widest working type; `func_glom` output works directly. A
+   MuData raises `TypeError` naming `mdata['function_by_taxon']`.
+2. **`pl.contributions(adata, function, *, top=8, ax=None)`: AnnData, and
+   no `plot_kwargs`** (outline signature change). No `pl` function has
+   `plot_kwargs` (Phase 1 ruling 10, R2.3); users style the returned `Axes`.
+3. **Raw strata, no share option** in `fn` or `pl`. Shares of the community
+   total are `fn.renorm(mdata, "relab")`'s stratified modality, which the
+   docstrings and guides point to.
+4. **Tian's `p` comes from the user's samples x taxa table, as given; no new
+   reader and no `copies=` keyword.** The paper used MetaPhlAn2 organism
+   abundances, so for 16S data the guide divides read counts by predicted
+   16S copies, read with the existing `read_picrust2_traits` from PICRUSt2's
+   marker file. Alternatives: a `copies=` keyword, a `seqtab_norm` reader
+   (new public function), or reading `taxon_abun` in `read_picrust2`
+   (changes a 2B reader). The function cannot detect uncorrected input and
+   does not warn.
+5. **Taxa without traits (ASVs PICRUSt2 has no prediction for, `RARE`) are
+   dropped with a warning and `p` is renormalised** over taxa with a genome, as the paper's
+   Eq. 2 identity requires. Alternative: keep them in `p`'s denominator.
+6. **Two taxa without any gene have distance 1** (share nothing). SciPy
+   returns NaN there (the outline said 0); Eq. 7 is 0/0. Alternative: 0
+   (identical empty genomes), which would count empty genomes as redundant.
+7. **TD is computed as FD + FR**, equal to Gini-Simpson up to rounding
+   (tested at `rtol=1e-12` against `tl.alpha`), so `0 <= FD, FR <= TD` hold
+   exactly. Single-taxon sample: 0, 0, 0, NaN; empty sample: NaN; no
+   exclusion of samples with few taxa (the paper excluded those with fewer
+   than five known-genome strains; users can filter, R2.3).
+8. **`pl.bar`'s drawing loop moves into `_abundance.py:_stack`** (a Phase 1
+   function refactored, R4.3). Output unchanged except the NA-grey colour fix below; tests unedited.
+9. **Wording of `pl`'s self-description changes**: `pl/__init__.py`'s
+   docstring, the plotting guide's intro and `modules/pl.md`'s description
+   now say `pl` draws what `tl`, `pp` and `fn` give (it calls
+   `fn.contributions`; it still computes nothing itself). No contract text
+   changes.
+10. **`"other"` is grey** (the missing-group grey) in `pl.contributions`, and
+    a real taxon named `other` makes `top` raise rather than merge.
+11. **Reported, not fixed (R1.4): `pp.relative` overflows for a subnormal
+    sample total.** It multiplies by `1 / total`; a sample totalling
+    `5e-324` gives `inf` in `layers["relative"]` with a `RuntimeWarning`
+    (checked on `c49aeb4`). `fn.renorm` and `fn.functional_redundancy`
+    divide each value instead. Suggested separate fix: the same division in
+    `pp/_transform.py:relative`, with a test.
+    **Approved 2026-10-03:** fixed on the slice 2C branch as its own `fix:`
+    commit with a test, before Task 2.7 (`e34b6e9`). The Checkpoint C fix
+    pass then moved the division into `_core.divide_rows`, which
+    `pp.relative`, `fn.renorm` and `functional_redundancy` call.
+
+### Slice 2C self-review
+
+Run against the brief, this concept's 2C outline and the writing-plans
+checklist.
+
+1. **Spec coverage.**
+
+   | Brief or outline item | Where it lands |
+   |---|---|
+   | 2.7 raw vs shares, input type, `func_glom`/`renorm` output, missing function, `top` ties and `other`, `unclassified`, specials, index/columns | design 1; 2.7 tests `test_one_column_per_taxon_ordered_by_total`, `test_ties_are_broken_by_taxon_name`, `test_reads_regrouped_and_renormalised_tables`, `test_unknown_function_names_close_ids`, `test_a_taxon_named_other_cannot_be_hidden_by_top`, `test_unclassified_is_an_ordinary_taxon`, `test_special_functions_are_queried_like_any_other` |
+   | 2.8 inputs (the open question) | design 2; decision 4; `test_reads_picrust2_traits_and_16s_corrected_abundances` |
+   | 2.8 `RARE`, taxa without traits, all-zero genes, all-zero and single-taxon samples, memory, `traits` validation | design 3 and its measurement table; 2.8 tests for each |
+   | 2.8 Hypothesis: 0 <= FD <= TD, FR = TD for identical genomes, FR = 0 for disjoint sets, permutation invariance | `test_diversities_are_ordered`, `test_identical_genomes_are_fully_redundant`, `test_disjoint_genomes_have_no_redundancy`, `test_taxon_order_does_not_matter`, plus `test_matches_the_paper_equations` (Eq. 7 written out) |
+   | 2.7 Hypothesis: row sums equal the strata, with and without `top` | `test_rows_sum_to_the_functions_strata` |
+   | 2.9 signature, reuse, legend, order, shares | design 4; 2.9 tests |
+   | Method text in `docs/guide/function.md` | 2.7 and 2.8 Step 5 |
+   | Checkpoint C in the 2A/2B form | Checkpoint C above |
+   | R11.2 edge cases and purity | all-zero sample, all-zero feature/taxon, single sample and purity tests in each task |
+
+   Not applicable: golden tests (no R equivalent for any of the three, and
+   `pl` has none by statement 7).
+2. **Placeholder scan.** Every code and test block is rendered from the
+   scratch commits that passed the gates. Values left for run time: the
+   implementer's model id and UTC time in `generated`, `HEAD`'s short hash
+   in `commit`, the log heading's date and `<scratchpad>`.
+3. **Type consistency.** `fn.contributions(adata, function, *, top)` is
+   called with the same names by `pl.contributions` and the tests; `top` is
+   `int | None` in both (default `None` in `fn`, `8` in `pl`).
+   `functional_redundancy`'s four column names are the same in the code
+   (`COLUMNS`), the tests and the guide. `_stack(ax, heights, labels, *,
+   colors)` has the same signature at both call sites.
+4. **Review focus.** Each of the five items names tests that exist in the
+   code above; checked by searching this section for each name.
+5. **Known residual risks.**
+   - PICRUSt2 2.6's file names (`combined_EC_predicted.tsv.gz`,
+     `combined_marker_predicted_and_nsti.tsv.gz`) and whether its combined
+     bacteria/archaea marker file keeps the `16S_rRNA_Count` column are
+     from research B and PICRUSt2's test data header, never from a run.
+   - The measured cost is one machine, random data and one gene count;
+     task 2.14 measures it again in asv.
+   - Tian et al.'s numbers (nFR about 0.4) cannot be reproduced here: their
+     IMG/M genomes and MetaPhlAn2 profiles are not available, so parity
+     rests on the equations, hand-computed cases and properties.
 
 ---
 
@@ -5399,7 +7214,9 @@ asv `benchmarks/benchmarks/fn.py`, measuring only (R10.1):
 - `func_glom` on a synthetic 1,600 x 22,000 stratified table with a
   many-to-many map;
 - `read_humann` on the same written to TSV;
-- `functional_redundancy` at N = 2,000 taxa (O(N²) memory).
+- `functional_redundancy` at N = 2,000 taxa (O(N²) memory; the 2C plan
+  measured 5 s at 2,000 taxa and 6 minutes and 1.7 GB at 10,000, with
+  2,500 genes).
 
 No optimisation without a profile.
 
@@ -5456,7 +7273,7 @@ a judgement call. Recommended answer first.
 10. **`_core` placement** of `sum_pairs` and `replace_features`. Each has one
     consumer today, which is in tension with R4.3. They follow roadmap 2.1
     and the `sum_by` precedent.
-11. Slice 2B decisions: see the slice's own list.
+11. Slice 2B and 2C decisions: see each slice's own list.
 12. **Frontmatter `description`** of phase-2-function.md, as proposed in
     design note 7.
 

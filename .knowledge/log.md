@@ -1,5 +1,26 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 2, Checkpoint C)
+- **Update**: [fn](modules/fn.md) documents `contributions` and `functional_redundancy` (entry points, invariants incl. the boundary checks, the SciPy zero-vector NaN, 16S correction with PICRUSt2's NSTI cutoff applied by the recipe, memory and time cost, `divide_rows` rule); description copied into [modules/index.md](modules/index.md).
+- **Update**: [pl](modules/pl.md) documents `contributions`, `_stack`, the `fn` import and `_colors` never giving a group the NA/"other" grey (`pl.bar` colours changed for 8+ groups plus NA); description copied into [modules/index.md](modules/index.md).
+- **Update**: [core](modules/core.md) lists `divide_rows` with its three consumers and the divide-don't-multiply gotcha.
+- **Update**: [pp](modules/pp.md): `relative` divides each float64-summed value through `divide_rows` instead of multiplying by a reciprocal.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md): slice 2C design, decisions and risks carry the corrected NSTI facts and the guide's current recipe; Task 2.8's `_redundancy.py`, test block and guide text equal the files at `f5236e8`; decisions 8 and 11 note the colour fix and `divide_rows`; Checkpoint C's review, gates and knowledge boxes ticked with the review record, and its draft diff replaced by a summary.
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md), [module-boundaries](contracts/module-boundaries.md), [data-model-slots](contracts/data-model-slots.md): `pl` now draws `tl`, `pp` and `fn` results, and `pl.contributions` has no R equivalent.
+- **Verification**: re-checked against `c49aeb4..f5236e8` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md) (its old `pp.relative` block is historical, not rewritten), [phase-3-stats](roadmap/phase-3-stats.md), [function-tables-as-mudata](decisions/function-tables-as-mudata.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md).
+
+## 2026-10-05 (Checkpoint C fix pass)
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 `_redundancy.py` code block and task 2.9 `_abundance.py` diff now match the fix pass (float64 sample totals, `adata` type check, PICRUSt2 wording, `toy()` example, Notes on the samples x taxa products, explicit taxon count in `pl.contributions`).
+
+## 2026-10-03 (Phase 2, slice 2C)
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.7 done: `fn.contributions` returns one function's strata as a samples x taxa table.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 done: `fn.functional_redundancy` computes Tian et al. 2020's TD, FD, FR and nFR per sample.
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.8 code and tests now match the fix round (in-place condensed distances with a measured peak note, sample-total overflow and duplicate taxon id errors, `divide_rows`, nullable-NA test).
+- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.9 done: `pl.contributions` draws `fn.contributions`' table as stacked bars, sharing `bar`'s drawing (`_abundance.py:_stack`).
+
+## 2026-10-03 (slice 2C plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2C plan in full TDD steps (2.7 fn.contributions, 2.8 fn.functional_redundancy, 2.9 pl.contributions, Checkpoint C) and its decisions, with the pp.relative subnormal fix approved as a separate commit; checklist signatures, header note, decision 11 and the 2.14 outline updated.
+
 ## 2026-10-03 (Phase 2, Checkpoint B)
 - **Update**: [io](modules/io.md) documents `read_metaphlan`, `read_picrust2` and `read_picrust2_traits` and the shared `_table.py` (header rule, strict checks, `utf-8-sig`, first-cell check, contribution-sample check, seven rank columns), replacing the removed `_humann.py:_read_table`; its description is copied into [modules/index.md](modules/index.md).
 - **Update**: [core](modules/core.md) lists `RELATIVE_TOLERANCE` as exported (second consumer `io.read_metaphlan`), `make_function_mudata` also used by `io.read_picrust2`, and `normalize_ranks` used by `io.read_phyloseq` and `io.read_metaphlan`.

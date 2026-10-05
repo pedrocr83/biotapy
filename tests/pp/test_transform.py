@@ -55,6 +55,18 @@ def test_relative_records_provenance():
     assert json.loads(entries[-1])["step"] == "pp.relative"
 
 
+def test_relative_subnormal_total_stays_finite():
+    # 1 / 5e-324 overflows to inf; dividing each value by the total does not.
+    tiny = np.nextafter(0.0, 1.0)
+    adata = ad.AnnData(
+        X=sp.csr_matrix(np.array([[tiny, 0.0], [1.0, 3.0]])),
+        obs=pd.DataFrame(index=["s0", "s1"]),
+        var=pd.DataFrame(index=["f0", "f1"]),
+    )
+    rel = bt.pp.relative(adata).layers["relative"].toarray()
+    np.testing.assert_array_equal(rel, [[1.0, 0.0], [0.25, 0.75]])
+
+
 @given(arrays(np.int64, st.tuples(st.integers(1, 8), st.integers(1, 8)), elements=st.integers(0, 1000)))
 def test_relative_rows_sum_to_one_or_zero(dense):
     adata = ad.AnnData(
@@ -64,3 +76,12 @@ def test_relative_rows_sum_to_one_or_zero(dense):
     )
     expected = np.where(dense.sum(axis=1) > 0, 1.0, 0.0)
     np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), expected)
+
+
+def test_relative_float32_rows_sum_to_one_in_float64():
+    adata = ad.AnnData(
+        X=sp.csr_matrix(np.array([[0.1, 0.2, 0.3, 0.7], [1.1, 2.3, 0.0, 4.9]]), dtype=np.float32),
+        obs=pd.DataFrame(index=["s0", "s1"]),
+        var=pd.DataFrame(index=list("abcd")),
+    )
+    np.testing.assert_allclose(_row_sums(bt.pp.relative(adata).layers["relative"]), 1.0, rtol=0, atol=1e-12)
