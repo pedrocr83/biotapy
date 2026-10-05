@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
 import biotapy as bt
-from biotapy._core import TreeData, tree_from_edges
+from biotapy._core import TreeData, get_tree, tree_from_edges
 
 
 def _toy6() -> TreeData:
@@ -40,8 +40,10 @@ def test_one_column_per_internal_node_in_preorder():
 def test_keeps_x_tree_and_input(assert_unchanged):
     tdata = _toy6()
     before = tdata.copy()
+    edges = [(u, v, dict(data)) for u, v, data in get_tree(tdata).edges(data=True)]
     out = bt.pp.philr(tdata)
     assert_unchanged(before, tdata)
+    assert list(get_tree(tdata).edges(data=True)) == edges
     assert isinstance(out, TreeData) and "phylo" in out.vart and (out.X != tdata.X).nnz == 0
 
 
@@ -112,6 +114,13 @@ def test_all_zero_feature_is_finite():
 
 def test_single_sample():
     assert bt.pp.philr(_toy6()[:1].copy()).obsm["X_philr"].shape == (1, 5)
+
+
+def test_philr_pseudocount_above_the_smallest_value_warns():
+    relative = _toy6()
+    relative.X = bt.pp.relative(relative).layers["relative"]
+    with pytest.warns(UserWarning, match=r"pseudocount=0.5 is larger than the smallest non-zero value in X \(0.0"):
+        bt.pp.philr(relative)
 
 
 def test_zero_without_pseudocount_raises():
