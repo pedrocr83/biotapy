@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:10:00Z }
-commit: dfab6a3
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:39:32Z }
+commit: 4e111d3
 sources:
   - id: spec
     resource: ../../plan.md
@@ -1873,17 +1873,19 @@ was gated:
   boundary). `validate_result(table, *, arg)`, added with its only consumer in
   3.8, raises `TypeError` for a non-DataFrame and `ValueError` when a schema
   column is missing, a float column or `direction` has another dtype, the
-  index repeats a feature, `pvalue`/`qvalue` leave [0, 1], `qvalue` is not NaN
-  exactly where `pvalue` is, `direction != sign(effect)`, or the table holds
-  more than one `method` or `contrast`. Extra columns are allowed and ignored.
+  index repeats a feature, `pvalue`/`qvalue` leave [0, 1], `qvalue` or
+  `effect` is not NaN exactly where `pvalue` is, `direction != sign(effect)`
+  (0 where `effect` is NaN), or the table holds more than one `method` or
+  `contrast` (a NaN `method` or `contrast` counts as another). Extra columns are allowed and ignored.
 - **The shared model (`da/_design.py`).** `model(adata, group, *, covariates,
   reference, func)` returns `obs[[group, *covariates]]` with numeric columns
   as float64 and others as a `Categorical` of the levels present (the group's
   `reference` first), and the `contrast` text. It raises when `covariates` is
-  a string (`TypeError`), a column is absent (`KeyError`), a column repeats,
-  a value is missing, the group's levels are not two, `reference` is not a
-  level or is given for a numeric group, there are no more samples than model
-  terms, or the design is rank deficient (collinear covariates: `lstsq` would
+  not a list of column names or `reference` is not a string (`TypeError`), a
+  column is absent (`KeyError`), a column repeats or is constant, a value is
+  missing, the group's levels are not two, `reference` is not a level or is
+  given for a numeric group, there are fewer than two features, there are no
+  more samples than model terms, or the design is rank deficient (collinear covariates: `lstsq` would
   silently return a minimum-norm answer). `design_matrix(frame, *, scale)`
   builds intercept + indicators against the first category + numeric values
   (centred and divided by the SD with `scale=True`, as R's `scale()`), with
@@ -1923,7 +1925,8 @@ was gated:
   `"x0 + x1 + ..."`; the group's row is the covariate named `x0` or
   `x0[...]` (by name: patsy puts numeric terms after categorical ones).
   `effect` and `se` are divided by ln 2; a feature scikit-bio could not fit
-  (NaN `Log(FC)`, p = 1, as R does) gets NaN `pvalue`, so BH runs over the
+  (NaN `Log(FC)`, p = 1, as R does) or with no residual degrees of freedom
+  (a finite effect and NaN p) gets NaN in all four floats, so BH runs over the
   tested features only. Settings equal R's `ancombc2(..., p_adj_method = "BH",
   prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE, struc_zero = FALSE)` with its
   other defaults (`pseudo = 0`, `s0_perc = 0.05`, `iter_control` 1e-2/20,
