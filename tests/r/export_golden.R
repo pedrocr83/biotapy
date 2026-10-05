@@ -101,6 +101,41 @@ write_golden(
   file.path(gp, "permanova_sampletype.csv.gz")
 )
 
+## Slice 3A golden files: CLR and PhILR (GlobalPatterns)
+# mia::transformAssay(method = "clr", pseudocount = 0.5) delegates to this call, which adds 0.5 to every count.
+clr <- vegan::decostand(samples_as_rows(GlobalPatterns), "clr", pseudocount = 0.5)
+# Every 100th taxon keeps the file small; each value still depends on all 19,216 taxa.
+every_100th <- seq(1, ncol(clr), by = 100)
+write_golden(
+  data.frame(
+    sample_id = rep(rownames(clr), times = length(every_100th)),
+    taxon_id = rep(colnames(clr)[every_100th], each = nrow(clr)),
+    value = as.vector(clr[, every_100th])
+  ),
+  file.path(gp, "clr.csv.gz")
+)
+# The 293 taxa with more than 3 reads in over half of the samples. prune_taxa (ape::drop.tip) leaves a rooted
+# binary tree; makeNodeLabel names the internal nodes, which philr uses as balance names.
+gp_philr <- filter_taxa(GlobalPatterns, function(x) sum(x > 3) > 0.5 * length(x), TRUE)
+philr_tree <- ape::makeNodeLabel(phy_tree(gp_philr), method = "number", prefix = "n")
+stopifnot(ape::is.rooted(philr_tree), ape::is.binary(philr_tree))
+balances <- suppressMessages(philr::philr(samples_as_rows(gp_philr), philr_tree, pseudocount = 0.5))
+write_golden(
+  data.frame(
+    sample_id = rep(rownames(balances), times = ncol(balances)),
+    balance = rep(colnames(balances), each = nrow(balances)),
+    value = as.vector(balances)
+  ),
+  file.path(gp, "philr.csv.gz")
+)
+# Each balance's sequential binary partition: +1 for the taxa in its numerator, -1 for its denominator.
+sbp <- philr::phylo2sbp(philr_tree)
+signs <- which(sbp != 0, arr.ind = TRUE)
+write_golden(
+  data.frame(balance = colnames(sbp)[signs[, "col"]], taxon_id = rownames(sbp)[signs[, "row"]], sign = sbp[signs]),
+  file.path(gp, "philr_sbp.csv.gz")
+)
+
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
   c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
@@ -161,5 +196,6 @@ writeLines(c(
   paste0("phyloseq ", packageVersion("phyloseq")),
   paste0("vegan ", packageVersion("vegan")),
   paste0("ape ", packageVersion("ape")),
-  paste0("picante ", packageVersion("picante"))
+  paste0("picante ", packageVersion("picante")),
+  paste0("philr ", packageVersion("philr"))
 ), "tests/golden/VERSIONS.txt")

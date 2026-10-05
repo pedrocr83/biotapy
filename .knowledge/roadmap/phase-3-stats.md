@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T14:40:50Z }
-commit: c015d3d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:50:00Z }
+commit: 364905b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -575,7 +575,7 @@ real `se`) is fixed by code biotapy owns before a wrapper maps a library's
 columns onto it.
 
 # Tasks (checklist)
-- [ ] 3.0 CLR and PhILR golden files (philr in the R image)
+- [x] 3.0 CLR and PhILR golden files (philr in the R image)
 - [ ] 3.1 `pp.clr(adata, *, pseudocount=0.5) -> AnnData`
 - [ ] 3.2 `pp.philr(tdata, *, pseudocount=0.5) -> TreeData`
 - [ ] Checkpoint A
@@ -715,9 +715,9 @@ create `tests/golden/global_patterns/clr.csv.gz`,
 - `philr_sbp.csv.gz`: `balance, taxon_id, sign` (+1 numerator, -1
   denominator; 4,256 rows), R's balance names `n1...`.
 
-- [ ] **Step 1: Ask** the user to approve philr (GPL-3) and `libuv1` in the
+- [x] **Step 1: Ask** the user to approve philr (GPL-3) and `libuv1` in the
   golden image (dependency table; they live only in the image).
-- [ ] **Step 2: Add philr to the image.** In `tests/r/Dockerfile`:
+- [x] **Step 2: Add philr to the image.** In `tests/r/Dockerfile`:
   ```diff
   @@ -14,6 +14,10 @@ RUN Rscript -e 'install.packages("BiocManager")' \
    RUN Rscript -e 'BiocManager::install("phyloseq", version = "3.22", ask = FALSE, update = FALSE)'
@@ -753,12 +753,12 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   (`update = FALSE`). Without the `libuv1` line the guard fails with
   `requireNamespace("philr", quietly = TRUE) is not TRUE` after
   `libuv.so.1: cannot open shared object file`.
-- [ ] **Step 3: Commit the image change on its own** (contract statement 1):
+- [x] **Step 3: Commit the image change on its own** (contract statement 1):
   ```bash
   git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
   git commit -m "build(r): add philr to the golden image"
   ```
-- [ ] **Step 4: Export.** In `tests/r/export_golden.R`, insert before
+- [x] **Step 4: Export.** In `tests/r/export_golden.R`, insert before
   `## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data`:
   ```r
   ## Slice 3A golden files: CLR and PhILR (GlobalPatterns)
@@ -808,7 +808,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
     paste0("philr ", packageVersion("philr"))
   ), "tests/golden/VERSIONS.txt")
   ```
-- [ ] **Step 5: Run twice, check bit identity** (playbook
+- [x] **Step 5: Run twice, check bit identity** (playbook
   regenerate-golden-files):
   ```bash
   mkdir -p build
@@ -823,7 +823,7 @@ create `tests/golden/global_patterns/clr.csv.gz`,
   (`clr`), 85 KB (`philr`) and 15 KB (`philr_sbp`). Every existing golden
   file is byte-identical. The run prints `Found more than one class "phylo"
   in cache` (phyloseq and tidytree both define it); harmless.
-- [ ] **Step 6: Gate and commit.** `uv run --group test pytest
+- [x] **Step 6: Gate and commit.** `uv run --group test pytest
   tests/test_data_files.py -q` -> passes (each file < 1 MB, VERSIONS names
   R and Bioconductor). Then `uvx prek run --all-files` and:
   ```bash
