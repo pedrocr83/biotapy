@@ -160,3 +160,9 @@ def test_empty_results_raise():
 def test_option_of_the_wrong_type_raises(option, value):
     with pytest.raises(TypeError, match=option):
         bt.da.consensus([_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])], **{option: value})
+
+
+def test_numpy_scalars_are_valid_options():
+    results = [_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])]
+    out = bt.da.consensus(results, alpha=np.float32(0.05), min_methods=np.int64(1))
+    assert out["consensus"].tolist() == [True]

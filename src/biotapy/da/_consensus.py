@@ -97,10 +97,10 @@ def _check_options(n_tables: int, *, alpha: float, min_methods: int) -> None:
     if n_tables == 0:
         msg = "results is empty; pass at least one method's table"
         raise ValueError(msg)
-    if isinstance(alpha, bool) or not isinstance(alpha, int | float):
+    if isinstance(alpha, bool) or not isinstance(alpha, int | float | np.integer | np.floating):
         msg = f"alpha must be a real number, got {type(alpha).__name__}"
         raise TypeError(msg)
-    if isinstance(min_methods, bool) or not isinstance(min_methods, int):
+    if isinstance(min_methods, bool) or not isinstance(min_methods, int | np.integer):
         msg = f"min_methods must be an int, got {type(min_methods).__name__}"
         raise TypeError(msg)
     if not 0 < alpha < 1:

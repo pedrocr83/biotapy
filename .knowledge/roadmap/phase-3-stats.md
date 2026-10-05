@@ -3890,6 +3890,12 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   def test_option_of_the_wrong_type_raises(option, value):
       with pytest.raises(TypeError, match=option):
           bt.da.consensus([_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])], **{option: value})
+
+
+  def test_numpy_scalars_are_valid_options():
+      results = [_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])]
+      out = bt.da.consensus(results, alpha=np.float32(0.05), min_methods=np.int64(1))
+      assert out["consensus"].tolist() == [True]
   ```
   Append to `tests/da/test_schema.py` (the schema checks, through the public
   API):
@@ -4044,10 +4050,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       if n_tables == 0:
           msg = "results is empty; pass at least one method's table"
           raise ValueError(msg)
-      if isinstance(alpha, bool) or not isinstance(alpha, int | float):
+      if isinstance(alpha, bool) or not isinstance(alpha, int | float | np.integer | np.floating):
           msg = f"alpha must be a real number, got {type(alpha).__name__}"
           raise TypeError(msg)
-      if isinstance(min_methods, bool) or not isinstance(min_methods, int):
+      if isinstance(min_methods, bool) or not isinstance(min_methods, int | np.integer):
           msg = f"min_methods must be an int, got {type(min_methods).__name__}"
           raise TypeError(msg)
       if not 0 < alpha < 1:
@@ -4143,7 +4149,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   -__all__ = ["ancombc2", "linda"]
   +__all__ = ["ancombc2", "consensus", "linda"]
   ```
-- [x] **Step 4: Run, expect pass** - the same command -> `101 passed, 4 deselected`. The two
+- [x] **Step 4: Run, expect pass** - the same command -> `102 passed, 4 deselected`. The two
   property tests also under three extra seeds.
 - [x] **Step 5: Decision concept.** Create
   `.knowledge/decisions/da-consensus-agreement.md` (`generated.at` is the
