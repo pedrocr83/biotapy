@@ -238,3 +238,16 @@ def test_disjoint_genomes_have_no_redundancy(case):
     genomes, abundances = case
     out = _run(np.diag(np.arange(1, genomes.shape[0] + 1)), abundances)
     assert (out["redundancy"].dropna() == 0).all()
+
+
+def test_mudata_adata_raises_naming_adata_and_the_modality():
+    import mudata
+
+    mdata = mudata.MuData({"function": _adata([[2, 1, 1]])})
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*MuData.*pass one modality"):
+        bt.fn.functional_redundancy(mdata, traits=TRAITS)
+
+
+def test_dataframe_adata_raises_naming_adata():
+    with pytest.raises(TypeError, match=r"adata must be an AnnData.*DataFrame"):
+        bt.fn.functional_redundancy(pd.DataFrame([[2, 1, 1]], columns=["A", "B", "C"]), traits=TRAITS)  # type: ignore[arg-type]
