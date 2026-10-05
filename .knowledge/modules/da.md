@@ -5,8 +5,8 @@ description: Two native differential abundance methods, LinDA and ANCOM-BC2, tha
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T22:20:19Z }
+commit: 711b643
 status: stable
 ---
 
@@ -128,11 +128,9 @@ exists: unknown.
   name (`x0` or `x0[...]`), never by position. `_ancombc.py:ancombc2`.
 - **LinDA densifies `X` and is native.** `_design.py:dense_counts` calls
   `toarray()` once; the docstring gives the memory cost (about 5x the dense
-  table at peak; ANCOM-BC2 about 7x). rules.md R6.2 names only library
-  wrappers whose delegate needs dense input, and LinDA's log-ratios have no
-  zeros but it is not a wrapper. The plan prescribed the densify. This was
-  raised with the user at Checkpoint B and is not resolved: the rule text is
-  unchanged and no decision has been recorded.
+  table at peak; ANCOM-BC2 about 7x). rules.md R6.2 allows it: a native
+  method whose algorithm needs the full table may densify once (the user
+  approved that wording after Checkpoint B, 2026-10-05).
 - Replicate rows within a group give `se = 0` in LinDA and p-values that are
   floating-point noise; R does the same.
 

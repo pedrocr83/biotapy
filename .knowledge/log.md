@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3, slice 3C)
+- **Update**: [da](modules/da.md) gotcha: LinDA's single densify is allowed by rules.md R6.2, whose wording the user approved after Checkpoint B (a native method whose algorithm needs the full table may densify once).
+
 ## 2026-10-05 (Phase 3, Checkpoint B)
 - **Create**: [da](modules/da.md): the module concept for `linda`, `ancombc2` and `consensus` (one result schema, NaN means not tested, strict `q < alpha`, no filtering, no formulas) with the gotchas the review found (ANCOM-BC2 not antisymmetric in `reference`, no residual degrees of freedom, numeric-group units, prefixed scikit-bio errors, LinDA's densify against R6.2 left unresolved); description copied into [modules/index.md](modules/index.md), and [index](index.md) lists `da`.
 - **Update**: [pl](modules/pl.md) gains `consensus` (Responsibility, Entry points, and the invariant that it reads `da.consensus`'s columns, imports nothing from `da` and keeps its legend one row above the axes); description copied into [modules/index.md](modules/index.md).
