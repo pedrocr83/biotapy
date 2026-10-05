@@ -43,8 +43,9 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
         ``traits`` is not a DataFrame or has a non-numeric column.
     ValueError
         ``traits`` repeats a row id or holds a missing, negative or
-        infinite value; ``adata``'s ``X`` holds a missing, negative or
-        infinite value; no taxon of ``adata`` has a row in ``traits`` (the
+        infinite value; ``adata`` repeats a taxon id, its ``X`` holds a
+        missing, negative or infinite value, or a sample's total abundance
+        overflows; no taxon of ``adata`` has a row in ``traits`` (the
         message shows ids from both, usually an id mismatch).
 
     Warns
@@ -71,11 +72,12 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
 
     The distances form one dense taxa x taxa ``float64`` matrix over the
     taxa with abundance in some sample: 8 bytes x taxa², 32 MB for 2,000
-    taxa and 800 MB for 10,000, plus a condensed copy half that size while
-    it is built. The genome contents of those taxa are read into one dense
-    ``float64`` array. Time grows as taxa² x genes: with 2,500 genes and
-    100 samples, 2,000 taxa took 5 s and 10,000 taxa 6 minutes and 1.7 GB
-    beyond the inputs (measured on one machine). On a large ASV table,
+    taxa and 800 MB for 10,000. While it is built the peak is about 1.5 x
+    8 bytes x taxa² (measured at 3,000 taxa), for the square and the
+    condensed half. ``traits`` is read once into a dense ``float64`` copy,
+    all its rows, not only the taxa of ``adata``. Time grows as taxa² x
+    genes: with 2,500 genes and 100 samples, 2,000 taxa took 5 s and 10,000
+    taxa 6 minutes and 1.7 GB beyond the inputs (measured on one machine). On a large ASV table,
     filter rare taxa first with ``bt.pp.filter_features``.
 
     References
@@ -141,6 +143,10 @@ def _genomes(traits: pd.DataFrame) -> pd.DataFrame:
 
 def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
     """``X`` over the taxa that have traits and abundance somewhere, and those taxa; warns about the others."""
+    repeated = adata.var_names[adata.var_names.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"adata repeats taxon ids: {repeated[:3]}"
+        raise ValueError(msg)
     X = as_csr(adata.X)
     if not np.isfinite(X.data).all() or (X.data < 0).any():
         msg = "adata: X holds a missing, negative or infinite abundance"
@@ -159,7 +165,13 @@ def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Inde
             f"and are left out, with their abundance: {missing[:3].tolist()}"
         )
     keep = np.flatnonzero(found & (np.asarray(X.sum(axis=0)).ravel() > 0))
-    return X[:, keep], adata.var_names[keep]
+    X = X[:, keep]
+    with np.errstate(over="ignore"):
+        overflowing = ~np.isfinite(np.asarray(X.sum(axis=1)).ravel())
+    if overflowing.any():
+        msg = f"adata: the total abundance of a sample overflows: {adata.obs_names[overflowing][:3].tolist()}"
+        raise ValueError(msg)
+    return X, adata.var_names[keep]
 
 
 def _weighted_jaccard(genomes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
@@ -168,10 +180,12 @@ def _weighted_jaccard(genomes: npt.NDArray[np.float64]) -> npt.NDArray[np.float6
         return np.zeros((genomes.shape[0], genomes.shape[0]))
     # For non-negative vectors, 1 - sum(min)/sum(max) = 2 BC / (1 + BC), with BC the Bray-Curtis dissimilarity.
     bray_curtis = pdist(genomes, "braycurtis")
-    distance = 2 * bray_curtis / (1 + bray_curtis)
+    # In place on the condensed array, so only one other condensed-sized temporary exists at a time.
+    np.divide(bray_curtis, 1 + bray_curtis, out=bray_curtis)
+    bray_curtis *= 2
     # Two taxa without any gene give 0/0 (SciPy returns NaN): they share nothing, so their distance is 1.
-    distance[np.isnan(distance)] = 1.0
-    return squareform(distance)
+    bray_curtis[np.isnan(bray_curtis)] = 1.0
+    return squareform(bray_curtis)
 
 
 def _quadratic(shares: sp.csr_matrix, matrix: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:

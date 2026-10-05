@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T21:51:51Z }
-commit: 28b037e
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:04:01Z }
+commit: 2b97529
 sources:
   - id: spec
     resource: ../../plan.md
@@ -6161,6 +6161,26 @@ def test_bad_abundances_raise_naming_adata(value):
         bt.fn.functional_redundancy(_adata([[2, 1, value]]), traits=TRAITS)
 
 
+def test_overflowing_sample_total_raises_naming_adata():
+    with pytest.raises(ValueError, match=r"adata: the total abundance of a sample overflows: \['s0'\]"):
+        bt.fn.functional_redundancy(_adata([[1e308, 1e308, 0], [1, 1, 1]]), traits=TRAITS)
+
+
+def test_repeated_taxon_ids_raise_naming_adata():
+    with pytest.warns(UserWarning, match="not unique"):  # AnnData itself warns on construction
+        adata = _adata([[2, 1, 1]], taxa=("A", "A", "C"))
+    with pytest.raises(ValueError, match=r"adata repeats taxon ids: \['A'\]"):
+        bt.fn.functional_redundancy(adata, traits=TRAITS)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+def test_nullable_missing_trait_raises_naming_traits(dtype):
+    traits = TRAITS.astype(dtype)
+    traits.iloc[0, 0] = pd.NA
+    with pytest.raises(ValueError, match="traits holds a missing, negative or infinite"):
+        bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=traits)
+
+
 @st.composite
 def _cases(draw):
     n_taxa, n_genes, n_obs = draw(st.integers(1, 6)), draw(st.integers(1, 5)), draw(st.integers(1, 3))
@@ -6246,7 +6266,7 @@ import scipy.sparse as sp
 from anndata import AnnData
 from scipy.spatial.distance import pdist, squareform
 
-from biotapy._core import as_csr, warn_user
+from biotapy._core import as_csr, divide_rows, warn_user
 
 COLUMNS = ["taxonomic_diversity", "functional_diversity", "redundancy", "normalized_redundancy"]
 
@@ -6282,8 +6302,9 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
         ``traits`` is not a DataFrame or has a non-numeric column.
     ValueError
         ``traits`` repeats a row id or holds a missing, negative or
-        infinite value; ``adata``'s ``X`` holds a missing, negative or
-        infinite value; no taxon of ``adata`` has a row in ``traits`` (the
+        infinite value; ``adata`` repeats a taxon id, its ``X`` holds a
+        missing, negative or infinite value, or a sample's total abundance
+        overflows; no taxon of ``adata`` has a row in ``traits`` (the
         message shows ids from both, usually an id mismatch).
 
     Warns
@@ -6310,11 +6331,12 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
 
     The distances form one dense taxa x taxa ``float64`` matrix over the
     taxa with abundance in some sample: 8 bytes x taxa², 32 MB for 2,000
-    taxa and 800 MB for 10,000, plus a condensed copy half that size while
-    it is built. The genome contents of those taxa are read into one dense
-    ``float64`` array. Time grows as taxa² x genes: with 2,500 genes and
-    100 samples, 2,000 taxa took 5 s and 10,000 taxa 6 minutes and 1.7 GB
-    beyond the inputs (measured on one machine). On a large ASV table,
+    taxa and 800 MB for 10,000. While it is built the peak is about 1.5 x
+    8 bytes x taxa² (measured at 3,000 taxa), for the square and the
+    condensed half. ``traits`` is read once into a dense ``float64`` copy,
+    all its rows, not only the taxa of ``adata``. Time grows as taxa² x
+    genes: with 2,500 genes and 100 samples, 2,000 taxa took 5 s and 10,000
+    taxa 6 minutes and 1.7 GB beyond the inputs (measured on one machine). On a large ASV table,
     filter rare taxa first with ``bt.pp.filter_features``.
 
     References
@@ -6338,10 +6360,7 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     genomes = _genomes(traits)
     X, taxa = _abundances(adata, genomes.index)
     totals = np.asarray(X.sum(axis=1), dtype=np.float64).ravel()
-    # Each stored value over its sample's total, not times a reciprocal, which overflows for tiny totals.
-    shares = X.astype(np.float64)
-    row_totals = np.repeat(totals, np.diff(shares.indptr))
-    shares.data = np.divide(shares.data, row_totals, out=np.zeros_like(shares.data), where=row_totals > 0)
+    shares = divide_rows(X, totals)
     distance = _weighted_jaccard(genomes.loc[taxa].to_numpy())
     diversity = _quadratic(shares, distance)
     # The similarity 1 - d, built in place over the distances, with i = j left out as in Eq. 4.
@@ -6383,6 +6402,10 @@ def _genomes(traits: pd.DataFrame) -> pd.DataFrame:
 
 def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
     """``X`` over the taxa that have traits and abundance somewhere, and those taxa; warns about the others."""
+    repeated = adata.var_names[adata.var_names.duplicated()].unique().tolist()
+    if repeated:
+        msg = f"adata repeats taxon ids: {repeated[:3]}"
+        raise ValueError(msg)
     X = as_csr(adata.X)
     if not np.isfinite(X.data).all() or (X.data < 0).any():
         msg = "adata: X holds a missing, negative or infinite abundance"
@@ -6401,7 +6424,13 @@ def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Inde
             f"and are left out, with their abundance: {missing[:3].tolist()}"
         )
     keep = np.flatnonzero(found & (np.asarray(X.sum(axis=0)).ravel() > 0))
-    return X[:, keep], adata.var_names[keep]
+    X = X[:, keep]
+    with np.errstate(over="ignore"):
+        overflowing = ~np.isfinite(np.asarray(X.sum(axis=1)).ravel())
+    if overflowing.any():
+        msg = f"adata: the total abundance of a sample overflows: {adata.obs_names[overflowing][:3].tolist()}"
+        raise ValueError(msg)
+    return X, adata.var_names[keep]
 
 
 def _weighted_jaccard(genomes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
@@ -6410,10 +6439,12 @@ def _weighted_jaccard(genomes: npt.NDArray[np.float64]) -> npt.NDArray[np.float6
         return np.zeros((genomes.shape[0], genomes.shape[0]))
     # For non-negative vectors, 1 - sum(min)/sum(max) = 2 BC / (1 + BC), with BC the Bray-Curtis dissimilarity.
     bray_curtis = pdist(genomes, "braycurtis")
-    distance = 2 * bray_curtis / (1 + bray_curtis)
+    # In place on the condensed array, so only one other condensed-sized temporary exists at a time.
+    np.divide(bray_curtis, 1 + bray_curtis, out=bray_curtis)
+    bray_curtis *= 2
     # Two taxa without any gene give 0/0 (SciPy returns NaN): they share nothing, so their distance is 1.
-    distance[np.isnan(distance)] = 1.0
-    return squareform(distance)
+    bray_curtis[np.isnan(bray_curtis)] = 1.0
+    return squareform(bray_curtis)
 
 
 def _quadratic(shares: sp.csr_matrix, matrix: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:

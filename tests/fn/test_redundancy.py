@@ -150,6 +150,26 @@ def test_bad_abundances_raise_naming_adata(value):
         bt.fn.functional_redundancy(_adata([[2, 1, value]]), traits=TRAITS)
 
 
+def test_overflowing_sample_total_raises_naming_adata():
+    with pytest.raises(ValueError, match=r"adata: the total abundance of a sample overflows: \['s0'\]"):
+        bt.fn.functional_redundancy(_adata([[1e308, 1e308, 0], [1, 1, 1]]), traits=TRAITS)
+
+
+def test_repeated_taxon_ids_raise_naming_adata():
+    with pytest.warns(UserWarning, match="not unique"):  # AnnData itself warns on construction
+        adata = _adata([[2, 1, 1]], taxa=("A", "A", "C"))
+    with pytest.raises(ValueError, match=r"adata repeats taxon ids: \['A'\]"):
+        bt.fn.functional_redundancy(adata, traits=TRAITS)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+def test_nullable_missing_trait_raises_naming_traits(dtype):
+    traits = TRAITS.astype(dtype)
+    traits.iloc[0, 0] = pd.NA
+    with pytest.raises(ValueError, match="traits holds a missing, negative or infinite"):
+        bt.fn.functional_redundancy(_adata([[2, 1, 1]]), traits=traits)
+
+
 @st.composite
 def _cases(draw):
     n_taxa, n_genes, n_obs = draw(st.integers(1, 6)), draw(st.integers(1, 5)), draw(st.integers(1, 3))
