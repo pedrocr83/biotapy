@@ -8764,7 +8764,7 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
   (M1-M4, M6, M7; M5, the Read the Docs cache, was left by the user's "no
   workflow change" decision); re-review 6/6 addressed.
 - [x] **Task 2.11** (below), after the fix pass.
-- [ ] **Run the gates** on the committed tree (`git status --short` empty
+- [x] **Run the gates** on the committed tree (`git status --short` empty
   first), every command with `BIOTAPY_DATA_DIR=<scratchpad>/pooch`:
   - `uvx prek run --all-files`;
   - `uv run --group test pytest -q -W error::UserWarning` (981 passed, 23
