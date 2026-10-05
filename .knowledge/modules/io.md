@@ -5,8 +5,8 @@ description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T19:02:00Z }
-commit: fbfeb99
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 status: stable
 ---
 

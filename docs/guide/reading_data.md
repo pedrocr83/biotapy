@@ -5,7 +5,7 @@ Readers turn a file format into a `TreeData` that follows the one
 
 BIOM, QIIME 2, DADA2 and phyloseq tables do not record whether they hold
 counts or proportions, so their readers infer `uns["biotapy"]["x_kind"]` from
-the values: whole numbers are `"counts"`; otherwise, if every sample with a
+the values: non-negative whole numbers are `"counts"`; otherwise, if every sample with a
 nonzero total sums to 1 (within `1e-3`), `"relative"`; anything else is
 `"abundance"`. The HUMAnN, MetaPhlAn and PICRUSt2 readers take it from the
 format instead, as their sections say. Functions that need raw counts check

@@ -15,7 +15,7 @@ PUBLIC = coming_from_r.public_functions()
 
 
 def test_every_public_subpackage_is_covered():
-    assert {name.split(".")[1] for name, _ in PUBLIC} == {"datasets", "fn", "io", "pl", "pp", "tl"}
+    assert {name.split(".")[1] for name, _ in PUBLIC} == {"da", "datasets", "fn", "io", "pl", "pp", "tl"}
 
 
 @pytest.mark.parametrize(("name", "function"), PUBLIC, ids=[name for name, _ in PUBLIC])

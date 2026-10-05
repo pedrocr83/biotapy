@@ -50,7 +50,7 @@ def alpha(
     ValueError
         ``metrics`` is empty, names an unknown metric or repeats one, or
         ``"observed_features"`` or ``"chao1"`` is asked of data that is not raw
-        counts (``x_kind`` ``"counts"`` and whole numbers).
+        counts (``x_kind`` ``"counts"`` and non-negative whole numbers).
     KeyError
         ``"faith_pd"`` is asked of a TreeData without ``vart['phylo']``.
 

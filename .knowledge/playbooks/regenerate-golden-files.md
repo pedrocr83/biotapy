@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**", "tests/humann/**", "tests/data/humann/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -86,6 +86,12 @@ uv run --group test pytest tests/test_data_files.py -q
   installs `fs` as a binary that links libuv at load time, so the image needs
   the system package (`tests/r/Dockerfile`). `philr` is installed only for
   `pp.philr`'s golden file; biotapy never calls it.
+- Installing `ANCOMBC` without pinning CVXR: ANCOMBC 2.12.0 (Bioconductor
+  3.22) imports `CVXR::solve`, which CVXR 1.8 (the image's CRAN snapshot)
+  removed, so ANCOMBC's lazy load fails. The Dockerfile builds CVXR 1.0-15 from
+  the CRAN archive first, and installs `libgsl27`, which the `gsl` binary in
+  ANCOMBC's dependencies links. `ANCOMBC` is installed only for `da.ancombc2`'s
+  golden file; biotapy calls scikit-bio's `ancombc2`.
 - Calling `distance()` unqualified: Biostrings, attached after phyloseq, masks
   it with IRanges' generic, so write `phyloseq::distance`.
 - Sharing one `set.seed(20260927)` across sections: every random call needs

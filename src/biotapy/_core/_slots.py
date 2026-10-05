@@ -31,12 +31,12 @@ def x_kind(adata: AnnData) -> XKind:
 def infer_x_kind(X: object) -> XKind:
     """What a freshly read ``X`` holds, judged from its values.
 
-    Whole numbers are ``"counts"``; otherwise, rows that each sum to 1 within
+    Non-negative whole numbers are ``"counts"``; otherwise, rows that each sum to 1 within
     ``RELATIVE_TOLERANCE`` (all-zero rows ignored) are ``"relative"``;
     anything else is ``"abundance"``.
     """
     matrix = as_csr(X)
-    if np.all(matrix.data == np.round(matrix.data)):
+    if np.all(matrix.data == np.round(matrix.data)) and not np.any(matrix.data < 0):
         return "counts"
     sums = np.asarray(matrix.sum(axis=1)).ravel()
     if np.all(np.abs(sums[sums != 0] - 1) <= RELATIVE_TOLERANCE):
@@ -45,14 +45,14 @@ def infer_x_kind(X: object) -> XKind:
 
 
 def require_counts(adata: AnnData, *, func: str) -> None:
-    """Raise unless ``X`` holds raw counts: labelled ``"counts"`` and every stored value a whole number."""
+    """Raise unless ``X`` holds raw counts: labelled ``"counts"`` and every stored value a non-negative whole number."""
     kind = x_kind(adata)
     if kind != "counts":
         msg = f"{func} needs raw counts in X, but uns['biotapy']['x_kind'] is {kind!r}"
         raise ValueError(msg)
-    # One definition of counts: infer_x_kind's whole-number rule, which reads only X.data (O(nnz)).
+    # One definition of counts: infer_x_kind's non-negative whole-number rule, which reads only X.data (O(nnz)).
     if infer_x_kind(adata.X) != "counts":
-        msg = f"{func} needs raw counts in X, but X holds non-integer or missing (NaN) values"
+        msg = f"{func} needs raw counts in X, but X holds non-integer, negative or missing (NaN) values"
         raise ValueError(msg)
 
 

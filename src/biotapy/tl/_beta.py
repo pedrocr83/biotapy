@@ -111,7 +111,7 @@ def unifrac(
     KeyError
         ``tdata`` has no ``vart['phylo']``.
     ValueError
-        ``weighted=True`` and ``X`` is not raw counts (``x_kind`` ``"counts"`` and whole numbers).
+        ``weighted=True`` and ``X`` is not raw counts (``x_kind`` ``"counts"`` and non-negative whole numbers).
 
     Notes
     -----

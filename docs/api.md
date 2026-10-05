@@ -91,6 +91,20 @@ Public functions are listed here as they ship, from Phase 1 onward.
     tl.unifrac
 ```
 
+## Differential abundance
+
+```{eval-rst}
+.. module:: biotapy.da
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    da.ancombc2
+    da.consensus
+    da.linda
+```
+
 ## Plots
 
 ```{eval-rst}
@@ -101,6 +115,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     :toctree: generated
 
     pl.bar
+    pl.consensus
     pl.contributions
     pl.heatmap
     pl.ordination

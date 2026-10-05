@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 sources:
   - id: spec
     resource: ../../plan.md
@@ -20,8 +20,10 @@ sources:
    installs only what the current golden files need (`phyloseq`, which brings
    `Biostrings`, `vegan` and `ape`, plus CRAN `picante` for Faith PD and
    Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
-   `fs` binary loads); a new golden function that needs another package adds
-   it in its own commit (rules.md R2.3).
+   `fs` binary loads, CRAN `MicrobiomeStat` for `da.linda`, and Bioconductor
+   `ANCOMBC` for `da.ancombc2`, with CRAN's archived CVXR 1.0-15 and the
+   `libgsl27` runtime library it needs); a new golden function that needs another
+   package adds it in its own commit (rules.md R2.3).
 1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
    `tests/humann/export_golden.py`, run with
    `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
@@ -48,6 +50,8 @@ sources:
    | Rarefaction | invariants only: row sums == depth, dropped samples identical, no count exceeds original | exact |
    | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
    | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+   | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
+   | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
 6. Golden files hold numbers derived from third-party example data, never the

@@ -1,12 +1,12 @@
 ---
 type: Module
 title: pl (plots)
-description: Plots of what tl, pp and fn give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination and scree - drawn with matplotlib on the given or a new Axes, computing nothing.
+description: Plots of what tl, pp, fn and da give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination, scree and the da consensus dots - drawn with matplotlib on the given or a new Axes, computing nothing.
 resource: /src/biotapy/pl/
 paths: ["src/biotapy/pl/**"]
 tags: [pl, plots, matplotlib]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 status: stable
 ---
 
@@ -18,7 +18,9 @@ Owns the `bt.pl.*` verbs that draw stored results:
 - `richness` draws `obs["alpha_<metric>"]`;
 - `ordination` draws `obsm["X_pcoa" | "X_nmds"]` with its `uns["biotapy"]`
   summary;
-- `scree` draws `uns["biotapy"]["pcoa"]`.
+- `scree` draws `uns["biotapy"]["pcoa"]`;
+- `consensus` draws the table `da.consensus` returns: a dot per feature and
+  method.
 
 It computes no diversity, distance or ordination; those are
 [tl](/modules/tl.md)'s. A missing slot is a `KeyError` naming the `tl` or
@@ -40,6 +42,10 @@ It computes no diversity, distance or ordination; those are
   (`_common.py:scatter` skips empty groups).
 - `_ordination.py:ordination` and `_ordination.py:scree` - both read through
   `_ordination.py:_stored`.
+- `_consensus.py:consensus` - rows are the features called by the most
+  methods, then by mean absolute effect, at most `top`; a filled dot is
+  coloured by the sign of the effect, a hollow grey one is tested and not
+  called, consensus labels are bold.
 - `_common.py` - helpers the topic files share: `new_axes`, `table`,
   `obs_groups`/`groups`, `scatter` and `label_ticks`.
 
@@ -82,9 +88,18 @@ It computes no diversity, distance or ordination; those are
 - Past 250 names an axis gets no tick labels (`_common.py:MAX_LABELS`,
   phyloseq's `max.label`).
 
+- `pl.consensus` reads the columns `da.consensus` writes (`significant_<m>`,
+  `effect_<m>`, `qvalue_<m>`, `n_significant`, `consensus`) and imports
+  nothing from `da`; a table lacking them is a `KeyError`
+  (`_consensus.py:_check`). Its legend sits one row above the axes, because
+  inside it covers dots and beside it a default save clips it
+  (`_consensus.py:consensus`).
+
 # Dependencies
 - [core](/modules/core.md): `as_csr`, `sum_by`, `require_categorical`.
 - [fn](/modules/fn.md): `contributions`.
+- [da](/modules/da.md): none imported; `consensus` draws the table of
+  `da.consensus` by its column names.
 - matplotlib `>=3.8`, a runtime dependency
   ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
 - The slots [tl](/modules/tl.md) and `pp.relative` write

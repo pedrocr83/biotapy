@@ -4,9 +4,9 @@ title: Data-model slots
 description: Which AnnData/TreeData slot holds what, the exact result keys, the x_kind and provenance conventions, and which slots feature-changing operations drop.
 tags: [data-model, api]
 status: stable
-paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
+commit: 927e5ae
 sources:
   - id: spec
     resource: ../../plan.md
@@ -55,7 +55,7 @@ draws `fn.contributions`' table for the stratified function modality.
    deferred inconsistency, not a second convention.
 2. **`x_kind`** is one of `counts`, `relative`, `rpk`, `cpm`, `abundance`.
    Readers always set it; most infer it from the values by `_core.infer_x_kind`
-   (`_core/_slots.py`): whole numbers are `counts`; otherwise, if every
+   (`_core/_slots.py`): non-negative whole numbers are `counts`; otherwise, if every
    nonzero row sums to 1 within `1e-3`, `relative`; otherwise `abundance`.
    Three readers are exceptions. `io.read_humann` reads it from the table header (`RPKs` ->
    `rpk`; `CPM`, `_cpm` or `Adjusted CPMs` -> `cpm`; `RELAB`, `_relab` ->
@@ -73,7 +73,7 @@ draws `fn.contributions`' table for the stratified function modality.
    (`pp.rarefy`; `tl.alpha` for `observed_features` and `chao1`, which
    phyloseq's `estimate_richness` refuses on non-integers; and
    `tl.unifrac(weighted=True)`) call `_core.require_counts`, which raises
-   unless `x_kind` is `counts` *and* every stored value in `X` is a whole
+   unless `x_kind` is `counts` *and* every stored value in `X` is a non-negative whole
    number (`_slots.py:require_counts`, through `infer_x_kind`'s rule, O(nnz)).
    The value check matters because fractions are otherwise truncated
    silently: `pp.rarefy` casts `X` to int64 for `subsample_counts`, and
@@ -130,6 +130,26 @@ rank prefix (`SGB1871` from `t__SGB1871`); `t__` has no rank column. Rank
 columns are always the seven, `kingdom` to `species`, even for a genus-level table or an all-`UNCLASSIFIED`
 profile (the missing ranks are NaN, `io/_metaphlan.py:read_metaphlan`). `UNCLASSIFIED` (`UNKNOWN` in older
 tables) stays a feature with every rank NaN, so every non-empty sample sums to 1.
+
+## DA results
+`da` methods write no slot: each returns one `pd.DataFrame` built by
+`da/_schema.py:result`, indexed by `var_names` (index name `feature`), one row
+per feature in `var_names` order, never a filtered subset:
+
+| Column | dtype | Meaning |
+|---|---|---|
+| `effect` | float64 | log2 fold change of `group`'s other level over `reference`, or the slope of a numeric `group` (per standard deviation in `da.linda`, which scales numeric columns) |
+| `se` | float64 | standard error of `effect` |
+| `pvalue` | float64 | the method's p-value |
+| `qvalue` | float64 | Benjamini-Hochberg over the finite p-values (`scipy.stats.false_discovery_control`) |
+| `direction` | int8 | sign of `effect`; 0 when `effect` is NaN |
+| `method` | str | the function's name, e.g. `"linda"` |
+| `contrast` | str | `"<level> vs <reference>"`, or the column name of a numeric `group` |
+
+A feature the method cannot test keeps its row with NaN `effect`, `se`,
+`pvalue` and `qvalue`. `group`, `covariates` and `reference` are checked once
+for every method by `da/_design.py:model`: no formula strings, missing values
+raise, a categorical `group` has exactly two levels.
 
 ## Propagation
 | Operation | Keeps | Drops |
