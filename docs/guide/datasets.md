@@ -90,7 +90,7 @@ Project's inflammatory bowel disease study (HMP2, IBDMDB). It downloads three
 files once (23 MB) and caches them: the HUMAnN 3 pathway abundance table, the
 MetaPhlAn 3 profiles and the sample metadata of the study's 1,638 stool
 metagenomes. It keeps the first metagenome of each of the 130 participants
-(lowest `week_num`, ties broken by `External ID`), so a group comparison counts
+(lowest `week_num`, then `visit_num`, then `External ID`), so a group comparison counts
 each person once, and returns a `MuData` with three modalities over those
 samples:
 

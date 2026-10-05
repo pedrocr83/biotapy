@@ -69,10 +69,10 @@ community.X.sum(axis=1)[:5]
 
 ## Who carries butyrate production
 
-`PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 112
+`PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 113
 of the 130 samples. `bt.fn.contributions` splits it by species, here keeping the five with
 the largest total and summing the rest into `other`. HMP2's table has per-species rows
-(`unclassified` included) for 88 of those 112 samples, so the other 24 draw an empty bar
+(`unclassified` included) for 88 of those 113 samples, so the other 25 draw an empty bar
 below. The mean per diagnosis compares the groups:
 
 ```{code-cell} ipython3

@@ -23,6 +23,7 @@ _METADATA = pd.DataFrame(
             "metagenomics",
         ],
         "week_num": [2.0, 1.0, 0.0, 4.0, 4.0, 0.0],
+        "visit_num": [2, 1, 0, 4, 4, 1],
         "diagnosis": ["UC", "UC", "UC", "CD", "CD", "nonIBD"],
         "site_name": ["Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "MGH"],
         "sex": ["Female", "Female", "Female", "Male", "Male", "Female"],
@@ -79,6 +80,19 @@ def test_keeps_each_participants_first_metagenome(fetched):
     mdata = bt.datasets.hmp2()
     # S1T_P is a metatranscriptome; S2A and S2B share week 4, so the External ID decides.
     assert mdata.obs_names.tolist() == ["S1B_P", "S2A", "S3A_P"]
+
+
+def test_the_earlier_visit_wins_a_same_week_tie(fetched, tmp_path):
+    # S2A has the lower External ID but the later visit; visit_num is used for ordering only.
+    _METADATA.assign(visit_num=[2, 1, 0, 4, 5, 1]).to_csv(tmp_path / "hmp2_metadata_2018-08-20.csv", index=False)
+    mdata = bt.datasets.hmp2()
+    assert mdata.obs_names.tolist() == ["S1B_P", "S2B", "S3A_P"]
+    assert "visit_num" not in mdata.obs.columns
+
+
+def test_a_missing_visit_number_sorts_last(fetched, tmp_path):
+    _METADATA.assign(visit_num=[2, 1, 0, 4, np.nan, 1]).to_csv(tmp_path / "hmp2_metadata_2018-08-20.csv", index=False)
+    assert bt.datasets.hmp2().obs_names.tolist() == ["S1B_P", "S2B", "S3A_P"]
 
 
 def test_three_modalities_over_the_same_samples(fetched):

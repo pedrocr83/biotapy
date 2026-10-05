@@ -7309,13 +7309,13 @@ metadata in the global `obs`, pushed into every modality. **(user)**
 
 **Rule: each participant's first stool metagenome** - the metadata rows with
 `data_type == "metagenomics"`, sorted by `Participant ID`, `week_num`,
-`External ID`, first row per participant. **(user)**
+`visit_num` (a missing one last), `External ID`, first row per participant. **(user)**
 
 - **Size: 130 samples** (CD 65, UC 38, nonIBD 27), checked on the
   2018-08-20 metadata: 1,638 metagenomes from 130 participants, no
   participant with two diagnoses, `week_num` never missing for a
   metagenome, six participants with two or three metagenomes in their first
-  week (the `External ID` breaks the tie, so the rule is deterministic).
+  week (`visit_num`, then the `External ID`, break the tie, so the rule is deterministic).
 - **Why one per participant.** HMP2 is longitudinal (up to 26 metagenomes
   per person); a group comparison over every sample counts each person many
   times. One sample per person makes PERMANOVA's samples independent, which
@@ -7421,7 +7421,7 @@ A MyST notebook like `phyloseq_analysis.md`, executed on every build:
    CPM (min 92.5%), so comparisons use shares of the mapped pathways
    (`humann_renorm_table --special n`); rows then sum to 1.
 4. **Who carries butyrate production:** `PWY-5676` (acetyl-CoA
-   fermentation to butanoate II), present in 112 of the 130 samples, with
+   fermentation to butanoate II), present in 113 of the 130 samples, with
    seven strata (*Anaerostipes hadrus*, *Flavonifractor plautii*,
    *Intestinimonas butyriciproducens*, *E. coli*, two *Klebsiella*,
    `unclassified`). `bt.fn.contributions(..., top=5)` and its mean per
@@ -7519,7 +7519,7 @@ test in its task:
 1. **Repeated measures counted as independent samples, or a
    metatranscriptome taken for a metagenome.** HMP2 has up to 26 samples
    per person and several data types per visit. Expected: one metagenome per
-   participant, the earliest, ties broken by `External ID`, never a
+   participant, the earliest (`week_num`, then `visit_num`, then `External ID`), never a
    metatranscriptome even when it is earlier. Test (2.10):
    `test_keeps_each_participants_first_metagenome`.
 2. **Sample ids that do not line up** across the pathway table
@@ -7621,6 +7621,7 @@ _METADATA = pd.DataFrame(
             "metagenomics",
         ],
         "week_num": [2.0, 1.0, 0.0, 4.0, 4.0, 0.0],
+        "visit_num": [2, 1, 0, 4, 4, 1],
         "diagnosis": ["UC", "UC", "UC", "CD", "CD", "nonIBD"],
         "site_name": ["Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "MGH"],
         "sex": ["Female", "Female", "Female", "Male", "Male", "Female"],
@@ -7677,6 +7678,19 @@ def test_keeps_each_participants_first_metagenome(fetched):
     mdata = bt.datasets.hmp2()
     # S1T_P is a metatranscriptome; S2A and S2B share week 4, so the External ID decides.
     assert mdata.obs_names.tolist() == ["S1B_P", "S2A", "S3A_P"]
+
+
+def test_the_earlier_visit_wins_a_same_week_tie(fetched, tmp_path):
+    # S2A has the lower External ID but the later visit; visit_num is used for ordering only.
+    _METADATA.assign(visit_num=[2, 1, 0, 4, 5, 1]).to_csv(tmp_path / "hmp2_metadata_2018-08-20.csv", index=False)
+    mdata = bt.datasets.hmp2()
+    assert mdata.obs_names.tolist() == ["S1B_P", "S2B", "S3A_P"]
+    assert "visit_num" not in mdata.obs.columns
+
+
+def test_a_missing_visit_number_sorts_last(fetched, tmp_path):
+    _METADATA.assign(visit_num=[2, 1, 0, 4, np.nan, 1]).to_csv(tmp_path / "hmp2_metadata_2018-08-20.csv", index=False)
+    assert bt.datasets.hmp2().obs_names.tolist() == ["S1B_P", "S2B", "S3A_P"]
 
 
 def test_three_modalities_over_the_same_samples(fetched):
@@ -7772,6 +7786,8 @@ from ._remote import _fetch
 TAXA_KEY = "taxa"
 # Metadata columns kept, as hmp2_metadata_2018-08-20.csv names them; the other 483 are left out.
 COLUMNS = ["Participant ID", "week_num", "diagnosis", "site_name", "sex", "consent_age", "Antibiotics"]
+# A participant's metagenomes, earliest first; visit_num orders them within a week and is not kept.
+ORDER = ["Participant ID", "week_num", "visit_num", "External ID"]
 DIAGNOSES = ["nonIBD", "UC", "CD"]
 
 
@@ -7807,7 +7823,8 @@ def hmp2() -> MuData:
     Guide: :doc:`/guide/datasets`
 
     A participant's first sample is the metagenome with the lowest
-    ``week_num``; equal weeks are broken by ``External ID``. One sample per
+    ``week_num``; equal weeks are ordered by ``visit_num`` (a missing one
+    last), then by ``External ID``. One sample per
     person keeps samples independent, so group comparisons such as
     ``bt.tl.permanova`` do not count one person several times.
 
@@ -7829,9 +7846,9 @@ def hmp2() -> MuData:
     >>> mdata["function"].shape, mdata["taxa"].shape  # doctest: +SKIP
     ((130, 478), (130, 579))
     """
-    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["External ID", "data_type", *COLUMNS])
+    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["data_type", *COLUMNS, *ORDER])
     metagenomes = metadata[metadata["data_type"] == "metagenomics"]
-    first = metagenomes.sort_values(["Participant ID", "week_num", "External ID"]).drop_duplicates("Participant ID")
+    first = metagenomes.sort_values(ORDER).drop_duplicates("Participant ID")
     obs = first.set_index("External ID")[COLUMNS].rename_axis(None)
     obs["diagnosis"] = pd.Categorical(obs["diagnosis"], categories=DIAGNOSES)
     pathways = read_humann(_fetch("pathabundances_3.tsv.gz"))
@@ -7951,7 +7968,7 @@ index a48db71..777feeb 100644
 +files once (23 MB) and caches them: the HUMAnN 3 pathway abundance table, the
 +MetaPhlAn 3 profiles and the sample metadata of the study's 1,638 stool
 +metagenomes. It keeps the first metagenome of each of the 130 participants
-+(lowest `week_num`, ties broken by `External ID`), so a group comparison counts
++(lowest `week_num`, then `visit_num`, then `External ID`), so a group comparison counts
 +each person once, and returns a `MuData` with three modalities over those
 +samples:
 +
@@ -8138,10 +8155,10 @@ community.X.sum(axis=1)[:5]
 
 ## Who carries butyrate production
 
-`PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 112
+`PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 113
 of the 130 samples. `bt.fn.contributions` splits it by species, here keeping the five with
 the largest total and summing the rest into `other`. HMP2's table has per-species rows
-(`unclassified` included) for 88 of those 112 samples, so the other 24 draw an empty bar
+(`unclassified` included) for 88 of those 113 samples, so the other 25 draw an empty bar
 below. The mean per diagnosis compares the groups:
 
 ```{code-cell} ipython3
@@ -8815,7 +8832,7 @@ index 14f1811..c23b9be 100644
    Its text columns are the `str` dtype, the same schema `fn.load_hierarchy`
    gives (`_enzyme.py:_ancestors`).
 +- `_hmp2.py:hmp2` - the HMP2 inflammatory bowel disease cohort: each of the
-+  130 participants' first stool metagenome (lowest `week_num`, ties by
++  130 participants' first stool metagenome (lowest `week_num`, then `visit_num`, then
 +  `External ID`), as a MuData with `function` and `function_by_taxon`
 +  (HUMAnN 3 pathways in CPM, read by `io.read_humann`) and `taxa` (MetaPhlAn 3
 +  species, read by `io.read_metaphlan`, no tree). Seven metadata columns
@@ -9369,7 +9386,7 @@ outward-facing, or is a judgement call. The recommended answer comes first.
    Alternatives: all 490 columns (an unreadable repr), snake_case names, or
    the global `obs` only (users call `push_obs()` themselves).
 3. **Subset: each participant's first stool metagenome, 130 samples** (CD
-   65, UC 38, nonIBD 27; lowest `week_num`, ties by `External ID`), from
+   65, UC 38, nonIBD 27; lowest `week_num`, then `visit_num`, then `External ID`), from
    the whole tables read in 4.0 s. Alternatives: a balanced 40 (needs a
    second rule), or all 1,638 samples with the tutorial subsetting (repeated
    measures by default).

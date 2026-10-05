@@ -13,6 +13,8 @@ from ._remote import _fetch
 TAXA_KEY = "taxa"
 # Metadata columns kept, as hmp2_metadata_2018-08-20.csv names them; the other 483 are left out.
 COLUMNS = ["Participant ID", "week_num", "diagnosis", "site_name", "sex", "consent_age", "Antibiotics"]
+# A participant's metagenomes, earliest first; visit_num orders them within a week and is not kept.
+ORDER = ["Participant ID", "week_num", "visit_num", "External ID"]
 DIAGNOSES = ["nonIBD", "UC", "CD"]
 
 
@@ -48,7 +50,8 @@ def hmp2() -> MuData:
     Guide: :doc:`/guide/datasets`
 
     A participant's first sample is the metagenome with the lowest
-    ``week_num``; equal weeks are broken by ``External ID``. One sample per
+    ``week_num``; equal weeks are ordered by ``visit_num`` (a missing one
+    last), then by ``External ID``. One sample per
     person keeps samples independent, so group comparisons such as
     ``bt.tl.permanova`` do not count one person several times.
 
@@ -70,9 +73,9 @@ def hmp2() -> MuData:
     >>> mdata["function"].shape, mdata["taxa"].shape  # doctest: +SKIP
     ((130, 478), (130, 579))
     """
-    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["External ID", "data_type", *COLUMNS])
+    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["data_type", *COLUMNS, *ORDER])
     metagenomes = metadata[metadata["data_type"] == "metagenomics"]
-    first = metagenomes.sort_values(["Participant ID", "week_num", "External ID"]).drop_duplicates("Participant ID")
+    first = metagenomes.sort_values(ORDER).drop_duplicates("Participant ID")
     obs = first.set_index("External ID")[COLUMNS].rename_axis(None)
     obs["diagnosis"] = pd.Categorical(obs["diagnosis"], categories=DIAGNOSES)
     pathways = read_humann(_fetch("pathabundances_3.tsv.gz"))
