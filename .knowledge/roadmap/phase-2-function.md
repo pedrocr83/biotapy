@@ -8099,10 +8099,10 @@ inflammatory bowel diseases. *Nature* 569:655-662.
 Two parts of `bt.fn` are not shown here, and the [function guide](../guide/function.md) shows
 both on small tables:
 
-- **Grouping along a hierarchy** (`bt.fn.func_glom`): HMP2's pathways are MetaCyc pathways,
+- **[Grouping along a hierarchy](../guide/function.md#aggregating-along-a-hierarchy)** (`bt.fn.func_glom`): HMP2's pathways are MetaCyc pathways,
   whose classes biotapy does not ship or download (their licence does not allow it), and HMP2
   publishes its enzyme (EC) table only per sample or as a 113 MB merged file.
-- **Functional redundancy** (`bt.fn.functional_redundancy`): it needs each species' gene copy
+- **[Functional redundancy](../guide/function.md#functional-redundancy)** (`bt.fn.functional_redundancy`): it needs each species' gene copy
   numbers, which HUMAnN does not write.
 
 ```{code-cell} ipython3
@@ -8140,8 +8140,9 @@ community.X.sum(axis=1)[:5]
 
 `PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 112
 of the 130 samples. `bt.fn.contributions` splits it by species, here keeping the five with
-the largest total and summing the rest into `other`. The mean per diagnosis compares the
-groups:
+the largest total and summing the rest into `other`. HMP2's table has per-species rows
+(`unclassified` included) for 88 of those 112 samples, so the other 24 draw an empty bar
+below. The mean per diagnosis compares the groups:
 
 ```{code-cell} ipython3
 by_taxon = relab["function_by_taxon"]
