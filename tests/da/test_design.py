@@ -5,7 +5,9 @@ import scipy.sparse as sp
 
 import biotapy as bt
 
-METHODS = [bt.da.linda]
+METHODS = [bt.da.ancombc2, bt.da.linda]
+# ANCOM-BC2's bias E-M starts from asymmetric quantiles, so swapping the reference flips its effects only to ~1e-3.
+SWAP_ATOL = {"ancombc2": 2e-3, "linda": 1e-12}
 
 
 def _toy_with(**columns):
@@ -20,9 +22,11 @@ def test_reference_sets_the_sign(method):
     tdata = bt.datasets.toy()
     a_first, b_first = method(tdata, "group"), method(tdata, "group", reference="B")
     assert (a_first["contrast"] == "B vs A").all() and (b_first["contrast"] == "A vs B").all()
-    np.testing.assert_allclose(b_first["effect"], -a_first["effect"], rtol=1e-9, atol=1e-12)
-    assert (b_first["direction"] == -a_first["direction"]).all()
-    np.testing.assert_allclose(b_first["pvalue"], a_first["pvalue"], rtol=1e-9)
+    atol = SWAP_ATOL[method.__name__]
+    np.testing.assert_allclose(b_first["effect"], -a_first["effect"], rtol=1e-9, atol=atol)
+    clear = a_first["effect"].abs() > atol
+    assert (b_first.loc[clear, "direction"] == -a_first.loc[clear, "direction"]).all() and clear.sum() >= 7
+    np.testing.assert_allclose(b_first["pvalue"], a_first["pvalue"], rtol=1e-9, atol=atol)
 
 
 @pytest.mark.parametrize("method", METHODS)

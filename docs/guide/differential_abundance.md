@@ -58,3 +58,23 @@ It equals `MicrobiomeStat::linda(..., is.winsor = FALSE)` in R with fixed effect
 are scaled to unit variance first, as LinDA does, so a numeric group's effect is per standard
 deviation. Not available: winsorisation (MicrobiomeStat's default), random effects such as
 `(1 | subject)`, and LinDA's own prevalence filters.
+
+## ANCOM-BC2
+
+`bt.da.ancombc2` runs scikit-bio's ANCOM-BC2 (Lin and Peddada 2024): it estimates each sample's
+sampling fraction, corrects the log counts for it and the coefficients for their shared bias, and
+fits one linear model per feature. Zeros are treated as missing rather than given a pseudocount,
+so a feature with no read in one of the groups cannot be fitted: its row is NaN and it is left out
+of the Benjamini-Hochberg correction (R's `ANCOMBC::ancombc2` reports it with p = 1 and counts it).
+
+```python
+table = bt.da.ancombc2(tdata, "group")
+```
+
+ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
+every other method's. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
+pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis (its
+`passed_ss` flag) or its 10% prevalence filter. On the GlobalPatterns genera that the golden tests
+use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the
+small difference comes from the bias estimate, whose iterations stop at R's cap of 100 before they
+have converged on that data, in R as in scikit-bio.

@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:10:45Z }
-commit: 5ec14a7
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:45:00Z }
+commit: 1fc9a7b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -582,7 +582,7 @@ columns onto it.
 - [x] 3.B0 `fix(core)`: count tables hold non-negative whole numbers (approved with slice 3B)
 - [x] 3.3 Result schema `da/_schema.py` (delivered inside 3.5)
 - [x] 3.5 `da.linda(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
-- [ ] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
+- [x] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [ ] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [ ] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
 - [ ] Checkpoint B
@@ -3177,12 +3177,12 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   Sequence[str] = (), reference: str | None = None) -> pd.DataFrame`;
   `ancombc2.csv.gz`.
 
-- [ ] **Step 1: Approval on record.** ANCOMBC (Bioconductor, Artistic-2.0) in
+- [x] **Step 1: Approval on record.** ANCOMBC (Bioconductor, Artistic-2.0) in
   the image was approved with the plan (Phase 3 decision 6). New here and to confirm:
   its install needs CVXR pinned to 1.0-15 (CRAN archive, Apache-2.0, built from
   source in the image) and apt `libgsl27` (slice 3B decision 5); both live only
   in the image.
-- [ ] **Step 2: Add ANCOMBC to the image.** `tests/r/Dockerfile`:
+- [x] **Step 2: Add ANCOMBC to the image.** `tests/r/Dockerfile`:
   ```diff
   @@ -20,6 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends libuv1 && rm -r
    RUN Rscript -e 'BiocManager::install("philr", version = "3.22", ask = FALSE, update = FALSE)'
@@ -3242,13 +3242,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   package unchanged. Without the CVXR lines the guard fails after
   `Error: object 'solve' is not exported by 'namespace:CVXR'`; without
   `libgsl27`, after `libgsl.so.27: cannot open shared object file`.
-- [ ] **Step 3: Commit the image change on its own:**
+- [x] **Step 3: Commit the image change on its own:**
   ```bash
   git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/playbooks/regenerate-golden-files.md \
     .knowledge/log.md
   git commit -m "build(r): add ANCOMBC to the golden image"
   ```
-- [ ] **Step 4: Export.** In `tests/r/export_golden.R`, after the LinDA
+- [x] **Step 4: Export.** In `tests/r/export_golden.R`, after the LinDA
   section, and `VERSIONS.txt` gains ANCOMBC:
   ```diff
   @@ -159,6 +159,20 @@ linda_rows <- lapply(da_formulas, function(f) {
@@ -3287,13 +3287,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   `linda.csv.gz` and every older file byte-identical. `meta_data` needs both
   columns: ANCOMBC 2.12.0's `data_sanity_check` breaks a one-column
   `meta_data` (`invalid factor level, NA generated`).
-- [ ] **Step 5: Gate and commit.** `uv run --group test pytest
+- [x] **Step 5: Gate and commit.** `uv run --group test pytest
   tests/test_data_files.py -q` -> passes; `uvx prek run --all-files`;
   ```bash
   git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/ancombc2.csv.gz
   git commit -m "test(golden): export the ANCOM-BC2 golden file"
   ```
-- [ ] **Step 6: Failing tests.** `tests/da/test_ancombc.py`:
+- [x] **Step 6: Failing tests.** `tests/da/test_ancombc.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -3441,13 +3441,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
            X=sp.csr_matrix(counts),
            obs=pd.DataFrame({"g": ["a"] * split + ["b"] * (6 - split)}, index=[f"s{i}" for i in range(6)]),
   ```
-- [ ] **Step 7: Run, expect failure** -
+- [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da -q --continue-on-collection-errors` ->
   `4 failed, 7 passed, 4 deselected, 2 errors` (`AttributeError: module
   'biotapy.da' has no attribute 'ancombc2'`; `test_design.py` and
   `test_schema.py` fail to collect); `uv run --group test pytest
   tests/da/test_ancombc_golden.py -q -m "golden or network"` -> `2 failed`.
-- [ ] **Step 8: Implement.** `src/biotapy/da/_ancombc.py`:
+- [x] **Step 8: Implement.** `src/biotapy/da/_ancombc.py`:
   ```python
   """ANCOM-BC2 through scikit-bio: bias-corrected log abundances, one linear model per feature."""
 
@@ -3588,9 +3588,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
      "sklearn",
      "threadpoolctl",
   ```
-- [ ] **Step 9: Run, expect pass** - the same two commands -> `49 passed, 4 deselected`;
+- [x] **Step 9: Run, expect pass** - the same two commands -> `65 passed, 4 deselected` (16 more than the
+  prototype: the eight shared model checks of 3.5's fix round run on both methods);
   `2 passed`. The property test also under three extra seeds.
-- [ ] **Step 10: Docs.** Append to `docs/guide/differential_abundance.md`:
+- [x] **Step 10: Docs.** Append to `docs/guide/differential_abundance.md`:
   ````diff
   @@ -58,3 +58,23 @@ It equals `MicrobiomeStat::linda(..., is.winsor = FALSE)` in R with fixed effect
    are scaled to unit variance first, as LinDA does, so a numeric group's effect is per standard
@@ -3638,7 +3639,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
    per-user cache directory - CI caches it across runs the same way:
 
   ```
-- [ ] **Step 11: Contracts.** `.knowledge/contracts/r-golden-parity.md`
+- [x] **Step 11: Contracts.** `.knowledge/contracts/r-golden-parity.md`
   statement 4:
   ```diff
   @@ -51,6 +51,7 @@ sources:
@@ -3654,7 +3655,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   ```text
   - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.ancombc2` is compared with `ANCOMBC::ancombc2` at the measured tolerances. [phase-3-stats](roadmap/phase-3-stats.md) task 3.4 done.
   ```
-- [ ] **Step 12: Gate and commit**
+- [x] **Step 12: Gate and commit**
   ```bash
   git add src/biotapy/da/_ancombc.py src/biotapy/da/__init__.py tests/da/test_ancombc.py tests/da/test_ancombc_golden.py \
     tests/da/test_design.py tests/da/test_schema.py pyproject.toml docs/guide/differential_abundance.md docs/api.md \

@@ -10,7 +10,7 @@ from scipy.stats import false_discovery_control
 
 import biotapy as bt
 
-METHODS = [bt.da.linda]
+METHODS = [bt.da.ancombc2, bt.da.linda]
 COLUMNS = ["effect", "se", "pvalue", "qvalue", "direction", "method", "contrast"]
 
 
@@ -36,11 +36,11 @@ def test_qvalue_is_benjamini_hochberg(method):
 @pytest.mark.parametrize("method", METHODS)
 @settings(max_examples=25, deadline=None)
 @given(
-    counts=arrays(np.int64, (6, 7), elements=st.integers(0, 50)),
+    # Distinct counts: no empty sample and no feature fitted exactly, where ANCOM-BC2's variances are 0 and it fails.
+    counts=arrays(np.int64, (6, 7), elements=st.integers(0, 200), unique=True),
     split=st.integers(2, 4),
 )
 def test_direction_is_the_sign_and_qvalue_bounds_pvalue(method, counts, split):
-    counts[:, 0] += 1  # no empty sample
     adata = ad.AnnData(
         X=sp.csr_matrix(counts),
         obs=pd.DataFrame({"g": ["a"] * split + ["b"] * (6 - split)}, index=[f"s{i}" for i in range(6)]),
