@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3, slice 3B plan)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3B (tasks 3.5 `da.linda` with the result schema, 3.4 `da.ancombc2`, 3.8 `da.consensus`, 3.9 `pl.consensus`, Checkpoint B) into full TDD steps, prototyped and gated per commit; adds Task 3.B0 (`fix(core)`: counts are non-negative whole numbers) approved with the plan; ticks Checkpoint A (PR #21 merged, slice 3A approved).
+
 ## 2026-10-05 (Phase 3, Checkpoint A)
 - **Update**: [pp](modules/pp.md) documents `clr`, `philr`, `pseudocounted` and `_binary_tree` (pseudocount rule, dense `layers["clr"]`, `obsm["X_philr"]` layout and sign, one-child and wide nodes) and the gotchas: `tree_basis`/`TreeNode.prune` conventions, `toy()`'s three-child root, plain slicing keeping stale derived slots, balance names, peak memory, `pseudocounted` moving to `_core` if 3B reuses it; description copied into [modules/index.md](modules/index.md).
 - **Update**: [core](modules/core.md) `get_skbio_tree`'s `split_root` and its one caller, `pp.philr`.
