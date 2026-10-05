@@ -72,7 +72,8 @@ table = bt.da.ancombc2(tdata, "group")
 ```
 
 ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
-every other method's. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
+every other method's; a numeric `group`'s effect is per unit, where `da.linda`'s is per standard
+deviation. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
 pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis (its
 `passed_ss` flag) or its 10% prevalence filter. On the GlobalPatterns genera that the golden tests
 use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the

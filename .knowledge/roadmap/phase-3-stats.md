@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T19:45:00Z }
-commit: 1fc9a7b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:10:00Z }
+commit: dfab6a3
 sources:
   - id: spec
     resource: ../../plan.md
@@ -3278,11 +3278,12 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
      paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
   -  paste0("modeest ", packageVersion("modeest"))
   +  paste0("modeest ", packageVersion("modeest")),
-  +  paste0("ANCOMBC ", packageVersion("ANCOMBC"))
+  +  paste0("ANCOMBC ", packageVersion("ANCOMBC")),
+  +  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)")
    ), "tests/golden/VERSIONS.txt")
   ```
   Run twice as in 3.5 Step 4. Expected: every line `OK`; `git status` shows
-  `M tests/golden/VERSIONS.txt` (one new line, `ANCOMBC 2.12.0`),
+  `M tests/golden/VERSIONS.txt` (two new lines, `ANCOMBC 2.12.0` and `CVXR 1.0.15 (CRAN archive...)`),
   `M tests/r/export_golden.R` and the new `ancombc2.csv.gz` (45.8 KB);
   `linda.csv.gz` and every older file byte-identical. `meta_data` needs both
   columns: ANCOMBC 2.12.0's `data_sanity_check` breaks a one-column
@@ -3297,6 +3298,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   ```python
   import numpy as np
   import pandas as pd
+  import pytest
   import scipy.sparse as sp
   from scipy.stats import false_discovery_control
   from skbio.stats.composition import ancombc2
@@ -3342,6 +3344,25 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       before = tdata.copy()
       bt.da.ancombc2(tdata, "group")
       assert_unchanged(before, tdata)
+
+
+  def test_feature_with_no_residual_degrees_of_freedom_is_not_tested():
+      tdata = bt.datasets.toy()
+      dense = tdata.X.toarray()
+      dense[:, tdata.var_names.get_loc("f8")] = [0, 4, 0, 0, 0, 3]  # two reads in all: as many as model terms
+      tdata.X = sp.csr_matrix(dense)
+      out = bt.da.ancombc2(tdata, "group")
+      assert out.loc["f8", ["effect", "se", "pvalue", "qvalue"]].isna().all() and out.loc["f8", "direction"] == 0
+      assert out.drop(index="f8")["effect"].notna().all()
+
+
+  def test_scikit_bio_failure_names_the_function():
+      tdata = bt.datasets.toy()[:, ["f1", "f2"]].copy()
+      tdata.X = sp.csr_matrix(
+          np.array([[5, 0], [6, 0], [7, 0], [0, 5], [0, 6], [0, 7]])
+      )  # each feature in one group only
+      with pytest.raises(ValueError, match=r"da\.ancombc2: scikit-bio could not fit the model: .*estimable"):
+          bt.da.ancombc2(tdata, "group")
   ```
   `tests/da/test_ancombc_golden.py`:
   ```python
@@ -3358,10 +3379,22 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   pytestmark = [pytest.mark.golden, pytest.mark.network]
 
 
-  @pytest.mark.parametrize(("formula", "covariates"), [("host", ()), ("host + log_depth", ("log_depth",))])
-  def test_ancombc2_matches_ancombc_ancombc2(benchmark, formula, covariates):
+  # Per model: (formula, covariates, (effect atol in log2, se rtol, pvalue atol, Spearman floor)).
+  # host: the bias E-M stops at R's 100-iteration cap before converging, and scikit-bio stops on a slightly different
+  # iterate, so every effect is shifted by 0.002-0.012 log2 (measured max 0.0121), se by 9.0e-4 relative and p by
+  # 0.0122; the shift is near constant, hence the rank floor. With log_depth the E-M converges on both sides and
+  # agreement is 1.5e-8 (effect), 1.7e-10 (se, relative) and 1.1e-8 (p), checked at 1e-6.
+  MODELS = [
+      pytest.param(("host", (), (0.015, 2e-3, 0.02, 0.9999)), id="host"),
+      pytest.param(("host + log_depth", ("log_depth",), (1e-6, 1e-6, 1e-6, 0.999999)), id="host+log_depth"),
+  ]
+
+
+  @pytest.mark.parametrize("case", MODELS)
+  def test_ancombc2_matches_ancombc_ancombc2(benchmark, case):
       # R: ANCOMBC::ancombc2(counts, meta_data = meta, fix_formula, p_adj_method = "BH", prv_cut = 0, lib_cut = 0,
       # pseudo_sens = FALSE, struc_zero = FALSE)$res, natural logs, on the 636 genera.
+      formula, covariates, (effect_atol, se_rtol, p_atol, rank_floor) = case
       golden = pd.read_csv(GOLDEN / "ancombc2.csv.gz", dtype={"taxon_id": str}).query("formula == @formula")
       golden = golden.set_index("taxon_id")
       out = bt.da.ancombc2(benchmark, "host", covariates=covariates, reference="other")
@@ -3371,12 +3404,10 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       assert untested.sum() == 36 and (golden.loc[untested, "p"] == 1).all()
       assert out["effect"].isna().equals(untested.rename("effect"))
       ours, theirs = out[~untested], golden[~untested]
-      # The bias E-M stops at R's 100-iteration cap before converging on the host-only model, and scikit-bio stops on
-      # a slightly different iterate: every effect is shifted by 0.002-0.012 log2 there (1e-8 with log_depth).
-      np.testing.assert_allclose(ours["effect"], theirs["lfc"] / np.log(2), atol=0.015)
-      np.testing.assert_allclose(ours["se"], theirs["se"] / np.log(2), rtol=2e-3)
-      np.testing.assert_allclose(ours["pvalue"], theirs["p"], atol=0.02)
-      assert spearmanr(ours["effect"], theirs["lfc"]).statistic > 0.9999
+      np.testing.assert_allclose(ours["effect"], theirs["lfc"] / np.log(2), atol=effect_atol)
+      np.testing.assert_allclose(ours["se"], theirs["se"] / np.log(2), rtol=se_rtol)
+      np.testing.assert_allclose(ours["pvalue"], theirs["p"], atol=p_atol)
+      assert spearmanr(ours["effect"], theirs["lfc"]).statistic > rank_floor
       # R's q counts the untested genera with p = 1; the schema's BH runs over the tested ones only.
       expected = false_discovery_control(theirs["p"])
       np.testing.assert_array_equal(ours["qvalue"] < 0.05, expected < 0.05)
@@ -3473,7 +3504,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           Samples x features; ``X`` holds raw counts.
       group
           The ``obs`` column whose effect is reported: a categorical, string or bool
-          column with two levels, or a numeric column.
+          column with two levels, or a numeric column, whose effect is per unit
+          (``da.linda`` reports it per standard deviation, as MicrobiomeStat does).
       covariates
           ``obs`` columns to adjust for: numeric ones as they are, others as one
           indicator per level against their first level.
@@ -3513,10 +3545,14 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       "BH", prv_cut = 0, pseudo_sens = FALSE)`` with its other defaults: zeros are
       treated as missing (``pseudo = 0``), ``s0_perc = 0.05``, no structural-zero
       test. ANCOM-BC2 reports natural logs; ``effect`` and ``se`` are divided by
-      ln 2. A feature whose zeros leave one level of ``group`` (or of a categorical
-      covariate) without an observed value cannot be fitted: R and scikit-bio
-      report it with p = 1 and count it in the correction, biotapy reports NaN and
-      leaves it out, so its q-values are BH over the features actually tested.
+      ln 2. A feature whose zeros leave one level of ``group`` without an observed
+      value, or that has no more observed samples than model terms, cannot be
+      tested: R and scikit-bio report it with p = 1 or NaN and R counts it in the
+      correction, biotapy reports NaN for ``effect``, ``se``, ``pvalue`` and
+      ``qvalue`` and leaves it out, so its q-values are BH over the features
+      actually tested. scikit-bio rebases a categorical covariate with three or more
+      levels when a feature has no read at its first level; only a covariate left
+      with one observed level drops the feature.
       Not run: the pseudocount sensitivity analysis (R's default ``pseudo_sens =
       TRUE``), whose ``passed_ss`` flag the result table does not carry, and R's
       prevalence filter (``prv_cut = 0.10``; filter once with
@@ -3545,16 +3581,25 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       (3.76, 'B vs A')
       """
       frame, contrast = model(adata, group, covariates=covariates, reference=reference, func="da.ancombc2")
-      counts = pd.DataFrame(dense_counts(adata, func="da.ancombc2"), index=adata.obs_names, columns=adata.var_names)
+      counts = pd.DataFrame(
+          dense_counts(adata, func="da.ancombc2"), index=adata.obs_names, columns=adata.var_names, copy=False
+      )
       # Plain names, so patsy needs no quoting; categorical columns keep their levels, reference first.
       names = [f"x{i}" for i in range(frame.shape[1])]
-      fit = skbio_ancombc2(counts, frame.set_axis(names, axis=1), " + ".join(names), p_adjust=None).result
+      try:
+          fit = skbio_ancombc2(counts, frame.set_axis(names, axis=1), " + ".join(names), p_adjust=None).result
+      except ValueError as err:
+          msg = f"da.ancombc2: scikit-bio could not fit the model: {err}"
+          raise ValueError(msg) from err
       covariate = next(name for name in fit.index.unique("Covariate") if name == "x0" or name.startswith("x0["))
       table = fit.xs(covariate, level="Covariate").reindex(adata.var_names)
       effect = table["Log(FC)"].to_numpy(np.float64) / np.log(2)
-      # scikit-bio reports a feature it could not fit with p = 1; the schema says "not tested" with NaN.
-      pvalue = np.where(np.isnan(effect), np.nan, table["pvalue"].to_numpy(np.float64))
       se = table["SE"].to_numpy(np.float64) / np.log(2)
+      pvalue = table["pvalue"].to_numpy(np.float64)
+      # scikit-bio reports an unfitted feature with p = 1, and one with no residual degrees of freedom with a finite
+      # effect and NaN p; the schema says "not tested" with NaN throughout.
+      untested = ~(np.isfinite(effect) & np.isfinite(pvalue))
+      effect, se, pvalue = (np.where(untested, np.nan, values) for values in (effect, se, pvalue))
       return result(adata.var_names, effect=effect, se=se, pvalue=pvalue, method="ancombc2", contrast=contrast)
   ```
   `src/biotapy/da/__init__.py`:
@@ -3588,7 +3633,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
      "sklearn",
      "threadpoolctl",
   ```
-- [x] **Step 9: Run, expect pass** - the same two commands -> `65 passed, 4 deselected` (16 more than the
+- [x] **Step 9: Run, expect pass** - the same two commands -> `67 passed, 4 deselected` (16 more than the
   prototype: the eight shared model checks of 3.5's fix round run on both methods);
   `2 passed`. The property test also under three extra seeds.
 - [x] **Step 10: Docs.** Append to `docs/guide/differential_abundance.md`:
@@ -3611,7 +3656,8 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
   +```
   +
   +ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
-  +every other method's. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
+  +every other method's; a numeric `group`'s effect is per unit, where `da.linda`'s is per standard
+  +deviation. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
   +pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis (its
   +`passed_ss` flag) or its 10% prevalence filter. On the GlobalPatterns genera that the golden tests
   +use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the
@@ -3646,7 +3692,7 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
       | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
       | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
-  +   | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999 |
+  +   | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
    5. Any looser tolerance is written in the test with a one-line comment giving the reason.
    6. Golden files hold numbers derived from third-party example data, never the

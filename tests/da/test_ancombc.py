@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 import scipy.sparse as sp
 from scipy.stats import false_discovery_control
 from skbio.stats.composition import ancombc2
@@ -45,3 +46,22 @@ def test_ancombc2_keeps_input(assert_unchanged):
     before = tdata.copy()
     bt.da.ancombc2(tdata, "group")
     assert_unchanged(before, tdata)
+
+
+def test_feature_with_no_residual_degrees_of_freedom_is_not_tested():
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    dense[:, tdata.var_names.get_loc("f8")] = [0, 4, 0, 0, 0, 3]  # two reads in all: as many as model terms
+    tdata.X = sp.csr_matrix(dense)
+    out = bt.da.ancombc2(tdata, "group")
+    assert out.loc["f8", ["effect", "se", "pvalue", "qvalue"]].isna().all() and out.loc["f8", "direction"] == 0
+    assert out.drop(index="f8")["effect"].notna().all()
+
+
+def test_scikit_bio_failure_names_the_function():
+    tdata = bt.datasets.toy()[:, ["f1", "f2"]].copy()
+    tdata.X = sp.csr_matrix(
+        np.array([[5, 0], [6, 0], [7, 0], [0, 5], [0, 6], [0, 7]])
+    )  # each feature in one group only
+    with pytest.raises(ValueError, match=r"da\.ancombc2: scikit-bio could not fit the model: .*estimable"):
+        bt.da.ancombc2(tdata, "group")
