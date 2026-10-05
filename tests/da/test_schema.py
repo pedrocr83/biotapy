@@ -24,6 +24,24 @@ def test_result_has_the_schema_columns_and_dtypes(method):
     assert (out["method"] == method.__name__).all()
 
 
+def _toy_with_an_untested_feature():
+    tdata = bt.datasets.toy()
+    dense = tdata.X.toarray()
+    dense[:, tdata.var_names.get_loc("f8")] = [0, 4, 0, 0, 0, 3]  # two reads in all: as many as model terms
+    tdata.X = sp.csr_matrix(dense)
+    return tdata
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_real_output_passes_the_schema_validation(method):
+    # Pins existing behaviour: consensus runs validate_result on every table it is given.
+    other = next(m for m in METHODS if m is not method)
+    tdata = _toy_with_an_untested_feature()
+    out = method(tdata, "group")
+    assert bt.da.consensus([out, other(tdata, "group")]).index.tolist() == tdata.var_names.tolist()
+    assert np.isnan(out.loc["f8", "pvalue"]) == (method is bt.da.ancombc2)
+
+
 @pytest.mark.parametrize("method", METHODS)
 def test_qvalue_is_benjamini_hochberg(method):
     out = method(bt.datasets.toy(), "group")
@@ -53,6 +71,7 @@ def test_direction_is_the_sign_and_qvalue_bounds_pvalue(method, counts, split):
     assert (out.loc[tested, "qvalue"] >= out.loc[tested, "pvalue"] - 1e-15).all()
     assert out.loc[tested, ["pvalue", "qvalue"]].stack().between(0, 1).all()
     assert out.loc[~tested, ["effect", "qvalue"]].isna().all().all()
+    assert out["effect"].isna().equals(out["pvalue"].isna())
 
 
 def _broken(change):
