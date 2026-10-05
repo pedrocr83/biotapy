@@ -24,8 +24,9 @@ def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
     -------
     TreeData
         A copy of ``tdata`` with ``obsm['X_philr']``: a samples x balances
-        ``pandas.DataFrame`` with one column per internal node of the tree, named
-        after the node, in preorder. A balance is positive when its node's first
+        ``pandas.DataFrame`` with one column per internal node with two children,
+        named after the node in ``vart['phylo']`` (not as R's ``makeNodeLabel``
+        names it), in preorder. A balance is positive when its node's first
         child is more abundant than its second.
 
     Raises

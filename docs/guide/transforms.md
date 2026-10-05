@@ -1,6 +1,6 @@
 # Transforms
 
-Transforms add a same-shape view of your data as a new layer; they never touch `X` or drop
+Transforms add a layer (or, for PhILR, an `obsm` table) to a copy of your data; they never touch `X` or drop
 anything else, so you can always get back to what you started from.
 
 ## Relative abundance
@@ -48,10 +48,10 @@ An all-zero sample gives an all-zero CLR row.
 
 ## PhILR
 
-`bt.pp.philr` turns a sample into balances along its phylogeny: one per internal node of the
-tree, the log-ratio of the geometric means of the taxa under the node's two children, scaled so
+`bt.pp.philr` turns a sample into balances along its phylogeny: one per internal node with two
+children, the log-ratio of the geometric means of the taxa under the node's two children, scaled so
 that the balances are orthonormal coordinates. They go to `obsm["X_philr"]`, a table with one
-column per node:
+column per balance:
 
 ```python
 tdata = bt.datasets.toy()[:, :6].copy()
@@ -66,6 +66,21 @@ their Aitchison distances, the Euclidean distances between their CLR vectors.
 PhILR needs a rooted binary tree. Filtering features leaves nodes with one child; those define
 no balance and are skipped. A node with three or more children raises: that includes the root
 of an unrooted tree (`bt.datasets.toy()` has one, which is why the example keeps f1-f6). Root
-the tree and resolve its polytomies before reading it, for example with `ape::multi2di` in R.
-Filtering features afterwards drops `obsm["X_philr"]`, since the balances described the old
-features.
+the tree and resolve its polytomies before reading it, for example with `ape::multi2di` in R, or
+in Python with scikit-bio, which resolves them arbitrarily, as `multi2di` does:
+
+```python
+from skbio import TreeNode
+
+tree = TreeNode.read("tree.nwk")  # root it first (outgroup or midpoint) if it is unrooted: your choice
+tree.bifurcate()  # in place; every node ends with two children
+tree.write("binary.nwk")
+# then read your table again with tree="binary.nwk"
+```
+
+Balance names are the node names in `vart["phylo"]`, which differ from the ones `philr` in R
+makes with `makeNodeLabel`; to compare balances across tools, match them by their numerator and
+denominator taxa, not by name.
+
+Filtering features with `bt.pp.filter_features` drops `layers["clr"]` and `obsm["X_philr"]`;
+plain `adata[:, ...]` slicing keeps the old values, so transform after subsetting.
