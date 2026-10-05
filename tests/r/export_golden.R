@@ -237,5 +237,6 @@ writeLines(c(
   paste0("philr ", packageVersion("philr")),
   paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
   paste0("modeest ", packageVersion("modeest")),
-  paste0("ANCOMBC ", packageVersion("ANCOMBC"))
+  paste0("ANCOMBC ", packageVersion("ANCOMBC")),
+  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)")
 ), "tests/golden/VERSIONS.txt")
