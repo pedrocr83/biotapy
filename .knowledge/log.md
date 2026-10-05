@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3 plan)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) carries the user-approved Phase 3 plan: resolved design notes, global constraints, dependencies, review focus, slices 3A-3D, slice 3A in full TDD steps (3.0 goldens, 3.1 pp.clr, 3.2 pp.philr, Checkpoint A) and later slices as outlines, decisions and self-review; new description, paths and sources, copied into the [roadmap index](roadmap/index.md).
+
 ## 2026-10-05 (release 0.2.0)
 - **Update**: Phase 2 closed after biotapy 0.2.0 reached PyPI (tag v0.2.0, release workflow run 37316580850). [phase-2-function](roadmap/phase-2-function.md) is `phase_state: done` with every Task 2.15 step and exit-gate item ticked; [phase-3-stats](roadmap/phase-3-stats.md) is `phase_state: in-progress`; the [roadmap index](roadmap/index.md) lists Phase 3 as active.
 - **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2 says how to write `## [Unreleased]` from the git log when it is empty, and new step 2c moves the "not in X.Y" labels.
