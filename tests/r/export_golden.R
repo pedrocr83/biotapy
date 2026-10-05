@@ -159,6 +159,20 @@ linda_rows <- lapply(da_formulas, function(f) {
 })
 write_golden(do.call(rbind, linda_rows), file.path(gp, "linda.csv.gz"))
 
+# The settings scikit-bio's ancombc2 mirrors: BH, no prevalence or library-size filter, no pseudocount sensitivity
+# analysis, no structural-zero test; pseudo = 0, s0_perc, iter_control and em_control keep R's defaults. The bias E-M
+# runs in a %dorng% loop, which takes its seeds from R's generator: hence the seed, though no step draws a number.
+set.seed(20260927)
+ancombc_rows <- lapply(da_formulas, function(f) {
+  out <- suppressMessages(ANCOMBC::ancombc2(
+    data = da_counts, taxa_are_rows = TRUE, meta_data = da_meta, fix_formula = f, p_adj_method = "BH",
+    prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE, struc_zero = FALSE, verbose = FALSE
+  ))$res
+  data.frame(formula = f, taxon_id = out$taxon, lfc = out$lfc_hosthuman, se = out$se_hosthuman,
+             p = out$p_hosthuman, q = out$q_hosthuman)
+})
+write_golden(do.call(rbind, ancombc_rows), file.path(gp, "ancombc2.csv.gz"))
+
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
   c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
@@ -222,5 +236,6 @@ writeLines(c(
   paste0("picante ", packageVersion("picante")),
   paste0("philr ", packageVersion("philr")),
   paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
-  paste0("modeest ", packageVersion("modeest"))
+  paste0("modeest ", packageVersion("modeest")),
+  paste0("ANCOMBC ", packageVersion("ANCOMBC"))
 ), "tests/golden/VERSIONS.txt")
