@@ -147,10 +147,7 @@ def _genomes(traits: pd.DataFrame) -> pd.DataFrame:
 def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Index]:
     """``X`` over the taxa that have traits and abundance somewhere, and those taxa; warns about the others."""
     if not isinstance(adata, AnnData):
-        msg = (
-            f"adata must be an AnnData of samples x taxa, not {type(adata).__name__}; "
-            "for a MuData, pass one modality"
-        )
+        msg = f"adata must be an AnnData of samples x taxa, not {type(adata).__name__}; for a MuData, pass one modality"
         raise TypeError(msg)
     repeated = adata.var_names[adata.var_names.duplicated()].unique().tolist()
     if repeated:
