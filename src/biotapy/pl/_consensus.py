@@ -75,8 +75,11 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
     Guide: :doc:`/guide/differential_abundance`
 
     One axes, as every ``pl`` function returns; an UpSet plot of the same calls
-    needs two panels. Effects of different methods are all log2 fold changes,
-    which is what makes their mean comparable when ranking features.
+    needs two panels. For a two-level ``group`` the effects of all methods are log2
+    fold changes, which makes their mean comparable when ranking features. For a
+    numeric ``group`` they are not (``da.ancombc2`` gives the change per unit,
+    ``da.linda`` per standard deviation), so the ranking mixes units: rank by
+    ``n_significant`` and read each method's effect on its own.
 
     Examples
     --------
@@ -109,5 +112,7 @@ def consensus(table: pd.DataFrame, *, top: int = 30, ax: "Axes | None" = None) -
         tick.set_fontweight("bold" if bold else "normal")
     ax.set_xlim(-0.5, len(methods) - 0.5)
     ax.set_ylim(len(rows) - 0.5, -0.5)
-    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1))
+    # One row above the axes: inside they cover dots, beside them a default save clips them.
+    kinds = len(ax.get_legend_handles_labels()[0])
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.01), ncol=kinds, frameon=False, borderaxespad=0)
     return ax

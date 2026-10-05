@@ -107,6 +107,10 @@ def test_an_empty_table_raises(ax):
         bt.pl.consensus(_consensus_table().iloc[0:0], ax=ax)
 
 
-def test_the_legend_is_outside_the_axes(ax):
+def test_the_legend_is_above_the_axes_and_inside_the_figure(ax):
     bt.pl.consensus(_consensus_table(), ax=ax)
-    assert ax.get_legend().get_bbox_to_anchor().transformed(ax.transAxes.inverted()).x0 > 1
+    ax.figure.canvas.draw()
+    legend = ax.get_legend().get_window_extent()
+    assert legend.y0 >= ax.get_window_extent().y1
+    assert ax.figure.bbox.contains(legend.x0, legend.y0)
+    assert ax.figure.bbox.contains(legend.x1, legend.y1)

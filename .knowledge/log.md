@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.9 code and tests follow the second review fix: `pl.consensus`'s legend is one row above the axes (a default save clips it beside them), and its Notes say the effect ranking mixes units for a numeric `group`.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.9 code and tests follow the review fix: `pl.consensus` validates `table` and `top` (TypeError/ValueError naming the argument), draws its legend outside the axes and documents row order and `top` above 30.
 - **Update**: [function-shape](contracts/function-shape.md) (and rules.md R3.2): `pl.consensus` takes the table `da.consensus` returns. [phase-3-stats](roadmap/phase-3-stats.md) task 3.9 done.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.8 code and tests follow the second fix: `da.consensus` accepts NumPy scalars for `alpha` and `min_methods`.

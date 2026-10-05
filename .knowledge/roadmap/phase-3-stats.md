@@ -4454,9 +4454,13 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           bt.pl.consensus(_consensus_table().iloc[0:0], ax=ax)
 
 
-  def test_the_legend_is_outside_the_axes(ax):
+  def test_the_legend_is_above_the_axes_and_inside_the_figure(ax):
       bt.pl.consensus(_consensus_table(), ax=ax)
-      assert ax.get_legend().get_bbox_to_anchor().transformed(ax.transAxes.inverted()).x0 > 1
+      ax.figure.canvas.draw()
+      legend = ax.get_legend().get_window_extent()
+      assert legend.y0 >= ax.get_window_extent().y1
+      assert ax.figure.bbox.contains(legend.x0, legend.y0)
+      assert ax.figure.bbox.contains(legend.x1, legend.y1)
   ```
 - [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/pl/test_consensus.py -q` -> `7 failed` (`AttributeError: module
@@ -4540,8 +4544,11 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
       Guide: :doc:`/guide/differential_abundance`
 
       One axes, as every ``pl`` function returns; an UpSet plot of the same calls
-      needs two panels. Effects of different methods are all log2 fold changes,
-      which is what makes their mean comparable when ranking features.
+      needs two panels. For a two-level ``group`` the effects of all methods are log2
+      fold changes, which makes their mean comparable when ranking features. For a
+      numeric ``group`` they are not (``da.ancombc2`` gives the change per unit,
+      ``da.linda`` per standard deviation), so the ranking mixes units: rank by
+      ``n_significant`` and read each method's effect on its own.
 
       Examples
       --------
@@ -4574,7 +4581,9 @@ the fix), `RELATIVE_TOLERANCE`, the relative/abundance branches.
           tick.set_fontweight("bold" if bold else "normal")
       ax.set_xlim(-0.5, len(methods) - 0.5)
       ax.set_ylim(len(rows) - 0.5, -0.5)
-      ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1))
+      # One row above the axes: inside they cover dots, beside them a default save clips them.
+      kinds = len(ax.get_legend_handles_labels()[0])
+      ax.legend(loc="lower left", bbox_to_anchor=(0, 1.01), ncol=kinds, frameon=False, borderaxespad=0)
       return ax
   ```
   `src/biotapy/pl/__init__.py`:
