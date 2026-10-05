@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:54:33Z }
 commit: f5236e8
 sources:
   - id: spec
@@ -22,9 +22,7 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Slices 2A-2C have full TDD steps;
-> slice 2D is an outline, expanded with superpowers:writing-plans when
-> reached (rules.md R1.2a).
+> (recommended) or superpowers:executing-plans. Every slice has full TDD steps.
 
 **Goal:** 0.2 makes function a first-class hierarchy: HUMAnN, MetaPhlAn and
 PICRUSt2 outputs read into the data model, function aggregated and
@@ -344,7 +342,7 @@ hand in 2A's tests would duplicate the reader and test the wrong thing.
 | **2A - HUMAnN path** | read, regroup and renormalise HUMAnN tables, equal to HUMAnN 3.9 | 2.0 goldens and fixtures · 2.1 `sum_pairs`, `replace_features` · 2.1b function tables in `_core` (+ mudata) · 2.3 `io.read_humann` · 2.3b `datasets.toy_humann` · 2.5a `datasets.enzyme` · 2.5 `fn.load_hierarchy` · 2.6 `fn.func_glom` · 2.12 `fn.renorm` | Checkpoint A |
 | **2B - Other readers** | MetaPhlAn and PICRUSt2 into the same data model | 2.2a shared table reading · 2.2 `io.read_metaphlan` · 2.4 `io.read_picrust2` · 2.4b `io.read_picrust2_traits` | Checkpoint B |
 | **2C - Analysis** | the taxa-to-function link, redundancy, the plot | 2.7 `fn.contributions` · 2.8 `fn.functional_redundancy` · 2.9 `pl.contributions` | Checkpoint C |
-| **2D - Cohort, docs, release** | the HMP2 tutorial in CI, knowledge, benchmarks, 0.2 | 2.10 `datasets.hmp2` + tutorial · 2.11 knowledge · 2.13 Coming-from-R check · 2.14 benchmarks · 2.15 release 0.2 | exit gate |
+| **2D - Cohort, docs, release** | the HMP2 tutorial in CI, knowledge, benchmarks, 0.2 | 2.10 `datasets.hmp2` · 2.10b tutorial · 2.13 Coming-from-R check · 2.14 benchmarks · Checkpoint D with 2.11 knowledge · 2.15 release 0.2.0 | exit gate |
 
 Execution order inside 2B: **2.2a -> 2.2 -> 2.4 -> 2.4b -> Checkpoint B.**
 
@@ -373,9 +371,13 @@ not exist yet.
 - [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
 - [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
-- [ ] 2.10 `datasets.hmp2()` and the tutorial (outline)
-- [ ] 2.11 Knowledge (outline)
-- [ ] 2.13-2.15 Coming-from-R check, benchmarks, release 0.2 (outline)
+- [ ] 2.10 `datasets.hmp2() -> MuData`
+- [ ] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
+- [ ] 2.13 Coming-from-R check: "not in 0.2"
+- [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
+- [ ] Checkpoint D
+- [ ] 2.11 Knowledge
+- [ ] 2.15 Release 0.2.0
 
 # Exit gate
 - [ ] Tutorial 2.10 runs in CI (docs job, pooch cache).
@@ -7152,79 +7154,2332 @@ checklist.
 
 ---
 
-## Slice 2D - Cohort, docs and release (outline)
+## Slice 2D - Cohort, docs and release
 
-### Task 2.10: `datasets.hmp2()` and the tutorial
-**Interface (proposed):** `bt.datasets.hmp2() -> MuData` with modalities
-`"function"`, `"function_by_taxon"` (pathway abundance, CPM) and `"taxa"`
-(MetaPhlAn 3 profiles via `read_metaphlan`), and global `obs` from the HMP2
-metadata (diagnosis CD / UC / nonIBD, participant, week). It is a fixed,
-documented subset of samples.
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
+> (recommended) or superpowers:executing-plans. Steps use checkbox (`- [ ]`)
+> syntax for tracking. This section replaces the slice 2D outline (rules.md
+> R1.2a).
 
-**Sources (pinned SHA-256, research C):**
-- `.../HMP2/MGX/2018-05-04/pathabundances_3.tsv.gz` (13.3 MB):
-  `dd983871b0e155255844b91ec10d50fb09230d2f4e915464ab680fa3a9c9ddb3`;
-- `.../taxonomic_profiles_3.tsv.gz` (0.54 MB):
-  `d790ff15e46d61ca0cadc55d9f918de4e3415d7f97c992ac37610aaee02117ed`;
-- `metadata/hmp2_metadata_2018-08-20.csv` (9.1 MB): hash to compute;
-- base `https://g-227ca.190ebd.75bc.data.globus.org/ibdmdb/`.
+**Goal:** a user runs a real cohort end to end in the docs (read HMP2's
+pathway and species tables, renormalise, see which species carry a butyrate
+pathway, compare diagnoses), the knowledge bundle and the Coming-from-R page
+describe 0.2, the function verbs have asv baselines, and biotapy 0.2.0 is
+released, with the tag and the PyPI upload waiting for the user's explicit
+approval.
 
-Never committed (R6.6; no licence stated).
+**Architecture:** one new public function, `bt.datasets.hmp2() -> MuData`,
+in a new topic file `datasets/_hmp2.py`. Its three pinned files join the
+existing pooch registry in `datasets/_remote.py`, and it reads them with the
+existing readers (`io.read_humann`, `io.read_metaphlan`), so no parsing code
+is new. Everything else is docs, tests, benchmarks, knowledge and the
+release. No `_core`, `io`, `fn`, `pp`, `tl` or `pl` code changes.
 
-**Design questions:**
-1. **Subset rule** (deterministic): e.g. the first stool sample of each of
-   40 participants, balanced by diagnosis. The loader reads all 1,638 columns
-   (3 s, measured) and subsets, or reads `usecols`.
-2. **Sample ids.** 2A's reader already strips `_pathabundance_cpm` and sets
-   `x_kind="cpm"`. The metadata's `External ID` joins on `CSM5FZ3N_P`; check
-   the MetaPhlAn table's column names.
-3. **A `func_glom` demo.** HMP2 has no merged gene-family table. Options:
-   - fetch about 10 per-sample `*_humann3.tar.bz2` (1.4 MB each) for their
-     `level4ec` tables, then group them to ENZYME classes;
-   - demonstrate on pathways with a user-style map. MetaCyc pathway classes
-     are restricted, so the map would be synthetic.
+**Tech stack:** anndata 0.13.4 · mudata 0.4.1 (`MuData(mods, obs=...)`,
+`push_obs`) · pandas 3.0.6 (`read_csv(usecols=...)`) · pooch 1.9.0 ·
+myst-nb 1.4.0 (`nb_execution_timeout`) · sphinx 9.1.0 · asv 0.6.6. No new
+dependency (R9.1).
 
-   Proposed: the per-sample EC route (open data end to end).
-4. **CI.** The docs job sets `BIOTAPY_DATA_DIR` and caches it; the notebook
-   runs under `nb_execution_mode = "cache"` with
-   `nb_execution_raise_on_error = True`. Budget: under 2 minutes.
-5. **Tutorial content** (`docs/tutorials/function.md`):
-   - read, renorm and group;
-   - contributions plot for a butyrate pathway;
-   - functional redundancy needs PICRUSt2 traits, which HMP2 lacks. Show it
-     on the toy, or leave it out of the tutorial. Decide here.
-   - Licence caveat and citation: Lloyd-Price J et al. (2019) Multi-omics of
-     the gut microbial ecosystem in inflammatory bowel diseases. *Nature*
-     569:655-662.
+**Spec:** this concept's Phase 2 design notes (note 7: the HMP2 cohort, its
+licence caveat and citation), the slice 2D outline it replaces, rules.md,
+[cut-a-release](/playbooks/cut-a-release.md) and Phase 1's Task 1.23 (how
+0.1.0 was released), and Lloyd-Price J et al. (2019) *Multi-omics of the gut
+microbial ecosystem in inflammatory bowel diseases*, Nature 569:655-662.
 
-### Task 2.11: Knowledge
-`modules/fn.md` and `modules/io.md` final pass (MetaPhlAn, PICRUSt2); the
-data-model contract's MetaPhlAn/PICRUSt2 rules; `roadmap/index.md` when the
-phase closes; log lines. (The MuData decision and the first `fn` concept
-were written at Checkpoint A.)
+**How this slice was checked.** Every file below was written into a scratch
+clone of the repository at `407cc19` (master after slice 2C) and replayed as
+one commit per task: 2.10, 2.10b, 2.13, 2.14 (two commits: the suite, then
+its baseline), the 2.11 knowledge commit, and on a `release-0.2.0` branch
+the release commit and its knowledge commit. Each committed state was gated
+with a clean tree (`git status --short` empty):
+
+| Task state (scratch commit) | `uvx prek run --all-files` | `pytest -q -W error::UserWarning` | `pytest -q -m "golden or network"` | `sphinx-build -W` (tutorial execution) |
+|---|---|---|---|---|
+| `407cc19` (baseline) | - | 968 passed, 22 deselected | - | build succeeded, 36.5 s |
+| 2.10 `2e6e84a` | passed | 978 passed, 23 deselected | 30 passed | build succeeded, 32.1 s |
+| 2.10b `c77958c` | passed | 979 passed, 23 deselected | 30 passed | build succeeded, 41.6 s (7.7 s) |
+| 2.13 `46c6824` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 46.8 s (8.4 s) |
+| 2.14 suite `3c77e3e` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 48.1 s (8.0 s) |
+| 2.14 baseline page `1faf8c1` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 47.3 s (8.4 s) |
+| 2.11 knowledge `4dafa65` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 36.6 s (6.2 s) |
+| 2.15 release `7fff019` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 39.3 s (6.9 s) |
+| 2.15 knowledge `fc81bdb` | passed | 981 passed, 23 deselected | 30 passed | build succeeded, 38.0 s (7.1 s) |
+
+(Docs builds start from an empty `docs/_build` with the HMP2 files cached;
+the cold-cache build is below. `asv check --python=same` prints "No problems
+found." from `3c77e3e` on; `knowledge_stale.sh --against HEAD` prints
+`23 current, 0 stale, 12 uncheckable` on `4dafa65` and `fc81bdb`.)
+
+- prek covers ruff 0.16.9 check and format, `mypy --strict`, import-linter,
+  pyproject-fmt and the other hooks. The code below is the state after prek:
+  mypy rejected `pathways[key]` (typed `AnnData | MuData`) as a `MuData`
+  argument, and ruff format rewrapped lines in the hmp2 test, the
+  Coming-from-R test and the benchmarks; each was fixed and amended before
+  the gate run in the table.
+- The RED results in each Step 2 come from the scratch runs.
+- The real files: `bt.datasets.hmp2()` was run on the three downloaded
+  files (pooch verified the three SHA-256s) in 4.0 s warm and 10.1 s and
+  25.1 s on two cold downloads; the tutorial executed in 6.9-8.3 s warm and
+  24.3 s on a cold cache; the whole docs build took 53.2 s cold.
+- The release state: `uv build` and `twine check --strict` PASSED for both
+  files; the wheel's METADATA reads `Version: 0.2.0` and
+  `Requires-Dist: mudata>=0.4`; the sdist holds no `benchmarks/`; `pytest`
+  run inside the extracted sdist: 896 passed, 23 deselected.
+- Every run set `BIOTAPY_DATA_DIR=<scratchpad>/pooch`; `~/.cache/biotapy`
+  does not exist afterwards.
+
+### Slice 2D design
+
+Each settled question gives the answer and the reason. **(user)** marks the
+ones repeated under "Slice 2D decisions for the user".
+
+#### Where the code goes
+
+| File | Holds |
+|---|---|
+| `src/biotapy/datasets/_hmp2.py` (new, 2.10) | `hmp2`, the constants `TAXA_KEY`, `COLUMNS`, `DIAGNOSES` |
+| `src/biotapy/datasets/_remote.py` (2.10) | three new `_REGISTRY` hashes, `_IBDMDB` and three `_URLS` entries |
+| `tests/datasets/test_hmp2.py` (new, 2.10) | synthetic files in HMP2's layout, written per test; offline and network tests |
+| `docs/tutorials/function.md` (new, 2.10b) | the HMP2 function tutorial, a MyST notebook executed on every docs build |
+| `docs/conf.py` (2.10b) | `nb_execution_timeout = 300` |
+| `benchmarks/benchmarks/fn.py` (new, 2.14), `_data.py` (2.14) | `FuncGlom`, `ReadHumann`, `FunctionalRedundancy`; `synthetic_function`, `function_groups`, `synthetic_traits` |
+
+`_hmp2.py` is a new topic file, as `_enzyme.py` is: it holds one public
+function and imports `_fetch` from `_remote.py`, which owns the one pooch
+instance (one cache, one `BIOTAPY_DATA_DIR`, one registry).
+`datasets` may import `io` (module-boundaries layers: `datasets` > `io`).
+
+#### 1. `datasets.hmp2()`: interface and modalities
+
+`hmp2() -> MuData` with three modalities over the same samples, and the
+metadata in the global `obs`, pushed into every modality. **(user)**
+
+| Modality | Holds | From | `x_kind` |
+|---|---|---|---|
+| `"function"` | 478 community pathway rows | `io.read_humann` | `cpm` |
+| `"function_by_taxon"` | 21,635 per-species pathway rows | `io.read_humann` | `cpm` |
+| `"taxa"` | 579 MetaPhlAn 3 leaf clades (species and `UNKNOWN`), a TreeData with no tree | `io.read_metaphlan` | `relative` |
+
+- **Why one MuData with a `"taxa"` modality.** The tutorial needs pathways
+  and species of the same samples with the same metadata, and MuData is
+  how biotapy keeps modalities aligned (function-tables-as-mudata). `taxa`
+  is the name plan.md and Phase 4's task 4.1 reserve for the taxonomic
+  modality, and that decision's forward note already says a multi-omics
+  MuData holds `function` and `function_by_taxon` side by side with `taxa`.
+  Checked with mudata 0.4.1: a TreeData is accepted as a modality and stays
+  a TreeData in memory; `bt.pp.tax_glom(mdata["taxa"], "phylum")` works;
+  `bt.fn.renorm` keeps the extra modality; `write_h5mu`/`read_h5mu` round
+  trips (the `taxa` modality comes back an AnnData, which loses nothing:
+  MetaPhlAn tables have no tree). The var names of the three modalities do
+  not collide on the real files (no mudata warning).
+  Rejected: a `(MuData, TreeData)` tuple (two objects to keep aligned, and
+  R3.1's one result); two loaders `hmp2_function()` / `hmp2_taxa()` (two
+  public functions, metadata twice).
+- **Global `obs`.** Seven of the metadata's 490 columns, with their own
+  names, so a user can match them to the IBDMDB's documentation:
+  `Participant ID`, `week_num`, `diagnosis`, `site_name`, `sex`,
+  `consent_age`, `Antibiotics`. The other 483 (sequencing details, clinical
+  forms, diet questionnaire answers) are left out: `print(mdata)` lists
+  every `obs` column of the MuData and of each modality, and 490 x 4 names
+  would bury the object. `diagnosis` is categorical with categories
+  `nonIBD`, `UC`, `CD` (reference first), so plots and groupby order
+  them that way. **(user)**
+- **Pushed into every modality** (`MuData.push_obs()`), so AnnData verbs on
+  a modality see the metadata: `bt.tl.permanova(mdata["function"],
+  "diagnosis")` works without a `push_obs` call by the user. `fn.renorm`
+  keeps each modality's `obs` and the global `obs`.
+- **mudata converts the global `obs` dtypes** (its `_update_attr` calls
+  pandas' `convert_dtypes`, checked in 0.4.1): `week_num` becomes `int64`,
+  `consent_age` the nullable `Int64` (6 of the 130 are missing) and the text
+  columns pandas' `string` dtype. This is mudata's behaviour on every
+  MuData, not biotapy's; the h5mu round trip works, and the test compares
+  each modality's `obs` with the global one, so a difference shows.
+- **Values as the readers give them.** No renormalisation, no feature
+  filter: every feature of the published tables stays, including those
+  absent from all 130 samples (the user filters with
+  `bt.pp.filter_features`). The tutorial shows `fn.renorm`.
+- **No new provenance entry.** Each modality keeps its reader's entry, as
+  `global_patterns()` keeps `read_phyloseq`'s; selecting samples is a
+  sample-only operation (data-model-slots, Propagation).
+- **R equivalent: none.** No R function returns this subset; the docstring
+  says `none` (R8.2), so the Coming-from-R table gains no row and no golden
+  test is owed (r-golden-parity).
+
+#### 2. The subset rule, its size and the sample-id joins
+
+**Rule: each participant's first stool metagenome** - the metadata rows with
+`data_type == "metagenomics"`, sorted by `Participant ID`, `week_num`,
+`External ID`, first row per participant. **(user)**
+
+- **Size: 130 samples** (CD 65, UC 38, nonIBD 27), checked on the
+  2018-08-20 metadata: 1,638 metagenomes from 130 participants, no
+  participant with two diagnoses, `week_num` never missing for a
+  metagenome, six participants with two or three metagenomes in their first
+  week (the `External ID` breaks the tie, so the rule is deterministic).
+- **Why one per participant.** HMP2 is longitudinal (up to 26 metagenomes
+  per person); a group comparison over every sample counts each person many
+  times. One sample per person makes PERMANOVA's samples independent, which
+  is the comparison the tutorial makes. Why the first: it is defined for
+  every participant and needs no choice of time point.
+- **Why not a balanced 40.** A balanced pick needs a second rule (which 40
+  participants?), and 130 already runs in seconds: reading the full tables
+  and selecting takes 4.0 s warm. The tutorial CI budget (2 minutes) is
+  dominated by the cold download, which a smaller subset would not shrink:
+  the published tables are whole-cohort files.
+- **Read all, then select.** `read_humann` reads one path; `usecols` is not
+  available through it. It builds a dense 22,113 x 1,638 `float64` array
+  (about 290 MB) before the selection, as its docstring says; the `hmp2`
+  docstring repeats the cost (R6.2's spirit: state the memory).
+- **Joins.** All three files share their 1,638 sample ids once the readers
+  strip their suffixes (checked: 1,638 in each, 1,638 in common):
+  - pathway columns `CSM5FZ3N_P_pathabundance_cpm` -> `CSM5FZ3N_P`
+    (`read_humann`'s suffix rule, 2A);
+  - MetaPhlAn columns `CSM5FZ3N_P_profile` -> `CSM5FZ3N_P` (`read_metaphlan`
+    removes `_profile`, 2B); some ids have no `_P` (`CSM5FZ4M_profile` ->
+    `CSM5FZ4M`), as in the metadata;
+  - metadata `External ID` `CSM5FZ3N_P`.
+
+  The selected ids index each modality by name (`adata[samples]`), so
+  order follows the metadata's sort and a missing id would raise `KeyError`
+  rather than misalign. Pinned hashes make that impossible for the real
+  files; the offline fixture uses ids with and without `_P`.
+- **Pinned files** (downloaded 2026-10-05; the metadata three times, the
+  hash was the same each time):
+
+  | File | Size | SHA-256 |
+  |---|---|---|
+  | `products/HMP2/MGX/2018-05-04/pathabundances_3.tsv.gz` | 13.3 MB | `dd983871b0e155255844b91ec10d50fb09230d2f4e915464ab680fa3a9c9ddb3` |
+  | `products/HMP2/MGX/2018-05-04/taxonomic_profiles_3.tsv.gz` | 0.54 MB | `d790ff15e46d61ca0cadc55d9f918de4e3415d7f97c992ac37610aaee02117ed` |
+  | `metadata/hmp2_metadata_2018-08-20.csv` | 9.1 MB | `656b7bd97660ddb875548805e30bede31f2d1208293f7170d2d5755e33862ec9` |
+
+  under `https://g-227ca.190ebd.75bc.data.globus.org/ibdmdb/` (the links
+  `https://ibdmdb.org/results` gives). Never committed (R6.6; no licence).
+
+#### 3. The `func_glom` demo: left out of the tutorial
+
+**The tutorial does not regroup; the function guide's ENZYME example stays
+the `func_glom` demonstration. (user)** Measured options:
+
+| Route | Download | Time on a cold cache | What biotapy would need |
+|---|---|---|---|
+| merged `ecs_3.tsv.gz` (EC x taxon, all samples) | 113 MB | not run: 8.5 times the pathway table's download, and `read_humann`'s dense array grows with its rows | nothing new, but far over budget |
+| merged `ecs_relab.tsv.gz` | 89 MB | as above | as above |
+| per-sample `func_profile3_WGS/<id>_humann3.tar.bz2` (`_level4ec.tsv` inside) | 0.9-1.6 MB each; 6 took 15.9 s (about 2.7 s each), untar 0.2 s each | 130 samples, extrapolated: about 6 minutes and 182 MB | 130 pinned hashes, an untar step, and a join of 130 tables, which biotapy does not have (`humann_join_tables`) |
+| pathways with a pathway-class map | none | - | MetaCyc classes: never shipped or fetched (no-bundled-kegg) |
+
+A small EC subset (say 12 samples) would still need 12 hashes, an untar
+processor and a table join written only for a demo, inside `datasets`, and
+it would show grouping on samples the rest of the tutorial does not use.
+`func_glom`'s correctness is already pinned by the HUMAnN goldens and its
+use by the guide's ENZYME example; the tutorial says why it is not there
+and links to the guide.
+
+#### 4. CI and the docs build
+
+- **No workflow change is needed. (user)** The `docs` job already sets
+  `BIOTAPY_DATA_DIR` and caches `${{ github.workspace }}/.pooch` under
+  `pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}`. The HMP2
+  registry lives in `_remote.py`, so its first CI run gets a new key and
+  later runs restore the HMP2 files. The `network` job runs the new
+  `@pytest.mark.network` test, so it downloads them too.
+- **Pre-existing, reported (R1.4):** both jobs save to the same key and
+  only the first job to finish saves. The `docs` job never fetches ENZYME
+  (the guides' code blocks do not execute), so if it saves first, the
+  `network` job re-downloads `enzyme.dat` (9.6 MB, unpinned) every run.
+  Separate keys (`pooch-docs-...`, `pooch-network-...`) would fix it; it is
+  a CI change, listed as an option, not in this slice.
+- **`nb_execution_timeout = 300` in `docs/conf.py`. (user)** myst-nb's
+  default is 30 s per cell (`NbParserConfig.execution_timeout`, checked in
+  1.4.0). The tutorial's first cell downloads 23 MB on a cold cache: 10.1 s
+  and 25.1 s measured on two runs here, too close to 30 s for Read the
+  Docs (no cache) and a cold CI cache. 300 s is more than ten times the
+  slowest run. It is the build's global value: the test
+  `test_no_page_overrides_the_notebook_execution_settings` forbids a
+  per-page override. A new `tests/test_ci.py` test pins it.
+- **Budget.** The tutorial executed in 6.9-8.3 s warm and 24.3 s cold; the
+  whole docs build took 32-48 s warm across the task states (36.5 s before
+  the tutorial) and 53.2 s cold. Well under 2 minutes.
+- **Offline tests** follow `test_enzyme.py`: a fixture writes synthetic
+  files in HMP2's layout to `tmp_path` and patches the private
+  `_hmp2._fetch` (R11.4's one exception, as `test_remote.py` explains). The
+  synthetic files are not committed: no HMP2 value is copied (no licence),
+  and three small files written per test cost nothing.
+
+#### 5. The tutorial (`docs/tutorials/function.md`)
+
+A MyST notebook like `phyloseq_analysis.md`, executed on every build:
+
+1. **Intro and caveat:** what HMP2 is; a `{note}` with the download size,
+   "the IBDMDB states no licence; biotapy ships none of it" and the
+   citation. Then the two parts of `bt.fn` it leaves out, with reasons and a
+   link to the function guide: `func_glom` (design 3) and
+   `functional_redundancy` (needs per-species gene copy numbers, which
+   HUMAnN does not write; the guide shows it on a small table). **(user)**
+2. **The cohort:** `bt.datasets.hmp2()`, the MuData repr, diagnosis counts.
+3. **Renormalising:** `bt.fn.renorm(mdata, "relab", special=False)`. Real
+   numbers: `UNMAPPED` + `UNINTEGRATED` hold a median 96% of each sample's
+   CPM (min 92.5%), so comparisons use shares of the mapped pathways
+   (`humann_renorm_table --special n`); rows then sum to 1.
+4. **Who carries butyrate production:** `PWY-5676` (acetyl-CoA
+   fermentation to butanoate II), present in 112 of the 130 samples, with
+   seven strata (*Anaerostipes hadrus*, *Flavonifractor plautii*,
+   *Intestinimonas butyriciproducens*, *E. coli*, two *Klebsiella*,
+   `unclassified`). `bt.fn.contributions(..., top=5)` and its mean per
+   diagnosis (pandas `groupby`), then `bt.pl.contributions` with samples
+   sorted by diagnosis and group labels on the x axis (130 sample names are
+   unreadable).
+5. **Comparing diagnoses with verbs biotapy has:** `tl.beta` (Bray-Curtis)
+   -> `tl.pcoa` -> `pl.ordination(color="diagnosis")` -> `tl.permanova`
+   (`seed=0`) on the renormalised community pathways; then Shannon of the
+   MetaPhlAn species per diagnosis (`tl.alpha`, `pl.richness`). Shannon on
+   relative abundance is allowed (only `observed_features` and `chao1` need
+   counts). No numeric claims in the prose: outputs show the values
+   (PERMANOVA pseudo-F 2.29, p = 0.008 with seed 0 in the prototype).
+
+The pathway table carries MetaCyc pathway names (`acetyl-CoA fermentation
+to butanoate II`) because HUMAnN writes them; that is HUMAnN output
+published by HMP2, not a MetaCyc mapping or hierarchy, which
+no-bundled-kegg forbids. **(user)**
+
+#### 6. Coming-from-R, benchmarks, knowledge and release
+
+- **2.13:** the five "not in 0.1" labels become "not in 0.2" in
+  `docs/_data/r_idioms.toml` with the page sentence and the test, and the
+  phyloseq vignette's three "0.1" statements become "0.2" (0.2 adds nothing
+  to what the vignette covers, so they are true). **(user)** The two mia
+  rows (`mia::importHUMAnN`, `mia::importMetaPhlAn`) are already generated
+  from the 2A/2B docstrings; a new test pins them. The rendered table was
+  read: 52 rows, both `mia::` rows present, five "not in 0.2".
+- **2.14:** asv `benchmarks/benchmarks/fn.py`, measured only (R10.1), on a
+  table shaped like HMP2's pathway table (1,600 samples, 500 functions x 43
+  strata = 22,000 rows; 50% / 7% non-zero), a many-to-many map (each
+  function in two of 50 groups), and Tian's redundancy at 2,000 taxa x
+  2,500 genes. A MuData does not survive `pickle` (mudata 0.4.1 with
+  anndata 0.13.4: `TypeError: cannot create weak reference to 'NoneType'
+  object`, checked on `toy_humann()` too), so `FuncGlom.setup_cache` caches
+  a dict of the two AnnData modalities. Reported, not fixed (R1.4): it is
+  mudata/anndata's, and biotapy never pickles.
+- **2.11:** done as Checkpoint D's knowledge step, after the fix pass, so it
+  documents the final code (dispatch rule F15).
+- **2.15:** Phase 1's Task 1.23 with three changes: the CHANGELOG's
+  `## [Unreleased]` is empty (no 2A-2C PR wrote an entry), so its 0.2.0
+  entries are written from `git log v0.1.0..master` (exact text in 2.15);
+  the release branch's push, PR and merge are asked for with the slice 2D
+  review (the standing approval covers slice branches only); and the
+  Phase-closing knowledge commit goes on its own branch after the upload,
+  as `close-phase-1` did (PR #13). **(user)**
+
+#### 7. Contracts
+
+- **data-model-slots, Function tables: one paragraph added. (user)**
+  `datasets.hmp2` returns a function table with a third modality, `"taxa"`,
+  and its metadata in the global `obs`, pushed into every modality; `fn`
+  verbs take the modality they need and `fn.renorm` keeps others.
+- No other contract changes. function-shape: `hmp2`'s example is
+  `# doctest: +SKIP`, as every downloading loader's is (R8.2, R11.4).
+  pure-by-default: `datasets` returns a new `MuData` (its table already says
+  so). module-boundaries: `datasets` importing `io` is allowed.
+  r-golden-parity: no R equivalent, no golden.
+
+### Slice 2D global constraints (in addition to the Phase 2 list)
+
+- No new dependency (runtime, extra or dev). New calls, each run in the
+  installed versions: `pandas.read_csv(usecols=...)`,
+  `MuData(mods, obs=...)`, `MuData.push_obs()`, myst-nb's
+  `nb_execution_timeout`.
+- **No HMP2 data in the repository**, not even an excerpt: the IBDMDB states
+  no licence. Tests write synthetic files in its layout at run time. The
+  tutorial, the `hmp2` docstring and the datasets guide carry the caveat
+  and the citation.
+- **No MetaCyc or KEGG mapping**, and no pathway regrouping on HMP2 data.
+  Pathway ids and the names HUMAnN wrote are allowed.
+- **PICRUSt2 (GPL-3) is never installed, imported or copied.**
+- Every error a user can hit names its argument (R3.5). `hmp2()` takes none;
+  the readers it calls already name `path`.
+- Run every pytest, Python, asv and Sphinx command with
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch`; afterwards `~/.cache/biotapy` must
+  not exist.
+- Network tests and the docs build download from the IBDMDB's Globus
+  endpoint; a cold download took 10-25 s here.
+- Diff blocks below are for reading, not `git apply`.
+- Branch `phase-2d` from `master` (`407cc19`). Push, PR and merge-commit on
+  green are approved for Phase 2 slice branches (user, 2026-10-03). The
+  release branch, the tag, the GitHub release (which publishes to PyPI) and
+  the phase-closing branch each need the user's explicit approval at that
+  moment (R13.3); Task 2.15 says when to ask.
+- Module concepts are refreshed in Task 2.11 (Checkpoint D), not in the
+  tasks (dispatch rule F15).
+
+### Slice 2D review focus
+
+The five ways a user is most likely to get a wrong answer, or a broken
+build, from this slice without an error, most likely first, each pinned by a
+test in its task:
+
+1. **Repeated measures counted as independent samples, or a
+   metatranscriptome taken for a metagenome.** HMP2 has up to 26 samples
+   per person and several data types per visit. Expected: one metagenome per
+   participant, the earliest, ties broken by `External ID`, never a
+   metatranscriptome even when it is earlier. Test (2.10):
+   `test_keeps_each_participants_first_metagenome`.
+2. **Sample ids that do not line up** across the pathway table
+   (`_pathabundance_cpm`), the MetaPhlAn table (`_profile`, some ids without
+   `_P`) and the metadata. Expected: every modality indexed by the same ids
+   in the same order. Tests (2.10):
+   `test_three_modalities_over_the_same_samples`, and on the real files
+   `test_hmp2_downloads_and_loads` (130 samples in each modality).
+3. **Metadata only in the global `obs`.** `tl.permanova(mdata["function"],
+   "diagnosis")` would raise `KeyError`, and a text `diagnosis` would order
+   groups alphabetically. Expected: the seven columns in every modality,
+   `diagnosis` categorical `nonIBD`, `UC`, `CD`. Test (2.10):
+   `test_metadata_is_in_the_global_obs_and_every_modality`.
+4. **The cohort lost or changed on the way:** a later IBDMDB file with the
+   same name, `fn.renorm` dropping the `taxa` modality, or a save that
+   fails. Expected: pinned SHA-256s for all three files; `renorm` keeps
+   `taxa`; the h5mu round trip works. Tests (2.10):
+   `test_fetches_the_three_pinned_files`,
+   `test_feeds_renorm_and_contributions`, `test_round_trips_through_h5mu`.
+5. **The docs build failing on a cold cache:** the tutorial's first cell
+   downloads 23 MB, measured at up to 25 s, against myst-nb's 30 s default
+   per cell. Expected: a 300 s cell timeout. Test (2.10b):
+   `test_a_notebook_cell_has_time_to_download_a_dataset`.
+
+Execution order: **2.10 -> 2.10b -> 2.13 -> 2.14 -> Checkpoint D (review,
+fix pass, re-review, Task 2.11 knowledge, PR) -> 2.15.** The tutorial needs
+`hmp2`; 2.13 and 2.14 are independent of both but share no files with
+them, so they follow in roadmap order; the knowledge pass documents the
+final code; the release comes last.
+
+**Plan commit (controller, before Task 2.10).** With this section, the plan
+commit also updates, outside it:
+- the header note: "Slices 2A-2C have full TDD steps; slice 2D is an outline,
+  expanded with superpowers:writing-plans when reached (rules.md R1.2a)."
+  becomes "Every slice has full TDD steps.";
+- "# Tasks (checklist)": the three outline lines become
+  ```markdown
+  - [ ] 2.10 `datasets.hmp2() -> MuData`
+  - [ ] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
+  - [ ] 2.13 Coming-from-R check: "not in 0.2"
+  - [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
+  - [ ] Checkpoint D
+  - [ ] 2.11 Knowledge
+  - [ ] 2.15 Release 0.2.0
+  ```
+- the "# Slices" table's 2D row: `2.10 datasets.hmp2 · 2.10b tutorial ·
+  2.13 Coming-from-R check · 2.14 benchmarks · Checkpoint D with 2.11
+  knowledge · 2.15 release 0.2.0`, ending with "exit gate";
+- "# Decisions for the user", item 11: "Slice 2B, 2C and 2D decisions: see
+  each slice's own list.";
+- `.knowledge/log.md`, under `## <date> (slice 2D plan)`:
+  `* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2D plan in full TDD steps (2.10 datasets.hmp2, 2.10b tutorial, 2.13 Coming-from-R, 2.14 benchmarks, Checkpoint D with 2.11 knowledge, 2.15 release 0.2.0) and its decisions; header note, checklist, slices table and decision 11 updated.`
+
+---
+### Task 2.10: `datasets.hmp2`
+
+**Files:**
+- Create: `src/biotapy/datasets/_hmp2.py`, `tests/datasets/test_hmp2.py`.
+- Modify: `src/biotapy/datasets/_remote.py`, `src/biotapy/datasets/__init__.py`,
+  `docs/api.md`, `docs/guide/datasets.md`.
+
+**Interfaces:**
+- Consumes: `bt.io.read_humann(path) -> MuData` (2A), `bt.io.read_metaphlan(path) -> TreeData`
+  (2B), `datasets/_remote.py:_fetch(name) -> str` and its `_REGISTRY` / `_URLS`.
+- Produces: `bt.datasets.hmp2() -> MuData` with modalities `"function"`,
+  `"function_by_taxon"`, `"taxa"` over 130 samples, global `obs` columns
+  `datasets/_hmp2.py:COLUMNS` pushed into each modality. Task 2.10b's
+  tutorial calls it; the `network` CI job and the `docs` job download its
+  files.
+
+**Will not touch:** `_remote.py`'s loaders and existing registry entries,
+`_enzyme.py`, `_toy.py`, every reader, `fn`, `_core`, the CI workflows.
+
+- [ ] **Step 1: Failing tests.** Create `tests/datasets/test_hmp2.py`:
+
+```python
+import gzip
+
+import mudata
+import numpy as np
+import pandas as pd
+import pytest
+
+import biotapy as bt
+from biotapy.datasets import _hmp2, _remote
+
+# Synthetic files in the layout of the three HMP2 products. No HMP2 data is copied: the IBDMDB states no licence.
+_METADATA = pd.DataFrame(
+    {
+        "Project": "HMP2",
+        "External ID": ["S1A_P", "S1B_P", "S1T_P", "S2B", "S2A", "S3A_P"],
+        "Participant ID": ["C3001", "C3001", "C3001", "C3002", "C3002", "H4001"],
+        "data_type": [
+            "metagenomics",
+            "metagenomics",
+            "metatranscriptomics",
+            "metagenomics",
+            "metagenomics",
+            "metagenomics",
+        ],
+        "week_num": [2.0, 1.0, 0.0, 4.0, 4.0, 0.0],
+        "diagnosis": ["UC", "UC", "UC", "CD", "CD", "nonIBD"],
+        "site_name": ["Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "Cedars-Sinai", "MGH"],
+        "sex": ["Female", "Female", "Female", "Male", "Male", "Female"],
+        "consent_age": [30.0, 30.0, 30.0, 52.0, 52.0, np.nan],
+        "Antibiotics": ["No", "No", "No", "Yes", "Yes", "No"],
+        "hbi": [np.nan, 3.0, np.nan, 5.0, 5.0, np.nan],
+    }
+)
+_METAGENOMES = ["S1A_P", "S1B_P", "S2B", "S2A", "S3A_P"]
+# CPM rows; PWY-2 is found only in S2B, which hmp2() does not keep.
+_PATHWAYS = {
+    "UNMAPPED": [300000, 250000, 200000, 400000, 350000],
+    "UNINTEGRATED": [600000, 650000, 700000, 500000, 550000],
+    "PWY-1": [100000, 100000, 50000, 100000, 100000],
+    "PWY-1|g__Anaerostipes.s__Anaerostipes_hadrus": [60000, 70000, 0, 40000, 100000],
+    "PWY-1|unclassified": [40000, 30000, 0, 60000, 0],
+    "PWY-2": [0, 0, 50000, 0, 0],
+}
+# MetaPhlAn 3 percentages; the leaves (UNKNOWN and two species) of each sample sum to 100.
+_LINEAGE = "k__Bacteria|p__Firmicutes|c__Clostridia|o__Clostridiales|f__Lachnospiraceae|g__Anaerostipes"
+_SPECIES = {
+    "s__Anaerostipes_hadrus": [60.0, 50.0, 0.0, 30.0, 90.0],
+    "s__Anaerostipes_caccae": [30.0, 45.0, 100.0, 70.0, 0.0],
+}
+_UNKNOWN = [10.0, 5.0, 0.0, 0.0, 10.0]
+
+
+def _taxa_rows():
+    clade = np.add(*_SPECIES.values())
+    parts = _LINEAGE.split("|")
+    rows = {"UNKNOWN": _UNKNOWN} | {"|".join(parts[: depth + 1]): clade for depth in range(len(parts))}
+    return rows | {f"{_LINEAGE}|{name}": values for name, values in _SPECIES.items()}
+
+
+def _write_table(path, rows, suffix):
+    lines = ["Feature\\Sample\t" + "\t".join(f"{sample}{suffix}" for sample in _METAGENOMES)]
+    lines += [f"{row}\t" + "\t".join(str(value) for value in values) for row, values in rows.items()]
+    with gzip.open(path, "wt", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+@pytest.fixture
+def fetched(tmp_path, monkeypatch):
+    # As in test_remote.py and test_enzyme.py: the only offline route to the loader is its private _fetch (R11.4).
+    _METADATA.to_csv(tmp_path / "hmp2_metadata_2018-08-20.csv", index=False)
+    _write_table(tmp_path / "pathabundances_3.tsv.gz", _PATHWAYS, "_pathabundance_cpm")
+    _write_table(tmp_path / "taxonomic_profiles_3.tsv.gz", _taxa_rows(), "_profile")
+    names = []
+    monkeypatch.setattr(_hmp2, "_fetch", lambda name: names.append(name) or str(tmp_path / name))
+    return names
+
+
+def test_keeps_each_participants_first_metagenome(fetched):
+    mdata = bt.datasets.hmp2()
+    # S1T_P is a metatranscriptome; S2A and S2B share week 4, so the External ID decides.
+    assert mdata.obs_names.tolist() == ["S1B_P", "S2A", "S3A_P"]
+
+
+def test_three_modalities_over_the_same_samples(fetched):
+    mdata = bt.datasets.hmp2()
+    assert list(mdata.mod) == ["function", "function_by_taxon", "taxa"]
+    assert {key: mod.shape for key, mod in mdata.mod.items()} == {
+        "function": (3, 4),
+        "function_by_taxon": (3, 2),
+        "taxa": (3, 3),
+    }
+    for mod in mdata.mod.values():
+        assert mod.obs_names.tolist() == mdata.obs_names.tolist()
+
+
+def test_metadata_is_in_the_global_obs_and_every_modality(fetched):
+    mdata = bt.datasets.hmp2()
+    assert mdata.obs.columns.tolist() == _hmp2.COLUMNS
+    assert mdata.obs["diagnosis"].cat.categories.tolist() == ["nonIBD", "UC", "CD"]
+    assert mdata.obs["diagnosis"].tolist() == ["UC", "CD", "nonIBD"]
+    assert pd.isna(mdata.obs.loc["S3A_P", "consent_age"])
+    for mod in mdata.mod.values():
+        pd.testing.assert_frame_equal(mod.obs, mdata.obs)
+
+
+def test_values_and_units_come_from_the_readers(fetched):
+    mdata = bt.datasets.hmp2()
+    assert mdata["function"].uns["biotapy"]["x_kind"] == "cpm"
+    assert mdata["taxa"].uns["biotapy"]["x_kind"] == "relative"
+    np.testing.assert_array_equal(mdata["function"][:, "PWY-1"].X.toarray().ravel(), [100000, 100000, 100000])
+    np.testing.assert_allclose(np.asarray(mdata["taxa"].X.sum(axis=1)).ravel(), 1.0)
+    species = mdata["function_by_taxon"].var["species"]
+    assert species.iloc[0] == "Anaerostipes_hadrus" and pd.isna(species.iloc[1])
+
+
+def test_features_absent_from_the_kept_samples_stay(fetched):
+    pwy2 = bt.datasets.hmp2()["function"][:, "PWY-2"]
+    assert pwy2.X.nnz == 0
+
+
+def test_fetches_the_three_pinned_files(fetched):
+    bt.datasets.hmp2()
+    assert sorted(fetched) == ["hmp2_metadata_2018-08-20.csv", "pathabundances_3.tsv.gz", "taxonomic_profiles_3.tsv.gz"]
+    assert all(_remote._REGISTRY[name].startswith("sha256:") for name in fetched)
+
+
+def test_round_trips_through_h5mu(fetched, tmp_path):
+    mdata = bt.datasets.hmp2()
+    mdata.write_h5mu(tmp_path / "hmp2.h5mu")
+    back = mudata.read_h5mu(tmp_path / "hmp2.h5mu")
+    assert list(back.mod) == list(mdata.mod) and back.obs_names.tolist() == mdata.obs_names.tolist()
+    assert back.obs["diagnosis"].tolist() == mdata.obs["diagnosis"].tolist()
+    assert (back["function_by_taxon"].X != mdata["function_by_taxon"].X).nnz == 0
+
+
+def test_feeds_renorm_and_contributions(fetched):
+    relab = bt.fn.renorm(bt.datasets.hmp2(), "relab")
+    assert list(relab.mod) == ["function", "function_by_taxon", "taxa"]
+    shares = bt.fn.contributions(relab["function_by_taxon"], "PWY-1")
+    np.testing.assert_allclose(shares.loc["S2A"].to_numpy(), [0.04, 0.06])
+
+
+@pytest.mark.network
+def test_hmp2_downloads_and_loads():
+    mdata = bt.datasets.hmp2()
+    assert {key: mod.shape for key, mod in mdata.mod.items()} == {
+        "function": (130, 478),
+        "function_by_taxon": (130, 21635),
+        "taxa": (130, 579),
+    }
+    assert mdata.obs["diagnosis"].value_counts().to_dict() == {"CD": 65, "UC": 38, "nonIBD": 27}
+    assert mdata.obs["Participant ID"].is_unique
+```
+
+- [ ] **Step 2: Run, expect failure.**
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py -q`
+  -> `1 error during collection`:
+  `ImportError: cannot import name '_hmp2' from 'biotapy.datasets'`.
+- [ ] **Step 3: Implement.** Create `src/biotapy/datasets/_hmp2.py`:
+
+```python
+"""The HMP2 (IBDMDB) inflammatory bowel disease cohort: pathway abundance and taxa, one stool metagenome per person."""
+
+from typing import cast
+
+import pandas as pd
+from anndata import AnnData
+from mudata import MuData
+
+from biotapy.io import read_humann, read_metaphlan
+
+from ._remote import _fetch
+
+TAXA_KEY = "taxa"
+# Metadata columns kept, as hmp2_metadata_2018-08-20.csv names them; the other 483 are left out.
+COLUMNS = ["Participant ID", "week_num", "diagnosis", "site_name", "sex", "consent_age", "Antibiotics"]
+DIAGNOSES = ["nonIBD", "UC", "CD"]
+
+
+def hmp2() -> MuData:
+    """The HMP2 inflammatory bowel disease cohort: each participant's first stool metagenome.
+
+    Downloaded once (23 MB) from the IBDMDB and cached: HUMAnN 3 pathway
+    abundance, MetaPhlAn 3 profiles and the sample metadata of the HMP2
+    metagenomes (1,638 samples from 130 participants), of which the first
+    sample of each participant is kept.
+
+    Returns
+    -------
+    MuData
+        130 samples (65 CD, 38 UC, 27 nonIBD), indexed by the metadata's
+        ``External ID``, in three modalities:
+
+        - ``"function"``: community pathway abundance (``x_kind == "cpm"``),
+          as ``bt.io.read_humann`` reads it;
+        - ``"function_by_taxon"``: the same pathways per species;
+        - ``"taxa"``: MetaPhlAn 3 species (``x_kind == "relative"``), as
+          ``bt.io.read_metaphlan`` reads it, with no tree.
+
+        The global ``obs``, copied to every modality, holds the metadata
+        columns ``Participant ID``, ``week_num``, ``diagnosis`` (categorical:
+        ``nonIBD``, ``UC``, ``CD``), ``site_name``, ``sex``, ``consent_age``
+        and ``Antibiotics``. Every feature of the published tables is kept,
+        including those absent from all 130 samples.
+
+    Notes
+    -----
+    R equivalent: none
+    Guide: :doc:`/guide/datasets`
+
+    A participant's first sample is the metagenome with the lowest
+    ``week_num``; equal weeks are broken by ``External ID``. One sample per
+    person keeps samples independent, so group comparisons such as
+    ``bt.tl.permanova`` do not count one person several times.
+
+    Reading the pathway table builds one dense 22,113 x 1,638 ``float64``
+    array (about 290 MB) before the samples are selected.
+
+    The IBDMDB states no licence for these files. biotapy ships none of
+    them; cite the study when you use them.
+
+    References
+    ----------
+    Lloyd-Price J et al. (2019) Multi-omics of the gut microbial ecosystem in inflammatory
+    bowel diseases. Nature 569:655-662.
+
+    Examples
+    --------
+    >>> import biotapy as bt
+    >>> mdata = bt.datasets.hmp2()  # doctest: +SKIP
+    >>> mdata["function"].shape, mdata["taxa"].shape  # doctest: +SKIP
+    ((130, 478), (130, 579))
+    """
+    metadata = pd.read_csv(_fetch("hmp2_metadata_2018-08-20.csv"), usecols=["External ID", "data_type", *COLUMNS])
+    metagenomes = metadata[metadata["data_type"] == "metagenomics"]
+    first = metagenomes.sort_values(["Participant ID", "week_num", "External ID"]).drop_duplicates("Participant ID")
+    obs = first.set_index("External ID")[COLUMNS].rename_axis(None)
+    obs["diagnosis"] = pd.Categorical(obs["diagnosis"], categories=DIAGNOSES)
+    pathways = read_humann(_fetch("pathabundances_3.tsv.gz"))
+    taxa = read_metaphlan(_fetch("taxonomic_profiles_3.tsv.gz"))
+    samples = obs.index
+    # MuData types a modality as AnnData | MuData; read_humann's two are AnnData.
+    function = cast("dict[str, AnnData]", pathways.mod)
+    modalities = {key: mod[samples].copy() for key, mod in function.items()} | {TAXA_KEY: taxa[samples].copy()}
+    mdata = MuData(modalities, obs=obs)
+    mdata.push_obs()
+    return mdata
+```
+
+  Why the code looks as it does:
+  - `usecols` reads 9 of the metadata's 490 columns; without
+    `low_memory=False` no `DtypeWarning` is raised for them (checked with
+    `-W error`).
+  - `mod[samples].copy()` gives real AnnData objects, never views (R6.5),
+    in the metadata's sorted order; a missing id would raise `KeyError`.
+  - The one `cast`: MuData types `.mod` as `Mapping[str, AnnData | MuData]`,
+    and `MuData(...)` wants `Mapping[str, AnnData]`; mypy rejected the
+    uncast dict. (`fn/_renorm.py` casts `.mod` too, to write a modality.)
+  - `MuData(modalities, obs=obs)` then `push_obs()` puts the seven columns in
+    the global `obs` and in every modality.
+
+  In `src/biotapy/datasets/_remote.py`, the module docstring and the two
+  tables:
+
+```diff
+diff --git a/src/biotapy/datasets/_remote.py b/src/biotapy/datasets/_remote.py
+index 5e643b2..92ecfb7 100644
+--- a/src/biotapy/datasets/_remote.py
++++ b/src/biotapy/datasets/_remote.py
+@@ -1,4 +1,4 @@
+-"""Datasets downloaded once and cached with pooch: phyloseq's examples and the ENZYME files."""
++"""Datasets downloaded once and cached with pooch: phyloseq's examples, the ENZYME files and the HMP2 tables."""
+
+ from functools import cache
+ from typing import cast
+@@ -18,10 +18,18 @@ _REGISTRY = {
+     # cached for good, and enzyme() records the release it read (datasets/_enzyme.py).
+     "enzyme.dat": None,
+     "enzclass.txt": None,
++    # HMP2 (IBDMDB) products: HUMAnN 3 pathways and MetaPhlAn 3 profiles of 2018-05-04, metadata of 2018-08-20.
++    "pathabundances_3.tsv.gz": "sha256:dd983871b0e155255844b91ec10d50fb09230d2f4e915464ab680fa3a9c9ddb3",
++    "taxonomic_profiles_3.tsv.gz": "sha256:d790ff15e46d61ca0cadc55d9f918de4e3415d7f97c992ac37610aaee02117ed",
++    "hmp2_metadata_2018-08-20.csv": "sha256:656b7bd97660ddb875548805e30bede31f2d1208293f7170d2d5755e33862ec9",
+ }
++_IBDMDB = "https://g-227ca.190ebd.75bc.data.globus.org/ibdmdb/"
+ _URLS = {
+     "enzyme.dat": "https://ftp.expasy.org/databases/enzyme/enzyme.dat",
+     "enzclass.txt": "https://ftp.expasy.org/databases/enzyme/enzclass.txt",
++    "pathabundances_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/pathabundances_3.tsv.gz",
++    "taxonomic_profiles_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/taxonomic_profiles_3.tsv.gz",
++    "hmp2_metadata_2018-08-20.csv": f"{_IBDMDB}metadata/hmp2_metadata_2018-08-20.csv",
+ }
+
+
+```
+
+  `src/biotapy/datasets/__init__.py` becomes:
+
+```python
+from ._enzyme import enzyme
+from ._hmp2 import hmp2
+from ._remote import enterotype, esophagus, global_patterns
+from ._toy import toy, toy_humann
+
+__all__ = ["enterotype", "enzyme", "esophagus", "global_patterns", "hmp2", "toy", "toy_humann"]
+```
+
+- [ ] **Step 4: Run, expect pass.**
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py src/biotapy/datasets/_hmp2.py -q`
+  -> `9 passed, 1 deselected` (8 tests and the doctest; the network test is
+  deselected). Then the real files:
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest tests/datasets/test_hmp2.py -m network -q`
+  -> `1 passed` (downloads 23 MB on a cold cache; pooch checks the three
+  hashes).
+- [ ] **Step 5: Docs.** In `docs/api.md`, add `datasets.hmp2` after
+  `datasets.global_patterns` under "Datasets". Edit the datasets guide:
+
+```diff
+diff --git a/docs/guide/datasets.md b/docs/guide/datasets.md
+index a48db71..777feeb 100644
+--- a/docs/guide/datasets.md
++++ b/docs/guide/datasets.md
+@@ -1,9 +1,9 @@
+ # Example datasets
+
+-`biotapy.datasets` ships six datasets: five examples and the ENZYME hierarchy
++`biotapy.datasets` ships seven datasets: six examples and the ENZYME hierarchy
+ for `bt.fn.func_glom`. Four of the examples return the [data model](data_model.md)
+ every biotapy function relies on; `toy_humann` returns a `MuData` function
+-table.
++table, and `hmp2` a `MuData` cohort of function tables and taxa.
+
+ ## `toy`
+
+@@ -60,7 +60,8 @@ Each of `global_patterns`, `enterotype` and `esophagus` is downloaded once from
+ `.RData` files' SHA-256 hashes stay valid - and cached on disk with
+ [pooch](https://www.fatiando.org/pooch/). A later call re-hashes the cached
+ file and, as long as the hash still matches, reads it straight from disk
+-with no network access at all.
++with no network access at all. `hmp2`'s three files are pinned the same way,
++to the SHA-256 hashes of the IBDMDB's dated releases.
+
+ Set `BIOTAPY_DATA_DIR` to change the cache directory; the default is a
+ per-user cache directory (`pooch.os_cache("biotapy")`):
+@@ -82,6 +83,34 @@ release, delete both cached files, `enzyme.dat` and `enzclass.txt`, from
+ (`pooch.os_cache("biotapy")`, which depends on your platform). Delete both:
+ `enzyme()` raises if the two files come from different releases.
+
++## `hmp2`
++
++`bt.datasets.hmp2()` is a real cohort: the Integrative Human Microbiome
++Project's inflammatory bowel disease study (HMP2, IBDMDB). It downloads three
++files once (23 MB) and caches them: the HUMAnN 3 pathway abundance table, the
++MetaPhlAn 3 profiles and the sample metadata of the study's 1,638 stool
++metagenomes. It keeps the first metagenome of each of the 130 participants
++(lowest `week_num`, ties broken by `External ID`), so a group comparison counts
++each person once, and returns a `MuData` with three modalities over those
++samples:
++
++| Modality | Holds | `x_kind` |
++|---|---|---|
++| `"function"` | pathway abundance, one row per pathway | `cpm` |
++| `"function_by_taxon"` | the same pathways per species | `cpm` |
++| `"taxa"` | MetaPhlAn 3 species, no tree | `relative` |
++
++The global `obs`, copied to every modality, holds seven metadata columns:
++`Participant ID`, `week_num`, `diagnosis` (`nonIBD`, `UC` or `CD`),
++`site_name`, `sex`, `consent_age` and `Antibiotics`.
++
++```python
++import biotapy as bt
++
++mdata = bt.datasets.hmp2()
++mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
++```
++
+ ## Licensing
+
+ `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository
+@@ -89,7 +118,11 @@ at runtime; biotapy ships none of it. That data stays licensed to
+ phyloseq's authors under AGPL-3. `enzyme` downloads ENZYME,
+ copyrighted by the SIB Swiss Institute of Bioinformatics and distributed
+ under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); cite it when
+-you publish results that use it. biotapy itself is
++you publish results that use it. `hmp2` downloads the HMP2 tables from the
++[IBDMDB](https://ibdmdb.org/); the IBDMDB states no licence for them, so biotapy
++ships none of them, and you should cite the study when you use them: Lloyd-Price J
++et al. (2019) Multi-omics of the gut microbial ecosystem in inflammatory bowel
++diseases. *Nature* 569:655-662. biotapy itself is
+ [BSD-3-Clause](https://github.com/pedrocr83/biotapy/blob/master/LICENSE).
+
+ [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data
+```
+
+  Build the docs -> `build succeeded.` (The guide links to the tutorial in
+  Task 2.10b, when the page exists; a link now would fail `-W`.)
+- [ ] **Step 6: Bookkeeping.**
+  - In "# Tasks (checklist)", the line becomes
+    `- [x] 2.10 \`datasets.hmp2() -> MuData\``; tick this task's step boxes.
+    Bump `generated` and `commit` on this concept.
+  - Add to `.knowledge/log.md`, under a new heading
+    `## <date> (Phase 2, slice 2D)`:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10 done: \`datasets.hmp2\` returns each HMP2 participant's first metagenome as pathway and species modalities with the metadata.`
+- [ ] **Step 7: Gate and commit.**
+
+```bash
+git add src/biotapy/datasets/_hmp2.py src/biotapy/datasets/_remote.py src/biotapy/datasets/__init__.py \
+  tests/datasets/test_hmp2.py docs/api.md docs/guide/datasets.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "feat(datasets): add hmp2, the HMP2 IBD cohort's pathways and taxa"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 978 passed, 23 deselected
+uv run --group test pytest -q -m "golden or network" # 30 passed
+uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+  (Every command with `BIOTAPY_DATA_DIR=<scratchpad>/pooch`.)
+
+### Task 2.10b: the HMP2 function tutorial
+
+**Files:**
+- Create: `docs/tutorials/function.md`.
+- Modify: `docs/tutorials/index.md`, `docs/guide/datasets.md`,
+  `docs/conf.py`, `tests/test_ci.py`.
+
+**Interfaces:**
+- Consumes: `bt.datasets.hmp2()` (2.10); `bt.fn.renorm(mdata, units, *, special)`,
+  `bt.fn.contributions(adata, function, *, top)`, `bt.pl.contributions(adata, function, *, top, ax)`,
+  `bt.tl.beta(adata, *, inplace)`, `bt.tl.pcoa(adata, *, inplace)`,
+  `bt.pl.ordination(adata, *, color)`, `bt.tl.permanova(adata, grouping, *, seed)`,
+  `bt.tl.alpha(adata, *, metrics, inplace)`, `bt.pl.richness(adata, metric, *, x, color)`.
+- Produces: the page `tutorials/function`, executed on every docs build
+  (the exit gate's "Tutorial 2.10 runs in CI"); `docs/conf.py`'s
+  `nb_execution_timeout = 300`.
+
+**Will not touch:** any `src/` file, the other tutorials, the workflows
+(design 4: no CI change is needed).
+
+- [ ] **Step 1: Failing test.** In `tests/test_ci.py`, add before
+  `def _sources():`:
+
+```python
+def test_a_notebook_cell_has_time_to_download_a_dataset():
+    assert _conf_constants()["nb_execution_timeout"] == 300
+```
+
+- [ ] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/test_ci.py -q`
+  -> `1 failed, 11 passed`: `KeyError: 'nb_execution_timeout'`.
+- [ ] **Step 3: Implement.** In `docs/conf.py`:
+
+```diff
+diff --git a/docs/conf.py b/docs/conf.py
+index 1967fc9..606b1e4 100644
+--- a/docs/conf.py
++++ b/docs/conf.py
+@@ -88,6 +88,8 @@ nb_output_stderr = "remove"
+ # Every notebook runs at build time; a failing cell fails the build. The cache lives in docs/_build.
+ nb_execution_mode = "cache"
+ nb_execution_raise_on_error = True
++# Per cell. The function tutorial's first cell downloads 23 MB of HMP2 tables on a cold cache (10-25 s measured).
++nb_execution_timeout = 300
+ nb_merge_streams = True
+ typehints_defaults = "braces"
+ always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14
+```
+
+  Run `uv run --group test pytest tests/test_ci.py -q` -> `12 passed`.
+- [ ] **Step 4: The tutorial.** Create `docs/tutorials/function.md`:
+
+````markdown
+---
+jupytext:
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3
+  language: python
+  name: python3
+---
+
+# Function in an IBD cohort
+
+This tutorial reads the pathway abundance of a real cohort, the Integrative Human Microbiome
+Project's inflammatory bowel disease study (HMP2), renormalises it, asks which species carry a
+butyrate pathway, and compares Crohn's disease (CD), ulcerative colitis (UC) and non-IBD
+controls. `bt.datasets.hmp2()` holds each participant's first stool metagenome: HUMAnN 3
+pathways in the `"function"` and `"function_by_taxon"` modalities and MetaPhlAn 3 species in
+`"taxa"`.
+
+:::{note}
+The HMP2 tables are downloaded from the [IBDMDB](https://ibdmdb.org/) on first use (23 MB) and
+cached. The IBDMDB states no licence for them; biotapy ships none of them. Cite the study when
+you use them: Lloyd-Price J et al. (2019) Multi-omics of the gut microbial ecosystem in
+inflammatory bowel diseases. *Nature* 569:655-662.
+:::
+
+Two parts of `bt.fn` are not shown here, and the [function guide](../guide/function.md) shows
+both on small tables:
+
+- **Grouping along a hierarchy** (`bt.fn.func_glom`): HMP2's pathways are MetaCyc pathways,
+  whose classes biotapy does not ship or download (their licence does not allow it), and HMP2
+  publishes its enzyme (EC) table only per sample or as a 113 MB merged file.
+- **Functional redundancy** (`bt.fn.functional_redundancy`): it needs each species' gene copy
+  numbers, which HUMAnN does not write.
+
+```{code-cell} ipython3
+import matplotlib.pyplot as plt
+
+import biotapy as bt
+```
+
+## The cohort
+
+```{code-cell} ipython3
+mdata = bt.datasets.hmp2()
+mdata
+```
+
+```{code-cell} ipython3
+mdata.obs["diagnosis"].value_counts()
+```
+
+## Renormalising
+
+HMP2's pathway tables are in copies per million (CPM), and most of each sample (a median of 96%
+here) sits in `UNMAPPED` and `UNINTEGRATED`, the reads HUMAnN could not place in a pathway.
+`bt.fn.renorm(mdata, "relab", special=False)` drops those rows and divides every pathway, and
+every per-species row, by the total of the pathways left, as `humann_renorm_table --special n`
+does. The `"taxa"` modality is kept as it is.
+
+```{code-cell} ipython3
+relab = bt.fn.renorm(mdata, "relab", special=False)
+community = relab["function"]
+community.X.sum(axis=1)[:5]
+```
+
+## Who carries butyrate production
+
+`PWY-5676`, acetyl-CoA fermentation to butanoate II, is a butyrate pathway HUMAnN finds in 112
+of the 130 samples. `bt.fn.contributions` splits it by species, here keeping the five with
+the largest total and summing the rest into `other`. The mean per diagnosis compares the
+groups:
+
+```{code-cell} ipython3
+by_taxon = relab["function_by_taxon"]
+butyrate = bt.fn.contributions(by_taxon, "PWY-5676", top=5)
+butyrate.groupby(by_taxon.obs["diagnosis"], observed=True).mean()
+```
+
+`bt.pl.contributions` draws the same table, one bar per sample. Sorting the samples by
+diagnosis first puts each group's bars side by side; 130 sample names are too many to read, so
+the x axis names the groups instead:
+
+```{code-cell} ipython3
+order = by_taxon.obs.sort_values("diagnosis", kind="stable").index
+fig, ax = plt.subplots(figsize=(14, 4))
+bt.pl.contributions(by_taxon[order].copy(), "PWY-5676", top=5, ax=ax)
+ends = by_taxon.obs["diagnosis"].value_counts(sort=False).cumsum()
+for end in ends.iloc[:-1]:
+    ax.axvline(end - 0.5, color="black", linewidth=0.8)
+ax.set_xticks((ends + ends.shift(fill_value=0)) / 2 - 0.5, ends.index, rotation=0)
+ax.legend(title="taxon", loc="upper left", bbox_to_anchor=(1, 1));
+```
+
+## Comparing diagnoses
+
+Bray-Curtis distances between the samples' pathway profiles, their principal coordinates, and
+PERMANOVA by diagnosis. Each participant contributes one sample, so the test counts each
+person once.
+
+```{code-cell} ipython3
+bt.tl.beta(community, inplace=True)
+bt.tl.pcoa(community, inplace=True)
+bt.pl.ordination(community, color="diagnosis");
+```
+
+```{code-cell} ipython3
+bt.tl.permanova(community, "diagnosis", seed=0)
+```
+
+The species side of the same samples: Shannon diversity of the MetaPhlAn profiles per
+diagnosis.
+
+```{code-cell} ipython3
+taxa = relab["taxa"]
+bt.tl.alpha(taxa, metrics=["shannon"], inplace=True)
+bt.pl.richness(taxa, "shannon", x="diagnosis", color="diagnosis");
+```
+````
+
+  Add it to the toctree and link it from the datasets guide:
+
+````diff
+diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
+index 7c3812e..018f1e4 100644
+--- a/docs/tutorials/index.md
++++ b/docs/tutorials/index.md
+@@ -6,4 +6,5 @@
+ getting_started
+ quick_tour
+ phyloseq_analysis
++function
+ ```
+diff --git a/docs/guide/datasets.md b/docs/guide/datasets.md
+index 777feeb..63cd1e2 100644
+--- a/docs/guide/datasets.md
++++ b/docs/guide/datasets.md
+@@ -111,6 +111,8 @@ mdata = bt.datasets.hmp2()
+ mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
+ ```
+
++The [function tutorial](../tutorials/function.md) analyses it.
++
+ ## Licensing
+
+ `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository
+````
+
+- [ ] **Step 5: Build and read the page.**
+  `rm -rf docs/_build && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
+  -> `build succeeded.`, with the line
+  `tutorials/function.md: Executed notebook in <n> seconds` (6.9-8.3 s
+  warm in the prototype; 24.3 s with the HMP2 files not yet cached).
+  Open `docs/_build/html/tutorials/function.html` and check: the MuData
+  repr shows three modalities of 130 samples; the community sums print
+  `1.`; the contributions table has six columns, `other` last; three
+  figures (stacked bars with `nonIBD`, `UC`, `CD` under three blocks
+  split by two vertical lines; the PCoA coloured by diagnosis; Shannon per
+  diagnosis); the PERMANOVA series shows `sample size 130`, `number of
+  groups 3`.
+  Time a cold build once: move the three HMP2 files out of the pooch
+  directory (keep the phyloseq ones), rebuild, and record both times in
+  the task report; then put the files back. The tutorial must stay under
+  2 minutes cold.
+- [ ] **Step 6: Bookkeeping.**
+  - The checklist line becomes
+    `- [x] 2.10b \`docs/tutorials/function.md\`, the HMP2 function tutorial`;
+    tick this task's step boxes; bump `generated` and `commit`.
+  - Add under the slice 2D log heading:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.10b done: the HMP2 function tutorial runs on every docs build; notebook cells may take 300 s.`
+- [ ] **Step 7: Gate and commit.**
+
+```bash
+git add docs/tutorials/function.md docs/tutorials/index.md docs/guide/datasets.md docs/conf.py tests/test_ci.py \
+  .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "docs: add the HMP2 function tutorial"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 979 passed, 23 deselected
+uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
 
 ### Task 2.13: Coming-from-R check
-The table is generated (R8.4). New rows come from docstrings:
-`mia::importHUMAnN`, `mia::importMetaPhlAn`. Check the rendered page. Decide
-whether `docs/_data/r_idioms.toml`'s "not in 0.1" entries become "not in
-0.2"; `tests/test_coming_from_r.py` asserts the literal "not in 0.1".
+
+**Files:**
+- Modify: `docs/_data/r_idioms.toml`, `docs/coming_from_r.md`,
+  `docs/tutorials/phyloseq_analysis.md`, `tests/test_coming_from_r.py`.
+
+**Interfaces:**
+- Consumes: `docs/extensions/coming_from_r.py:rows()`, unchanged; the
+  `R equivalent:` lines of `io.read_humann` (`mia::importHUMAnN`) and
+  `io.read_metaphlan` (`mia::importMetaPhlAn`).
+- Produces: the label `"not in 0.2"` for the five phyloseq calls biotapy
+  does not cover; a test pinning the two mia rows.
+
+**Will not touch:** `docs/extensions/coming_from_r.py`, any docstring, the
+other idioms.
+
+- [ ] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
+
+```diff
+diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
+index e26d8a5..fc82dc0 100644
+--- a/tests/test_coming_from_r.py
++++ b/tests/test_coming_from_r.py
+@@ -16,7 +16,7 @@ PHYLOSEQ_31 = """otu_table sample_data tax_table phy_tree refseq nsamples ntaxa
+ sample_sums taxa_sums rank_names sample_variables get_taxa_unique prune_taxa prune_samples subset_taxa
+ subset_samples filter_taxa transform_sample_counts rarefy_even_depth tax_glom estimate_richness distance
+ UniFrac ordinate plot_bar plot_richness plot_ordination plot_heatmap import_biom""".split()
+-NOT_IN_0_1 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
++NOT_IN_0_2 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
+
+
+ def test_the_list_has_31_functions():
+@@ -26,12 +26,19 @@ def test_the_list_has_31_functions():
+ @pytest.mark.parametrize("name", PHYLOSEQ_31)
+ def test_table_maps_each_of_the_31(name):
+     cells = coming_from_r.rows()[f"phyloseq::{name}"]
+-    assert cells and "not in 0.1" not in cells
++    assert cells and "not in 0.2" not in cells
+
+
+-@pytest.mark.parametrize("name", NOT_IN_0_1)
++@pytest.mark.parametrize("name", NOT_IN_0_2)
+ def test_uncovered_functions_are_marked(name):
+-    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.1"]
++    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.2"]
++
++
++@pytest.mark.parametrize(
++    ("r_name", "function"), [("importHUMAnN", "read_humann"), ("importMetaPhlAn", "read_metaphlan")]
++)
++def test_mia_importers_map_to_the_function_readers(r_name, function):
++    assert coming_from_r.rows()[f"mia::{r_name}"] == [f"{{func}}`bt.io.{function} <biotapy.io.{function}>`"]
+
+
+ def test_plot_functions_link_to_pl():
+```
+
+- [ ] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/test_coming_from_r.py -q`
+  -> `5 failed, 38 passed`: each `test_uncovered_functions_are_marked`
+  case fails (`['not in 0.1'] == ['not in 0.2']`). The two mia cases pass at
+  once: the rows already come from the 2A and 2B docstrings; they are pins.
+- [ ] **Step 3: Implement.**
+
+````diff
+diff --git a/docs/_data/r_idioms.toml b/docs/_data/r_idioms.toml
+index f8f7564..fe7a431 100644
+--- a/docs/_data/r_idioms.toml
++++ b/docs/_data/r_idioms.toml
+@@ -23,8 +23,8 @@
+ "phyloseq::prune_samples" = '`tdata[keep].copy()`'
+ "phyloseq::subset_taxa" = '`tdata[:, tdata.var["phylum"] == "Chlamydiae"].copy()`'
+ "phyloseq::subset_samples" = '`tdata[tdata.obs["SampleType"] == "Feces"].copy()`'
+-"phyloseq::tip_glom" = "not in 0.1"
+-"phyloseq::merge_samples" = "not in 0.1"
+-"phyloseq::psmelt" = "not in 0.1"
+-"phyloseq::plot_tree" = "not in 0.1"
+-"phyloseq::plot_net" = "not in 0.1"
++"phyloseq::tip_glom" = "not in 0.2"
++"phyloseq::merge_samples" = "not in 0.2"
++"phyloseq::psmelt" = "not in 0.2"
++"phyloseq::plot_tree" = "not in 0.2"
++"phyloseq::plot_net" = "not in 0.2"
+diff --git a/docs/coming_from_r.md b/docs/coming_from_r.md
+index 1513d7e..6788ba4 100644
+--- a/docs/coming_from_r.md
++++ b/docs/coming_from_r.md
+@@ -2,7 +2,7 @@
+
+ Every public biotapy function names its R equivalent in its docstring. This table is generated
+ from those lines each time the docs are built, plus a short list of phyloseq accessors that are
+-plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.1" have no
++plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.2" have no
+ biotapy equivalent yet.
+
+ biotapy keeps samples as rows, so `tdata.X` is phyloseq's `otu_table` with
+diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analysis.md
+index 7d3e040..dba4dcf 100644
+--- a/docs/tutorials/phyloseq_analysis.md
++++ b/docs/tutorials/phyloseq_analysis.md
+@@ -15,10 +15,10 @@ kernelspec:
+
+ This notebook redoes the sections of phyloseq's
+ [analysis vignette](https://github.com/joey711/phyloseq/blob/master/vignettes/phyloseq-analysis.Rmd)
+-that biotapy 0.1 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
++that biotapy 0.2 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
+ Each section names the R chunk it follows. Everything runs in biotapy; nothing is read from R.
+
+-**Not in 0.1**, so left out:
++**Not in 0.2**, so left out:
+
+ - `plot_tree` (exploratory tree plots) and `plot_net` (sample networks);
+ - correspondence analysis (`ordinate(..., "CCA")`) and DPCoA, with their scree, species and biplot plots;
+@@ -168,7 +168,7 @@ bt.pl.ordination(global_patterns, basis="nmds", color="SampleType");
+
+ `distance(esophagus, "bray")`, `"wunifrac"` and `"jaccard"`. phyloseq's `"jaccard"` is vegan's
+ quantitative Jaccard; biotapy's is presence/absence, phyloseq's
+-`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.1.
++`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.2.
+
+ ```{code-cell} ipython3
+ esophagus = bt.datasets.esophagus()
+````
+
+- [ ] **Step 4: Run, expect pass.**
+  `uv run --group test pytest tests/test_coming_from_r.py -q` -> `43 passed`.
+- [ ] **Step 5: Check the rendered page.** Build the docs, then read
+  `docs/generated/coming_from_r_table.md` and the page
+  `docs/_build/html/coming_from_r.html`: 52 rows; `mia::importHUMAnN` ->
+  `bt.io.read_humann` and `mia::importMetaPhlAn` -> `bt.io.read_metaphlan`
+  (both links resolve); `phyloseq::merge_samples`, `plot_net`, `plot_tree`,
+  `psmelt` and `tip_glom` read "not in 0.2"; no "not in 0.1" anywhere
+  (`grep -rn "not in 0.1" docs --include=*.md --include=*.toml` prints
+  nothing outside `docs/_build`).
+- [ ] **Step 6: Bookkeeping.**
+  - The checklist line becomes
+    `- [x] 2.13 Coming-from-R check: "not in 0.2"`; tick this task's step
+    boxes; bump `generated` and `commit`.
+  - Add under the slice 2D log heading:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.13 done: phyloseq calls without an equivalent read "not in 0.2"; the mia importer rows are pinned by a test.`
+- [ ] **Step 7: Gate and commit.**
+
+```bash
+git add docs/_data/r_idioms.toml docs/coming_from_r.md docs/tutorials/phyloseq_analysis.md tests/test_coming_from_r.py \
+  .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "docs: mark phyloseq calls without a biotapy equivalent as not in 0.2"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected
+uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
 
 ### Task 2.14: Benchmarks
-asv `benchmarks/benchmarks/fn.py`, measuring only (R10.1):
-- `func_glom` on a synthetic 1,600 x 22,000 stratified table with a
-  many-to-many map;
-- `read_humann` on the same written to TSV;
-- `functional_redundancy` at N = 2,000 taxa (O(N²) memory; the 2C plan
-  measured 5 s at 2,000 taxa and 6 minutes and 1.7 GB at 10,000, with
-  2,500 genes).
 
-No optimisation without a profile.
+**Files:**
+- Create: `benchmarks/benchmarks/fn.py`.
+- Modify: `benchmarks/benchmarks/_data.py`, `docs/performance.md`.
 
-### Task 2.15: Release 0.2
-Follow [cut-a-release](/playbooks/cut-a-release.md):
-- version 0.2.0 and the CHANGELOG;
-- the exit gate ticked;
-- the tag pushed only with the user's approval (R13.3).
+**Interfaces:**
+- Consumes: `bt.fn.func_glom`, `bt.io.read_humann`,
+  `bt.fn.functional_redundancy`; `biotapy._core.make_function_mudata`
+  (benchmarks build their data with biotapy's constructors, as `_data.py`
+  already does).
+- Produces: `_data.py:synthetic_function() -> MuData`,
+  `function_groups() -> pd.DataFrame`,
+  `synthetic_traits() -> tuple[AnnData, pd.DataFrame]`; the asv classes
+  `fn.FuncGlom`, `fn.ReadHumann`, `fn.FunctionalRedundancy`; the
+  "Function tables" baseline table in `docs/performance.md`.
+
+**Will not touch:** `pp.py`, `tl.py`, `synthetic()`, `asv.conf.json`, the
+workflows (the `lint` job's `asv check` already imports every module), any
+`src/` file. No optimisation (R10.1).
+
+- [ ] **Step 1: The suite.** In `benchmarks/benchmarks/_data.py`:
+
+```diff
+diff --git a/benchmarks/benchmarks/_data.py b/benchmarks/benchmarks/_data.py
+index 19457f5..f16e962 100644
+--- a/benchmarks/benchmarks/_data.py
++++ b/benchmarks/benchmarks/_data.py
+@@ -1,15 +1,21 @@
+-"""Synthetic benchmark data: a sparse count table with taxonomy and a balanced tree."""
++"""Synthetic benchmark data: a sparse count table with taxonomy and a tree, a function table, and taxon traits."""
+
+ import numpy as np
+ import pandas as pd
+ import scipy.sparse as sp
++from anndata import AnnData
++from mudata import MuData
+
+ # Benchmarks build their TreeData with biotapy's own constructors, as the readers do (contracts/tree-access).
+-from biotapy._core import TreeData, make_treedata, tree_from_edges
++from biotapy._core import TreeData, make_function_mudata, make_treedata, tree_from_edges
+
+ N_OBS, N_VARS, DENSITY, SEED = 5_000, 50_000, 0.02, 0
+ # Features per group at each rank: 1,000 genera, 100 families, 20 orders, 10 classes and 5 phyla at 50,000 features.
+ _RANK_SIZES = {"phylum": 10_000, "class": 5_000, "order": 2_500, "family": 500, "genus": 50}
++# HMP2's pathway table has 478 community and 21,635 stratified rows over 1,638 samples, 53% and 7% non-zero.
++N_SAMPLES, N_FUNCTIONS, N_STRATA, N_GROUPS = 1_600, 500, 43, 50
++# Tian et al.'s functional redundancy at 2,000 taxa, as measured when fn.functional_redundancy was written.
++N_TAXA, N_GENES, N_ABUNDANCE_SAMPLES = 2_000, 2_500, 100
+
+
+ def synthetic(n_obs: int = N_OBS, n_vars: int = N_VARS) -> TreeData:
+@@ -35,3 +41,34 @@ def _balanced_edges(tips: list[str], rng: np.random.Generator) -> list[tuple[str
+         for parent, pair in zip(level, pairs, strict=True):
+             edges += [(parent, child, float(rng.uniform(0.01, 0.1))) for child in pair]
+     return edges
++
++
++def synthetic_function() -> MuData:
++    """A 1,600-sample pathway table: 500 functions, each with 43 strata (22,000 rows), CPM-like values, seed 0."""
++    rng = np.random.default_rng(SEED)
++    functions = [f"F{j}" for j in range(N_FUNCTIONS)]
++    strata = [f"{function}|g__G{k}.s__G{k}_sp" for function in functions for k in range(N_STRATA)]
++    community = sp.random(N_SAMPLES, len(functions), density=0.5, format="csr", rng=rng)
++    by_taxon = sp.random(N_SAMPLES, len(strata), density=0.07, format="csr", rng=rng)
++    X = sp.hstack([community, by_taxon], format="csr") * 1_000
++    obs = pd.DataFrame(index=[f"s{i}" for i in range(N_SAMPLES)])
++    return make_function_mudata(X, obs=obs, row_ids=pd.Index(functions + strata), x_kind="cpm", source="benchmarks")
++
++
++def function_groups() -> pd.DataFrame:
++    """Each of the 500 functions in two of 50 groups, so ``func_glom`` sums many-to-many."""
++    children = [f"F{j}" for j in range(N_FUNCTIONS)]
++    parents = [f"G{j % N_GROUPS}" for j in range(N_FUNCTIONS)] + [f"G{(j + 25) % N_GROUPS}" for j in range(N_FUNCTIONS)]
++    return pd.DataFrame({"child": children * 2, "parent": parents, "level": "group"})
++
++
++def synthetic_traits() -> tuple[AnnData, pd.DataFrame]:
++    """100 samples x 2,000 taxa at 5% density, and the taxa's copy numbers of 2,500 genes (70% zeros), seed 0."""
++    rng = np.random.default_rng(SEED)
++    taxa = [f"t{j}" for j in range(N_TAXA)]
++    X = sp.random(N_ABUNDANCE_SAMPLES, N_TAXA, density=0.05, format="csr", rng=rng)
++    adata = AnnData(
++        X=X, obs=pd.DataFrame(index=[f"s{i}" for i in range(N_ABUNDANCE_SAMPLES)]), var=pd.DataFrame(index=taxa)
++    )
++    copies = rng.integers(1, 6, size=(N_TAXA, N_GENES)) * (rng.random((N_TAXA, N_GENES)) >= 0.7)
++    return adata, pd.DataFrame(copies, index=taxa, columns=[f"g{k}" for k in range(N_GENES)])
+```
+
+  Create `benchmarks/benchmarks/fn.py`:
+
+```python
+"""Function tables: reading HUMAnN output, regrouping it, and Tian et al.'s functional redundancy."""
+
+from pathlib import Path
+
+import pandas as pd
+import scipy.sparse as sp
+from anndata import AnnData
+
+import biotapy as bt
+
+from ._data import function_groups, synthetic_function, synthetic_traits
+
+
+class FuncGlom:
+    """``fn.func_glom`` of a 1,600 x 22,000 pathway table, every function in two of 50 groups."""
+
+    number, repeat, rounds, timeout = 1, 3, 1, 300
+
+    def setup_cache(self) -> dict[str, AnnData]:
+        """Build the two modalities once; asv pickles them for every benchmark (a MuData does not unpickle)."""
+        return dict(synthetic_function().mod)
+
+    def setup(self, modalities: dict[str, AnnData]) -> None:
+        """The edge table is small; build it outside the timed call."""
+        self.groups = function_groups()
+
+    def time_func_glom_community(self, modalities: dict[str, AnnData]) -> None:
+        """The 500 community rows to 50 groups."""
+        bt.fn.func_glom(modalities["function"], "group", hierarchy=self.groups)
+
+    def time_func_glom_by_taxon(self, modalities: dict[str, AnnData]) -> None:
+        """The 21,500 stratified rows to 50 groups per taxon."""
+        bt.fn.func_glom(modalities["function_by_taxon"], "group", hierarchy=self.groups)
+
+
+class ReadHumann:
+    """``io.read_humann`` of the same table written as HUMAnN writes a merged pathway table."""
+
+    number, repeat, rounds, timeout = 1, 3, 1, 600
+
+    def setup_cache(self) -> str:
+        """Write the table once, in asv's working directory for this class."""
+        mdata = synthetic_function()
+        values = sp.hstack([mdata["function"].X, mdata["function_by_taxon"].X], format="csc").T.toarray()
+        ids = [*mdata["function"].var_names, *mdata["function_by_taxon"].var_names]
+        table = pd.DataFrame(
+            values, index=pd.Index(ids, name="# Pathway"), columns=[f"{s}_Abundance" for s in mdata.obs_names]
+        )
+        path = Path("pathabundance.tsv").resolve()
+        table.to_csv(path, sep="\t", float_format="%.6g")
+        return str(path)
+
+    def time_read_humann(self, path: str) -> None:
+        """22,000 rows x 1,600 samples."""
+        bt.io.read_humann(path)
+
+    def peakmem_read_humann(self, path: str) -> None:
+        """Peak memory: the reader builds one dense rows x samples float64 array (282 MB) before CSR."""
+        bt.io.read_humann(path)
+
+
+class FunctionalRedundancy:
+    """``fn.functional_redundancy`` at 2,000 taxa: pairwise taxon distances, so O(taxa^2) time and memory."""
+
+    number, repeat, rounds, timeout = 1, 1, 1, 600
+
+    def setup_cache(self) -> tuple[AnnData, pd.DataFrame]:
+        """Build the abundances and the copy numbers once."""
+        return synthetic_traits()
+
+    def time_functional_redundancy(self, data: tuple[AnnData, pd.DataFrame]) -> None:
+        """100 samples, 2,000 taxa, 2,500 genes."""
+        adata, traits = data
+        bt.fn.functional_redundancy(adata, traits=traits)
+
+    def peakmem_functional_redundancy(self, data: tuple[AnnData, pd.DataFrame]) -> None:
+        """Peak memory, dominated by the 2,000 x 2,000 distance matrix."""
+        adata, traits = data
+        bt.fn.functional_redundancy(adata, traits=traits)
+```
+
+  Why the suite looks as it does:
+  - The table copies HMP2's pathway table's shape (478 + 21,635 rows over
+    1,638 samples, 53% and 7% non-zero, measured on the real file) at round
+    numbers. Two parents per function makes `func_glom` sum many-to-many.
+  - `FuncGlom.setup_cache` returns the two AnnData modalities, not the
+    MuData: asv pickles the cache, and a MuData fails to unpickle
+    (`TypeError: cannot create weak reference to 'NoneType' object`,
+    mudata 0.4.1 / anndata 0.13.4). The first prototype run failed this way.
+  - `ReadHumann.setup_cache` writes the table once, as HUMAnN writes a
+    merged pathway table (`# Pathway` header, `%.6g`), in asv's working
+    directory for the class, and returns its path.
+  - `FunctionalRedundancy` repeats the size the 2C plan measured by hand
+    (5.4 s, 108 MB above the inputs) so the two can be compared.
+- [ ] **Step 2: Check it imports.**
+  `cd benchmarks && uv run --group dev asv check --python=same` ->
+  `No problems found.` Then `uvx ruff check benchmarks` and
+  `uvx ruff format --check benchmarks` pass.
+- [ ] **Step 3: Gate and commit the suite.**
+
+```bash
+git add benchmarks/benchmarks/_data.py benchmarks/benchmarks/fn.py
+git commit -m "perf: add asv benchmarks for function tables"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected
+```
+
+- [ ] **Step 4: Run the baseline** on that commit, with `git status
+  --short` empty and other heavy work closed (the numbers are the record):
+
+```bash
+cat /proc/loadavg
+cd benchmarks
+uv run --group dev env HOME="$PWD/../.asv" asv machine --yes
+uv run --group dev env HOME="$PWD/../.asv" asv run --python=same --bench "^fn\." --set-commit-hash "$(git rev-parse HEAD)" --show-stderr
+uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)" --bench "^fn\."
+cat /proc/loadavg
+```
+
+  Expect six results, each `ok`, in about 70 s. The prototype's
+  (`3c77e3e`, the same laptop as Phase 1's baselines):
+  `time_func_glom_community` 12.1 ms, `time_func_glom_by_taxon` 57.1 ms,
+  `time_read_humann` 1.99 s, `peakmem_read_humann` 1.04 GB,
+  `time_functional_redundancy` 5.92 s, `peakmem_functional_redundancy`
+  446 MB. A result more than twice these, or a failure, is reported before
+  it is recorded (R14.1).
+- [ ] **Step 5: The performance page.** Add the section below before
+  "## Running the benchmarks", replacing the commit, the load averages and
+  every number with Step 4's run, and add the `--bench` sentence:
+
+````diff
+diff --git a/docs/performance.md b/docs/performance.md
+index 630dcb8..451711a 100644
+--- a/docs/performance.md
++++ b/docs/performance.md
+@@ -37,6 +37,34 @@ variance. The load average (1, 5 and 15 minutes) was 2.02, 2.04, 1.82 before the
+   is that re-indexing, and converting the tree once takes 0.46 s. The optimization is deferred until
+   a profile-driven task (rules.md R10.1).
+
++## Function tables
++
++Measured on commit `3c77e3e`, 2026-10-05, on the same laptop and environment, with
++`asv run --python=same --bench "^fn\."` (the three classes took about 70 s). The load average was
++2.31, 2.04, 1.85 before the run and 1.61, 1.88, 1.80 after it. Release 0.2 sets no speed target
++either.
++
++The function table is shaped like HMP2's pathway table: 1,600 samples, 500 functions with 43
++strata each (22,000 rows), 50% of the community values and 7% of the stratified values non-zero.
++The hierarchy puts every function in two of 50 groups. Functional redundancy runs on 100 samples x
++2,000 taxa (5% non-zero) and 2,500 genes (70% zero copy numbers). All of it comes from seed 0
++(`benchmarks/benchmarks/_data.py`).
++
++| Benchmark | Result |
++|---|---|
++| `fn.func_glom`, 500 community rows to 50 groups | 12.1 ms |
++| `fn.func_glom`, 21,500 stratified rows to 50 groups per taxon | 57.1 ms |
++| `io.read_humann`, 22,000 rows x 1,600 samples | 1.99 s |
++| `io.read_humann`, peak memory | 1.04 GB |
++| `fn.functional_redundancy`, 2,000 taxa | 5.92 s |
++| `fn.functional_redundancy`, 2,000 taxa, peak memory | 446 MB |
++
++- `read_humann`'s peak is about 3.7 times the dense array its docstring names (8 bytes x 22,000 x
++  1,600 = 282 MB). The figure also holds the Python process and pandas' parse of the text; no
++  profile was taken, as nothing is being optimised (rules.md R10.1).
++- `functional_redundancy` compares every pair of taxa, so its time grows with the square of the
++  taxa times the genes, and its memory with the square of the taxa.
++
+ ## Running the benchmarks
+
+ ```bash
+@@ -49,5 +77,6 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
+ ```
+
+ `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
+-`.asv/results`. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
++`.asv/results`. Add `--bench "^fn\."` to `asv run` and `asv show` to run or show only the function
++benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
+ `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
+````
+
+- [ ] **Step 6: Bookkeeping.**
+  - The checklist line becomes
+    `- [x] 2.14 asv benchmarks for \`func_glom\`, \`read_humann\`, \`functional_redundancy\``;
+    tick this task's step boxes; bump `generated` and `commit`.
+  - Add under the slice 2D log heading:
+    `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.14 done: asv baselines for \`func_glom\`, \`read_humann\` and \`functional_redundancy\` in docs/performance.md.`
+- [ ] **Step 7: Gate and commit the page.**
+
+```bash
+git add docs/performance.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "docs: record the asv baselines for the function benchmarks"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected
+uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+### Checkpoint D - review slice 2D
+
+- [ ] **Review the whole slice** with superpowers:requesting-code-review,
+  against:
+  - data-model-slots (with Task 2.11's Function tables paragraph),
+    function-shape, module-boundaries and r-golden-parity;
+  - pure-by-default, function-tables-as-mudata and no-bundled-kegg;
+  - the slice 2D design, review focus and global constraints above.
+
+  Reviewers may download the HMP2 files (always with
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch`), run `bt.datasets.hmp2()` and read
+  the rendered tutorial; they never commit an HMP2 file or excerpt (no
+  licence) and never add a MetaCyc mapping. Then a fix pass, one commit per
+  finding, each with a test; then a scoped re-review of the fix pass.
+  Record: review counts, fix pass range, re-review result.
+- [ ] **Task 2.11** (below), after the fix pass.
+- [ ] **Run the gates** on the committed tree (`git status --short` empty
+  first), every command with `BIOTAPY_DATA_DIR=<scratchpad>/pooch`:
+  - `uvx prek run --all-files`;
+  - `uv run --group test pytest -q -W error::UserWarning` (981 passed, 23
+    deselected before the fix pass);
+  - `uv run --group test pytest -q -m "golden or network"` (30 passed: the
+    HUMAnN and R goldens, the downloads, `test_hmp2_downloads_and_loads`);
+  - `uv run --group doc sphinx-build -W -b html docs docs/_build/html`;
+  - `bash scripts/knowledge_stale.sh --against HEAD` prints
+    `23 current, 0 stale, 12 uncheckable`.
+
+  Confirm `~/.cache/biotapy` does not exist.
+- [ ] **Push** `phase-2d`, open the PR, and merge-commit on green (approved
+  2026-10-03 for Phase 2 slice branches). CI must be green: every hatch-test
+  job, `lint` (with `asv check`, which imports `fn.py`), `import-without-extras`,
+  `network` (its log lists `test_hmp2_downloads_and_loads PASSED`) and
+  `docs` (its log shows four `Executed notebook` lines, one of them
+  `tutorials/function.md`). The `docs` job is the exit gate's "Tutorial 2.10
+  runs in CI (docs job, pooch cache)": record its run id.
+- [ ] **After the merge**, once Read the Docs has built `master`:
+  `curl -s -o /dev/null -w "%{http_code}\n" https://biotapy.readthedocs.io/en/latest/tutorials/function.html`
+  prints `200`, and the page shows the three figures. Read the Docs keeps
+  no pooch cache, so its build downloads the HMP2 files each time. If the
+  page is missing, read the build log on readthedocs.org and report it; do
+  not work around it.
+- [ ] **Ask the user, in one message:**
+  1. to review slice 2D before the release;
+  2. to approve pushing `release-0.2.0`, opening its PR and merge-committing
+     it on green (Task 2.15 Steps 3-9; R13.3: the standing approval names
+     slice branches only);
+  3. to confirm that on pypi.org project `biotapy` still lists the trusted
+     publisher (owner `pedrocr83`, repository `biotapy`, workflow
+     `release.yaml`, environment `pypi`) that published 0.1.0, and that
+     GitHub's `pypi` environment is unchanged.
+
+  Stop until the user answers.
+
+### Task 2.11: Knowledge
+
+Run as Checkpoint D's knowledge step, after the fix pass, so it documents
+the final code (dispatch rule F15). Use the codebase-map templates
+(R12.2-R12.4).
+
+**Files:**
+- Modify: `.knowledge/modules/datasets.md`, `.knowledge/modules/index.md`,
+  `.knowledge/contracts/data-model-slots.md`,
+  `.knowledge/decisions/function-tables-as-mudata.md`,
+  `.knowledge/roadmap/phase-2-function.md`, `.knowledge/log.md`, and
+  `commit`/`generated` only on the concepts Step 3 lists.
+
+**Interfaces:**
+- Consumes: the final slice 2D code and the ledger
+  `.superpowers/sdd/phase-2-function/progress.md` (for the Checkpoint A-C
+  records).
+- Produces: a bundle with 0 stale concepts against `HEAD`.
+
+**Will not touch:** `modules/fn.md`, `modules/io.md`, `modules/core.md`,
+`modules/pl.md` unless Step 4 finds a false statement (slice 2D changes no
+code they describe); any `src/` file.
+
+- [ ] **Step 1: Concepts the slice changes.** Make these edits, re-checking
+  each sentence against the code after the fix pass (a fix may change a
+  number or a name), and bump `generated` and `commit` on each:
+
+```diff
+diff --git a/.knowledge/modules/datasets.md b/.knowledge/modules/datasets.md
+index 14f1811..c23b9be 100644
+--- a/.knowledge/modules/datasets.md
++++ b/.knowledge/modules/datasets.md
+@@ -1,12 +1,12 @@
+ ---
+ type: Module
+ title: datasets
+-description: In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, and the ENZYME hierarchy as an edge table.
++description: In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, and the ENZYME hierarchy as an edge table.
+ resource: /src/biotapy/datasets/
+ paths: ["src/biotapy/datasets/**"]
+ tags: [datasets]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+-commit: 020efbb
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:20:31Z }
++commit: 1faf8c1
+ status: stable
+ ---
+
+@@ -15,9 +15,10 @@ status: stable
+ Owns `bt.datasets.*` example-data loaders: `toy()` and `toy_humann()`, built
+ entirely in memory; `global_patterns()`/`enterotype()`/`esophagus()`,
+ downloaded once from phyloseq's repository and cached with pooch (Task 1.11,
+-esophagus Task 1.15b); and `enzyme()`, the ENZYME EC hierarchy downloaded from
+-ExPASy the same way. The return type varies: a TreeData, a MuData
+-(`toy_humann`) or a `pandas.DataFrame` (`enzyme`).
++esophagus Task 1.15b); `enzyme()`, the ENZYME EC hierarchy downloaded from
++ExPASy the same way; and `hmp2()`, the HMP2 (IBDMDB) cohort's pathway and
++taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
++(`toy_humann`, `hmp2`) or a `pandas.DataFrame` (`enzyme`).
+
+ # Entry points
+
+@@ -34,6 +35,13 @@ ExPASy the same way. The return type varies: a TreeData, a MuData
+   `attrs["source"]` (the release read) and `attrs["license"]` (`"CC BY 4.0"`).
+   Its text columns are the `str` dtype, the same schema `fn.load_hierarchy`
+   gives (`_enzyme.py:_ancestors`).
++- `_hmp2.py:hmp2` - the HMP2 inflammatory bowel disease cohort: each of the
++  130 participants' first stool metagenome (lowest `week_num`, ties by
++  `External ID`), as a MuData with `function` and `function_by_taxon`
++  (HUMAnN 3 pathways in CPM, read by `io.read_humann`) and `taxa` (MetaPhlAn 3
++  species, read by `io.read_metaphlan`, no tree). Seven metadata columns
++  (`_hmp2.py:COLUMNS`) sit in the global `obs` and are pushed into every
++  modality; `diagnosis` is categorical `nonIBD`, `UC`, `CD`.
+ - `_remote.py:global_patterns` - GlobalPatterns: 26 samples x 19,216 OTUs,
+   with taxonomy and a tree, read through `bt.io.read_phyloseq`.
+ - `_remote.py:enterotype` - enterotype: 280 samples x 553 genera, as relative
+@@ -60,6 +68,12 @@ ExPASy the same way. The return type varies: a TreeData, a MuData
+   downloaded at run time, pinned to one phyloseq commit and a SHA-256 in
+   `_remote.py:_REGISTRY`.
+
++- `hmp2()`'s three files (`pathabundances_3.tsv.gz`,
++  `taxonomic_profiles_3.tsv.gz`, `hmp2_metadata_2018-08-20.csv`) are pinned
++  to SHA-256 hashes in `_remote.py:_REGISTRY`, with absolute IBDMDB URLs in
++  `_URLS`. The three tables and the metadata share their 1,638 sample ids
++  (checked 2026-10-05), so the selected samples index every table.
++  `_hmp2.py:hmp2`
+ - `enzyme()` is the one download that carries no pinned hash: ENZYME keeps only
+   its current release online, so `_remote.py:_REGISTRY` lists `enzyme.dat` and
+   `enzclass.txt` with `None`. The first download is cached for good, and
+@@ -71,10 +85,14 @@ ExPASy the same way. The return type varies: a TreeData, a MuData
+
+ - [core](/modules/core.md): `make_treedata`, `make_function_mudata`,
+   `tree_from_edges`, `TreeData`.
+-- [io](/modules/io.md): `read_phyloseq`, used by `_remote.py`'s three loaders.
++- [io](/modules/io.md): `read_phyloseq`, used by `_remote.py`'s three loaders;
++  `read_humann` and `read_metaphlan`, used by `_hmp2.py:hmp2`.
++- `mudata`: `hmp2` builds its MuData and pushes the global `obs` into the
++  modalities (`MuData.push_obs`).
+ - `pooch` (runtime, Task 1.11): fetches and caches `GlobalPatterns.RData`/
+   `enterotype.RData`/`esophagus.RData` and, from the ExPASy FTP site,
+-  `enzyme.dat`/`enzclass.txt` (`_remote.py:_URLS`); `BIOTAPY_DATA_DIR` overrides its
++  `enzyme.dat`/`enzclass.txt`, and from the IBDMDB's Globus endpoint the three
++  HMP2 files (`_remote.py:_URLS`); `BIOTAPY_DATA_DIR` overrides its
+   cache directory (`pooch.create(..., env="BIOTAPY_DATA_DIR")`).
+
+ # Verification
+@@ -82,8 +100,9 @@ ExPASy the same way. The return type varies: a TreeData, a MuData
+ `uv run --group test pytest tests/datasets -q` plus `uvx prek run --all-files`
+ for `toy()` and `_remote.py`'s offline test; add
+ `BIOTAPY_DATA_DIR=<dir> uv run --group test pytest -m network tests/datasets -q`
+-to actually exercise the three downloads (CI's dedicated `network` job runs
+-`-m "network or golden"`).
++to actually exercise the downloads (CI's dedicated `network` job runs
++`-m "network or golden"`). The docs job runs `docs/tutorials/function.md`,
++which calls `hmp2()`.
+
+ # Gotchas
+
+@@ -96,6 +115,21 @@ to actually exercise the three downloads (CI's dedicated `network` job runs
+   `tests/data/enzyme/` through an `offline` fixture, and the real download is
+   covered by the `network` marker.
+
++- `hmp2()` reads the whole pathway table before selecting samples:
++  `read_humann` builds a dense 22,000 x 1,638 `float64` array (about 290 MB).
++  A cold cache downloads 23 MB, measured at 10-25 s, which is why
++  `docs/conf.py` sets `nb_execution_timeout = 300`.
++- MuData converts the global `obs` with pandas' `convert_dtypes`, so
++  `hmp2()`'s `week_num` is `int64`, `consent_age` the nullable `Int64` and
++  text columns pandas' `string` dtype, not the `str` dtype the readers use
++  (mudata 0.4.1). The h5mu round trip works (`test_round_trips_through_h5mu`).
++- A MuData does not survive `pickle` (mudata 0.4.1 with anndata 0.13.4:
++  `TypeError: cannot create weak reference to 'NoneType' object`); its
++  AnnData modalities do. The asv function benchmarks cache a dict of
++  modalities for that reason (`benchmarks/benchmarks/fn.py:FuncGlom`).
++- `hmp2()`'s offline tests write synthetic files in HMP2's layout and patch
++  `_hmp2._fetch`: the IBDMDB states no licence, so no HMP2 data is committed
++  (`tests/datasets/test_hmp2.py`).
+ - `toy()` is deliberately small and hand-built so exact values (which
+   feature is each phylum's archetype, which samples share a genus, ...) can
+   be pinned in tests and docstring examples across `pp` and (later) `tl`/
+diff --git a/.knowledge/modules/index.md b/.knowledge/modules/index.md
+index c1eda72..562b017 100644
+--- a/.knowledge/modules/index.md
++++ b/.knowledge/modules/index.md
+@@ -6,4 +6,4 @@
+ * [tl](tl.md) - Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, beta, UniFrac, PCoA, NMDS and PERMANOVA through scikit-bio and scikit-learn, returning results or writing the data-model-slots keys.
+ * [pl](pl.md) - Plots of what tl, pp and fn give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination and scree - drawn with matplotlib on the given or a new Axes, computing nothing.
+ * [fn](fn.md) - Function hierarchies, aggregation along them, HUMAnN-style renormalisation, per-taxon contributions and functional redundancy (Tian 2020) over function tables; owns no reader and no download.
+-* [datasets](datasets.md) - In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, and the ENZYME hierarchy as an edge table.
++* [datasets](datasets.md) - In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, and the ENZYME hierarchy as an edge table.
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index 020e6bd..8450221 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the
+ tags: [data-model, api]
+ status: stable
+ paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+-commit: f5236e8
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:20:31Z }
++commit: 1faf8c1
+ sources:
+   - id: spec
+     resource: ../../plan.md
+@@ -114,6 +114,11 @@ contribution table is read. `taxon` is the ASV id as written, or `RARE`
+ modalities and in `io.read_picrust2_traits`' columns, so ids match ENZYME's
+ and HUMAnN's.
+
++`datasets.hmp2` returns a function table with a third modality, `"taxa"`
++(MetaPhlAn species from `io.read_metaphlan`), over the same samples, and its
++sample metadata in the global `obs`, pushed into every modality. `fn` verbs
++take the modality they need; `fn.renorm` keeps any other modality.
++
+ ## Taxonomic profiles (MetaPhlAn)
+ `io.read_metaphlan` keeps one feature per leaf clade: a row that no other
+ row descends from through any ancestor (MetaPhlAn can omit an intermediate
+diff --git a/.knowledge/decisions/function-tables-as-mudata.md b/.knowledge/decisions/function-tables-as-mudata.md
+index 9f908df..50f058d 100644
+--- a/.knowledge/decisions/function-tables-as-mudata.md
++++ b/.knowledge/decisions/function-tables-as-mudata.md
+@@ -4,9 +4,9 @@ title: Function tables are a two-modality MuData
+ description: A HUMAnN-style function table is a MuData with a community modality and a stratified modality, adopted in Phase 2 instead of Phase 4; mudata is a runtime dependency.
+ tags: [fn, io, mudata, dependencies]
+ status: stable
+-paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/io/_picrust2.py", "src/biotapy/fn/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
+-commit: f5236e8
++paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/io/_picrust2.py", "src/biotapy/fn/**", "src/biotapy/datasets/_hmp2.py"]
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:20:31Z }
++commit: 1faf8c1
+ sources:
+   - id: research
+     resource: ../roadmap/phase-2-function.md
+@@ -68,4 +68,6 @@ was brought forward from Phase 4, where multi-omics needs it anyway.
+   needs `function` and `function_by_taxon` side by side with `taxa`,
+   `metabolites` and `host`, not a nested `function` MuData. Task 4.1's modality
+   names must not reuse `function` for anything else, and `io.to_mudata` must
+-  accept a function table's two modalities as two entries.
++  accept a function table's two modalities as two entries. `datasets.hmp2`
++  already holds `function`, `function_by_taxon` and `taxa` side by side
++  (`datasets/_hmp2.py:hmp2`); `fn.renorm` keeps the extra modality.
+```
+
+- [ ] **Step 2: The roadmap's open checkpoint boxes.** Slices 2A-2C were
+  merged and their reviews asked for, but their boxes were never ticked
+  (the ledger, lines 82-100, 136-145 and 170-183). Tick, each with its
+  record:
+  - "# Tasks (checklist)": `Checkpoint A`, `Checkpoint B`, `Checkpoint C`.
+  - Checkpoint A: the review box (opus review, 0 Critical / 2 Important /
+    16 Minor; fix pass `877cf22..020efbb`; re-review 19 addressed); the
+    exit-gate check box (`pytest -m golden` passed on `3a9d056`); the push
+    box (PR #15, CI 20/20 after `2d47f8d`, merged as `d13ad64`); the
+    review-ask box (asked 2026-10-03; the user chose to go on to slice 2B).
+  - Checkpoint B: the push box (PR #16, CI 20/20, merged as `c49aeb4`); the
+    review-ask box (asked; the user answered "2c", 2026-10-03).
+  - Checkpoint C: the push box (PR #17, CI 20/20, merged as `407cc19`); the
+    review-ask box (the user approved slice 2C, 2026-10-05).
+  - "# Tasks (checklist)": `2.11 Knowledge`; this task's step boxes.
+- [ ] **Step 3: Concepts the diff only touches.** Run
+  `bash scripts/knowledge_stale.sh --touched --against master` before
+  Step 1's edits. In the prototype it listed `modules/datasets` (Step 1)
+  and seven more: `phase-0-foundation`, `phase-1-core`, `engine-parity`,
+  `function-shape`, `module-boundaries`, `r-golden-parity`,
+  `add-a-function`. Read each against the slice 2D diff;
+  nothing they state became false in the prototype (engine-parity names the
+  5,000 x 50,000 table for a compiled engine's benchmark, still true;
+  function-shape's Examples rule already covers downloading loaders with
+  `# doctest: +SKIP`). Bump only `generated` and `commit` on each. Re-run
+  the script: it lists nothing.
+- [ ] **Step 4: Final pass on `modules/fn.md` and `modules/io.md`.** Read
+  both against `src/biotapy/fn/` and `src/biotapy/io/`: MetaPhlAn and
+  PICRUSt2 were documented at Checkpoint B, `contributions` and
+  `functional_redundancy` at Checkpoint C, and slice 2D changes neither
+  package. Change only a statement that is false; otherwise leave both
+  untouched (R12.1).
+- [ ] **Step 5: Log.** Add to `.knowledge/log.md`:
+
+```markdown
+## 2026-10-05 (Phase 2, Checkpoint D knowledge)
+- **Update**: [datasets](modules/datasets.md) documents `hmp2` (entry point, pinned IBDMDB files, first-metagenome rule, pushed metadata, the 290 MB dense read and 23 MB cold download, mudata's `convert_dtypes` on the global `obs`, MuData not surviving `pickle`, synthetic offline fixtures); description copied into [modules/index.md](modules/index.md).
+- **Update**: [data-model-slots](contracts/data-model-slots.md) Function tables: `datasets.hmp2` adds a `"taxa"` modality and pushes its metadata into every modality; `fn.renorm` keeps other modalities.
+- **Update**: [function-tables-as-mudata](decisions/function-tables-as-mudata.md) forward note: `datasets.hmp2` already holds `function`, `function_by_taxon` and `taxa` side by side; `paths` gains `datasets/_hmp2.py`.
+- **Verification**: re-checked against the slice 2D diff and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
+```
+
+  plus one line for Step 2:
+  `- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks the Checkpoint A-C boxes left open after slices 2A-2C merged (PRs #15-#17), each with its record, and Task 2.11.`
+- [ ] **Step 6: Gate and commit.**
+
+```bash
+git add .knowledge/modules/datasets.md .knowledge/modules/index.md .knowledge/contracts/data-model-slots.md \
+  .knowledge/decisions/function-tables-as-mudata.md .knowledge/roadmap/phase-0-foundation.md \
+  .knowledge/roadmap/phase-1-core.md .knowledge/contracts/engine-parity.md .knowledge/contracts/function-shape.md \
+  .knowledge/contracts/module-boundaries.md .knowledge/contracts/r-golden-parity.md \
+  .knowledge/playbooks/add-a-function.md .knowledge/roadmap/phase-2-function.md .knowledge/log.md
+git commit -m "docs(knowledge): document datasets.hmp2 and refresh concepts for slice 2D"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected (plus the fix pass's tests)
+bash scripts/knowledge_stale.sh --against HEAD       # 23 current, 0 stale, 12 uncheckable
+```
+
+### Task 2.15: Release 0.2.0
+
+Follows [cut-a-release](/playbooks/cut-a-release.md) and Phase 1's Task
+1.23. Publishing to PyPI is irreversible: a version can never be uploaded
+twice. Every outward step waits for the user's explicit approval of that
+step (R13.3).
+
+**Files:**
+- Modify (release commit): `pyproject.toml` (version), `CHANGELOG.md`,
+  `README.md`.
+- Modify (knowledge commit): `.knowledge/playbooks/cut-a-release.md`, the
+  concepts the version bump makes stale, `.knowledge/roadmap/phase-2-function.md`,
+  `.knowledge/log.md`.
+- Modify (after the upload, branch `close-phase-2`):
+  `.knowledge/roadmap/phase-2-function.md`, `.knowledge/roadmap/phase-3-stats.md`,
+  `.knowledge/roadmap/index.md`, `.knowledge/log.md`.
+
+**Interfaces:**
+- Consumes: `master` after Checkpoint D's merge; `.github/workflows/release.yaml`
+  (on `release: published`: `uv build`, then `pypa/gh-action-pypi-publish`
+  v1.14.2 in environment `pypi`).
+- Produces: `biotapy 0.2.0` on PyPI; Phase 2 `phase_state: done`; Phase 3
+  active.
+
+**Will not touch:** any `src/`, `tests/` or `docs/` file (the version
+reaches the docs through package metadata), the workflows. `uv.lock` is
+git-ignored (`.gitignore`: `/uv.lock`), so the bump leaves no lock diff.
+
+- [ ] **Step 1: Approval in hand.** Checkpoint D's last box asked for the
+  slice review, the release branch push/PR/merge and the PyPI publisher
+  check. Do not start until the user has answered all three.
+- [ ] **Step 2: Check the publish action.**
+  `gh api repos/pypa/gh-action-pypi-publish/releases/latest --jq .tag_name`
+  prints `v1.14.2` (checked 2026-10-05; `release.yaml` pins `v1.14.2`). If
+  it prints anything newer, stop and report it: a stale pin failed 0.0.1
+  (the playbook's Common mistakes).
+- [ ] **Step 3: Branch.**
+  `git switch master && git pull --ff-only && git switch -c release-0.2.0`.
+- [ ] **Step 4: Version and changelog.**
+  - `pyproject.toml`: `version = "0.1.0"` becomes `version = "0.2.0"`.
+  - `CHANGELOG.md`: `## [Unreleased]` is empty (no slice 2A-2C PR wrote an
+    entry). Write the 0.2.0 entries from
+    `git log v0.1.0..master --no-merges --oneline` and the diff below, with
+    the date from `date -u +%F`; leave a new empty `## [Unreleased]` above:
+
+```diff
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 487d273..4f09d94 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning][].
+
+ ## [Unreleased]
+
++## [0.2.0] - 2026-10-05
++
++### Added
++
++- `bt.io.read_humann`: read HUMAnN 3 and 4 tables (gene families, reactions
++  or pathway abundance, also after regrouping or renormalising) into a
++  `MuData` with a community modality, `"function"`, and a per-taxon one,
++  `"function_by_taxon"`.
++- `bt.io.read_metaphlan`: read MetaPhlAn 3 and 4 profiles, one or merged, as
++  relative abundances of the leaf clades with the seven taxonomic ranks.
++- `bt.io.read_picrust2` / `bt.io.read_picrust2_traits`: read PICRUSt2's
++  predicted metagenomes and pathways, with the per-ASV contributions as the
++  per-taxon modality, and its per-ASV gene copy numbers. PICRUSt2 itself is
++  not needed.
++- `bt.fn.load_hierarchy`: read a function hierarchy (HUMAnN or PICRUSt2
++  mapping files, or your own) from a local file.
++- `bt.fn.func_glom`: aggregate functions to one level of a hierarchy, as
++  `humann_regroup_table` does.
++- `bt.fn.renorm`: renormalise a function table to copies per million or
++  relative abundance, as `humann_renorm_table` does. `func_glom` and `renorm`
++  are tested against HUMAnN 3.9's own output.
++- `bt.fn.contributions` and `bt.pl.contributions`: one function's abundance
++  per taxon in every sample, as a table and as stacked bars.
++- `bt.fn.functional_redundancy`: taxonomic diversity, functional diversity
++  and functional redundancy per sample (Tian et al. 2020).
++- `bt.datasets.toy_humann`: a tiny in-memory function table for examples and
++  tests.
++- `bt.datasets.enzyme`: the ENZYME EC hierarchy (CC BY 4.0), downloaded once
++  and cached.
++- `bt.datasets.hmp2`: the HMP2 inflammatory bowel disease cohort's pathways,
++  species and metadata, one stool metagenome per participant, downloaded once
++  and cached.
++- A function guide and a tutorial on the HMP2 cohort.
++- asv benchmarks for `fn.func_glom`, `io.read_humann` and
++  `fn.functional_redundancy`, with their baselines in the docs.
++- New runtime dependency: `mudata>=0.4`, for function tables.
++
++### Changed
++
++- `bt.pp.relative` divides each value by its sample total, summed in float64:
++  a sample whose total is subnormal no longer gives `inf`, and a float32 table
++  is no longer off by about 1e-7.
++- `bt.pl.bar` no longer gives a group the grey that marks missing values, so
++  with eight or more groups plus missing values the colours change.
++- The Coming-from-R page marks the phyloseq calls biotapy does not cover yet
++  "not in 0.2".
++- The docs build gives each notebook cell up to 5 minutes, enough for the
++  function tutorial to download the HMP2 tables on a cold cache.
++
+ ## [0.1.0] - 2026-10-03
+
+ ### Added
+```
+
+  Each "Changed" line is a fix to a function 0.1.0 shipped: `e34b6e9` and
+  `358e011` (`pp.relative`), `78a9146` (`pl.bar`), and Tasks 2.13 and 2.10b.
+  If the fix pass changed another 0.1.0 function, add its line.
+- [ ] **Step 5: README** (PyPI's project page). Change only the Status
+  section and the licensing paragraph:
+
+```diff
+diff --git a/README.md b/README.md
+index 62b221c..cd201c8 100644
+--- a/README.md
++++ b/README.md
+@@ -14,27 +14,37 @@ against R on real data.
+
+ ## Status
+
+-**biotapy 0.1 is an early release.** The API can still change between minor versions.
++**biotapy 0.2 is an early release.** The API can still change between minor versions.
+
+-What 0.1 does (full signatures in the [API reference][api]):
++What 0.2 does (full signatures in the [API reference][api]):
+
+ - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
+   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
+-  (CSV/TSV/`.rds` sequence tables) and `bt.io.read_phyloseq`
+-  (`.rds`/`.RData`, no R needed) all read into one `TreeData`.
++  (CSV/TSV/`.rds` sequence tables), `bt.io.read_phyloseq`
++  (`.rds`/`.RData`, no R needed) and `bt.io.read_metaphlan` (MetaPhlAn 3
++  and 4 profiles) all read into one `TreeData`. `bt.io.read_humann` and
++  `bt.io.read_picrust2` read function tables into a `MuData` with a community
++  and a per-taxon modality; `bt.io.read_picrust2_traits` reads PICRUSt2's
++  per-ASV gene copy numbers.
+ - **Writer**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out.
+-- **Datasets**: `bt.datasets.toy` (in-memory, for examples and tests),
+-  `bt.datasets.global_patterns`, `bt.datasets.enterotype` and
+-  `bt.datasets.esophagus` (phyloseq's example datasets, downloaded and cached
+-  on first use).
++- **Datasets**: `bt.datasets.toy` and `bt.datasets.toy_humann` (in-memory,
++  for examples and tests), `bt.datasets.global_patterns`,
++  `bt.datasets.enterotype` and `bt.datasets.esophagus` (phyloseq's example
++  datasets), `bt.datasets.hmp2` (the HMP2 inflammatory bowel disease cohort)
++  and `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached
++  on first use.
+ - **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
+   `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`.
++- **Function**: `bt.fn.load_hierarchy`, `bt.fn.func_glom` and `bt.fn.renorm`
++  (checked against HUMAnN's own output), `bt.fn.contributions` and
++  `bt.fn.functional_redundancy`.
+ - **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
+   `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
+ - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
+-  `bt.pl.scree` and `bt.pl.heatmap`.
++  `bt.pl.scree`, `bt.pl.heatmap` and `bt.pl.contributions`.
+
+-Next, in 0.2: functional profiles from HUMAnN, PICRUSt2 and MetaPhlAn. See the
++Next, in 0.3: compositional transforms (CLR, PhILR) and differential abundance
++(ANCOM-BC, LinDA, ALDEx2, MaAsLin 3) behind one result format. See the
+ [roadmap][roadmap]; no dates are promised.
+
+ ## Installation
+@@ -174,8 +184,12 @@ redone with biotapy in the tutorials.
+ `bt.datasets.global_patterns`, `bt.datasets.enterotype` and
+ `bt.datasets.esophagus` download example data from
+ [phyloseq's repository][phyloseq-data] at runtime; biotapy ships none of it.
+-That data stays licensed to phyloseq's authors under AGPL-3. biotapy itself is
+-[BSD-3-Clause][license].
++That data stays licensed to phyloseq's authors under AGPL-3.
++`bt.datasets.enzyme` downloads ENZYME, distributed by the SIB Swiss Institute
++of Bioinformatics under CC BY 4.0. `bt.datasets.hmp2` downloads the HMP2
++tables from the [IBDMDB][ibdmdb], which states no licence for them; cite
++Lloyd-Price et al. (2019, *Nature* 569:655-662) when you use them. biotapy
++itself is [BSD-3-Clause][license].
+
+ ## Documentation
+
+@@ -221,6 +235,7 @@ Questions, bug reports and feature requests all go to the [issue tracker][].
+ [treedata]: https://treedata.readthedocs.io/
+ [pooch]: https://www.fatiando.org/pooch/
+ [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data
++[ibdmdb]: https://ibdmdb.org/
+ [license]: https://github.com/pedrocr83/biotapy/blob/master/LICENSE
+ [rules]: https://github.com/pedrocr83/biotapy/blob/master/rules.md
+ [knowledge]: https://github.com/pedrocr83/biotapy/tree/master/.knowledge
+```
+
+- [ ] **Step 6: Build check.**
+  - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files
+    print `PASSED`.
+  - `tar tzf dist/biotapy-0.2.0.tar.gz | grep -c benchmarks` prints `0`.
+  - `unzip -p dist/biotapy-0.2.0-py3-none-any.whl 'biotapy-0.2.0.dist-info/METADATA' | grep -E "^(Version|Requires-Dist): (0.2.0|mudata)"`
+    prints `Version: 0.2.0` and `Requires-Dist: mudata>=0.4`.
+  - The sdist's own tests (playbook step 3): extract it under
+    `<scratchpad>/sdist`, then inside it run
+    `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest -q -p no:cacheprovider`
+    -> `896 passed, 23 deselected` (the sdist leaves out the repository-only
+    tests: `tests/test_ci.py`, the knowledge tests, `tests/humann`, `tests/r`).
+  - `rm -rf dist <scratchpad>/sdist`.
+- [ ] **Step 7: Gate and commit.**
+
+```bash
+git add pyproject.toml CHANGELOG.md README.md
+git commit -m "chore: release 0.2.0"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 981 passed, 23 deselected (plus the fix pass's tests)
+uv run python -c "import biotapy; print(biotapy.__version__)"  # 0.2.0
+```
+
+- [ ] **Step 8: Knowledge, second commit.**
+  - `bash scripts/knowledge_stale.sh --against HEAD`. The bump re-stales
+    the concepts whose `paths` hold `pyproject.toml` or `CHANGELOG.md`; in
+    the prototype: `phase-0-foundation`, `module-boundaries`,
+    `tree-access`, `cut-a-release`. Check each against the bump, which
+    changes nothing they state, and bump `commit` and `generated`.
+  - `playbooks/cut-a-release.md`, the two steps this release needed:
+
+```diff
+diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-release.md
+index d2ded3d..b48c161 100644
+--- a/.knowledge/playbooks/cut-a-release.md
++++ b/.knowledge/playbooks/cut-a-release.md
+@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
+ tags: [release, workflow]
+ status: stable
+ paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
+-commit: 020efbb
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-05T10:24:49Z }
++commit: 7fff019
+ sources:
+   - id: trusted-publishing
+     resource: https://docs.pypi.org/trusted-publishers/
+@@ -25,9 +25,15 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
+ # Steps
+ 1. Set `version = "X.Y.Z"` in `pyproject.toml` (static; no VCS versioning).
+ 2. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
+-   and open a new empty `## [Unreleased]` above it (Keep a Changelog).
++   and open a new empty `## [Unreleased]` above it (Keep a Changelog). If the
++   phase's pull requests left `## [Unreleased]` empty (0.2.0's did), write its
++   entries first from `git log vPREVIOUS..master --no-merges`: `feat:` commits
++   under Added, `fix:` commits that change a released function under Changed.
+ 2b. Update `README.md` wherever it describes the previous release: it is PyPI's
+    project page, and 0.1.0 replaced 0.0.1's placeholder text.
++2c. Move the "not in X.Y" labels to the new version: `docs/_data/r_idioms.toml`,
++   `docs/coming_from_r.md`, `tests/test_coming_from_r.py` and the phyloseq
++   vignette (`docs/tutorials/phyloseq_analysis.md`). 0.2.0 did this in Task 2.13.
+ 3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
+    (merge commit, not squash). Before the PR, build and run `pytest` from the
+    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it
+```
+
+  - `roadmap/phase-2-function.md`: tick the three exit-gate items, each
+    proven on Checkpoint D's PR: the `docs` job run (tutorial executed), the
+    `network` job's golden tests (`tests/fn/*_golden.py`), and every Phase 1
+    gate (all CI jobs green). Tick Task 2.15 Steps 1-8.
+  - Log, under `## <date> (release 0.2.0)`:
+
+```markdown
+## 2026-10-05 (release 0.2.0)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2 says how to write `## [Unreleased]` from the git log when it is empty, and new step 2c moves the "not in X.Y" labels.
+- **Verification**: re-checked against the 0.2.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md).
+```
+
+    plus `- **Update**: [phase-2-function](roadmap/phase-2-function.md) ticks the exit gate (docs job run <id>, golden and Phase 1 gates on PR #<n>) and Task 2.15 Steps 1-8.`
+  - `bash scripts/knowledge_stale.sh --against HEAD` prints
+    `23 current, 0 stale, 12 uncheckable`.
+  - Commit `docs(knowledge): refresh concepts for the 0.2.0 release`,
+    staging the playbook, the four concepts, the roadmap and the log.
+- [ ] **Step 9: PR and merge** (approved at Checkpoint D): push
+  `release-0.2.0`, open the PR, wait for green CI, merge with a merge
+  commit (not a squash).
+- [ ] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI,
+  and that cannot be undone. Ask the user, in one message, for explicit
+  approval to:
+  1. tag the merged `master` commit `v0.2.0`;
+  2. push only that tag;
+  3. create the GitHub release `0.2.0`, which triggers the upload;
+  4. afterwards, push `close-phase-2` (Step 13), open its PR and
+     merge-commit it on green.
+
+  Wait for a yes that names this release. An earlier approval does not
+  count.
+- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+
+```bash
+git switch master && git pull --ff-only
+git log -1 --format=%s   # Merge pull request #<n> from pedrocr83/release-0.2.0
+git tag v0.2.0
+git push origin v0.2.0
+awk '/^## \[0.2.0\]/{on=1;next} /^## \[/{on=0} on' CHANGELOG.md > <scratchpad>/notes-0.2.0.md
+gh release create v0.2.0 --title "0.2.0" --notes-file <scratchpad>/notes-0.2.0.md
+gh run list --workflow release.yaml --limit 3 --json databaseId,headBranch,status
+```
+
+  - Pick the run whose `headBranch` is `v0.2.0`, then
+    `gh run watch <its databaseId> --exit-status`. If the `pypi`
+    environment asks for a reviewer, the user approves it in the run.
+  - If the run fails before the upload: fix `master`, then delete the
+    release and tag (`gh release delete v0.2.0 --cleanup-tag`) and re-tag,
+    each only with the user's approval (playbook, Common mistakes).
+  - If it fails after the upload, report it: the version is spent, and the
+    fix is 0.2.1.
+- [ ] **Step 12: Verify** (playbook Verification). Both print `0.2.0`:
+
+```bash
+curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
+uv run --no-project --with biotapy==0.2.0 python -c "import biotapy as bt; print(bt.__version__, bt.fn.__all__, 'hmp2' in bt.datasets.__all__)"
+```
+
+  The second also prints
+  `['contributions', 'func_glom', 'functional_redundancy', 'load_hierarchy', 'renorm'] True`.
+- [ ] **Step 13: Close Phase 2** (approved in Step 10), as `close-phase-1`
+  did (PR #13):
+  - `git switch master && git pull --ff-only && git switch -c close-phase-2`;
+  - `roadmap/phase-2-function.md`: `phase_state: in-progress` becomes
+    `phase_state: done`; tick Task 2.15 Steps 9-13; bump `generated` and
+    `commit`;
+  - `roadmap/phase-3-stats.md`: `phase_state: not-started` becomes
+    `phase_state: in-progress` (its entry criteria: Phase 2's exit gate and
+    0.2 released, and r-bridge-before-ports confirmed, which the user did
+    on 2026-09-26); bump `generated` and `commit`;
+  - `roadmap/index.md`: Phase 3 moves to "# Active phase" with
+    `**phase_state: in-progress**`; Phase 2 moves to "# Phases" after Phase
+    1 as `**phase_state: done** (0.2.0 on PyPI, <date>)`;
+  - log, under `## <date> (release 0.2.0)`:
+    `* **Update**: Phase 2 closed after biotapy 0.2.0 reached PyPI (tag v0.2.0, release workflow run <id>). [phase-2-function](roadmap/phase-2-function.md) is \`phase_state: done\` with every Task 2.15 step and exit-gate item ticked; [phase-3-stats](roadmap/phase-3-stats.md) is \`phase_state: in-progress\`; the [roadmap index](roadmap/index.md) lists Phase 3 as active.`
+  - gates (`uvx prek run --all-files`; `uv run --group test pytest -q -W error::UserWarning`,
+    whose `tests/test_knowledge_bundle.py` checks every concept's
+    frontmatter `type` and index entry); commit
+    `docs(knowledge): close Phase 2 after the 0.2.0 release`; push, PR,
+    merge-commit on green.
+  - Phase 3 then starts at its own expansion (rules.md R1.2a): ask the user
+    before expanding it.
+
+### Slice 2D decisions for the user
+
+Each adds a public function, changes a contract, CI or the docs build, is
+outward-facing, or is a judgement call. The recommended answer comes first.
+
+1. **`bt.datasets.hmp2() -> MuData`, a new public function, with three
+   modalities** `"function"`, `"function_by_taxon"` (pathways, CPM) and
+   `"taxa"` (MetaPhlAn 3, a TreeData with no tree) over the same samples.
+   `taxa` is the name plan.md and Phase 4's task 4.1 reserve.
+   Alternatives: a `(MuData, TreeData)` tuple; two loaders.
+2. **Metadata: seven columns with the IBDMDB's own names, in the global
+   `obs` and pushed into every modality**; `diagnosis` categorical
+   `nonIBD`, `UC`, `CD`. mudata converts the global `obs` dtypes
+   (`int64`, `Int64`, `string`), which biotapy does not undo.
+   Alternatives: all 490 columns (an unreadable repr), snake_case names, or
+   the global `obs` only (users call `push_obs()` themselves).
+3. **Subset: each participant's first stool metagenome, 130 samples** (CD
+   65, UC 38, nonIBD 27; lowest `week_num`, ties by `External ID`), from
+   the whole tables read in 4.0 s. Alternatives: a balanced 40 (needs a
+   second rule), or all 1,638 samples with the tutorial subsetting (repeated
+   measures by default).
+4. **The metadata's pinned hash:**
+   `656b7bd97660ddb875548805e30bede31f2d1208293f7170d2d5755e33862ec9`
+   (`hmp2_metadata_2018-08-20.csv`, 9.1 MB, three downloads, same hash),
+   beside the two hashes the outline pinned.
+5. **No `func_glom` demo on HMP2.** The tutorial says why and links to the
+   guide's ENZYME example. The per-sample EC route would need 130 (or, for
+   a small demo, about 12) pinned archives, an untar step and a table join
+   biotapy does not have; the merged EC tables are 89-113 MB.
+   Alternative: a 12-sample EC demo with those three additions in
+   `datasets`.
+6. **Functional redundancy left out of the tutorial**, linked to the guide's
+   section (HUMAnN writes no per-species gene copy numbers).
+   Alternative: a toy-data section in the tutorial.
+7. **Docs build: `nb_execution_timeout = 300` in `docs/conf.py`** (myst-nb's
+   default is 30 s per cell; a cold HMP2 download took up to 25 s), pinned
+   by a `tests/test_ci.py` test. **No workflow change:** the existing pooch
+   cache key hashes `_remote.py`, which now holds the HMP2 registry.
+   Option, reported and not done (pre-existing, R1.4): separate cache keys
+   for the `docs` and `network` jobs, so the `network` job stops
+   re-downloading ENZYME whenever the `docs` job saves the shared key
+   first.
+8. **Coming-from-R labels read "not in 0.2"**, with the page sentence, the
+   test and the phyloseq vignette's three "0.1" statements, and a new
+   playbook step 2c to move them at each release. Alternative: a
+   version-free "not yet in biotapy", which never needs moving.
+9. **Contract wording (data-model-slots, Function tables):** one paragraph
+   saying `datasets.hmp2` adds a `"taxa"` modality and pushes its metadata,
+   and that `fn.renorm` keeps other modalities. function-tables-as-mudata's
+   forward note says the same.
+10. **MetaCyc pathway names stay in `hmp2`'s `var["name"]`**, as HUMAnN wrote
+    them in HMP2's published table: that is HUMAnN output, not a MetaCyc
+    mapping or hierarchy (no-bundled-kegg). Alternative: drop the `name`
+    column in `hmp2` (it would differ from `read_humann`).
+11. **Release 0.2.0:**
+    - version `0.2.0`; the CHANGELOG entries in Task 2.15 Step 4, written at
+      release because `## [Unreleased]` is empty, with "Changed" lines for
+      the 0.1.0 functions whose behaviour changed (`pp.relative`'s
+      division and float64 sums, `pl.bar`'s colours with eight or more
+      groups plus missing values);
+    - README: "biotapy 0.2 is an early release", the 0.2 function list,
+      "Next, in 0.3: compositional transforms (CLR, PhILR) and differential
+      abundance (ANCOM-BC, LinDA, ALDEx2, MaAsLin 3) behind one result
+      format", and the ENZYME and HMP2 licensing sentences;
+    - asks: the `release-0.2.0` push/PR/merge with the slice 2D review
+      (Checkpoint D); the tag, the tag push, the GitHub release (the PyPI
+      upload) and the `close-phase-2` push/PR/merge in one message after
+      the release PR merges (Task 2.15 Step 10);
+    - on close, Phase 2 `done` and Phase 3 `in-progress`, as Phase 1's
+      close made Phase 2 active.
+12. **Bookkeeping catch-up:** Task 2.11 ticks the Checkpoint A-C boxes left
+    open after PRs #15-#17 merged, each with its record from the ledger.
+13. **Reported, not fixed (R1.4): a MuData does not survive `pickle`**
+    (mudata 0.4.1 with anndata 0.13.4: `TypeError: cannot create weak
+    reference to 'NoneType' object`, reproduced on `toy_humann()`). biotapy
+    never pickles; the benchmarks cache the AnnData modalities instead, and
+    `modules/datasets.md` records it. Suggested: an upstream issue on
+    mudata.
+
+### Slice 2D self-review
+
+Run against the brief, this concept's 2D outline and the writing-plans
+checklist.
+
+1. **Spec coverage.**
+
+   | Brief or outline item | Where it lands |
+   |---|---|
+   | 2.10 interface and modalities; TreeData as a modality; global `obs` | design 1; Task 2.10; decisions 1-2 |
+   | Subset rule, size, load time, id joins, metadata hash | design 2; decisions 3-4; `test_keeps_each_participants_first_metagenome`, `test_three_modalities_over_the_same_samples`, `test_hmp2_downloads_and_loads` |
+   | `func_glom` demo route, files, sizes, budget | design 3; decision 5 |
+   | CI: network and cache for the docs job; offline tests | design 4; Task 2.10 fixture; Task 2.10b; decision 7 |
+   | Tutorial content: read, renorm, contributions plot for a butyrate pathway, disease comparison, redundancy decided | design 5; Task 2.10b; decision 6 |
+   | Licence caveat and citation | `hmp2` docstring, datasets guide, tutorial note, README |
+   | 2.11 knowledge pass, data-model contract, `roadmap/index.md` at close | Task 2.11; Task 2.15 Step 13 |
+   | 2.13 "not in 0.2", new rows from docstrings, rendered page | Task 2.13 |
+   | 2.14 benchmarks: `func_glom` many-to-many at 1,600 x 22,000, `read_humann` on the same as TSV, redundancy at 2,000 taxa; measure only | Task 2.14 |
+   | 2.15 version, CHANGELOG, exit gate ticks, stop-and-ask before tag/publish | Task 2.15 Steps 4, 8, 10 |
+   | Checkpoint D in the 2C form | Checkpoint D |
+   | R11.2 for `hmp2` | happy path (fixture and network); edge cases that exist for a loader with no input: ties, a non-metagenome row, ids with and without `_P`, a missing metadata value, an all-zero feature; purity does not apply (no input); no R equivalent, so no golden |
+
+2. **Placeholder scan.** Every code, test and docs block is generated from
+   the scratch commits that passed the gates, by `git show` and
+   `git diff`, not retyped. Values left for run time, each named where it is used: the
+   implementer's model id and UTC time in `generated`, `HEAD`'s short hash
+   in `commit`, the date in log headings and the CHANGELOG, Task 2.14's
+   benchmark numbers, commit and load averages (Step 4's run replaces the
+   prototype's), PR numbers, the docs and release workflow run ids, and
+   `<scratchpad>`.
+3. **Type consistency.** `hmp2() -> MuData` everywhere; the modality keys
+   `"function"`, `"function_by_taxon"`, `"taxa"` match `_core.FUNCTION_KEY`,
+   `_core.BY_TAXON_KEY` and `_hmp2.TAXA_KEY`; `COLUMNS` is used by the code,
+   the test and the guide's list; the tutorial calls each verb with the
+   signature its Interfaces line gives; the benchmark builders' names match
+   `fn.py`'s imports.
+4. **Review focus.** Each of the five items names tests that exist in the
+   blocks above; checked by searching this section for each name.
+5. **Known residual risks.**
+   - The IBDMDB serves the files from one Globus endpoint and states no
+     licence; if the files move, `hmp2()`, the network test and the docs
+     build fail loudly (pooch raises), never silently.
+   - Read the Docs keeps no cache, so every RTD build downloads 23 MB.
+   - The CHANGELOG and README text assume the fix pass changes no public
+     behaviour beyond what it lists; Task 2.15 Step 4 says to add a line
+     if it does.
+   - The benchmark numbers come from one run on one laptop; they are a
+     record, not a gate.
+   - The tutorial's PERMANOVA p-value (0.008 with `seed=0`) depends on
+     scikit-bio's permutation stream; the prose makes no numeric claim.
 
 ---
 
@@ -7273,7 +9528,7 @@ a judgement call. Recommended answer first.
 10. **`_core` placement** of `sum_pairs` and `replace_features`. Each has one
     consumer today, which is in tension with R4.3. They follow roadmap 2.1
     and the `sum_by` precedent.
-11. Slice 2B and 2C decisions: see each slice's own list.
+11. Slice 2B, 2C and 2D decisions: see each slice's own list.
 12. **Frontmatter `description`** of phase-2-function.md, as proposed in
     design note 7.
 

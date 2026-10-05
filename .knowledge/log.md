@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (slice 2D plan)
+* **Update**: [phase-2-function](roadmap/phase-2-function.md) carries the user-approved slice 2D plan in full TDD steps (2.10 datasets.hmp2, 2.10b tutorial, 2.13 Coming-from-R, 2.14 benchmarks, Checkpoint D with 2.11 knowledge, 2.15 release 0.2.0) and its decisions; header note, checklist, slices table and decision 11 updated.
+
 ## 2026-10-05 (Phase 2, Checkpoint C)
 - **Update**: [fn](modules/fn.md) documents `contributions` and `functional_redundancy` (entry points, invariants incl. the boundary checks, the SciPy zero-vector NaN, 16S correction with PICRUSt2's NSTI cutoff applied by the recipe, memory and time cost, `divide_rows` rule); description copied into [modules/index.md](modules/index.md).
 - **Update**: [pl](modules/pl.md) documents `contributions`, `_stack`, the `fn` import and `_colors` never giving a group the NA/"other" grey (`pl.bar` colours changed for 8+ groups plus NA); description copied into [modules/index.md](modules/index.md).
