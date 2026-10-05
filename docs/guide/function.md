@@ -156,6 +156,9 @@ table = bt.fn.contributions(mdata["function_by_taxon"], "2.7.1.2", top=5)
 An unknown id raises a `KeyError` listing up to three close ids, which
 catches typos and an `EC:` prefix.
 
+`bt.pl.contributions` draws the same table as stacked bars, one per sample;
+see the [plotting guide](plotting.md).
+
 ## Functional redundancy
 
 `bt.fn.functional_redundancy(adata, traits=traits)` measures, per sample, how

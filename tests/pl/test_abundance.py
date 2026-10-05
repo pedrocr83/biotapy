@@ -7,9 +7,11 @@ import scipy.sparse as sp
 from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
+from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 
 import biotapy as bt
+from biotapy._core import make_function_mudata
 
 
 def _adata(dense, var=None) -> ad.AnnData:
@@ -198,3 +200,71 @@ def test_heatmap_input_unchanged(assert_unchanged, ax):
     before = tdata.copy()
     bt.pl.heatmap(tdata, ax=ax)
     assert_unchanged(before, tdata)
+
+
+def _by_taxon():
+    return bt.datasets.toy_humann()["function_by_taxon"]
+
+
+def test_contributions_stacks_one_segment_per_taxon(ax):
+    by_taxon = _by_taxon()
+    assert bt.pl.contributions(by_taxon, "2.7.1.2", ax=ax) is ax
+    expected = bt.fn.contributions(by_taxon, "2.7.1.2")
+    np.testing.assert_array_equal(_heights(ax, 6), expected.to_numpy())
+    assert _legend(ax) == expected.columns.tolist() and ax.get_legend().get_title().get_text() == "taxon"
+    assert [label.get_text() for label in ax.get_xticklabels()] == list(by_taxon.obs_names)
+    assert ax.get_title() == "2.7.1.2" and ax.get_xlabel() == "sample"
+
+
+def test_contributions_top_draws_other_last_in_grey(ax):
+    bt.pl.contributions(_by_taxon(), "2.7.1.2", top=1, ax=ax)
+    assert _legend(ax) == ["g__Blautia.s__Blautia_obeum", "other"]
+    assert to_hex(ax.patches[-1].get_facecolor()) == "#7f7f7f"
+    np.testing.assert_array_equal(_heights(ax, 6)[:, 1], [6, 5, 7, 1, 0, 2])
+
+
+def test_contributions_a_taxon_named_other_keeps_its_colour(ax):
+    ids = pd.Index(["K1", "K1|other", "K1|a"])
+    mdata = make_function_mudata(
+        np.array([[2, 1, 1]]), obs=pd.DataFrame(index=["s1"]), row_ids=ids, x_kind="rpk", source="t"
+    )
+    bt.pl.contributions(mdata["function_by_taxon"], "K1", ax=ax)
+    assert "#7f7f7f" not in [to_hex(patch.get_facecolor()) for patch in ax.patches]
+
+
+def test_contributions_draws_regrouped_tables(ax):
+    edges = pd.DataFrame({"child": ["2.7.1.1", "2.7.1.2"], "parent": "kinase", "level": "role"})
+    by_role = bt.fn.func_glom(_by_taxon(), "role", hierarchy=edges)
+    bt.pl.contributions(by_role, "kinase", ax=ax)
+    np.testing.assert_array_equal(_heights(ax, 6), bt.fn.contributions(by_role, "kinase").to_numpy())
+
+
+def test_contributions_all_zero_sample_and_single_sample(ax):
+    by_taxon = _by_taxon()
+    dense = by_taxon.X.toarray()
+    dense[0] = 0
+    by_taxon.X = sp.csr_matrix(dense)
+    bt.pl.contributions(by_taxon, "2.7.1.2", ax=ax)
+    assert _heights(ax, 6)[0].tolist() == [0.0, 0.0]
+    single = bt.pl.contributions(_by_taxon()[:1].copy(), "2.7.1.2", ax=Figure().add_subplot())
+    assert len(single.patches) == 2
+
+
+def test_contributions_input_unchanged(assert_unchanged, ax):
+    by_taxon = _by_taxon()
+    before = by_taxon.copy()
+    bt.pl.contributions(by_taxon, "2.7.1.2", top=1, ax=ax)
+    assert_unchanged(before, by_taxon)
+
+
+def test_contributions_without_ax_draws_on_a_new_pyplot_figure():
+    ax = bt.pl.contributions(_by_taxon(), "2.7.1.2")
+    assert ax.figure.number in plt.get_fignums()
+    plt.close(ax.figure)
+
+
+def test_contributions_errors_name_the_argument(ax):
+    with pytest.raises(KeyError, match="function='2.7.1.3'"):
+        bt.pl.contributions(_by_taxon(), "2.7.1.3", ax=ax)
+    with pytest.raises(ValueError, match="top=0"):
+        bt.pl.contributions(_by_taxon(), "2.7.1.2", top=0, ax=ax)

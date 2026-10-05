@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:04:01Z }
-commit: 2b97529
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:06:58Z }
+commit: af1625e
 sources:
   - id: spec
     resource: ../../plan.md
@@ -371,7 +371,7 @@ not exist yet.
 - [ ] Checkpoint B
 - [x] 2.7 `fn.contributions(adata, function, *, top=None) -> pd.DataFrame`
 - [x] 2.8 `fn.functional_redundancy(adata, *, traits) -> pd.DataFrame`
-- [ ] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
+- [x] 2.9 `pl.contributions(adata, function, *, top=8, ax=None) -> Axes`
 - [ ] Checkpoint C
 - [ ] 2.10 `datasets.hmp2()` and the tutorial (outline)
 - [ ] 2.11 Knowledge (outline)
@@ -6583,7 +6583,7 @@ BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html d
 into `_stack` unchanged; its tests must pass unedited), `pl/_common.py`,
 `heatmap`, `fn`.
 
-- [ ] **Step 1: Failing tests.** In `tests/pl/test_abundance.py`, add the two
+- [x] **Step 1: Failing tests.** In `tests/pl/test_abundance.py`, add the two
   imports and append the tests:
 
 ```diff
@@ -6676,10 +6676,10 @@ diff --git a/tests/pl/test_abundance.py b/tests/pl/test_abundance.py
 +        bt.pl.contributions(_by_taxon(), "2.7.1.2", top=0, ax=ax)
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/pl/test_abundance.py -q`
   -> `8 failed, 22 passed`: `AttributeError: module 'biotapy.pl' has no attribute 'contributions'`.
-- [ ] **Step 3: Implement.** In `src/biotapy/pl/_abundance.py`: the module
+- [x] **Step 3: Implement.** In `src/biotapy/pl/_abundance.py`: the module
   docstring, the two imports, `bar`'s loop replaced by `_stack`, the new
   public function before `heatmap`, and `_stack` before `_segments`:
 
@@ -6819,7 +6819,7 @@ from ._richness import richness
 __all__ = ["bar", "contributions", "heatmap", "ordination", "richness", "scree"]
 ```
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `uv run --group test pytest tests/pl src/biotapy/pl -q -W error`
   -> `56 passed`. `bar`'s 22 earlier tests in the file pass unedited. Check
   `bar`'s output is unchanged: render `bt.pl.bar` on `bt.datasets.toy()`
@@ -6827,7 +6827,7 @@ __all__ = ["bar", "contributions", "heatmap", "ordination", "richness", "scree"]
   categorical `x` with missing values, before and after the change, and
   compare the PNG bytes (`savefig(..., metadata={"Software": None})`);
   they must be identical.
-- [ ] **Step 5: Docs.** In `docs/api.md`, add `pl.contributions` after
+- [x] **Step 5: Docs.** In `docs/api.md`, add `pl.contributions` after
   `pl.bar`. Edit the two guides:
 
 ```diff
@@ -6887,13 +6887,13 @@ diff --git a/docs/guide/function.md b/docs/guide/function.md
 ```
 
   Build the docs -> `build succeeded.`
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line becomes
     `- [x] 2.9 \`pl.contributions(adata, function, *, top=8, ax=None) -> Axes\``;
     tick this task's step boxes; bump `generated` and `commit`.
   - Add under the slice 2C log heading:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.9 done: \`pl.contributions\` draws \`fn.contributions\`' table as stacked bars, sharing \`bar\`'s drawing (\`_abundance.py:_stack\`).`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add src/biotapy/pl/_abundance.py src/biotapy/pl/__init__.py tests/pl/test_abundance.py docs/api.md \
