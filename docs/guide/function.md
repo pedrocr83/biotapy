@@ -199,28 +199,43 @@ with no gene at all share nothing: their distance is 1.
 PICRUSt2's per-ASV predictions read by `bt.io.read_picrust2_traits`.
 `adata` holds the same taxa as features. Tian et al. use relative organism
 abundances (MetaPhlAn2 profiles), so divide 16S read counts by each ASV's
-predicted 16S copy number first. PICRUSt2 writes those copy numbers to
-`marker_predicted_and_nsti.tsv.gz`, which the same reader reads:
+predicted 16S copy number first. PICRUSt2 writes those copy numbers and each ASV's NSTI to a
+marker file. Its `hsp.py` predicts every ASV it placed; the NSTI cutoff (`--max_nsti`,
+default 2) is applied later, by `metagenome_pipeline.py`. Apply it yourself,
+and divide only the ASVs that have a copy number, so
+`functional_redundancy` still sees the others and warns about them:
 
 ```python
+import pandas as pd
+
 import biotapy as bt
 
 asvs = bt.io.read_biom("table.biom")  # samples x ASVs, read counts
 traits = bt.io.read_picrust2_traits("picrust2_out/EC_predicted.tsv.gz")
-copies = bt.io.read_picrust2_traits("picrust2_out/marker_predicted_and_nsti.tsv.gz")["16S_rRNA_Count"]
+marker = pd.read_csv("picrust2_out/marker_predicted_and_nsti.tsv.gz", sep="\t", index_col=0)
 
-cells = asvs[:, asvs.var_names.isin(copies.index)].copy()
-cells.X = cells.X.multiply(1 / copies[cells.var_names].to_numpy()).tocsr()
+too_far = asvs.var_names.isin(marker.index[marker["metadata_NSTI"] > 2])
+print(f"{too_far.sum()} ASVs above NSTI 2 dropped")
+cells = asvs[:, ~too_far].copy()
+copies = marker["16S_rRNA_Count"].reindex(cells.var_names).fillna(1.0)  # no copy number: left unscaled
+cells.X = cells.X.multiply(1 / copies.to_numpy()).tocsr()
 fr = bt.fn.functional_redundancy(cells, traits=traits)
 ```
+
+PICRUSt2 2.6 prefixes its pipeline's output files with `combined_`:
+`combined_EC_predicted.tsv.gz` and `combined_marker_nsti_predicted.tsv.gz`
+(earlier versions: `EC_predicted.tsv.gz` and
+`marker_predicted_and_nsti.tsv.gz`, used above). The marker file needs the
+columns `16S_rRNA_Count` and `metadata_NSTI`.
 
 The corrected table is no longer read counts; use it for this calculation
 only. A MetaPhlAn profile is already in organism abundances.
 
-- **Taxa without traits** (ASVs PICRUSt2 dropped above its NSTI cutoff) are
-  left out with a warning, abundance included, so each sample's $p$ sums to
-  1 over the taxa that have a genome, as in the paper. PICRUSt2's `RARE`
-  group exists only in contribution tables, never in an ASV table.
+- **Taxa without traits** (ASVs PICRUSt2 has no prediction for, such as
+  ones it did not place or that were not in its input) are left out with a
+  warning, abundance included, so each sample's $p$ sums to 1 over the taxa
+  that have a genome, as in the paper. PICRUSt2's `RARE` group exists only
+  in contribution tables, never in an ASV table.
 - **Empty samples.** A sample with no abundance on a taxon with traits gets
   NaN in every column; a sample with a single such taxon has no diversity
   (0) and an undefined `normalized_redundancy` (NaN).

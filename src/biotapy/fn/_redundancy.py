@@ -52,10 +52,12 @@ def functional_redundancy(adata: AnnData, *, traits: pd.DataFrame) -> pd.DataFra
     Warns
     -----
     UserWarning
-        Some taxa of ``adata`` have no row in ``traits`` (PICRUSt2 drops
-        ASVs above its NSTI cutoff, and its ``RARE`` group has no genome).
-        They are left out, abundance included, and the warning names up to
-        three and the count.
+        Some taxa of ``adata`` have no row in ``traits``: for PICRUSt2,
+        ASVs it has no prediction for (its ``hsp.py`` predicts every placed
+        ASV and applies the ``--max_nsti`` cutoff later, so a high-NSTI ASV
+        has a row), and its ``RARE`` group, which has no genome. They are
+        left out, abundance included, and the warning names up to three and
+        the count.
 
     Notes
     -----
