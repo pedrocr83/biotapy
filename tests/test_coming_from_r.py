@@ -16,7 +16,7 @@ PHYLOSEQ_31 = """otu_table sample_data tax_table phy_tree refseq nsamples ntaxa 
 sample_sums taxa_sums rank_names sample_variables get_taxa_unique prune_taxa prune_samples subset_taxa
 subset_samples filter_taxa transform_sample_counts rarefy_even_depth tax_glom estimate_richness distance
 UniFrac ordinate plot_bar plot_richness plot_ordination plot_heatmap import_biom""".split()
-NOT_IN_0_1 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
+NOT_IN_0_2 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
 
 
 def test_the_list_has_31_functions():
@@ -26,12 +26,19 @@ def test_the_list_has_31_functions():
 @pytest.mark.parametrize("name", PHYLOSEQ_31)
 def test_table_maps_each_of_the_31(name):
     cells = coming_from_r.rows()[f"phyloseq::{name}"]
-    assert cells and "not in 0.1" not in cells
+    assert cells and "not in 0.2" not in cells
 
 
-@pytest.mark.parametrize("name", NOT_IN_0_1)
+@pytest.mark.parametrize("name", NOT_IN_0_2)
 def test_uncovered_functions_are_marked(name):
-    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.1"]
+    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.2"]
+
+
+@pytest.mark.parametrize(
+    ("r_name", "function"), [("importHUMAnN", "read_humann"), ("importMetaPhlAn", "read_metaphlan")]
+)
+def test_mia_importers_map_to_the_function_readers(r_name, function):
+    assert coming_from_r.rows()[f"mia::{r_name}"] == [f"{{func}}`bt.io.{function} <biotapy.io.{function}>`"]
 
 
 def test_plot_functions_link_to_pl():

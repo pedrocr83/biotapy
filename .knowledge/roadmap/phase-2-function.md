@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-1-core.md]
 paths: ["src/biotapy/fn/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:03:00Z }
-commit: 1f3c642
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:00:00Z }
+commit: d9d6b15
 sources:
   - id: spec
     resource: ../../plan.md
@@ -373,7 +373,7 @@ not exist yet.
 - [ ] Checkpoint C
 - [x] 2.10 `datasets.hmp2() -> MuData`
 - [x] 2.10b `docs/tutorials/function.md`, the HMP2 function tutorial
-- [ ] 2.13 Coming-from-R check: "not in 0.2"
+- [x] 2.13 Coming-from-R check: "not in 0.2"
 - [ ] 2.14 asv benchmarks for `func_glom`, `read_humann`, `functional_redundancy`
 - [ ] Checkpoint D
 - [ ] 2.11 Knowledge
@@ -8269,7 +8269,7 @@ uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succee
 **Will not touch:** `docs/extensions/coming_from_r.py`, any docstring, the
 other idioms.
 
-- [ ] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
+- [x] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
 
 ```diff
 diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
@@ -8310,12 +8310,12 @@ index e26d8a5..fc82dc0 100644
  def test_plot_functions_link_to_pl():
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/test_coming_from_r.py -q`
   -> `5 failed, 38 passed`: each `test_uncovered_functions_are_marked`
   case fails (`['not in 0.1'] == ['not in 0.2']`). The two mia cases pass at
   once: the rows already come from the 2A and 2B docstrings; they are pins.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 
 ````diff
 diff --git a/docs/_data/r_idioms.toml b/docs/_data/r_idioms.toml
@@ -8377,9 +8377,9 @@ index 7d3e040..dba4dcf 100644
  esophagus = bt.datasets.esophagus()
 ````
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `uv run --group test pytest tests/test_coming_from_r.py -q` -> `43 passed`.
-- [ ] **Step 5: Check the rendered page.** Build the docs, then read
+- [x] **Step 5: Check the rendered page.** Build the docs, then read
   `docs/generated/coming_from_r_table.md` and the page
   `docs/_build/html/coming_from_r.html`: 52 rows; `mia::importHUMAnN` ->
   `bt.io.read_humann` and `mia::importMetaPhlAn` -> `bt.io.read_metaphlan`
@@ -8387,13 +8387,13 @@ index 7d3e040..dba4dcf 100644
   `psmelt` and `tip_glom` read "not in 0.2"; no "not in 0.1" anywhere
   (`grep -rn "not in 0.1" docs --include=*.md --include=*.toml` prints
   nothing outside `docs/_build`).
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line becomes
     `- [x] 2.13 Coming-from-R check: "not in 0.2"`; tick this task's step
     boxes; bump `generated` and `commit`.
   - Add under the slice 2D log heading:
     `- **Update**: [phase-2-function](roadmap/phase-2-function.md) task 2.13 done: phyloseq calls without an equivalent read "not in 0.2"; the mia importer rows are pinned by a test.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add docs/_data/r_idioms.toml docs/coming_from_r.md docs/tutorials/phyloseq_analysis.md tests/test_coming_from_r.py \
