@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-05 (Phase 3, slice 3B)
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs CRAN `MicrobiomeStat` for the `da.linda` golden file.
 - **Update**: [data-model-slots](contracts/data-model-slots.md) and [core](modules/core.md) state that `x_kind` `"counts"` means non-negative whole numbers (`infer_x_kind` and `require_counts` reject a table holding a negative value; Task 3.B0); [phase-3-stats](roadmap/phase-3-stats.md) ticks 3.B0.
 
 ## 2026-10-05 (Phase 3, slice 3B plan)

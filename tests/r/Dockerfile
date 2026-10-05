@@ -18,6 +18,8 @@ RUN Rscript -e 'install.packages("picante")'
 # chain installs fs as a P3M binary that links libuv at load time.
 RUN apt-get update && apt-get install -y --no-install-recommends libuv1 && rm -rf /var/lib/apt/lists/*
 RUN Rscript -e 'BiocManager::install("philr", version = "3.22", ask = FALSE, update = FALSE)'
-RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE))'
+# MicrobiomeStat (CRAN, GPL-3): the da.linda golden file; biotapy reimplements linda and never calls it.
+RUN Rscript -e 'install.packages("MicrobiomeStat")'
+RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE))'
 WORKDIR /work
 CMD ["Rscript", "tests/r/export_golden.R"]
