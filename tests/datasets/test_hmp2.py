@@ -36,10 +36,10 @@ _METAGENOMES = ["S1A_P", "S1B_P", "S2B", "S2A", "S3A_P"]
 # CPM rows; PWY-2 is found only in S2B, which hmp2() does not keep.
 _PATHWAYS = {
     "UNMAPPED": [300000, 250000, 200000, 400000, 350000],
-    "UNINTEGRATED": [600000, 650000, 700000, 500000, 550000],
-    "PWY-1": [100000, 100000, 50000, 100000, 100000],
-    "PWY-1|g__Anaerostipes.s__Anaerostipes_hadrus": [60000, 70000, 0, 40000, 100000],
-    "PWY-1|unclassified": [40000, 30000, 0, 60000, 0],
+    "UNINTEGRATED": [600000, 630000, 700000, 500000, 570000],
+    "PWY-1": [100000, 120000, 50000, 100000, 80000],
+    "PWY-1|g__Anaerostipes.s__Anaerostipes_hadrus": [60000, 70000, 0, 40000, 80000],
+    "PWY-1|unclassified": [40000, 50000, 0, 60000, 0],
     "PWY-2": [0, 0, 50000, 0, 0],
 }
 # MetaPhlAn 3 percentages; the leaves (UNKNOWN and two species) of each sample sum to 100.
@@ -121,8 +121,13 @@ def test_values_and_units_come_from_the_readers(fetched):
     mdata = bt.datasets.hmp2()
     assert mdata["function"].uns["biotapy"]["x_kind"] == "cpm"
     assert mdata["taxa"].uns["biotapy"]["x_kind"] == "relative"
-    np.testing.assert_array_equal(mdata["function"][:, "PWY-1"].X.toarray().ravel(), [100000, 100000, 100000])
+    # Different in each kept sample (S1B_P, S2A, S3A_P), so a permutation of the rows fails.
+    np.testing.assert_array_equal(mdata["function"][:, "PWY-1"].X.toarray().ravel(), [120000, 100000, 80000])
+    hadrus = "PWY-1|g__Anaerostipes.s__Anaerostipes_hadrus"
+    np.testing.assert_array_equal(mdata["function_by_taxon"][:, hadrus].X.toarray().ravel(), [70000, 40000, 80000])
     np.testing.assert_allclose(np.asarray(mdata["taxa"].X.sum(axis=1)).ravel(), 1.0)
+    caccae = "Anaerostipes_caccae"
+    np.testing.assert_allclose(mdata["taxa"][:, caccae].X.toarray().ravel(), [0.45, 0.70, 0.0])
     species = mdata["function_by_taxon"].var["species"]
     assert species.iloc[0] == "Anaerostipes_hadrus" and pd.isna(species.iloc[1])
 
