@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-05 (Phase 3, slice 3A)
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `philr` (and `libuv1`) for the `pp.philr` golden file.
+
 ## 2026-10-05 (Phase 3 plan)
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) carries the user-approved Phase 3 plan: resolved design notes, global constraints, dependencies, review focus, slices 3A-3D, slice 3A in full TDD steps (3.0 goldens, 3.1 pp.clr, 3.2 pp.philr, Checkpoint A) and later slices as outlines, decisions and self-review; new description, paths and sources, copied into the [roadmap index](roadmap/index.md).
 

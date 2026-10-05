@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T12:30:00Z }
+commit: e4bee54
 sources:
   - id: spec
     resource: ../../plan.md
@@ -18,9 +18,10 @@ sources:
 1. Golden files are produced by `tests/r/export_golden.R`, run only inside the
    pinned container `tests/r/Dockerfile`, never in normal CI. The image
    installs only what the current golden files need (`phyloseq`, which brings
-   `Biostrings`, `vegan` and `ape`, plus CRAN `picante` for Faith PD); a new
-   golden function that needs another package adds it in its own commit
-   (rules.md R2.3).
+   `Biostrings`, `vegan` and `ape`, plus CRAN `picante` for Faith PD and
+   Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
+   `fs` binary loads); a new golden function that needs another package adds
+   it in its own commit (rules.md R2.3).
 1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
    `tests/humann/export_golden.py`, run with
    `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
