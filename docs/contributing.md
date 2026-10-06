@@ -67,6 +67,16 @@ per-user cache directory - CI caches it across runs the same way:
 BIOTAPY_DATA_DIR=.pooch uv run --group test pytest -m "network or golden"
 ```
 
+### R bridge tests
+
+Tests that call R through rpy2 (`bt.da.aldex2`) carry the marker `r` and are excluded from the
+runs above. They need R with the packages `tests/r/Dockerfile` installs and the `r` extra; those
+that read GlobalPatterns also need the pooch cache:
+
+```bash
+BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
+```
+
 ### Regenerating the R golden files
 
 The golden CSVs under `tests/golden/` and the R-written fixtures under

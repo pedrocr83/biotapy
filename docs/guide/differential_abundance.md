@@ -86,6 +86,38 @@ here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to
 plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
 Choose `reference` on the biology (the control or baseline level), not to change the results.
 
+## Methods that run in R
+
+ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
+[rpy2](https://rpy2.github.io/). They need R, the R package, and biotapy's `r` extra, which builds
+rpy2 against that R (Linux and macOS; it fails to install when no R is found):
+
+```bash
+Rscript -e 'install.packages("BiocManager"); BiocManager::install("ALDEx2")'
+pip install 'biotapy[r]'
+```
+
+rpy2 is GPL-2.0-or-later and the R packages have their own licences; biotapy itself does not ship
+any of them. Without rpy2 or the R package, the call raises an `ImportError` that names what to
+install. Each call converts `X` to a dense table once, because rpy2 has no sparse converter.
+
+### ALDEx2
+
+`bt.da.aldex2` runs `ALDEx2::aldex` (Fernandes et al. 2014): Monte Carlo draws from each sample's
+Dirichlet posterior, their log2 centred log-ratios, and a Welch t-test per draw, whose p-values are
+averaged. `effect` is ALDEx2's `diff.btw`, the median log2 difference between the two groups:
+
+```python
+table = bt.da.aldex2(tdata, "group", seed=0)
+```
+
+ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
+`seed` sets R's random state, so the same seed gives the same table, and on the GlobalPatterns
+genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14. `qvalue` is the
+Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
+`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
+those genera).
+
 ## Where methods agree
 
 `bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,

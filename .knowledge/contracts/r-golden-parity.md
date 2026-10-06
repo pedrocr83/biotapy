@@ -52,6 +52,7 @@ sources:
    | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
    | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
    | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
+   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13) |
    | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
@@ -94,6 +95,10 @@ invariants keeps them honest.
   They also carry `network`, because the golden inputs (e.g. GlobalPatterns)
   are downloaded by pooch; they run in the network CI job
   (`pytest -m "network or golden"`).
+- `tests/da/test_*_golden.py` of the R bridges, marker `r` only: they need R
+  and rpy2 and run in the `r-bridge` CI job, which gives them the network job's
+  pooch cache; marked `golden` or `network`, they would run in the network job,
+  which has no R.
 - `tests/fn/*_golden.py`, marker `golden` only: their inputs are committed, so
   they run in every CI job.
 - Missing golden file = test error, not skip.

@@ -100,6 +100,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 .. autosummary::
     :toctree: generated
 
+    da.aldex2
     da.ancombc2
     da.consensus
     da.linda

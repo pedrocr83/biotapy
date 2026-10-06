@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T11:40:31Z }
-commit: e9ec091
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:00:00Z }
+commit: ea0a51a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -587,7 +587,7 @@ columns onto it.
 - [x] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [x] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
 - [x] Checkpoint B (PR #22 merged; the user approved slice 3B on 2026-10-05)
-- [ ] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
+- [x] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [ ] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [ ] 3.11 CI job `r-bridge` for `-m r` tests
 - [ ] Checkpoint C
@@ -5195,12 +5195,12 @@ marker is already registered), `.github/`.
   `call_r(function, /, *args: object) -> pd.DataFrame`; the `fake_rpy2` test
   fixture (`.output`, `.installed`, `.calls`); `aldex2.csv.gz`; the extra `r`.
 
-- [ ] **Step 1: Approval on record.** The extra `r = ["rpy2>=3.6.8"]` (Phase 3
+- [x] **Step 1: Approval on record.** The extra `r = ["rpy2>=3.6.8"]` (Phase 3
   decision 14) and ALDEx2 in the image (Phase 3 decision 6) were approved with
   the Phase 3 plan. rpy2 3.6.8 brings rpy2-rinterface 3.6.7, rpy2-robjects
   3.6.5, cffi, jinja2 and tzlocal (all installed only with the extra). Nothing
   new to ask.
-- [ ] **Step 2: Add ALDEx2 to the image.** `tests/r/Dockerfile`:
+- [x] **Step 2: Add ALDEx2 to the image.** `tests/r/Dockerfile`:
   ```diff
   @@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgsl27 && rm
    RUN Rscript -e 'install.packages(c("Rmpfr", "gmp", "ECOSolveR", "scs", "osqp", "bit64", "cli", "Rcpp", "RcppEigen"))' \
@@ -5237,14 +5237,14 @@ marker is already registered), `.github/`.
   prints `1.42.0` (zCompositions 1.6.1, Rfast 2.1.5.2 as P3M binaries); every
   earlier package unchanged. The ALDEx2 layer takes about two minutes (eight
   Bioconductor packages compile).
-- [ ] **Step 3: Commit the image change on its own:**
+- [x] **Step 3: Commit the image change on its own:**
   ```bash
   git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
   git commit -m "build(r): add ALDEx2 to the golden image
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-- [ ] **Step 4: Export.** In `tests/r/export_golden.R`, after the ANCOM-BC2
+- [x] **Step 4: Export.** In `tests/r/export_golden.R`, after the ANCOM-BC2
   section, and `VERSIONS.txt` gains ALDEx2. The seed is the integer
   `bt.da.aldex2(..., seed=20260927)` passes to R; check it before running:
   `uv run python -c "import numpy as np; print(np.random.default_rng(20260927).integers(2**31 - 1))"`
@@ -5287,7 +5287,7 @@ marker is already registered), `.github/`.
   columns `taxon_id, diff_btw, we_ep, we_eBH`). Besides the known lines the run
   prints `Warning: stack imbalance in '::', 10 then 12` and `... in '<-', 2 then
   4` while ALDEx2's namespace loads; harmless.
-- [ ] **Step 5: Gate and commit.** `uv run --group test pytest
+- [x] **Step 5: Gate and commit.** `uv run --group test pytest
   tests/test_data_files.py -q` -> passes; `uvx prek run --all-files`;
   ```bash
   git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/aldex2.csv.gz
@@ -5295,7 +5295,7 @@ marker is already registered), `.github/`.
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-- [ ] **Step 6: Failing tests.** `tests/da/conftest.py` gains the fixture:
+- [x] **Step 6: Failing tests.** `tests/da/conftest.py` gains the fixture:
   ```diff
   @@ -1,3 +1,7 @@
   +import contextlib
@@ -5545,12 +5545,12 @@ marker is already registered), `.github/`.
       np.testing.assert_allclose(out["pvalue"], golden["we_ep"], rtol=1e-7)
       np.testing.assert_allclose(out["qvalue"], false_discovery_control(golden["we_ep"]), rtol=1e-7)
   ```
-- [ ] **Step 7: Run, expect failure** -
+- [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da/test_aldex2.py -q` -> `13 failed, 5
   deselected` (`AttributeError: module 'biotapy.da' has no attribute
   'aldex2'`). Where R and rpy2 are installed, the six `r` tests (five in
   `test_aldex2.py`, the golden) fail with the same `AttributeError`.
-- [ ] **Step 8: Implement.** `pyproject.toml` (pyproject-fmt keeps the extra
+- [x] **Step 8: Implement.** `pyproject.toml` (pyproject-fmt keeps the extra
   after `dependencies`):
   ```diff
   @@ -44,6 +44,8 @@ dependencies = [
@@ -5764,7 +5764,7 @@ marker is already registered), `.github/`.
   No mypy override: biotapy reaches rpy2 only through `import_optional`, whose
   `ModuleType` attributes are `Any` (hence the two `cast`s), and the lint
   environment has no rpy2 (it cannot build without R). Slice 3C decision 11.
-- [ ] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
+- [x] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
   -> `117 passed, 10 deselected`; in the R environment (`uv sync --group test
   --extra r` with R 4.5.3 and ALDEx2 installed) `uv run --group test --extra r
   pytest -m r tests/da/test_aldex2.py tests/da/test_aldex2_golden.py -q` ->
@@ -5772,7 +5772,7 @@ marker is already registered), `.github/`.
   If rpy2 imports with "Error importing in API mode", the R link headers are
   missing: install `libpcre2-dev libdeflate-dev libzstd-dev` and rebuild it with
   `RPY2_CFFI_MODE=API` (design, CI job).
-- [ ] **Step 10: Docs.**
+- [x] **Step 10: Docs.**
   ````diff
   @@ -86,6 +86,38 @@ here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to
    plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
@@ -5843,7 +5843,7 @@ marker is already registered), `.github/`.
 
    The golden CSVs under `tests/golden/` and the R-written fixtures under
   ````
-- [ ] **Step 11: Contract.** `.knowledge/contracts/r-golden-parity.md`
+- [x] **Step 11: Contract.** `.knowledge/contracts/r-golden-parity.md`
   statement 4 and "Enforced by":
   ```diff
   @@ -52,6 +52,7 @@ sources:
@@ -5870,7 +5870,7 @@ marker is already registered), `.github/`.
   ```text
   - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.aldex2` is compared with `ALDEx2::aldex` elementwise (the golden's seed is the one biotapy derives, so the Monte Carlo draws match); R bridge golden tests carry the marker `r` only. [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 done.
   ```
-- [ ] **Step 12: Gate and commit** (tick 3.6 in the checklist first)
+- [x] **Step 12: Gate and commit** (tick 3.6 in the checklist first)
   ```bash
   git add pyproject.toml src/biotapy/da/__init__.py src/biotapy/da/_r.py src/biotapy/da/_aldex2.py \
     tests/da/conftest.py tests/da/test_aldex2.py tests/da/test_aldex2_golden.py docs/guide/differential_abundance.md \
