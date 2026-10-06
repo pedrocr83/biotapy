@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-06 (Phase 3, slice 3C)
+- **Update**: [data-model-slots](contracts/data-model-slots.md) DA result rows: `se` is NaN for every `da.aldex2` feature, `effect` units per method (MaAsLin 3 per SD and minus its median, ALDEx2 median `diff.btw`), and only `effect`, `pvalue`, `qvalue` are NaN together for an untested feature (Checkpoint C fix, I1).
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 fix round 1: the `r-bridge` job has a 30-minute timeout and logs the R and package versions; Checkpoint C must read `CFFI_MODE.API` and `19 passed` in its log.
 - **Update**: [r-bridge-before-ports](decisions/r-bridge-before-ports.md) consequence: the `r-bridge` CI job runs the `r` tests. [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 done.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 fix round 1: `da/_design._column` returns unordered categoricals (an ordered group shrank MaAsLin 3's effect by 1/sqrt(2)), and the `da.maaslin3` docs state the median and the `reference` swap exactly.

@@ -28,15 +28,16 @@ The table has one row per feature, in `var_names` order:
 
 | Column | Meaning |
 |---|---|
-| `effect` | log2 fold change of the other level over the reference, or the slope of a numeric group |
-| `se` | its standard error |
+| `effect` | log2 fold change of the other level over the reference, or the slope of a numeric group: per standard deviation in LinDA and MaAsLin 3, per unit in ANCOM-BC2, not offered by ALDEx2. ALDEx2's is the median log2 difference between the groups, MaAsLin 3's the coefficient minus the median coefficient |
+| `se` | its standard error; NaN for every feature in ALDEx2, which reports none |
 | `pvalue` | the method's p-value |
 | `qvalue` | Benjamini-Hochberg adjusted p-value, over the features the method tested |
 | `direction` | sign of `effect`: -1, 0 or 1 |
 | `method` | the method's name |
 | `contrast` | `"<level> vs <reference>"`, or the name of a numeric group |
 
-A feature a method cannot test keeps its row, with NaN values and `direction` 0. Methods never
+A feature a method cannot test keeps its row, with NaN `effect`, `pvalue` and `qvalue` and `direction` 0 (a NaN `se` alone means
+nothing for ALDEx2). Methods never
 filter features: filter once, with `bt.pp.filter_features`, before running any method, so every
 method tests the same features. Methods need raw counts in `X` and a read in every sample
 (`bt.pp.filter_samples(tdata, min_depth=1)` drops empty ones).
