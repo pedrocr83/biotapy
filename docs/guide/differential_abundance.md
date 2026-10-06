@@ -114,15 +114,17 @@ table = bt.da.aldex2(tdata, "group", seed=0)
 
 ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
 `seed` seeds R for the call (your R session's own random state is restored afterwards), so the same seed gives the same table, and on the GlobalPatterns
-genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14 (when `reference` is R's
+genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to a relative 8.4e-13 (when `reference` is R's
 first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
 Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
 `we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
 those genera).
 
 Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
-so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, where they are about
-4 log2 wide), with the same p-values there. Each R warning raised during the call, such as the one
+so the same `seed` gives different effects, and the two runs are not exact mirror images: the effects
+differ from exact antisymmetry by up to 0.25 log2 on `toy()` (where they are about 4 log2 wide) and up to
+0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change direction. The p-values and
+the calls are the same on both. Each R warning raised during the call, such as the one
 for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
 `RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
 
