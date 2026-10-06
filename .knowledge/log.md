@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-06 (Phase 3, Checkpoint C)
+- **Verification**: [phase-0-foundation](roadmap/phase-0-foundation.md) re-checked against the r-bridge log-step fix (`bade2ba`) and bumped only.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.11's workflow block reads the rpy2 version from package metadata (`rpy2` has no `__version__`; the PR #23 run failed on it).
 - **Update**: [da](modules/da.md) for the bridges: Responsibility and Entry points gain `aldex2`, `maaslin3` and `_r.py`; invariants for the R bridge rules (rpy2 only through `import_optional`, one `set.seed` per call with R's state restored, local converter, warnings as `UserWarning`, errors as `RuntimeError`, BH recomputed); the false lines the review found fixed (`se` NaN for ALDEx2, `effect` minus the median for MaAsLin 3, numeric scaling and units across four methods, `dense_counts` raising for repeated names, unordered categoricals, "four methods" in the goldens line, tags); gotchas for the ordered-factor 1/sqrt(2) scaling, the restored R RNG, the seed integer's NumPy-stream coupling, ALDEx2's and MaAsLin 3's reference-swap asymmetry, and the rpy2 and R quirks; Verification adds the `-m r` command. Description copied into [modules/index.md](modules/index.md).
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `r` (rpy2 3.6.8, GPL-2.0-or-later, its dependencies, the Linux sdist link headers and `RPY2_CFFI_MODE=API` in CI), R9.2.
