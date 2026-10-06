@@ -200,6 +200,11 @@ jobs:
         with:
           path: ${{ github.workspace }}/.pooch
           key: pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}
+      # Syncs the environment, so this is where rpy2 builds; the tests step reuses it.
+      - name: Log the rpy2 version
+        env:
+          RPY2_CFFI_MODE: API
+        run: uv run --group test --extra r python -c "import rpy2; print('rpy2', rpy2.__version__)"
       - name: Run the R bridge tests
         env:
           BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
