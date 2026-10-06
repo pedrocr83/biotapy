@@ -10,3 +10,5 @@ modeest 2.4.0
 ANCOMBC 2.12.0
 CVXR 1.0.15 (CRAN archive, pinned in tests/r/Dockerfile)
 ALDEx2 1.42.0
+maaslin3 1.2.0
+multcomp 1.4.30

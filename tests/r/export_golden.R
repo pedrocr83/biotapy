@@ -189,6 +189,24 @@ write_golden(
   file.path(gp, "aldex2.csv.gz")
 )
 
+# MaAsLin 3 tests each coefficient against the median over features by simulation (rnorm): the same seed again. Abundance
+# model only (warn_prevalence must then be FALSE), no prevalence filter, each coefficient minus that median, no plots.
+maaslin_rows <- lapply(da_formulas, function(f) {
+  output <- tempfile()
+  set.seed(1165433077)
+  fit <- maaslin3::maaslin3(
+    as.data.frame(t(da_counts)), da_meta, output, formula = paste0("~", f), min_abundance = 0, min_prevalence = 0,
+    evaluate_only = "abundance", warn_prevalence = FALSE, subtract_median = TRUE, plot_summary_plot = FALSE,
+    plot_associations = FALSE, cores = 1, verbosity = "ERROR"
+  )
+  unlink(output, recursive = TRUE)
+  out <- fit$fit_data_abundance$results
+  out <- out[out$metadata == "host", ]
+  data.frame(formula = f, taxon_id = out$feature, coef = out$coef, stderr = out$stderr, pval = out$pval_individual,
+             qval = out$qval_individual, error = !is.na(out$error))
+})
+write_golden(do.call(rbind, maaslin_rows), file.path(gp, "maaslin3.csv.gz"))
+
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
   c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
@@ -255,5 +273,7 @@ writeLines(c(
   paste0("modeest ", packageVersion("modeest")),
   paste0("ANCOMBC ", packageVersion("ANCOMBC")),
   paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)"),
-  paste0("ALDEx2 ", packageVersion("ALDEx2"))
+  paste0("ALDEx2 ", packageVersion("ALDEx2")),
+  paste0("maaslin3 ", packageVersion("maaslin3")),
+  paste0("multcomp ", packageVersion("multcomp"))
 ), "tests/golden/VERSIONS.txt")
