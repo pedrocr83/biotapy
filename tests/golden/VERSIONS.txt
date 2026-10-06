@@ -9,3 +9,4 @@ MicrobiomeStat 1.4
 modeest 2.4.0
 ANCOMBC 2.12.0
 CVXR 1.0.15 (CRAN archive, pinned in tests/r/Dockerfile)
+ALDEx2 1.42.0

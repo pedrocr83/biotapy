@@ -173,6 +173,20 @@ ancombc_rows <- lapply(da_formulas, function(f) {
 })
 write_golden(do.call(rbind, ancombc_rows), file.path(gp, "ancombc2.csv.gz"))
 
+## Slice 3C golden files: the R bridges, on the same data
+# ALDEx2 is Monte Carlo. 1165433077 is the integer bt.da.aldex2(..., seed=20260927) passes to set.seed
+# (np.random.default_rng(20260927).integers(2**31 - 1)), so the bridge test can compare digits, not only ranks.
+# The conditions sort "human" before "other", so diff.btw is other - human; the test sets reference="human".
+set.seed(1165433077)
+aldex_out <- suppressMessages(ALDEx2::aldex(
+  da_counts, as.character(da_meta$host), mc.samples = 128, test = "t", effect = TRUE, denom = "all"
+))
+write_golden(
+  data.frame(taxon_id = rownames(aldex_out), diff_btw = aldex_out$diff.btw, we_ep = aldex_out$we.ep,
+             we_eBH = aldex_out$we.eBH),
+  file.path(gp, "aldex2.csv.gz")
+)
+
 ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
 counts <- rbind(
   c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
@@ -238,5 +252,6 @@ writeLines(c(
   paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
   paste0("modeest ", packageVersion("modeest")),
   paste0("ANCOMBC ", packageVersion("ANCOMBC")),
-  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)")
+  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)"),
+  paste0("ALDEx2 ", packageVersion("ALDEx2"))
 ), "tests/golden/VERSIONS.txt")
