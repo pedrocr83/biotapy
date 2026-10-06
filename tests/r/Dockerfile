@@ -30,6 +30,8 @@ RUN Rscript -e 'install.packages(c("Rmpfr", "gmp", "ECOSolveR", "scs", "osqp", "
 RUN Rscript -e 'BiocManager::install("ANCOMBC", version = "3.22", ask = FALSE, update = FALSE)'
 # ALDEx2 (Bioconductor, GPL-3): the da.aldex2 golden file and the bridge's r tests; biotapy calls it through rpy2.
 RUN Rscript -e 'BiocManager::install("ALDEx2", version = "3.22", ask = FALSE, update = FALSE)'
-RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE), requireNamespace("ALDEx2", quietly = TRUE))'
+# maaslin3 (Bioconductor, MIT): the da.maaslin3 golden file and the bridge's r tests; biotapy calls it through rpy2.
+RUN Rscript -e 'BiocManager::install("maaslin3", version = "3.22", ask = FALSE, update = FALSE)'
+RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE), requireNamespace("ALDEx2", quietly = TRUE), requireNamespace("maaslin3", quietly = TRUE))'
 WORKDIR /work
 CMD ["Rscript", "tests/r/export_golden.R"]
