@@ -6847,7 +6847,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +      - name: Log the rpy2 version
   +        env:
   +          RPY2_CFFI_MODE: API
-  +        run: uv run --group test --extra r python -c "import rpy2; print('rpy2', rpy2.__version__)"
+  +        run: uv run --group test --extra r python -c "import importlib.metadata as m; print('rpy2', m.version('rpy2'))"
   +      - name: Run the R bridge tests
   +        env:
   +          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
