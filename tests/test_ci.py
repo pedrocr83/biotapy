@@ -50,6 +50,15 @@ def test_r_bridge_job_installs_the_image_r_and_packages():
     assert {name.strip() for name in packages.split(",")} == {"bioc::ALDEx2", "bioc::maaslin3"}
 
 
+def test_r_bridge_job_uses_the_image_cran_snapshot_and_has_a_timeout():
+    job = WORKFLOW["jobs"]["r-bridge"]
+    setup = next(step for step in job["steps"] if step.get("uses", "").startswith("r-lib/actions/setup-r@"))["with"]
+    # The snapshot comes from the rocker/r-ver:4.5.3 base image (tests/r/Dockerfile names no URL): `R -e 'getOption("repos")'`.
+    assert setup["cran"] == "https://p3m.dev/cran/__linux__/noble/2026-04-23"
+    assert setup["use-public-rspm"] is False
+    assert job["timeout-minutes"] == 30
+
+
 def test_r_bridge_job_blocks_merges():
     assert "r-bridge" in WORKFLOW["jobs"]["check"]["needs"]
 

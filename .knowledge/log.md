@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-06 (Phase 3, slice 3C)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 fix round 1: the `r-bridge` job has a 30-minute timeout and logs the R and package versions; Checkpoint C must read `CFFI_MODE.API` and `19 passed` in its log.
 - **Update**: [r-bridge-before-ports](decisions/r-bridge-before-ports.md) consequence: the `r-bridge` CI job runs the `r` tests. [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 done.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 fix round 1: `da/_design._column` returns unordered categoricals (an ordered group shrank MaAsLin 3's effect by 1/sqrt(2)), and the `da.maaslin3` docs state the median and the `reference` swap exactly.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.maaslin3` is compared with `maaslin3::maaslin3` (abundance model, median subtracted) elementwise, seed-matched. [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 done.

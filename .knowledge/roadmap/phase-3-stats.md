@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:27:24Z }
-commit: b3cbb6b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:40:00Z }
+commit: b1e3f4f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -6719,7 +6719,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   the new SHA and its version in the comment.
 - [x] **Step 3: Failing tests.** `tests/test_ci.py`:
   ```diff
-  @@ -35,6 +35,25 @@ def test_network_job_blocks_merges():
+  @@ -35,6 +35,34 @@ def test_network_job_blocks_merges():
        assert "network" in WORKFLOW["jobs"]["check"]["needs"]
 
 
@@ -6736,6 +6736,15 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +    assert "FROM rocker/r-ver:4.5.3" in dockerfile and 'version = "3.22"' in dockerfile
   +    packages = steps["r-lib/actions/setup-r-dependencies"]["with"]["packages"]
   +    assert {name.strip() for name in packages.split(",")} == {"bioc::ALDEx2", "bioc::maaslin3"}
+  +
+  +
+  +def test_r_bridge_job_uses_the_image_cran_snapshot_and_has_a_timeout():
+  +    job = WORKFLOW["jobs"]["r-bridge"]
+  +    setup = next(step for step in job["steps"] if step.get("uses", "").startswith("r-lib/actions/setup-r@"))["with"]
+  +    # The snapshot comes from the rocker/r-ver:4.5.3 base image (tests/r/Dockerfile names no URL): `R -e 'getOption("repos")'`.
+  +    assert setup["cran"] == "https://p3m.dev/cran/__linux__/noble/2026-04-23"
+  +    assert setup["use-public-rspm"] is False
+  +    assert job["timeout-minutes"] == 30
   +
   +
   +def test_r_bridge_job_blocks_merges():
@@ -6775,10 +6784,10 @@ selects no bridge test), `pyproject.toml`, `src/`.
   ```
 - [x] **Step 4: Run, expect failure** - `uv run --group test pytest
   tests/test_ci.py -q` -> `3 failed, 12 passed` (two `KeyError: 'r-bridge'`,
-  and `'r-bridge' in ...check.needs` is false).
+  and `'r-bridge' in ...check.needs` is false; fix round 1 adds a fourth, failing on `KeyError: 'timeout-minutes'`).
 - [x] **Step 5: The job.** `.github/workflows/test.yaml`:
   ```diff
-  @@ -161,6 +161,47 @@ jobs:
+  @@ -161,6 +161,52 @@ jobs:
              BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
            run: uv run --group test pytest -m "network or golden"
 
@@ -6787,6 +6796,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +  # four-method consensus reads GlobalPatterns through the network job's pooch cache.
   +  r-bridge:
   +    runs-on: ubuntu-24.04
+  +    timeout-minutes: 30
   +    steps:
   +      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
   +        with:
@@ -6804,6 +6814,10 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +        with:
   +          packages: bioc::ALDEx2, bioc::maaslin3
   +          dependencies: '"hard"'
+  +      # Not asserted: Bioconductor 3.22 fixes the release line and the seed-matched goldens catch result drift; the log shows
+  +      # which versions ran.
+  +      - name: Log the R and package versions
+  +        run: Rscript -e 'cat(R.version.string, "\n"); for (pkg in c("ALDEx2", "maaslin3")) cat(pkg, as.character(packageVersion(pkg)), "\n")'
   +      # rpy2 builds against R's link flags; without these headers it silently falls back to a mode that cannot load R.
   +      - name: Install the libraries rpy2 links R with
   +        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpcre2-dev libdeflate-dev libzstd-dev liblzma-dev libbz2-dev libicu-dev
@@ -6835,7 +6849,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
        runs-on: ubuntu-latest
        steps:
   ```
-- [x] **Step 6: Run, expect pass** - the same command -> `15 passed`; `uvx prek
+- [x] **Step 6: Run, expect pass** - the same command -> `16 passed`; `uvx prek
   run --all-files` passes (zizmor reads the new job); in the R environment
   `uv run --group test --extra r pytest -m r tests/da/test_consensus.py -q` ->
   `1 passed` (about 25 s).
@@ -6895,7 +6909,8 @@ selects no bridge test), `pyproject.toml`, `src/`.
   `uv run --group test pytest -m "golden or network" -q` (expected `36
   passed`); record the three counts. The Phase 3 exit gate's "`da.aldex2`,
   `da.maaslin3` in the `r-bridge` job" box is ticked when that job is green on
-  the pull request.
+  the pull request, and that job's log must show `CFFI_MODE.API` and `19 passed`
+  (the apt packages, the pak install and rpy2's build cannot be checked locally).
 - [ ] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Update `.knowledge/modules/da.md`** for the bridges: Responsibility gains
     `aldex2` and `maaslin3` (R-only methods through rpy2, extra `r`) and drops
