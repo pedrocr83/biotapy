@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:18:33Z }
-commit: 4f2b39f
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:27:24Z }
+commit: b3cbb6b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -589,7 +589,7 @@ columns onto it.
 - [x] Checkpoint B (PR #22 merged; the user approved slice 3B on 2026-10-05)
 - [x] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [x] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
-- [ ] 3.11 CI job `r-bridge` for `-m r` tests
+- [x] 3.11 CI job `r-bridge` for `-m r` tests
 - [ ] Checkpoint C
 - [ ] 3.10 Method pages in `docs/methods/` and the DA guide
 - [ ] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
@@ -6706,18 +6706,18 @@ selects no bridge test), `pyproject.toml`, `src/`.
 - Produces: the `r-bridge` job in `check.needs`; the exit gate's four-method
   consensus as a test.
 
-- [ ] **Step 1: Approval on record.** The job and the two actions pinned by SHA
+- [x] **Step 1: Approval on record.** The job and the two actions pinned by SHA
   were approved (Phase 3 decision 15). New and to confirm (slice 3C decision 15):
   the job installs six apt `-dev` packages on the runner (CI only), sets
   `RPY2_CFFI_MODE=API`, runs on `ubuntu-24.04` instead of `ubuntu-latest`, and
   points CRAN at the image's dated P3M snapshot instead of the latest P3M.
-- [ ] **Step 2: Look up the SHAs** (never guessed):
+- [x] **Step 2: Look up the SHAs** (never guessed):
   `gh api repos/r-lib/actions/git/ref/tags/v2 --jq .object.sha` ->
   `f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05`, which `gh api
   repos/r-lib/actions/tags` lists as `v2.14.0`. Both actions live in that
   repository, so one SHA pins both. If the tag has moved by execution time, use
   the new SHA and its version in the comment.
-- [ ] **Step 3: Failing tests.** `tests/test_ci.py`:
+- [x] **Step 3: Failing tests.** `tests/test_ci.py`:
   ```diff
   @@ -35,6 +35,25 @@ def test_network_job_blocks_merges():
        assert "network" in WORKFLOW["jobs"]["check"]["needs"]
@@ -6773,10 +6773,10 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +    assert int(table["consensus"].sum()) == 109 and not table["conflict"].any()
   +    assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
   ```
-- [ ] **Step 4: Run, expect failure** - `uv run --group test pytest
+- [x] **Step 4: Run, expect failure** - `uv run --group test pytest
   tests/test_ci.py -q` -> `3 failed, 12 passed` (two `KeyError: 'r-bridge'`,
   and `'r-bridge' in ...check.needs` is false).
-- [ ] **Step 5: The job.** `.github/workflows/test.yaml`:
+- [x] **Step 5: The job.** `.github/workflows/test.yaml`:
   ```diff
   @@ -161,6 +161,47 @@ jobs:
              BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
@@ -6835,11 +6835,11 @@ selects no bridge test), `pyproject.toml`, `src/`.
        runs-on: ubuntu-latest
        steps:
   ```
-- [ ] **Step 6: Run, expect pass** - the same command -> `15 passed`; `uvx prek
+- [x] **Step 6: Run, expect pass** - the same command -> `15 passed`; `uvx prek
   run --all-files` passes (zizmor reads the new job); in the R environment
   `uv run --group test --extra r pytest -m r tests/da/test_consensus.py -q` ->
   `1 passed` (about 25 s).
-- [ ] **Step 7: Docs and decision.**
+- [x] **Step 7: Docs and decision.**
   ````diff
   @@ -77,6 +77,9 @@ that read GlobalPatterns also need the pooch cache:
    BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
@@ -6868,7 +6868,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   ```text
   - **Update**: [r-bridge-before-ports](decisions/r-bridge-before-ports.md) consequence: the `r-bridge` CI job runs the `r` tests. [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 done.
   ```
-- [ ] **Step 8: Gate and commit** (tick 3.11)
+- [x] **Step 8: Gate and commit** (tick 3.11)
   ```bash
   git add .github/workflows/test.yaml tests/test_ci.py tests/da/test_consensus.py docs/contributing.md \
     .knowledge/decisions/r-bridge-before-ports.md .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
@@ -6879,7 +6879,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   ```
   The job runs for the first time on the pull request (Checkpoint C); read its
   log for the rpy2 build line (`CFFI_MODE.API`), the package install time and
-  the `r` count (`16 passed`).
+  the `r` count (`19 passed`).
 
 ### Checkpoint C - review slice 3C
 - [ ] Review the whole slice (superpowers:requesting-code-review, opus: the
@@ -6890,8 +6890,8 @@ selects no bridge test), `pyproject.toml`, `src/`.
   where the mapping can show it). Record the counts (Critical / Important /
   Minor) and the fix range here.
 - [ ] Run the exit-gate check for 3C: in the R environment `uv run --group test
-  --extra r pytest -m r -q` (expected `16 passed`), and on the host `uv run
-  --group test pytest -q -W error::UserWarning` (expected `1206 passed, 45 deselected`) and
+  --extra r pytest -m r -q` (expected `19 passed`), and on the host `uv run
+  --group test pytest -q -W error::UserWarning` (expected `1224 passed, 48 deselected`) and
   `uv run --group test pytest -m "golden or network" -q` (expected `36
   passed`); record the three counts. The Phase 3 exit gate's "`da.aldex2`,
   `da.maaslin3` in the `r-bridge` job" box is ticked when that job is green on

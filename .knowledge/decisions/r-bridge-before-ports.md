@@ -5,8 +5,8 @@ description: R-only DA methods (MaAsLin 3, ANCOM-BC2, ALDEx2) ship first through
 tags: [da, r, dependencies]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-26T09:40:17Z }
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:27:24Z }
+commit: b3cbb6b
 sources:
   - id: spec
     resource: ../../plan.md
@@ -31,6 +31,8 @@ as open.[^spec]
 
 # Consequences
 - CI needs a job with R available for bridge tests; other jobs skip them via a
-  pytest marker `r`.
+  pytest marker `r`. Since slice 3C that is the `r-bridge` job in
+  `.github/workflows/test.yaml` (R 4.5.3, Bioconductor 3.22, the image's CRAN
+  snapshot), which blocks merges.
 
 [^spec]: Python Microbiome Toolkit development report, sections Risks and Open questions

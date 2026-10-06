@@ -77,6 +77,9 @@ that read GlobalPatterns also need the pooch cache:
 BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
 ```
 
+CI runs them in the `r-bridge` job, with R 4.5.3 and the Bioconductor 3.22 packages the golden image
+pins.
+
 ### Regenerating the R golden files
 
 The golden CSVs under `tests/golden/` and the R-written fixtures under
