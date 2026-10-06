@@ -7,4 +7,4 @@
 * [pl](pl.md) - Plots of what tl, pp, fn and da give - stacked bars, heatmap, a function's contributions per taxon, richness, ordination, scree and the da consensus dots - drawn with matplotlib on the given or a new Axes, computing nothing.
 * [fn](fn.md) - Function hierarchies, aggregation along them, HUMAnN-style renormalisation, per-taxon contributions and functional redundancy (Tian 2020) over function tables; owns no reader and no download.
 * [datasets](datasets.md) - In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, and the ENZYME hierarchy as an edge table.
-* [da](da.md) - Two native differential abundance methods, LinDA and ANCOM-BC2, that return one result table schema, and a consensus table counting where the methods agree; da writes no slot and filters nothing.
+* [da](da.md) - Four differential abundance methods, native LinDA and ANCOM-BC2 and the R bridges ALDEx2 and MaAsLin 3 (rpy2, extra `r`), that return one result table schema, and a consensus table counting where the methods agree; da writes no slot and filters nothing.

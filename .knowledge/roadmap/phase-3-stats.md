@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:53:14Z }
-commit: f373d12
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+commit: 64fe39d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -600,13 +600,13 @@ columns onto it.
 - [x] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [x] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [x] 3.11 CI job `r-bridge` for `-m r` tests
-- [ ] Checkpoint C
+- [ ] Checkpoint C (review, exit-gate check and knowledge done; push open)
 - [ ] 3.10 Method pages in `docs/methods/` and the DA guide
 - [ ] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
 - [ ] 3.12 Coming-from-R check
 - [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
-- [ ] 3.14 Knowledge (updates `modules/da.md`, created at Checkpoint B, for the R bridges)
+- [ ] 3.14 Knowledge (updates `modules/da.md`, created at Checkpoint B and extended for the R bridges at Checkpoint C)
 - [ ] 3.15 Release 0.3.0
 
 # Exit gate
@@ -6914,7 +6914,7 @@ selects no bridge test), `pyproject.toml`, `src/`.
   the `r` count (`19 passed`).
 
 ### Checkpoint C - review slice 3C
-- [ ] Review the whole slice (superpowers:requesting-code-review, opus: the
+- [x] Review the whole slice (superpowers:requesting-code-review, opus: the
   bridges are glue whose failure modes are silent sign and unit errors) against
   every contract, pure-by-default, the Phase 3 and slice 3C review focus and the
   measured parity; then a fix pass, one commit per finding, each with a test (an
@@ -6923,7 +6923,9 @@ selects no bridge test), `pyproject.toml`, `src/`.
   Minor) and the fix range here. Done: 0 Critical, 4 Important, 5 Minor and 2
   nits; the fix range is the commits after `39383e7` (M3 and M4 belong to the
   knowledge step and the PR).
-- [ ] Run the exit-gate check for 3C: in the R environment `uv run --group test
+  Recorded: 0 Critical / 4 Important / 5 Minor; fix pass `39383e7..64fe39d`;
+  re-review 9/9.
+- [x] Run the exit-gate check for 3C: in the R environment `uv run --group test
   --extra r pytest -m r -q` (expected `19 passed`; `24 passed` after the
   Checkpoint C fix pass), and on the host `uv run
   --group test pytest -q -W error::UserWarning` (expected `1224 passed, 48 deselected`;
@@ -6934,7 +6936,9 @@ selects no bridge test), `pyproject.toml`, `src/`.
   `da.maaslin3` in the `r-bridge` job" box is ticked when that job is green on
   the pull request, and that job's log must show `CFFI_MODE.API` and `24 passed`
   (the apt packages, the pak install and rpy2's build cannot be checked locally).
-- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+  Recorded at `64fe39d`: host `1230 passed, 53 deselected`; host golden/network
+  `36 passed, 1247 deselected`; container `-m r` `24 passed, 1259 deselected`.
+- [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Update `.knowledge/modules/da.md`** for the bridges: Responsibility gains
     `aldex2` and `maaslin3` (R-only methods through rpy2, extra `r`) and drops
     "the R bridges are later tasks"; Entry points `_aldex2.py:aldex2`,

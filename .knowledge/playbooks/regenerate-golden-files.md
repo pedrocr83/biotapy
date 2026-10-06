@@ -5,8 +5,8 @@ description: Rebuild the pinned R image and rerun it to regenerate golden CSVs a
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/data/phyloseq/**", "tests/data/dada2/**", "tests/humann/**", "tests/data/humann/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+commit: 64fe39d
 sources:
   - id: r-golden-parity
     resource: ../contracts/r-golden-parity.md
@@ -92,6 +92,16 @@ uv run --group test pytest tests/test_data_files.py -q
   the CRAN archive first, and installs `libgsl27`, which the `gsl` binary in
   ANCOMBC's dependencies links. `ANCOMBC` is installed only for `da.ancombc2`'s
   golden file; biotapy calls scikit-bio's `ancombc2`.
+- Installing `ALDEx2` and `maaslin3` only for the golden files: the image
+  carries them (`tests/r/Dockerfile`, versions in `tests/golden/VERSIONS.txt`)
+  for `da.aldex2`'s and `da.maaslin3`'s goldens; at run time biotapy reaches
+  them through rpy2 on the user's R (the `r-bridge` CI job installs its own).
+- The bridge goldens do not use `set.seed(20260927)`: they call
+  `set.seed(1165433077)` before each Monte Carlo call, the integer
+  `da._r.r_seed` makes of `seed=20260927`
+  (`np.random.default_rng(20260927).integers(2**31 - 1)`). If a NumPy release
+  changes that stream, the bridge golden tests fail loudly: recompute the
+  integer, put it in `tests/r/export_golden.R` and the tests, re-export.
 - Calling `distance()` unqualified: Biostrings, attached after phyloseq, masks
   it with IRanges' generic, so write `phyloseq::distance`.
 - Sharing one `set.seed(20260927)` across sections: every random call needs
