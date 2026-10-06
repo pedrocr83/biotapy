@@ -167,3 +167,13 @@ def test_reference_must_be_a_string(method):
     tdata = _toy_with(treated=[False] * 3 + [True] * 3)
     with pytest.raises(TypeError, match=r"reference must be the level's name as a string, such as 'False'"):
         method(tdata, "treated", reference=True)
+
+
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize(("axis", "fix"), [("var", "var_names_make_unique"), ("obs", "obs_names_make_unique")])
+def test_repeated_names_raise(method, axis, fix):
+    tdata = bt.datasets.toy()
+    names = getattr(tdata, f"{axis}_names").tolist()
+    setattr(tdata, f"{axis}_names", ["x", "x", *names[2:]])
+    with pytest.raises(ValueError, match=rf"unique {axis} names.*\['x'\].*adata\.{fix}\(\)"):
+        method(tdata, "group")

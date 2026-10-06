@@ -78,6 +78,8 @@ def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
     if adata.n_vars < 2:
         msg = f"{func} needs at least two features: log-ratio methods compare each feature with the others"
         raise ValueError(msg)
+    _require_unique(adata.var_names, "var", func=func)
+    _require_unique(adata.obs_names, "obs", func=func)
     X = as_csr(adata.X)
     empty = adata.obs_names[np.asarray(X.sum(axis=1)).ravel() == 0]
     if len(empty):
@@ -88,6 +90,17 @@ def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
         raise ValueError(msg)
     # LinDA's log-ratios and scikit-bio's ancombc2 need a dense table (rules.md R6.2): the one dense copy of X.
     return X.toarray().astype(np.float64, copy=False)
+
+
+def _require_unique(names: pd.Index, axis: str, *, func: str) -> None:
+    """Raise for repeated ``var_names`` or ``obs_names``: results are matched to features and samples by name."""
+    repeated = names[names.duplicated()].unique()
+    if len(repeated):
+        msg = (
+            f"{func} needs unique {axis} names, but {len(repeated)} repeat ({repeated[:3].tolist()}): "
+            f"call adata.{axis}_names_make_unique() first"
+        )
+        raise ValueError(msg)
 
 
 def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:

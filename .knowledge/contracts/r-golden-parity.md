@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:00:00Z }
-commit: 6b58fa7
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:14:00Z }
+commit: 0485b86
 sources:
   - id: spec
     resource: ../../plan.md
@@ -50,9 +50,9 @@ sources:
    | Permutation tests (PERMANOVA) | test statistic elementwise; p-value within `0.02` at >= 9,999 permutations | as stated |
    | Rarefaction | invariants only: row sums == depth, dropped samples identical, no count exceeds original | exact |
    | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
-   | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+   | DA methods | sign agreement and rank correlation of effect sizes; exact match where the R method is deterministic, or Monte Carlo and seeded with the integer biotapy derives from its `seed` | per method |
    | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
-   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13) |
+   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13); 1165433077 is `np.random.default_rng(20260927).integers(2**31 - 1)`, so a NumPy change to that stream fails the test loudly: recompute the integer and re-export |
    | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
@@ -86,9 +86,12 @@ sources:
    files check them.
 
 # Why
-R and NumPy random generators differ, so stochastic outputs can never match
-bit-for-bit; demanding it would force skipping those tests. Comparing
-invariants keeps them honest.
+R and NumPy random generators differ, so a stochastic output matches R only
+when biotapy hands R the seed integer (`da.aldex2` does: the golden's
+`set.seed(1165433077)` is `np.random.default_rng(20260927).integers(2**31 - 1)`,
+so a change in NumPy's stream fails that golden loudly: recompute the integer
+and re-export). Everywhere else demanding bit-for-bit would force skipping
+tests, and comparing invariants keeps them honest.
 
 # Enforced by
 - `tests/<module>/test_*_golden.py` files, marker `golden` (Phase 1, task 1.12).

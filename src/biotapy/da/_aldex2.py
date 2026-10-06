@@ -37,7 +37,8 @@ def aldex2(
         Monte Carlo draws from each sample's Dirichlet posterior (``mc.samples``).
     reference
         The level of ``group`` that the other level is compared with; by default
-        its first category (sorted values for a string column).
+        its first category (sorted values for a string column). It changes the
+        Monte Carlo draws as well as the sign (Notes).
     seed
         Seeds R's random number generator through ``set.seed``; the same seed
         gives the same table.
@@ -60,9 +61,11 @@ def aldex2(
         ``group`` is not an ``obs`` column.
     TypeError
         ``reference`` is not a string, or ``mc_samples`` not an int.
+    RuntimeError
+        R stops with an error.
     ValueError
-        ``X`` does not hold raw counts, has an empty sample or fewer than two
-        features; ``group`` is numeric, has missing values or other than two
+        ``X`` does not hold raw counts, has an empty sample, repeated
+        ``var_names`` or ``obs_names``, or fewer than two features; ``group`` is numeric, has missing values or other than two
         levels, or a level in fewer than two samples; ``reference`` is not one of
         them; ``mc_samples`` is below 1.
 
@@ -81,6 +84,13 @@ def aldex2(
     of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
     corrected values of the draws instead and is not carried. ALDEx2 compares
     two groups without covariates (its ``glm`` test is not wrapped).
+
+    Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
+    Carlo draws in label order, so the same ``seed`` gives different effects
+    (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
+    the same p-values on ``toy()``. What R prints during the call, such as the
+    warning for fewer than 128 ``mc_samples``, is re-emitted as a
+    ``UserWarning``, and an R error is raised as a ``RuntimeError``.
 
     Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
     'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
@@ -117,10 +127,11 @@ def aldex2(
     if mc_samples < 1:
         msg = f"da.aldex2: mc_samples must be at least 1, got {mc_samples}"
         raise ValueError(msg)
+    seed_for_r = r_seed(seed)
     # rpy2 has no sparse converter (rules.md R6.2): the one dense copy of X, features as rows as ALDEx2 wants them.
     reads = pd.DataFrame(dense_counts(adata, func="da.aldex2").T, index=adata.var_names, columns=adata.obs_names)
     aldex = r_function(_ALDEX, package="ALDEx2", func="da.aldex2")
-    table = call_r(aldex, reads, conditions, int(mc_samples), r_seed(seed)).reindex(adata.var_names)
+    table = call_r(aldex, reads, conditions, int(mc_samples), seed_for_r).reindex(adata.var_names)
     effect = table["diff.btw"].to_numpy(np.float64)
     pvalue = table["we.ep"].to_numpy(np.float64)
     se = np.full(adata.n_vars, np.nan)

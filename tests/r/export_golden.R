@@ -176,6 +176,8 @@ write_golden(do.call(rbind, ancombc_rows), file.path(gp, "ancombc2.csv.gz"))
 ## Slice 3C golden files: the R bridges, on the same data
 # ALDEx2 is Monte Carlo. 1165433077 is the integer bt.da.aldex2(..., seed=20260927) passes to set.seed
 # (np.random.default_rng(20260927).integers(2**31 - 1)), so the bridge test can compare digits, not only ranks.
+# The integer comes from NumPy's Generator stream: if a NumPy release changes it, test_aldex2_golden.py fails loudly;
+# recompute the integer with that expression, put it here and in the test comment, and re-export.
 # The conditions sort "human" before "other", so diff.btw is other - human; the test sets reference="human".
 set.seed(1165433077)
 aldex_out <- suppressMessages(ALDEx2::aldex(

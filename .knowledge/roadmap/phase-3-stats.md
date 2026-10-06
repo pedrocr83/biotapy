@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:00:00Z }
-commit: ea0a51a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:14:00Z }
+commit: 0485b86
 sources:
   - id: spec
     resource: ../../plan.md
@@ -5250,13 +5250,15 @@ marker is already registered), `.github/`.
   `uv run python -c "import numpy as np; print(np.random.default_rng(20260927).integers(2**31 - 1))"`
   prints `1165433077` (NumPy 2.5.3).
   ```diff
-  @@ -173,6 +173,20 @@ ancombc_rows <- lapply(da_formulas, function(f) {
+  @@ -173,6 +173,22 @@ ancombc_rows <- lapply(da_formulas, function(f) {
    })
    write_golden(do.call(rbind, ancombc_rows), file.path(gp, "ancombc2.csv.gz"))
 
   +## Slice 3C golden files: the R bridges, on the same data
   +# ALDEx2 is Monte Carlo. 1165433077 is the integer bt.da.aldex2(..., seed=20260927) passes to set.seed
   +# (np.random.default_rng(20260927).integers(2**31 - 1)), so the bridge test can compare digits, not only ranks.
+  +# The integer comes from NumPy's Generator stream: if a NumPy release changes it, test_aldex2_golden.py fails loudly;
+  +# recompute the integer with that expression, put it here and in the test comment, and re-export.
   +# The conditions sort "human" before "other", so diff.btw is other - human; the test sets reference="human".
   +set.seed(1165433077)
   +aldex_out <- suppressMessages(ALDEx2::aldex(
@@ -5305,7 +5307,7 @@ marker is already registered), `.github/`.
    import numpy as np
    import pandas as pd
    import pytest
-  @@ -14,3 +18,49 @@ def benchmark():
+  @@ -14,3 +18,59 @@ def benchmark():
        tdata.obs["host"] = pd.Categorical(np.where(human, "human", "other"))
        tdata.obs["log_depth"] = np.log(np.asarray(tdata.X.sum(axis=1)).ravel())
        return tdata
@@ -5327,15 +5329,24 @@ marker is already registered), `.github/`.
   +
   +    The bridges' own code (seeds, labels, orientation, the schema mapping) runs unchanged; only rpy2 is replaced.
   +    """
-  +    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[])
+  +    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[], stderr=[])
   +
   +    def r(code):
   +        def function(*args):
   +            fake.calls.append((code, args))
+  +            for text in fake.stderr:
+  +                callbacks.consolewrite_warnerror(text)
+  +            if isinstance(fake.output, Exception):
+  +                raise fake.output
   +            return fake.output
   +
   +        return function
   +
+  +    callbacks = ModuleType("rpy2.rinterface_lib.callbacks")
+  +    callbacks.consolewrite_warnerror = None
+  +    embedded = ModuleType("rpy2.rinterface_lib.embedded")
+  +    # rpy2's class for an R error; the bridge turns it into a RuntimeError.
+  +    embedded.RRuntimeError = type("RRuntimeError", (RuntimeError,), {})
   +    robjects = ModuleType("rpy2.robjects")
   +    robjects.r = r
   +    robjects.default_converter = _Converter()
@@ -5352,6 +5363,7 @@ marker is already registered), `.github/`.
   +    pandas2ri.converter = _Converter()
   +    modules = {"rpy2": ModuleType("rpy2"), "rpy2.robjects": robjects}
   +    modules |= {"rpy2.robjects.packages": packages, "rpy2.robjects.pandas2ri": pandas2ri}
+  +    modules |= {"rpy2.rinterface_lib.callbacks": callbacks, "rpy2.rinterface_lib.embedded": embedded}
   +    for name, module in modules.items():
   +        monkeypatch.setitem(sys.modules, name, module)
   +    return fake
@@ -5410,6 +5422,10 @@ marker is already registered), `.github/`.
       bt.da.aldex2(bt.datasets.toy(), "group", seed=np.random.default_rng(3))
       bt.da.aldex2(bt.datasets.toy(), "group", seed=3)
       assert fake_rpy2.calls[0][1][3] == fake_rpy2.calls[1][1][3]
+      generator = np.random.default_rng(3)
+      bt.da.aldex2(bt.datasets.toy(), "group", seed=generator)
+      bt.da.aldex2(bt.datasets.toy(), "group", seed=generator)
+      assert fake_rpy2.calls[2][1][3] != fake_rpy2.calls[3][1][3]  # the caller's generator advances
 
 
   def test_feature_aldex2_drops_is_not_tested(fake_rpy2):
@@ -5432,6 +5448,39 @@ marker is already registered), `.github/`.
           ImportError, match=r'da\.aldex2 needs the R package ALDEx2\. .*BiocManager::install\("ALDEx2"\)'
       ):
           bt.da.aldex2(bt.datasets.toy(), "group")
+
+
+  @pytest.mark.parametrize(("axis", "fix"), [("var", "var_names_make_unique"), ("obs", "obs_names_make_unique")])
+  def test_repeated_names_raise(fake_rpy2, axis, fix):
+      tdata = bt.datasets.toy()
+      names = getattr(tdata, f"{axis}_names").tolist()
+      setattr(tdata, f"{axis}_names", ["x", "x", *names[2:]])
+      with pytest.raises(ValueError, match=rf"unique {axis} names.*\['x'\].*adata\.{fix}\(\)"):
+          bt.da.aldex2(tdata, "group")
+      assert fake_rpy2.calls == []
+
+
+  def test_seed_is_checked_before_rpy2_is_imported(monkeypatch):
+      for name in ("rpy2", "rpy2.robjects", "rpy2.robjects.packages", "rpy2.robjects.pandas2ri"):
+          monkeypatch.setitem(sys.modules, name, None)
+      with pytest.raises(TypeError, match="seed must be"):
+          bt.da.aldex2(bt.datasets.toy(), "group", seed="abc")
+
+
+  def test_r_warnings_are_re_emitted_in_python(fake_rpy2):
+      fake_rpy2.output = CANNED
+      fake_rpy2.stderr = ["Warning message:\n  ", "In aldex.clr: values are unreliable\n"]
+      with pytest.warns(
+          UserWarning, match=r"da\.aldex2: R warned: Warning message: In aldex\.clr: values are unreliable"
+      ):
+          bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+
+
+  def test_r_errors_name_the_function(fake_rpy2):
+      fake_rpy2.output = sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError("Error in f() : boom\n")
+      with pytest.raises(RuntimeError, match=r"da\.aldex2: R stopped: Error in f\(\) : boom") as caught:
+          bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      assert isinstance(caught.value.__cause__, sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError)
 
 
   def test_numeric_group_raises(fake_rpy2):
@@ -5513,6 +5562,12 @@ marker is already registered), `.github/`.
 
 
   @pytest.mark.r
+  def test_few_mc_samples_warn_in_python():
+      with pytest.warns(UserWarning, match=r"da\.aldex2: R warned: .*unreliable"):
+          bt.da.aldex2(bt.datasets.toy(), "group", mc_samples=16, seed=0)
+
+
+  @pytest.mark.r
   def test_aldex2_table_passes_the_consensus_checks():
       out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
       assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
@@ -5536,7 +5591,9 @@ marker is already registered), `.github/`.
   def test_aldex2_matches_aldex2_aldex(benchmark):
       # R: set.seed(1165433077); ALDEx2::aldex(counts, as.character(host), mc.samples = 128, test = "t", effect = TRUE,
       # denom = "all"). 1165433077 is the integer seed=20260927 becomes, and reference="human" keeps R's sorted level
-      # order, so the Monte Carlo draws are the same and the numbers match to rounding.
+      # order, so the Monte Carlo draws are the same and the numbers match to rounding. The integer is NumPy's
+      # default_rng(20260927).integers(2**31 - 1): a NumPy change to that stream fails this test loudly; recompute it and
+      # re-export the golden (tests/r/export_golden.R).
       golden = pd.read_csv(GOLDEN / "aldex2.csv.gz", dtype={"taxon_id": str}).set_index("taxon_id")
       out = bt.da.aldex2(benchmark, "host", reference="human", seed=20260927)
       assert out.index.tolist() == golden.index.tolist()
@@ -5548,7 +5605,7 @@ marker is already registered), `.github/`.
 - [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da/test_aldex2.py -q` -> `13 failed, 5
   deselected` (`AttributeError: module 'biotapy.da' has no attribute
-  'aldex2'`). Where R and rpy2 are installed, the six `r` tests (five in
+  'aldex2'`). Where R and rpy2 are installed, the seven `r` tests (six in
   `test_aldex2.py`, the golden) fail with the same `AttributeError`.
 - [x] **Step 8: Implement.** `pyproject.toml` (pyproject-fmt keeps the extra
   after `dependencies`):
@@ -5567,6 +5624,7 @@ marker is already registered), `.github/`.
   ```python
   """The rpy2 bridge for the da methods only R implements (decisions/r-bridge-before-ports); extra ``r``."""
 
+  import warnings
   from collections.abc import Callable
   from typing import Any, cast
 
@@ -5585,16 +5643,43 @@ marker is already registered), `.github/`.
 
 
   def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
-      """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``."""
+      """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``.
+
+      Calling it re-emits what R wrote to its console as a ``UserWarning`` and turns an R error into a ``RuntimeError``,
+      both naming ``func``.
+      """
       robjects = import_optional("rpy2.robjects", extra="r")
       rpackages = import_optional("rpy2.robjects.packages", extra="r")
+      # Typed Any: mypy rejects assigning an attribute of a ModuleType, and the hook below is assigned.
+      callbacks: Any = import_optional("rpy2.rinterface_lib.callbacks", extra="r")
+      embedded = import_optional("rpy2.rinterface_lib.embedded", extra="r")
       try:
           # Loaded before the call: a package that `::` loads during it makes R print "stack imbalance" warnings.
           rpackages.importr(package)
       except rpackages.PackageNotInstalledError as err:
           msg = f'{func} needs the R package {package}. Install it in R with: BiocManager::install("{package}")'
           raise ImportError(msg) from err
-      return cast("Callable[..., Any]", robjects.r(code))
+      function = robjects.r(code)
+
+      def run(*args: object) -> object:
+          written: list[str] = []
+          original = callbacks.consolewrite_warnerror
+          callbacks.consolewrite_warnerror = written.append
+          try:
+              result = function(*args)
+              # R prints a call's deferred warnings only when control returns to its top level; evaluating a no-op there flushes them.
+              robjects.r("invisible(NULL)")
+          except embedded.RRuntimeError as err:
+              msg = f"{func}: R stopped: {str(err).strip()}"
+              raise RuntimeError(msg) from err
+          finally:
+              callbacks.consolewrite_warnerror = original
+          text = " ".join("".join(written).split())
+          if text:
+              warnings.warn(f"{func}: R warned: {text}", stacklevel=4)
+          return result
+
+      return run
 
 
   def call_r(function: Callable[..., Any], /, *args: object) -> pd.DataFrame:
@@ -5603,6 +5688,7 @@ marker is already registered), `.github/`.
       pandas2ri = import_optional("rpy2.robjects.pandas2ri", extra="r")
       # A local converter, never rpy2's global activation, so the user's own rpy2 session keeps its conversion rules.
       with (robjects.default_converter + pandas2ri.converter).context():
+          # ModuleType attributes are Any, so the result needs a cast under mypy --strict (warn_return_any).
           return cast("pd.DataFrame", function(*args))
   ```
   `src/biotapy/da/_aldex2.py`:
@@ -5646,7 +5732,8 @@ marker is already registered), `.github/`.
           Monte Carlo draws from each sample's Dirichlet posterior (``mc.samples``).
       reference
           The level of ``group`` that the other level is compared with; by default
-          its first category (sorted values for a string column).
+          its first category (sorted values for a string column). It changes the
+          Monte Carlo draws as well as the sign (Notes).
       seed
           Seeds R's random number generator through ``set.seed``; the same seed
           gives the same table.
@@ -5669,9 +5756,11 @@ marker is already registered), `.github/`.
           ``group`` is not an ``obs`` column.
       TypeError
           ``reference`` is not a string, or ``mc_samples`` not an int.
+      RuntimeError
+          R stops with an error.
       ValueError
-          ``X`` does not hold raw counts, has an empty sample or fewer than two
-          features; ``group`` is numeric, has missing values or other than two
+          ``X`` does not hold raw counts, has an empty sample, repeated
+          ``var_names`` or ``obs_names``, or fewer than two features; ``group`` is numeric, has missing values or other than two
           levels, or a level in fewer than two samples; ``reference`` is not one of
           them; ``mc_samples`` is below 1.
 
@@ -5690,6 +5779,13 @@ marker is already registered), `.github/`.
       of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
       corrected values of the draws instead and is not carried. ALDEx2 compares
       two groups without covariates (its ``glm`` test is not wrapped).
+
+      Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
+      Carlo draws in label order, so the same ``seed`` gives different effects
+      (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
+      the same p-values on ``toy()``. What R prints during the call, such as the
+      warning for fewer than 128 ``mc_samples``, is re-emitted as a
+      ``UserWarning``, and an R error is raised as a ``RuntimeError``.
 
       Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
       'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
@@ -5726,10 +5822,11 @@ marker is already registered), `.github/`.
       if mc_samples < 1:
           msg = f"da.aldex2: mc_samples must be at least 1, got {mc_samples}"
           raise ValueError(msg)
+      seed_for_r = r_seed(seed)
       # rpy2 has no sparse converter (rules.md R6.2): the one dense copy of X, features as rows as ALDEx2 wants them.
       reads = pd.DataFrame(dense_counts(adata, func="da.aldex2").T, index=adata.var_names, columns=adata.obs_names)
       aldex = r_function(_ALDEX, package="ALDEx2", func="da.aldex2")
-      table = call_r(aldex, reads, conditions, int(mc_samples), r_seed(seed)).reindex(adata.var_names)
+      table = call_r(aldex, reads, conditions, int(mc_samples), seed_for_r).reindex(adata.var_names)
       effect = table["diff.btw"].to_numpy(np.float64)
       pvalue = table["we.ep"].to_numpy(np.float64)
       se = np.full(adata.n_vars, np.nan)
@@ -5765,10 +5862,10 @@ marker is already registered), `.github/`.
   `ModuleType` attributes are `Any` (hence the two `cast`s), and the lint
   environment has no rpy2 (it cannot build without R). Slice 3C decision 11.
 - [x] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
-  -> `117 passed, 10 deselected`; in the R environment (`uv sync --group test
+  -> `126 passed, 11 deselected`; in the R environment (`uv sync --group test
   --extra r` with R 4.5.3 and ALDEx2 installed) `uv run --group test --extra r
   pytest -m r tests/da/test_aldex2.py tests/da/test_aldex2_golden.py -q` ->
-  `6 passed` (the golden about 10 s, GlobalPatterns from the pooch cache).
+  `7 passed` (the golden about 10 s, GlobalPatterns from the pooch cache).
   If rpy2 imports with "Error importing in API mode", the R link headers are
   missing: install `libpcre2-dev libdeflate-dev libzstd-dev` and rebuild it with
   `RPY2_CFFI_MODE=API` (design, CI job).
@@ -5805,10 +5902,17 @@ marker is already registered), `.github/`.
   +
   +ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
   +`seed` sets R's random state, so the same seed gives the same table, and on the GlobalPatterns
-  +genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14. `qvalue` is the
+  +genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14 (when `reference` is R's
+  +first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
   +Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
   +`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
   +those genera).
+  +
+  +Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
+  +so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, where they are about
+  +4 log2 wide), with the same p-values there. Anything R prints during the call, such as the warning
+  +for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
+  +`RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
   +
    ## Where methods agree
 
@@ -5848,9 +5952,9 @@ marker is already registered), `.github/`.
   ```diff
   @@ -52,6 +52,7 @@ sources:
       | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
-      | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+      | DA methods | sign agreement and rank correlation of effect sizes; exact match where the R method is deterministic, or Monte Carlo and seeded with the integer biotapy derives from its `seed` | per method |
       | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
-  +   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13) |
+  +   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13); 1165433077 is `np.random.default_rng(20260927).integers(2**31 - 1)`, so a NumPy change to that stream fails the test loudly: recompute the integer and re-export |
       | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
    5. Any looser tolerance is written in the test with a one-line comment giving the reason.
@@ -5882,6 +5986,16 @@ marker is already registered), `.github/`.
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
+
+- [x] **Step 13: Fix round 1** (review of 0485b86; `fix(da)`). Repeated `var_names` or
+  `obs_names` raise in `da._design.dense_counts` (all methods; `test_design.py` and
+  `test_aldex2.py::test_repeated_names_raise`); `r_function` returns a closure that re-emits R's console
+  output as a `UserWarning` and turns an R error into a `RuntimeError`, both naming the function
+  (`test_r_warnings_are_re_emitted_in_python`, `test_r_errors_name_the_function`, and in R
+  `test_few_mc_samples_warn_in_python`); `seed` is checked before rpy2 loads
+  (`test_seed_is_checked_before_rpy2_is_imported`); the docstring, guide, golden test, export script and
+  contract say that `reference` changes the Monte Carlo draws and that 1165433077 depends on NumPy's
+  stream. Expected: `pytest tests/da -q` -> `126 passed, 11 deselected`; `-m r` -> `7 passed`.
 
 ---
 

@@ -49,6 +49,10 @@ def test_seed_accepts_a_generator(fake_rpy2):
     bt.da.aldex2(bt.datasets.toy(), "group", seed=np.random.default_rng(3))
     bt.da.aldex2(bt.datasets.toy(), "group", seed=3)
     assert fake_rpy2.calls[0][1][3] == fake_rpy2.calls[1][1][3]
+    generator = np.random.default_rng(3)
+    bt.da.aldex2(bt.datasets.toy(), "group", seed=generator)
+    bt.da.aldex2(bt.datasets.toy(), "group", seed=generator)
+    assert fake_rpy2.calls[2][1][3] != fake_rpy2.calls[3][1][3]  # the caller's generator advances
 
 
 def test_feature_aldex2_drops_is_not_tested(fake_rpy2):
@@ -71,6 +75,39 @@ def test_missing_r_package_names_the_install_line(fake_rpy2):
         ImportError, match=r'da\.aldex2 needs the R package ALDEx2\. .*BiocManager::install\("ALDEx2"\)'
     ):
         bt.da.aldex2(bt.datasets.toy(), "group")
+
+
+@pytest.mark.parametrize(("axis", "fix"), [("var", "var_names_make_unique"), ("obs", "obs_names_make_unique")])
+def test_repeated_names_raise(fake_rpy2, axis, fix):
+    tdata = bt.datasets.toy()
+    names = getattr(tdata, f"{axis}_names").tolist()
+    setattr(tdata, f"{axis}_names", ["x", "x", *names[2:]])
+    with pytest.raises(ValueError, match=rf"unique {axis} names.*\['x'\].*adata\.{fix}\(\)"):
+        bt.da.aldex2(tdata, "group")
+    assert fake_rpy2.calls == []
+
+
+def test_seed_is_checked_before_rpy2_is_imported(monkeypatch):
+    for name in ("rpy2", "rpy2.robjects", "rpy2.robjects.packages", "rpy2.robjects.pandas2ri"):
+        monkeypatch.setitem(sys.modules, name, None)
+    with pytest.raises(TypeError, match="seed must be"):
+        bt.da.aldex2(bt.datasets.toy(), "group", seed="abc")
+
+
+def test_r_warnings_are_re_emitted_in_python(fake_rpy2):
+    fake_rpy2.output = CANNED
+    fake_rpy2.stderr = ["Warning message:\n  ", "In aldex.clr: values are unreliable\n"]
+    with pytest.warns(
+        UserWarning, match=r"da\.aldex2: R warned: Warning message: In aldex\.clr: values are unreliable"
+    ):
+        bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+
+
+def test_r_errors_name_the_function(fake_rpy2):
+    fake_rpy2.output = sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError("Error in f() : boom\n")
+    with pytest.raises(RuntimeError, match=r"da\.aldex2: R stopped: Error in f\(\) : boom") as caught:
+        bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+    assert isinstance(caught.value.__cause__, sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError)
 
 
 def test_numeric_group_raises(fake_rpy2):
@@ -149,6 +186,12 @@ def test_all_zero_feature_is_not_tested_in_r():
     out = bt.da.aldex2(tdata, "group", seed=0)
     assert out.loc["f7", ["effect", "pvalue", "qvalue"]].isna().all()
     assert np.isfinite(out.drop(index="f7")[["effect", "pvalue", "qvalue"]].to_numpy()).all()
+
+
+@pytest.mark.r
+def test_few_mc_samples_warn_in_python():
+    with pytest.warns(UserWarning, match=r"da\.aldex2: R warned: .*unreliable"):
+        bt.da.aldex2(bt.datasets.toy(), "group", mc_samples=16, seed=0)
 
 
 @pytest.mark.r
