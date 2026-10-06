@@ -130,8 +130,9 @@ for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R e
 `bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
 "abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
 log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
-is tested against the median coefficient over features, MaAsLin 3's correction for
-compositionality; `effect` is the coefficient minus that median, so its sign says on which side
+is tested against the median coefficient, MaAsLin 3's correction for
+compositionality (the median over the features without a fit error whose own p-value is below
+0.95, as MaAsLin 3 computes it); `effect` is the coefficient minus that median, so its sign says on which side
 of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
 
 ```python
@@ -144,6 +145,10 @@ GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model
 are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
 MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
 covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
+
+Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
+coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
+`qvalue` by up to 2e-3 on those genera (the calls are the same); `seed` fixes the draws.
 
 ## Where methods agree
 

@@ -62,7 +62,7 @@ def maaslin3(
     pandas.DataFrame
         One row per feature, in ``var_names`` order, indexed by ``feature``:
         ``effect`` (log2 fold change of the relative abundance where the feature
-        is present, minus the median over features), ``se``, ``pvalue``,
+        is present, minus the median described in Notes), ``se``, ``pvalue``,
         ``qvalue`` (Benjamini-Hochberg over the tested features), ``direction``,
         ``method`` (``"maaslin3"``) and ``contrast``. A feature MaAsLin 3 could
         not fit has NaN values and ``direction`` 0.
@@ -96,17 +96,22 @@ def maaslin3(
     are divided by each sample's total (TSS), zeros are left out and the rest
     log2-transformed, one linear model per feature is fitted on the samples where
     it is present, and each coefficient is tested against the median coefficient
-    over features (``median_comparison_abundance = TRUE``), MaAsLin 3's
-    correction for compositionality, which draws 10,000 normal samples.
-    ``effect`` is that coefficient minus the median, so its sign is the side of
-    the median the test is about; MaAsLin 3's default output reports the
-    coefficient itself. Only the abundance model runs: the prevalence model's
-    log-odds cannot share a column with fold changes. ``qvalue`` is the
+    (``median_comparison_abundance = TRUE``), MaAsLin 3's correction for
+    compositionality, which draws 10,000 normal samples. That median is taken, as
+    MaAsLin 3 computes it, over the features without a fit error whose own
+    p-value is below 0.95. ``effect`` is that coefficient minus the median, so
+    its sign is the side of the median the test is about; MaAsLin 3's default
+    output reports the coefficient itself. Only the abundance model runs: the
+    prevalence model's log-odds cannot share a column with fold changes. ``qvalue`` is the
     Benjamini-Hochberg correction of the group's p-values; MaAsLin 3's
     ``qval_individual`` corrects them together with every covariate's. A feature
     whose fit reports an error is not tested, as MaAsLin 3 leaves it out of its
-    own correction. Each R warning raised during the call is re-emitted as a
-    ``UserWarning``, and an R error is raised as a ``RuntimeError``.
+    own correction. Swapping ``reference`` negates ``effect`` exactly, but the
+    simulation draws around the coefficients, not their negatives, so the same
+    ``seed`` moves ``pvalue`` by up to 1e-3 and ``qvalue`` by up to 2e-3 on the
+    GlobalPatterns genera (the calls are the same there). Each R warning raised
+    during the call is re-emitted as a ``UserWarning``, and an R error is raised
+    as a ``RuntimeError``.
 
     Needs R with maaslin3 (``BiocManager::install("maaslin3")``) and ``pip
     install 'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.

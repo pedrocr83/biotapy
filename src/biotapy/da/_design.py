@@ -116,13 +116,15 @@ def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:
 
 
 def _column(values: pd.Series, *, func: str) -> pd.Series:
-    """Float64 for a numeric column, else a ``Categorical`` of the levels present; missing values raise."""
+    """Float64 for a numeric column, else an unordered ``Categorical`` of the levels present; missing values raise."""
     if values.isna().any():
         msg = f"{func}: obs[{values.name!r}] is missing for {int(values.isna().sum())} sample(s); drop them first"
         raise ValueError(msg)
     if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
         return values.astype(np.float64)
-    return pd.Series(pd.Categorical(values).remove_unused_categories(), index=values.index, name=values.name)
+    # Unordered: R codes an ordered factor by polynomial contrasts, which rescales an effect (1/sqrt(2) for two levels).
+    levels = pd.Categorical(values).remove_unused_categories().as_unordered()
+    return pd.Series(levels, index=values.index, name=values.name)
 
 
 def _group(values: pd.Series, reference: str | None, *, func: str) -> tuple[pd.Series, str]:

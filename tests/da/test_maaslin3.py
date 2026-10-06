@@ -157,6 +157,17 @@ def test_r_errors_name_the_function(fake_rpy2):
         bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
 
 
+def test_ordered_categoricals_reach_r_unordered(fake_rpy2):
+    # R codes an ordered factor by polynomial contrasts, which would shrink a two-level effect by 1/sqrt(2).
+    fake_rpy2.output = CANNED
+    tdata = bt.datasets.toy()
+    tdata.obs["group"] = pd.Categorical(tdata.obs["group"], categories=["A", "B"], ordered=True)
+    tdata.obs["site"] = pd.Categorical(["x", "y", "z", "x", "y", "z"], categories=["x", "y", "z"], ordered=True)
+    bt.da.maaslin3(tdata, "group", covariates=["site"], seed=0)
+    metadata = fake_rpy2.calls[0][1][1]
+    assert not metadata["x0"].cat.ordered and not metadata["x1"].cat.ordered
+
+
 @pytest.mark.r
 def test_maaslin3_on_toy_is_the_canned_table():
     out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
@@ -218,3 +229,11 @@ def test_all_zero_feature_is_not_tested_in_r():
 def test_maaslin3_table_passes_the_consensus_checks():
     out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
     assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
+
+
+@pytest.mark.r
+def test_ordered_group_gives_the_unordered_table_in_r():
+    tdata = bt.datasets.toy()
+    plain = bt.da.maaslin3(tdata, "group", seed=0)
+    tdata.obs["group"] = pd.Categorical(tdata.obs["group"], categories=["A", "B"], ordered=True)
+    pd.testing.assert_frame_equal(bt.da.maaslin3(tdata, "group", seed=0), plain)

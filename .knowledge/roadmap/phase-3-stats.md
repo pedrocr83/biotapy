@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:00:13Z }
-commit: 1bee468
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:18:33Z }
+commit: 4f2b39f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -6287,6 +6287,17 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
           bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
 
 
+  def test_ordered_categoricals_reach_r_unordered(fake_rpy2):
+      # R codes an ordered factor by polynomial contrasts, which would shrink a two-level effect by 1/sqrt(2).
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      tdata.obs["group"] = pd.Categorical(tdata.obs["group"], categories=["A", "B"], ordered=True)
+      tdata.obs["site"] = pd.Categorical(["x", "y", "z", "x", "y", "z"], categories=["x", "y", "z"], ordered=True)
+      bt.da.maaslin3(tdata, "group", covariates=["site"], seed=0)
+      metadata = fake_rpy2.calls[0][1][1]
+      assert not metadata["x0"].cat.ordered and not metadata["x1"].cat.ordered
+
+
   @pytest.mark.r
   def test_maaslin3_on_toy_is_the_canned_table():
       out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
@@ -6348,6 +6359,14 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   def test_maaslin3_table_passes_the_consensus_checks():
       out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
       assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
+
+
+  @pytest.mark.r
+  def test_ordered_group_gives_the_unordered_table_in_r():
+      tdata = bt.datasets.toy()
+      plain = bt.da.maaslin3(tdata, "group", seed=0)
+      tdata.obs["group"] = pd.Categorical(tdata.obs["group"], categories=["A", "B"], ordered=True)
+      pd.testing.assert_frame_equal(bt.da.maaslin3(tdata, "group", seed=0), plain)
   ```
   `tests/da/test_maaslin3_golden.py`:
   ```python
@@ -6386,7 +6405,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
 - [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da/test_maaslin3.py -q` -> `10 failed, 7
   deselected` (`AttributeError: module 'biotapy.da' has no attribute
-  'maaslin3'`); in the R environment the seven `r` tests of that file fail the same way.
+  'maaslin3'`); in the R environment the seven `r` tests of that file (eight after fix round 1) fail the same way.
   Fix-round tests (a generator seed, repeated names, the seed checked before rpy2, R warnings
   and errors, as for `da.aldex2`) are in the same file and pass with the implementation.
 - [x] **Step 8: Implement.** `src/biotapy/da/_maaslin3.py`:
@@ -6455,7 +6474,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       pandas.DataFrame
           One row per feature, in ``var_names`` order, indexed by ``feature``:
           ``effect`` (log2 fold change of the relative abundance where the feature
-          is present, minus the median over features), ``se``, ``pvalue``,
+          is present, minus the median described in Notes), ``se``, ``pvalue``,
           ``qvalue`` (Benjamini-Hochberg over the tested features), ``direction``,
           ``method`` (``"maaslin3"``) and ``contrast``. A feature MaAsLin 3 could
           not fit has NaN values and ``direction`` 0.
@@ -6489,17 +6508,22 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       are divided by each sample's total (TSS), zeros are left out and the rest
       log2-transformed, one linear model per feature is fitted on the samples where
       it is present, and each coefficient is tested against the median coefficient
-      over features (``median_comparison_abundance = TRUE``), MaAsLin 3's
-      correction for compositionality, which draws 10,000 normal samples.
-      ``effect`` is that coefficient minus the median, so its sign is the side of
-      the median the test is about; MaAsLin 3's default output reports the
-      coefficient itself. Only the abundance model runs: the prevalence model's
-      log-odds cannot share a column with fold changes. ``qvalue`` is the
+      (``median_comparison_abundance = TRUE``), MaAsLin 3's correction for
+      compositionality, which draws 10,000 normal samples. That median is taken, as
+      MaAsLin 3 computes it, over the features without a fit error whose own
+      p-value is below 0.95. ``effect`` is that coefficient minus the median, so
+      its sign is the side of the median the test is about; MaAsLin 3's default
+      output reports the coefficient itself. Only the abundance model runs: the
+      prevalence model's log-odds cannot share a column with fold changes. ``qvalue`` is the
       Benjamini-Hochberg correction of the group's p-values; MaAsLin 3's
       ``qval_individual`` corrects them together with every covariate's. A feature
       whose fit reports an error is not tested, as MaAsLin 3 leaves it out of its
-      own correction. Each R warning raised during the call is re-emitted as a
-      ``UserWarning``, and an R error is raised as a ``RuntimeError``.
+      own correction. Swapping ``reference`` negates ``effect`` exactly, but the
+      simulation draws around the coefficients, not their negatives, so the same
+      ``seed`` moves ``pvalue`` by up to 1e-3 and ``qvalue`` by up to 2e-3 on the
+      GlobalPatterns genera (the calls are the same there). Each R warning raised
+      during the call is re-emitted as a ``UserWarning``, and an R error is raised
+      as a ``RuntimeError``.
 
       Needs R with maaslin3 (``BiocManager::install("maaslin3")``) and ``pip
       install 'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
@@ -6558,8 +6582,8 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   +__all__ = ["aldex2", "ancombc2", "consensus", "linda", "maaslin3"]
   ```
 - [x] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
-  -> `142 passed, 21 deselected`; in the R environment `uv run --group test
-  --extra r pytest -m r tests/da -q` -> `17 passed`. Also with `-W
+  -> `145 passed, 22 deselected`; in the R environment `uv run --group test
+  --extra r pytest -m r tests/da -q` -> `18 passed`. Also with `-W
   error::UserWarning`: rpy2's "categories are strings" warning must not appear.
 - [x] **Step 10: Docs.**
   ````diff
@@ -6581,8 +6605,9 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   +`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
   +"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
   +log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
-  +is tested against the median coefficient over features, MaAsLin 3's correction for
-  +compositionality; `effect` is the coefficient minus that median, so its sign says on which side
+  +is tested against the median coefficient, MaAsLin 3's correction for
+  +compositionality (the median over the features without a fit error whose own p-value is below
+  +0.95, as MaAsLin 3 computes it); `effect` is the coefficient minus that median, so its sign says on which side
   +of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
   +
   +```python
@@ -6595,6 +6620,10 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   +are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
   +MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
   +covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
+  +
+  +Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
+  +coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
+  +`qvalue` by up to 2e-3 on those genera (the calls are the same); `seed` fixes the draws.
   +
    ## Where methods agree
 
@@ -6649,6 +6678,18 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
+
+---
+- [x] **Step 13: Fix round 1** (review of 4f2b39f; `fix(da)`). `_design._column` returns
+  unordered categoricals: R codes an ordered factor by polynomial contrasts, which shrank
+  MaAsLin 3's `effect` by 1/sqrt(2) for an ordered two-level group (measured ratio 0.7071 on
+  4f2b39f; ANCOM-BC2 and LinDA, which code indicators, were not affected). Tests:
+  `test_design.py::test_ordered_categorical_gives_the_unordered_table` (both native methods; they
+  passed before), `test_maaslin3.py::test_ordered_categoricals_reach_r_unordered` (RED) and
+  `test_ordered_group_gives_the_unordered_table_in_r` (RED). The docstring and guide state the
+  median as maaslin3 computes it (error-free features with p < 0.95) and that swapping
+  `reference` moves p by up to 1e-3 and q by up to 2e-3. Counts: 1221 passed, 47 deselected;
+  `tests/da` 145 passed, 22 deselected; `-m r` 18 passed.
 
 ---
 

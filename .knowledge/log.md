@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-06 (Phase 3, slice 3C)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 fix round 1: `da/_design._column` returns unordered categoricals (an ordered group shrank MaAsLin 3's effect by 1/sqrt(2)), and the `da.maaslin3` docs state the median and the `reference` swap exactly.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.maaslin3` is compared with `maaslin3::maaslin3` (abundance model, median subtracted) elementwise, seed-matched. [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `maaslin3` for the `da.maaslin3` golden file.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 fix round 2: `r_function` catches R warning conditions in R (`withCallingHandlers`) instead of rpy2's console output, so `message()` stays a message.

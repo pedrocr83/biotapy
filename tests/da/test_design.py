@@ -31,6 +31,22 @@ def test_reference_sets_the_sign(method):
 
 
 @pytest.mark.parametrize("method", METHODS)
+def test_ordered_categorical_gives_the_unordered_table(method):
+    plain = pd.Categorical(["A"] * 3 + ["B"] * 3, categories=["A", "B"])
+    ordered = pd.Categorical(["A"] * 3 + ["B"] * 3, categories=["A", "B"], ordered=True)
+    tdata = _toy_with(plain=plain, ordered=ordered, age=[30.0, 41, 52, 38, 45, 60])
+    pd.testing.assert_frame_equal(
+        method(tdata, "ordered", covariates=["age"]), method(tdata, "plain", covariates=["age"])
+    )
+    # An ordered covariate is coded by indicators too.
+    tdata.obs["site"] = pd.Categorical(["x", "y", "z", "x", "y", "z"], categories=["x", "y", "z"], ordered=True)
+    tdata.obs["site_plain"] = pd.Categorical(["x", "y", "z", "x", "y", "z"], categories=["x", "y", "z"])
+    pd.testing.assert_frame_equal(
+        method(tdata, "plain", covariates=["site"]), method(tdata, "plain", covariates=["site_plain"])
+    )
+
+
+@pytest.mark.parametrize("method", METHODS)
 def test_string_group_takes_the_first_sorted_level_as_reference(method):
     tdata = _toy_with(site=["gut", "gut", "gut", "air", "air", "air"])
     assert (method(tdata, "site")["contrast"] == "gut vs air").all()
