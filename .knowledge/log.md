@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-06 (Phase 3, slice 3C)
+- **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `ALDEx2` for the `da.aldex2` golden file.
+
 ## 2026-10-06 (Phase 3, slice 3C plan)
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3C (tasks 3.6 `da.aldex2` with the extra `r` and `da/_r.py`, 3.7 `da.maaslin3`, 3.11 CI job `r-bridge`, Checkpoint C) into full TDD steps, prototyped and gated per commit; ticks Checkpoint B (PR #22 merged, slice 3B approved).
 
