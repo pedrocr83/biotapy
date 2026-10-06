@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-06 (Phase 3, slice 3C)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 fix round 2: `r_function` catches R warning conditions in R (`withCallingHandlers`) instead of rpy2's console output, so `message()` stays a message.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): a seeded Monte Carlo bridge matches R exactly when biotapy passes R its seed integer (the generic DA row and the Why section said otherwise), and the golden's integer is recorded as NumPy-stream dependent. [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 fix round 1: duplicate names raise, R warnings and errors surface through `da/_r.py`, `seed` is checked before R loads.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.aldex2` is compared with `ALDEx2::aldex` elementwise (the golden's seed is the one biotapy derives, so the Monte Carlo draws match); R bridge golden tests carry the marker `r` only. [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 done.
 - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `ALDEx2` for the `da.aldex2` golden file.

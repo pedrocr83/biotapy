@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -94,13 +95,16 @@ def test_seed_is_checked_before_rpy2_is_imported(monkeypatch):
         bt.da.aldex2(bt.datasets.toy(), "group", seed="abc")
 
 
-def test_r_warnings_are_re_emitted_in_python(fake_rpy2):
+def test_each_r_warning_is_re_emitted_at_the_callers_line(fake_rpy2):
     fake_rpy2.output = CANNED
-    fake_rpy2.stderr = ["Warning message:\n  ", "In aldex.clr: values are unreliable\n"]
-    with pytest.warns(
-        UserWarning, match=r"da\.aldex2: R warned: Warning message: In aldex\.clr: values are unreliable"
-    ):
+    fake_rpy2.warnings = ["values are unreliable", "second warning"]
+    with pytest.warns(UserWarning) as record:
         bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+    assert [str(w.message) for w in record] == [
+        "da.aldex2: R warned: values are unreliable",
+        "da.aldex2: R warned: second warning",
+    ]
+    assert record[0].filename == __file__
 
 
 def test_r_errors_name_the_function(fake_rpy2):
@@ -192,6 +196,17 @@ def test_all_zero_feature_is_not_tested_in_r():
 def test_few_mc_samples_warn_in_python():
     with pytest.warns(UserWarning, match=r"da\.aldex2: R warned: .*unreliable"):
         bt.da.aldex2(bt.datasets.toy(), "group", mc_samples=16, seed=0)
+
+
+@pytest.mark.r
+def test_r_messages_are_not_warnings():
+    # A direct test of the bridge: R's message() is progress text, not a warning condition.
+    from biotapy.da._r import call_r, r_function
+
+    function = r_function('function() { message("hi"); data.frame(a = 1) }', package="base", func="da.x")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert call_r(function)["a"].tolist() == [1.0]
 
 
 @pytest.mark.r

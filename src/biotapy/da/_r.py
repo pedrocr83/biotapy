@@ -18,16 +18,26 @@ def r_seed(seed: int | np.random.Generator | None) -> int:
     return int(as_generator(seed).integers(_SEED_BOUND))
 
 
+# Runs the function and returns its value with the messages of the R warnings it raised, muffled so that R does not
+# print them again; message() output is not a warning condition and keeps rpy2's default handling.
+_CATCH_WARNINGS = """function(f) function(...) {
+  caught <- character()
+  value <- withCallingHandlers(f(...), warning = function(cond) {
+    caught <<- c(caught, conditionMessage(cond))
+    invokeRestart("muffleWarning")
+  })
+  list(value = value, warnings = caught)
+}"""
+
+
 def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
     """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``.
 
-    Calling it re-emits what R wrote to its console as a ``UserWarning`` and turns an R error into a ``RuntimeError``,
-    both naming ``func``.
+    Calling it returns the R function's value, re-emits each R warning as a ``UserWarning`` and turns an R error into a
+    ``RuntimeError``, both naming ``func``.
     """
     robjects = import_optional("rpy2.robjects", extra="r")
     rpackages = import_optional("rpy2.robjects.packages", extra="r")
-    # Typed Any: mypy rejects assigning an attribute of a ModuleType, and the hook below is assigned.
-    callbacks: Any = import_optional("rpy2.rinterface_lib.callbacks", extra="r")
     embedded = import_optional("rpy2.rinterface_lib.embedded", extra="r")
     try:
         # Loaded before the call: a package that `::` loads during it makes R print "stack imbalance" warnings.
@@ -35,25 +45,17 @@ def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
     except rpackages.PackageNotInstalledError as err:
         msg = f'{func} needs the R package {package}. Install it in R with: BiocManager::install("{package}")'
         raise ImportError(msg) from err
-    function = robjects.r(code)
+    function = robjects.r(f"({_CATCH_WARNINGS})({code})")
 
     def run(*args: object) -> object:
-        written: list[str] = []
-        original = callbacks.consolewrite_warnerror
-        callbacks.consolewrite_warnerror = written.append
         try:
-            result = function(*args)
-            # R prints a call's deferred warnings only when control returns to its top level; evaluating a no-op there flushes them.
-            robjects.r("invisible(NULL)")
+            value, caught = function(*args).values()
         except embedded.RRuntimeError as err:
             msg = f"{func}: R stopped: {str(err).strip()}"
             raise RuntimeError(msg) from err
-        finally:
-            callbacks.consolewrite_warnerror = original
-        text = " ".join("".join(written).split())
-        if text:
-            warnings.warn(f"{func}: R warned: {text}", stacklevel=4)
-        return result
+        for message in caught:
+            warnings.warn(f"{func}: R warned: {message}", stacklevel=4)
+        return value
 
     return run
 

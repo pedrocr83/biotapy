@@ -36,21 +36,18 @@ def fake_rpy2(monkeypatch):
 
     The bridges' own code (seeds, labels, orientation, the schema mapping) runs unchanged; only rpy2 is replaced.
     """
-    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[], stderr=[])
+    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[], warnings=[])
 
     def r(code):
         def function(*args):
             fake.calls.append((code, args))
-            for text in fake.stderr:
-                callbacks.consolewrite_warnerror(text)
             if isinstance(fake.output, Exception):
                 raise fake.output
-            return fake.output
+            # What r_function's R wrapper returns after rpy2's conversion: the value and the warning messages.
+            return SimpleNamespace(values=lambda: (fake.output, fake.warnings))
 
         return function
 
-    callbacks = ModuleType("rpy2.rinterface_lib.callbacks")
-    callbacks.consolewrite_warnerror = None
     embedded = ModuleType("rpy2.rinterface_lib.embedded")
     # rpy2's class for an R error; the bridge turns it into a RuntimeError.
     embedded.RRuntimeError = type("RRuntimeError", (RuntimeError,), {})
@@ -70,7 +67,7 @@ def fake_rpy2(monkeypatch):
     pandas2ri.converter = _Converter()
     modules = {"rpy2": ModuleType("rpy2"), "rpy2.robjects": robjects}
     modules |= {"rpy2.robjects.packages": packages, "rpy2.robjects.pandas2ri": pandas2ri}
-    modules |= {"rpy2.rinterface_lib.callbacks": callbacks, "rpy2.rinterface_lib.embedded": embedded}
+    modules["rpy2.rinterface_lib.embedded"] = embedded
     for name, module in modules.items():
         monkeypatch.setitem(sys.modules, name, module)
     return fake

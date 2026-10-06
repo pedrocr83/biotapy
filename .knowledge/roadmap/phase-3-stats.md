@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:14:00Z }
-commit: 0485b86
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:34:00Z }
+commit: eca790a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -5307,7 +5307,7 @@ marker is already registered), `.github/`.
    import numpy as np
    import pandas as pd
    import pytest
-  @@ -14,3 +18,59 @@ def benchmark():
+  @@ -14,3 +18,56 @@ def benchmark():
        tdata.obs["host"] = pd.Categorical(np.where(human, "human", "other"))
        tdata.obs["log_depth"] = np.log(np.asarray(tdata.X.sum(axis=1)).ravel())
        return tdata
@@ -5329,21 +5329,18 @@ marker is already registered), `.github/`.
   +
   +    The bridges' own code (seeds, labels, orientation, the schema mapping) runs unchanged; only rpy2 is replaced.
   +    """
-  +    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[], stderr=[])
+  +    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[], warnings=[])
   +
   +    def r(code):
   +        def function(*args):
   +            fake.calls.append((code, args))
-  +            for text in fake.stderr:
-  +                callbacks.consolewrite_warnerror(text)
   +            if isinstance(fake.output, Exception):
   +                raise fake.output
-  +            return fake.output
+  +            # What r_function's R wrapper returns after rpy2's conversion: the value and the warning messages.
+  +            return SimpleNamespace(values=lambda: (fake.output, fake.warnings))
   +
   +        return function
   +
-  +    callbacks = ModuleType("rpy2.rinterface_lib.callbacks")
-  +    callbacks.consolewrite_warnerror = None
   +    embedded = ModuleType("rpy2.rinterface_lib.embedded")
   +    # rpy2's class for an R error; the bridge turns it into a RuntimeError.
   +    embedded.RRuntimeError = type("RRuntimeError", (RuntimeError,), {})
@@ -5363,7 +5360,7 @@ marker is already registered), `.github/`.
   +    pandas2ri.converter = _Converter()
   +    modules = {"rpy2": ModuleType("rpy2"), "rpy2.robjects": robjects}
   +    modules |= {"rpy2.robjects.packages": packages, "rpy2.robjects.pandas2ri": pandas2ri}
-  +    modules |= {"rpy2.rinterface_lib.callbacks": callbacks, "rpy2.rinterface_lib.embedded": embedded}
+  +    modules["rpy2.rinterface_lib.embedded"] = embedded
   +    for name, module in modules.items():
   +        monkeypatch.setitem(sys.modules, name, module)
   +    return fake
@@ -5372,6 +5369,7 @@ marker is already registered), `.github/`.
   seed `seed=0` becomes, `1826701614`):
   ```python
   import sys
+  import warnings
 
   import numpy as np
   import pandas as pd
@@ -5467,13 +5465,16 @@ marker is already registered), `.github/`.
           bt.da.aldex2(bt.datasets.toy(), "group", seed="abc")
 
 
-  def test_r_warnings_are_re_emitted_in_python(fake_rpy2):
+  def test_each_r_warning_is_re_emitted_at_the_callers_line(fake_rpy2):
       fake_rpy2.output = CANNED
-      fake_rpy2.stderr = ["Warning message:\n  ", "In aldex.clr: values are unreliable\n"]
-      with pytest.warns(
-          UserWarning, match=r"da\.aldex2: R warned: Warning message: In aldex\.clr: values are unreliable"
-      ):
+      fake_rpy2.warnings = ["values are unreliable", "second warning"]
+      with pytest.warns(UserWarning) as record:
           bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      assert [str(w.message) for w in record] == [
+          "da.aldex2: R warned: values are unreliable",
+          "da.aldex2: R warned: second warning",
+      ]
+      assert record[0].filename == __file__
 
 
   def test_r_errors_name_the_function(fake_rpy2):
@@ -5568,6 +5569,17 @@ marker is already registered), `.github/`.
 
 
   @pytest.mark.r
+  def test_r_messages_are_not_warnings():
+      # A direct test of the bridge: R's message() is progress text, not a warning condition.
+      from biotapy.da._r import call_r, r_function
+
+      function = r_function('function() { message("hi"); data.frame(a = 1) }', package="base", func="da.x")
+      with warnings.catch_warnings():
+          warnings.simplefilter("error")
+          assert call_r(function)["a"].tolist() == [1.0]
+
+
+  @pytest.mark.r
   def test_aldex2_table_passes_the_consensus_checks():
       out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
       assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
@@ -5605,7 +5617,7 @@ marker is already registered), `.github/`.
 - [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da/test_aldex2.py -q` -> `13 failed, 5
   deselected` (`AttributeError: module 'biotapy.da' has no attribute
-  'aldex2'`). Where R and rpy2 are installed, the seven `r` tests (six in
+  'aldex2'`). Where R and rpy2 are installed, the eight `r` tests (seven in
   `test_aldex2.py`, the golden) fail with the same `AttributeError`.
 - [x] **Step 8: Implement.** `pyproject.toml` (pyproject-fmt keeps the extra
   after `dependencies`):
@@ -5642,16 +5654,26 @@ marker is already registered), `.github/`.
       return int(as_generator(seed).integers(_SEED_BOUND))
 
 
+  # Runs the function and returns its value with the messages of the R warnings it raised, muffled so that R does not
+  # print them again; message() output is not a warning condition and keeps rpy2's default handling.
+  _CATCH_WARNINGS = """function(f) function(...) {
+    caught <- character()
+    value <- withCallingHandlers(f(...), warning = function(cond) {
+      caught <<- c(caught, conditionMessage(cond))
+      invokeRestart("muffleWarning")
+    })
+    list(value = value, warnings = caught)
+  }"""
+
+
   def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
       """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``.
 
-      Calling it re-emits what R wrote to its console as a ``UserWarning`` and turns an R error into a ``RuntimeError``,
-      both naming ``func``.
+      Calling it returns the R function's value, re-emits each R warning as a ``UserWarning`` and turns an R error into a
+      ``RuntimeError``, both naming ``func``.
       """
       robjects = import_optional("rpy2.robjects", extra="r")
       rpackages = import_optional("rpy2.robjects.packages", extra="r")
-      # Typed Any: mypy rejects assigning an attribute of a ModuleType, and the hook below is assigned.
-      callbacks: Any = import_optional("rpy2.rinterface_lib.callbacks", extra="r")
       embedded = import_optional("rpy2.rinterface_lib.embedded", extra="r")
       try:
           # Loaded before the call: a package that `::` loads during it makes R print "stack imbalance" warnings.
@@ -5659,25 +5681,17 @@ marker is already registered), `.github/`.
       except rpackages.PackageNotInstalledError as err:
           msg = f'{func} needs the R package {package}. Install it in R with: BiocManager::install("{package}")'
           raise ImportError(msg) from err
-      function = robjects.r(code)
+      function = robjects.r(f"({_CATCH_WARNINGS})({code})")
 
       def run(*args: object) -> object:
-          written: list[str] = []
-          original = callbacks.consolewrite_warnerror
-          callbacks.consolewrite_warnerror = written.append
           try:
-              result = function(*args)
-              # R prints a call's deferred warnings only when control returns to its top level; evaluating a no-op there flushes them.
-              robjects.r("invisible(NULL)")
+              value, caught = function(*args).values()
           except embedded.RRuntimeError as err:
               msg = f"{func}: R stopped: {str(err).strip()}"
               raise RuntimeError(msg) from err
-          finally:
-              callbacks.consolewrite_warnerror = original
-          text = " ".join("".join(written).split())
-          if text:
-              warnings.warn(f"{func}: R warned: {text}", stacklevel=4)
-          return result
+          for message in caught:
+              warnings.warn(f"{func}: R warned: {message}", stacklevel=4)
+          return value
 
       return run
 
@@ -5783,8 +5797,8 @@ marker is already registered), `.github/`.
       Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
       Carlo draws in label order, so the same ``seed`` gives different effects
       (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
-      the same p-values on ``toy()``. What R prints during the call, such as the
-      warning for fewer than 128 ``mc_samples``, is re-emitted as a
+      the same p-values on ``toy()``. Each R warning raised during the call, such as
+      the one for fewer than 128 ``mc_samples``, is re-emitted as a
       ``UserWarning``, and an R error is raised as a ``RuntimeError``.
 
       Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
@@ -5862,10 +5876,10 @@ marker is already registered), `.github/`.
   `ModuleType` attributes are `Any` (hence the two `cast`s), and the lint
   environment has no rpy2 (it cannot build without R). Slice 3C decision 11.
 - [x] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
-  -> `126 passed, 11 deselected`; in the R environment (`uv sync --group test
+  -> `126 passed, 12 deselected`; in the R environment (`uv sync --group test
   --extra r` with R 4.5.3 and ALDEx2 installed) `uv run --group test --extra r
   pytest -m r tests/da/test_aldex2.py tests/da/test_aldex2_golden.py -q` ->
-  `7 passed` (the golden about 10 s, GlobalPatterns from the pooch cache).
+  `8 passed` (the golden about 10 s, GlobalPatterns from the pooch cache).
   If rpy2 imports with "Error importing in API mode", the R link headers are
   missing: install `libpcre2-dev libdeflate-dev libzstd-dev` and rebuild it with
   `RPY2_CFFI_MODE=API` (design, CI job).
@@ -5989,13 +6003,14 @@ marker is already registered), `.github/`.
 
 - [x] **Step 13: Fix round 1** (review of 0485b86; `fix(da)`). Repeated `var_names` or
   `obs_names` raise in `da._design.dense_counts` (all methods; `test_design.py` and
-  `test_aldex2.py::test_repeated_names_raise`); `r_function` returns a closure that re-emits R's console
-  output as a `UserWarning` and turns an R error into a `RuntimeError`, both naming the function
-  (`test_r_warnings_are_re_emitted_in_python`, `test_r_errors_name_the_function`, and in R
-  `test_few_mc_samples_warn_in_python`); `seed` is checked before rpy2 loads
+  `test_aldex2.py::test_repeated_names_raise`); `r_function` wraps the R function in `withCallingHandlers` and returns a closure that
+  re-emits each R warning condition as its own `UserWarning` at the caller's line and turns an R error into a
+  `RuntimeError`, both naming the function (`test_each_r_warning_is_re_emitted_at_the_callers_line`,
+  `test_r_errors_name_the_function`, and in R `test_few_mc_samples_warn_in_python`,
+  `test_r_messages_are_not_warnings`); `seed` is checked before rpy2 loads
   (`test_seed_is_checked_before_rpy2_is_imported`); the docstring, guide, golden test, export script and
   contract say that `reference` changes the Monte Carlo draws and that 1165433077 depends on NumPy's
-  stream. Expected: `pytest tests/da -q` -> `126 passed, 11 deselected`; `-m r` -> `7 passed`.
+  stream. Expected: `pytest tests/da -q` -> `126 passed, 12 deselected`; `-m r` -> `8 passed`.
 
 ---
 

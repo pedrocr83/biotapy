@@ -121,7 +121,7 @@ those genera).
 
 Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
 so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, where they are about
-4 log2 wide), with the same p-values there. Anything R prints during the call, such as the warning
+4 log2 wide), with the same p-values there. Each R warning raised during the call, such as the one
 for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
 `RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
 

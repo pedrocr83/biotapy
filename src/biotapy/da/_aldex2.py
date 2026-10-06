@@ -88,8 +88,8 @@ def aldex2(
     Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
     Carlo draws in label order, so the same ``seed`` gives different effects
     (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
-    the same p-values on ``toy()``. What R prints during the call, such as the
-    warning for fewer than 128 ``mc_samples``, is re-emitted as a
+    the same p-values on ``toy()``. Each R warning raised during the call, such as
+    the one for fewer than 128 ``mc_samples``, is re-emitted as a
     ``UserWarning``, and an R error is raised as a ``RuntimeError``.
 
     Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
