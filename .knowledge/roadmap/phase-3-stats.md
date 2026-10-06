@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:40:00Z }
-commit: b1e3f4f
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:53:14Z }
+commit: f373d12
 sources:
   - id: spec
     resource: ../../plan.md
@@ -258,7 +258,9 @@ a roadmap signature and are repeated under "Decisions for the user".
      ANCOMBC's default is Holm, so the wrapper passes `p_adjust="bh"`; LinDA
      uses `scipy.stats.false_discovery_control(p, method="bh")`; ALDEx2's
      `we.eBH` and MaAsLin 3's `qval_individual` (abundance model only) are
-     BH. Mixed Holm/BH q-values would make "significant" mean different
+     BH. [Superseded by slice 3C decisions 3 and 4: neither is BH of the
+     group's p-values; both bridges carry the p-value and `_schema.result`
+     computes the BH `qvalue`.] Mixed Holm/BH q-values would make "significant" mean different
      things per column.
    - **NaN:** a feature a method could not test keeps its row with NaN
      `effect`, `se`, `pvalue`, `qvalue` and `direction` 0. Methods never drop
@@ -367,16 +369,22 @@ a roadmap signature and are repeated under "Decisions for the user".
      Welch t-test; its `glm` route for covariates is out of 0.3, so no
      `covariates` argument). `effect = diff.btw` (median CLR difference,
      log2; ALDEx2's standardised `effect` is not log2), `se` NaN, `pvalue =
-     we.ep`, `qvalue = we.eBH`. Seeding: `as_generator(seed)` draws one
+     we.ep`, `qvalue = we.eBH` [superseded by slice 3C decision 3: `qvalue`
+     is BH of `we.ep`]. Seeding: `as_generator(seed)` draws one
      integer, passed to R's `set.seed` before the call (R's RNG is global to
-     the embedded R; documented in `Notes`); `useMC = FALSE`.
+     the embedded R; documented in `Notes`) [superseded by the Checkpoint C
+     fix: the call restores R's `.Random.seed`, or its absence, on exit];
+     `useMC = FALSE`.
    - **MaAsLin 3: `da.maaslin3(adata, group, *, covariates=(),
      reference=None, seed=None) -> pd.DataFrame`, rpy2 bridge.**[^maaslin3] Abundance
      model only (`evaluate_only = "abundance"`): the prevalence model reports
      log-odds, which cannot share an `effect` column with log2 fold changes.
      `min_prevalence = 0`, plots off, output to a temporary directory read
      back from `all_results.tsv`. `effect = coef`, `se = stderr`,
-     `pvalue = pval_individual`, `qvalue = qval_individual`.
+     `pvalue = pval_individual`, `qvalue = qval_individual`. [Superseded by
+     slice 3C decisions 4-6: the results come from the R return value, not
+     `all_results.tsv`; `effect` is the coefficient minus the median
+     coefficient; `qvalue` is BH over the group's p-values.]
    - The `alpha` and `formula` arguments of roadmap 3.4-3.7 are replaced as
      above. **(user: signatures)**
 
@@ -419,7 +427,9 @@ a roadmap signature and are repeated under "Decisions for the user".
      mapping from a canned R table, argument checks, the missing-R error)
      are tested without R by monkeypatching the private R call, the
      documented exception already used for `datasets._enzyme._fetch`, so
-     coverage holds without R.
+     coverage holds without R. [Superseded by slice 3C decision 13: the
+     tests replace the rpy2 modules (`fake_rpy2` in `tests/da/conftest.py`),
+     so the bridges' own code runs unchanged.]
    - **CI job `r-bridge` (task 3.11), recommended.** The decision
      r-bridge-before-ports already says "CI needs a job with R available for
      bridge tests", and without it the bridge code is never run in CI.
@@ -510,7 +520,7 @@ a roadmap signature and are repeated under "Decisions for the user".
   `skbio.stats.composition._base` joins `untyped_calls_exclude` (as
   `skbio.stats._subsample` did); rpy2 ships no `py.typed`
   ([UNVERIFIED]) and gets the same `follow_untyped_imports` override when 3C
-  adds it.
+  adds it. [Superseded by slice 3C decision 11: 3C adds no override.]
 - Commits stage explicit paths only. Never stage `.claude/`, `.superpowers/`,
   `.worktrees/`, `notebooks/` or `build/`. Every task's last commit also
   stages `.knowledge/roadmap/phase-3-stats.md` with that task's boxes ticked
@@ -5033,7 +5043,10 @@ the hashes are the scratch clone's, not the repository's.
 
   `_r.py` serves the two `da` bridges only, so it stays in `da` (R4.3). The
   shared helpers `_design.model`, `_design.dense_counts` and `_schema.result` are
-  reused unchanged; nothing the bridges need is missing from them.
+  reused. [Corrected by the fix rounds: they were not unchanged. `dense_counts`
+  gained the repeated `var_names`/`obs_names` check, and `_design._column` now
+  returns unordered categoricals, which fixed an ordered group's effect for all
+  four methods.]
 - **The bridge module (`da/_r.py`).** Three functions, each a few lines:
   - `r_seed(seed) -> int`: `int(as_generator(seed).integers(2**31 - 1))`, one
     draw, a non-negative 32-bit integer for `set.seed` (R3.4).
@@ -5916,7 +5929,7 @@ marker is already registered), `.github/`.
   +
   +ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
   +`seed` sets R's random state, so the same seed gives the same table, and on the GlobalPatterns
-  +genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14 (when `reference` is R's
+  +genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to a relative 8.4e-13 (when `reference` is R's
   +first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
   +Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
   +`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
@@ -6830,6 +6843,11 @@ selects no bridge test), `pyproject.toml`, `src/`.
   +        with:
   +          path: ${{ github.workspace }}/.pooch
   +          key: pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}
+  +      # Syncs the environment, so this is where rpy2 builds; the tests step reuses it.
+  +      - name: Log the rpy2 version
+  +        env:
+  +          RPY2_CFFI_MODE: API
+  +        run: uv run --group test --extra r python -c "import rpy2; print('rpy2', rpy2.__version__)"
   +      - name: Run the R bridge tests
   +        env:
   +          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
@@ -6902,14 +6920,19 @@ selects no bridge test), `pyproject.toml`, `src/`.
   measured parity; then a fix pass, one commit per finding, each with a test (an
   `r` test where only R shows the bug, plus a no-R test through `fake_rpy2`
   where the mapping can show it). Record the counts (Critical / Important /
-  Minor) and the fix range here.
+  Minor) and the fix range here. Done: 0 Critical, 4 Important, 5 Minor and 2
+  nits; the fix range is the commits after `39383e7` (M3 and M4 belong to the
+  knowledge step and the PR).
 - [ ] Run the exit-gate check for 3C: in the R environment `uv run --group test
-  --extra r pytest -m r -q` (expected `19 passed`), and on the host `uv run
-  --group test pytest -q -W error::UserWarning` (expected `1224 passed, 48 deselected`) and
+  --extra r pytest -m r -q` (expected `19 passed`; `24 passed` after the
+  Checkpoint C fix pass), and on the host `uv run
+  --group test pytest -q -W error::UserWarning` (expected `1224 passed, 48 deselected`;
+  the gate gave `1225` after fix round 1's timeout test and `1230 passed, 53
+  deselected` after the Checkpoint C fix pass) and
   `uv run --group test pytest -m "golden or network" -q` (expected `36
   passed`); record the three counts. The Phase 3 exit gate's "`da.aldex2`,
   `da.maaslin3` in the `r-bridge` job" box is ticked when that job is green on
-  the pull request, and that job's log must show `CFFI_MODE.API` and `19 passed`
+  the pull request, and that job's log must show `CFFI_MODE.API` and `24 passed`
   (the apt packages, the pak install and rpy2's build cannot be checked locally).
 - [ ] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Update `.knowledge/modules/da.md`** for the bridges: Responsibility gains
@@ -7087,11 +7110,17 @@ note 8's "monkeypatching the private R call" follows decision 13; the outline
      .integers(2**31 - 1)`; NumPy does not promise that stream across releases.
      A change fails both goldens loudly; the fix is to re-derive the integer and
      regenerate.
-   - `set.seed` changes the R session's global random state; the docstrings say
-     so. Restoring the previous state would need more R glue (R2.3).
-   - R's console messages (for example ALDEx2's warning below 128 draws) reach
-     Python as log records of `rpy2.rinterface_lib.callbacks`, not as
-     `warnings`; biotapy does not translate them.
+   - [Superseded by Checkpoint C (I2): the bridge wrapper restores R's
+     `.Random.seed`, or its absence, on exit, so `set.seed` leaves the user's R
+     session as it found it (R3.4); the docstrings no longer disclose a changed
+     state.] ~~`set.seed` changes the R session's global random state; the
+     docstrings say so. Restoring the previous state would need more R glue (R2.3).~~
+   - [Superseded by fix round 2 (eb5040b): R warnings are caught in R and
+     re-emitted as `UserWarning`; the messages themselves are untouched. Since
+     Checkpoint C (M1) an R error carries the warnings raised before it in its
+     message.] ~~R's console messages reach Python as log records of
+     `rpy2.rinterface_lib.callbacks`, not as `warnings`; biotapy does not
+     translate them.~~
    - The bridges are Linux/macOS-first (rpy2 builds from source); Windows and
      macOS were not run.
    - A missing R after rpy2 was built surfaces as the "pip install
@@ -7105,6 +7134,10 @@ note 8's "monkeypatching the private R call" follows decision 13; the outline
 ## Slice 3D - Docs and release (outline)
 
 ### Slice 3D design (proposed)
+- **Inputs for the writers.** Take the bridges' table semantics from the
+  `data-model-slots` contract and the guide, not from design notes 5 and 7
+  above (superseded): `qvalue` is BH everywhere, ALDEx2's `se` is NaN for
+  every feature, MaAsLin 3's `effect` is the coefficient minus the median.
 - **3.10 docs.** `docs/methods/` with one page per method (`ancombc2.md`,
   `linda.md`, `aldex2.md`, `maaslin3.md`, `consensus.md`: model, units,
   what the R defaults are and which biotapy changes, references) and
@@ -7172,7 +7205,8 @@ a judgement call. Recommended answer first.
 11. **LinDA:** native, fixed effects only, no winsorisation (golden vs
     `MicrobiomeStat::linda(is.winsor = FALSE)`), no statsmodels.
 12. **ALDEx2 through the rpy2 bridge**, not scikit-bio's `dirmult_ttest`;
-    two groups, no covariates; `effect = diff.btw`, `qvalue = we.eBH`.
+    two groups, no covariates; `effect = diff.btw`, `qvalue = we.eBH`
+    [superseded by slice 3C decision 3: `qvalue` is BH of `we.ep`].
 13. **MaAsLin 3 through the bridge, abundance model only.**
 14. **Extra `r = ["rpy2>=3.6.8"]`** and its licensing stance: biotapy (BSD-3)
     imports GPL rpy2 only when installed by the user, never bundles it;
