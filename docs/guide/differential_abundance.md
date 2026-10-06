@@ -28,15 +28,16 @@ The table has one row per feature, in `var_names` order:
 
 | Column | Meaning |
 |---|---|
-| `effect` | log2 fold change of the other level over the reference, or the slope of a numeric group |
-| `se` | its standard error |
+| `effect` | log2 fold change of the other level over the reference, or the slope of a numeric group: per standard deviation in LinDA and MaAsLin 3, per unit in ANCOM-BC2, not offered by ALDEx2. ALDEx2's is the median log2 difference between the groups, MaAsLin 3's the coefficient minus the median coefficient |
+| `se` | its standard error; NaN for every feature in ALDEx2, which reports none |
 | `pvalue` | the method's p-value |
 | `qvalue` | Benjamini-Hochberg adjusted p-value, over the features the method tested |
 | `direction` | sign of `effect`: -1, 0 or 1 |
 | `method` | the method's name |
 | `contrast` | `"<level> vs <reference>"`, or the name of a numeric group |
 
-A feature a method cannot test keeps its row, with NaN values and `direction` 0. Methods never
+A feature a method cannot test keeps its row, with NaN `effect`, `pvalue` and `qvalue` and `direction` 0 (a NaN `se` alone means
+nothing for ALDEx2). Methods never
 filter features: filter once, with `bt.pp.filter_features`, before running any method, so every
 method tests the same features. Methods need raw counts in `X` and a read in every sample
 (`bt.pp.filter_samples(tdata, min_depth=1)` drops empty ones).
@@ -85,6 +86,72 @@ sign of `effect`, because the bias-corrected E-M is fitted against the reference
 here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to 230, and `effect`
 plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
 Choose `reference` on the biology (the control or baseline level), not to change the results.
+
+## Methods that run in R
+
+ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
+[rpy2](https://rpy2.github.io/). They need R, the R package, and biotapy's `r` extra, which builds
+rpy2 against that R (Linux and macOS; it fails to install when no R is found):
+
+```bash
+Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("ALDEx2", "maaslin3"))'
+pip install 'biotapy[r]'
+```
+
+rpy2 is GPL-2.0-or-later and the R packages have their own licences; biotapy itself does not ship
+any of them. Without rpy2 or the R package, the call raises an `ImportError` that names what to
+install. Each call converts `X` to a dense table once, because rpy2 has no sparse converter.
+
+### ALDEx2
+
+`bt.da.aldex2` runs `ALDEx2::aldex` (Fernandes et al. 2014): Monte Carlo draws from each sample's
+Dirichlet posterior, their log2 centred log-ratios, and a Welch t-test per draw, whose p-values are
+averaged. `effect` is ALDEx2's `diff.btw`, the median log2 difference between the two groups:
+
+```python
+table = bt.da.aldex2(tdata, "group", seed=0)
+```
+
+ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
+`seed` seeds R for the call (your R session's own random state is restored afterwards), so the same seed gives the same table, and on the GlobalPatterns
+genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to a relative 8.4e-13 (when `reference` is R's
+first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
+Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
+`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
+those genera).
+
+Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
+so the same `seed` gives different effects, and the two runs are not exact mirror images: the effects
+differ from exact antisymmetry by up to 0.25 log2 on `toy()` (where they are about 4 log2 wide) and up to
+0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change direction. The p-values and
+the calls are the same on both. Each R warning raised during the call, such as the one
+for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
+`RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
+
+### MaAsLin 3
+
+`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
+"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
+log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
+is tested against the median coefficient, MaAsLin 3's correction for
+compositionality (the median over the features without a fit error whose own p-value is below
+0.95, as MaAsLin 3 computes it); `effect` is the coefficient minus that median, so its sign says on which side
+of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
+
+```python
+table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
+```
+
+Numeric columns are standardised, so a numeric group's effect is per standard deviation, as in
+`da.linda`. The test against the median simulates, so `seed` makes the p-values reproducible; on the
+GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
+are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
+MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
+covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
+
+Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
+coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
+`qvalue` by up to 2e-3 on those genera (the calls are the same); `seed` fixes the draws.
 
 ## Where methods agree
 

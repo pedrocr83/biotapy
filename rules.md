@@ -122,9 +122,10 @@ Full contract: [.knowledge/contracts/data-model-slots.md](.knowledge/contracts/d
 - **R6.1** Samples are rows, always. Only `io` readers transpose, exactly once.
 - **R6.2** `X` stays sparse CSR. Never call `.toarray()`/`.todense()` on a full
   matrix, except inside a wrapper whose delegated library requires dense input
-  (scikit-bio does: its AnnData dispatch fails on sparse `X`). Then densify
-  once, in the wrapper, with a comment saying why, and state the memory cost
-  in the docstring `Notes`.
+  (scikit-bio does: its AnnData dispatch fails on sparse `X`), or inside a
+  native method whose algorithm needs the full table (LinDA's log-ratios have
+  no zeros). Then densify once, in that function, with a comment saying why,
+  and state the memory cost in the docstring `Notes`.
 - **R6.3** Results go only to the slot and key the data-model contract names
   (`layers`, `obsm`, `obsp`, `uns["biotapy"]`). No ad-hoc keys.
 - **R6.4** Functions that change features (filter, glom, rarefy) follow the

@@ -1,12 +1,12 @@
 ---
 type: Contract
 title: R golden parity
-description: Every computation with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs match numerically, stochastic outputs match invariants; HUMAnN-parity functions are tested the same way against files exported from pinned HUMAnN 3.9.
+description: Every computation with an R equivalent is tested against gzip CSV golden files exported from pinned R; deterministic outputs and the seeded R bridges match exactly (to rounding), only unseeded stochastic outputs are compared by invariants; HUMAnN-parity functions are tested the same way against files exported from pinned HUMAnN 3.9.
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:50:53Z }
+commit: 8a1f184
 sources:
   - id: spec
     resource: ../../plan.md
@@ -22,8 +22,9 @@ sources:
    Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
    `fs` binary loads, CRAN `MicrobiomeStat` for `da.linda`, and Bioconductor
    `ANCOMBC` for `da.ancombc2`, with CRAN's archived CVXR 1.0-15 and the
-   `libgsl27` runtime library it needs); a new golden function that needs another
-   package adds it in its own commit (rules.md R2.3).
+   `libgsl27` runtime library it needs, Bioconductor `ALDEx2` for `da.aldex2`
+   and Bioconductor `maaslin3` for `da.maaslin3`); a new golden function that
+   needs another package adds it in its own commit (rules.md R2.3).
 1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
    `tests/humann/export_golden.py`, run with
    `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
@@ -49,8 +50,10 @@ sources:
    | Permutation tests (PERMANOVA) | test statistic elementwise; p-value within `0.02` at >= 9,999 permutations | as stated |
    | Rarefaction | invariants only: row sums == depth, dropped samples identical, no count exceeds original | exact |
    | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
-   | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+   | DA methods | sign agreement and rank correlation of effect sizes; exact match where the R method is deterministic, or Monte Carlo and seeded with the integer biotapy derives from its `seed` | per method |
    | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
+   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13); 1165433077 is `np.random.default_rng(20260927).integers(2**31 - 1)`, so a NumPy change to that stream fails the test loudly: recompute the integer and re-export |
+   | `da.maaslin3` vs `maaslin3::maaslin3(evaluate_only = "abundance", subtract_median = TRUE)` (its median test simulates; the same seed as `da.aldex2`'s golden) | the same untested features (fit errors); `effect` vs `coef`, `se` vs `stderr`, `pvalue` vs `pval_individual` elementwise; `qvalue` vs BH of R's p-values over the group's rows | `rtol=1e-7` (measured 2e-14, 5e-15 and 7e-13), both models |
    | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
@@ -84,15 +87,22 @@ sources:
    files check them.
 
 # Why
-R and NumPy random generators differ, so stochastic outputs can never match
-bit-for-bit; demanding it would force skipping those tests. Comparing
-invariants keeps them honest.
+R and NumPy random generators differ, so a stochastic output matches R only
+when biotapy hands R the seed integer (`da.aldex2` and `da.maaslin3` do: the goldens'
+`set.seed(1165433077)` is `np.random.default_rng(20260927).integers(2**31 - 1)`,
+so a change in NumPy's stream fails those goldens loudly: recompute the integer
+and re-export). Everywhere else demanding bit-for-bit would force skipping
+tests, and comparing invariants keeps them honest.
 
 # Enforced by
 - `tests/<module>/test_*_golden.py` files, marker `golden` (Phase 1, task 1.12).
   They also carry `network`, because the golden inputs (e.g. GlobalPatterns)
   are downloaded by pooch; they run in the network CI job
   (`pytest -m "network or golden"`).
+- `tests/da/test_*_golden.py` of the R bridges, marker `r` only: they need R
+  and rpy2 and run in the `r-bridge` CI job, which gives them the network job's
+  pooch cache; marked `golden` or `network`, they would run in the network job,
+  which has no R.
 - `tests/fn/*_golden.py`, marker `golden` only: their inputs are committed, so
   they run in every CI job.
 - Missing golden file = test error, not skip.

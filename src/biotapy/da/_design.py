@@ -78,6 +78,8 @@ def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
     if adata.n_vars < 2:
         msg = f"{func} needs at least two features: log-ratio methods compare each feature with the others"
         raise ValueError(msg)
+    _require_unique(adata.var_names, "var", func=func)
+    _require_unique(adata.obs_names, "obs", func=func)
     X = as_csr(adata.X)
     empty = adata.obs_names[np.asarray(X.sum(axis=1)).ravel() == 0]
     if len(empty):
@@ -88,6 +90,17 @@ def dense_counts(adata: AnnData, *, func: str) -> npt.NDArray[np.float64]:
         raise ValueError(msg)
     # LinDA's log-ratios and scikit-bio's ancombc2 need a dense table (rules.md R6.2): the one dense copy of X.
     return X.toarray().astype(np.float64, copy=False)
+
+
+def _require_unique(names: pd.Index, axis: str, *, func: str) -> None:
+    """Raise for repeated ``var_names`` or ``obs_names``: results are matched to features and samples by name."""
+    repeated = names[names.duplicated()].unique()
+    if len(repeated):
+        msg = (
+            f"{func} needs unique {axis} names, but {len(repeated)} repeat ({repeated[:3].tolist()}): "
+            f"call adata.{axis}_names_make_unique() first"
+        )
+        raise ValueError(msg)
 
 
 def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:
@@ -103,13 +116,15 @@ def _check_varies(frame: pd.DataFrame, group: str, *, func: str) -> None:
 
 
 def _column(values: pd.Series, *, func: str) -> pd.Series:
-    """Float64 for a numeric column, else a ``Categorical`` of the levels present; missing values raise."""
+    """Float64 for a numeric column, else an unordered ``Categorical`` of the levels present; missing values raise."""
     if values.isna().any():
         msg = f"{func}: obs[{values.name!r}] is missing for {int(values.isna().sum())} sample(s); drop them first"
         raise ValueError(msg)
     if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
         return values.astype(np.float64)
-    return pd.Series(pd.Categorical(values).remove_unused_categories(), index=values.index, name=values.name)
+    # Unordered: R codes an ordered factor by polynomial contrasts, which rescales an effect (1/sqrt(2) for two levels).
+    levels = pd.Categorical(values).remove_unused_categories().as_unordered()
+    return pd.Series(levels, index=values.index, name=values.name)
 
 
 def _group(values: pd.Series, reference: str | None, *, func: str) -> tuple[pd.Series, str]:

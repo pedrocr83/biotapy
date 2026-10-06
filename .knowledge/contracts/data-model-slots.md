@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+commit: 64fe39d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -138,16 +138,17 @@ per feature in `var_names` order, never a filtered subset:
 
 | Column | dtype | Meaning |
 |---|---|---|
-| `effect` | float64 | log2 fold change of `group`'s other level over `reference`, or the slope of a numeric `group` (per standard deviation in `da.linda`, which scales numeric columns) |
-| `se` | float64 | standard error of `effect` |
+| `effect` | float64 | log2 fold change of `group`'s other level over `reference`, or the slope of a numeric `group` (per standard deviation in `da.linda` and `da.maaslin3`, which scale numeric columns; per unit in `da.ancombc2`; `da.aldex2` refuses a numeric `group`). `da.aldex2`'s is the median `diff.btw` (log2); `da.maaslin3`'s is the coefficient minus the median coefficient it is tested against |
+| `se` | float64 | standard error of `effect`; NaN for every feature in `da.aldex2`, which reports none |
 | `pvalue` | float64 | the method's p-value |
 | `qvalue` | float64 | Benjamini-Hochberg over the finite p-values (`scipy.stats.false_discovery_control`) |
 | `direction` | int8 | sign of `effect`; 0 when `effect` is NaN |
 | `method` | str | the function's name, e.g. `"linda"` |
 | `contrast` | str | `"<level> vs <reference>"`, or the column name of a numeric `group` |
 
-A feature the method cannot test keeps its row with NaN `effect`, `se`,
-`pvalue` and `qvalue`. `group`, `covariates` and `reference` are checked once
+A feature the method cannot test keeps its row with NaN `effect`, `pvalue` and
+`qvalue` (`validate_result` enforces that they are NaN together); `se` is not
+checked, and a NaN `se` alone does not mean untested (`da.aldex2`). `group`, `covariates` and `reference` are checked once
 for every method by `da/_design.py:model`: no formula strings, missing values
 raise, a categorical `group` has exactly two levels.
 

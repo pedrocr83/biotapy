@@ -161,6 +161,57 @@ jobs:
           BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
         run: uv run --group test pytest -m "network or golden"
 
+  # Runs the R bridge tests (marker r, decisions/r-bridge-before-ports): R 4.5.3 with Bioconductor 3.22's ALDEx2 and
+  # maaslin3, as tests/r/Dockerfile pins them, on CRAN's snapshot of that image, so the seed-matched goldens hold. The
+  # four-method consensus reads GlobalPatterns through the network job's pooch cache.
+  r-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install R
+        uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          r-version: "4.5.3"
+          use-public-rspm: false
+          cran: https://p3m.dev/cran/__linux__/noble/2026-04-23
+      - name: Install ALDEx2 and maaslin3
+        uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+        with:
+          packages: bioc::ALDEx2, bioc::maaslin3
+          dependencies: '"hard"'
+      # Not asserted: Bioconductor 3.22 fixes the release line and the seed-matched goldens catch result drift; the log shows
+      # which versions ran.
+      - name: Log the R and package versions
+        run: Rscript -e 'cat(R.version.string, "\n"); for (pkg in c("ALDEx2", "maaslin3")) cat(pkg, as.character(packageVersion(pkg)), "\n")'
+      # rpy2 builds against R's link flags; without these headers it silently falls back to a mode that cannot load R.
+      - name: Install the libraries rpy2 links R with
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpcre2-dev libdeflate-dev libzstd-dev liblzma-dev libbz2-dev libicu-dev
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.13"
+      - name: Cache pooch downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.pooch
+          key: pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}
+      # Syncs the environment, so this is where rpy2 builds; the tests step reuses it.
+      - name: Log the rpy2 version
+        env:
+          RPY2_CFFI_MODE: API
+        run: uv run --group test --extra r python -c "import importlib.metadata as m; print('rpy2', m.version('rpy2'))"
+      - name: Run the R bridge tests
+        env:
+          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
+          # Fail the rpy2 build instead of falling back to its ABI mode.
+          RPY2_CFFI_MODE: API
+        run: uv run --group test --extra r pytest -m r
+
   # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
   # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network
   # job's pooch cache.
@@ -217,6 +268,7 @@ jobs:
       - lint
       - import-without-extras
       - network
+      - r-bridge
       - docs
     runs-on: ubuntu-latest
     steps:

@@ -35,6 +35,34 @@ def test_network_job_blocks_merges():
     assert "network" in WORKFLOW["jobs"]["check"]["needs"]
 
 
+def test_r_bridge_job_runs_the_r_marker():
+    steps = WORKFLOW["jobs"]["r-bridge"]["steps"]
+    run = [step for step in steps if step.get("run", "").strip() == "uv run --group test --extra r pytest -m r"]
+    assert run and "BIOTAPY_DATA_DIR" in run[0]["env"] and run[0]["env"]["RPY2_CFFI_MODE"] == "API"
+
+
+def test_r_bridge_job_installs_the_image_r_and_packages():
+    steps = {step.get("uses", "").split("@")[0]: step for step in WORKFLOW["jobs"]["r-bridge"]["steps"]}
+    assert steps["r-lib/actions/setup-r"]["with"]["r-version"] == "4.5.3"
+    dockerfile = (ROOT / "tests" / "r" / "Dockerfile").read_text(encoding="utf-8")
+    assert "FROM rocker/r-ver:4.5.3" in dockerfile and 'version = "3.22"' in dockerfile
+    packages = steps["r-lib/actions/setup-r-dependencies"]["with"]["packages"]
+    assert {name.strip() for name in packages.split(",")} == {"bioc::ALDEx2", "bioc::maaslin3"}
+
+
+def test_r_bridge_job_uses_the_image_cran_snapshot_and_has_a_timeout():
+    job = WORKFLOW["jobs"]["r-bridge"]
+    setup = next(step for step in job["steps"] if step.get("uses", "").startswith("r-lib/actions/setup-r@"))["with"]
+    # The snapshot comes from the rocker/r-ver:4.5.3 base image (tests/r/Dockerfile names no URL): `R -e 'getOption("repos")'`.
+    assert setup["cran"] == "https://p3m.dev/cran/__linux__/noble/2026-04-23"
+    assert setup["use-public-rspm"] is False
+    assert job["timeout-minutes"] == 30
+
+
+def test_r_bridge_job_blocks_merges():
+    assert "r-bridge" in WORKFLOW["jobs"]["check"]["needs"]
+
+
 def test_coverage_below_90_percent_fails_the_test_job():
     coverage = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["coverage"]
     assert coverage["report"]["fail_under"] == 90
