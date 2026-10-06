@@ -18,15 +18,22 @@ def r_seed(seed: int | np.random.Generator | None) -> int:
     return int(as_generator(seed).integers(_SEED_BOUND))
 
 
-# Runs the function and returns its value with the messages of the R warnings it raised, muffled so that R does not
-# print them again; message() output is not a warning condition and keeps rpy2's default handling.
+# Runs the function and returns its value, the messages of the R warnings it raised (muffled so that R does not print
+# them again; message() output is not a warning condition and keeps rpy2's default handling) and the message of the
+# error that stopped it. The caller's .Random.seed (or its absence) is put back on exit, so a method's set.seed
+# leaves nothing in the user's R session (rules.md R3.4).
 _CATCH_WARNINGS = """function(f) function(...) {
+  seed <- globalenv()
+  before <- get0(".Random.seed", seed, inherits = FALSE)
+  on.exit(if (is.null(before)) suppressWarnings(rm(".Random.seed", envir = seed)) else assign(".Random.seed", before, seed))
   caught <- character()
-  value <- withCallingHandlers(f(...), warning = function(cond) {
-    caught <<- c(caught, conditionMessage(cond))
-    invokeRestart("muffleWarning")
-  })
-  list(value = value, warnings = caught)
+  tryCatch({
+    value <- withCallingHandlers(f(...), warning = function(cond) {
+      caught <<- c(caught, conditionMessage(cond))
+      invokeRestart("muffleWarning")
+    })
+    list(value = value, warnings = caught, error = character())
+  }, error = function(cond) list(value = NULL, warnings = caught, error = conditionMessage(cond)))
 }"""
 
 
@@ -34,11 +41,11 @@ def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
     """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``.
 
     Calling it returns the R function's value, re-emits each R warning as a ``UserWarning`` and turns an R error into a
-    ``RuntimeError``, both naming ``func``.
+    ``RuntimeError``, both naming ``func``; the warnings raised before an error are listed in its message.
+    It leaves R's random state as it found it.
     """
     robjects = import_optional("rpy2.robjects", extra="r")
     rpackages = import_optional("rpy2.robjects.packages", extra="r")
-    embedded = import_optional("rpy2.rinterface_lib.embedded", extra="r")
     try:
         # Loaded before the call: a package that `::` loads during it makes R print "stack imbalance" warnings.
         rpackages.importr(package)
@@ -48,11 +55,11 @@ def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
     function = robjects.r(f"({_CATCH_WARNINGS})({code})")
 
     def run(*args: object) -> object:
-        try:
-            value, caught = function(*args).values()
-        except embedded.RRuntimeError as err:
-            msg = f"{func}: R stopped: {str(err).strip()}"
-            raise RuntimeError(msg) from err
+        value, caught, error = function(*args).values()
+        if len(error):
+            before = f" (R warned first: {'; '.join(caught)})" if len(caught) else ""
+            msg = f"{func}: R stopped: {error[0].strip()}{before}"
+            raise RuntimeError(msg)
         for message in caught:
             warnings.warn(f"{func}: R warned: {message}", stacklevel=4)
         return value

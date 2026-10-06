@@ -54,7 +54,7 @@ def maaslin3(
         The level of a categorical ``group`` that the other level is compared
         with; by default its first category (sorted values for a string column).
     seed
-        Seeds R's random number generator through ``set.seed``; MaAsLin 3's test
+        Seeds R's random number generator through ``set.seed`` for the call; MaAsLin 3's test
         against the median simulates, so the same seed gives the same table.
 
     Returns
@@ -115,8 +115,8 @@ def maaslin3(
 
     Needs R with maaslin3 (``BiocManager::install("maaslin3")``) and ``pip
     install 'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
-    ``seed`` becomes one integer for R's ``set.seed``, which sets the random
-    state of the R session rpy2 embeds in Python. Plots are off and MaAsLin 3's
+    ``seed`` becomes one integer for R's ``set.seed``; the call puts the
+    embedded R session's random state back as it found it. Plots are off and MaAsLin 3's
     output folder is a temporary one, deleted afterwards.
 
     rpy2 converts dense tables only, so ``X`` is densified once: 8 bytes x

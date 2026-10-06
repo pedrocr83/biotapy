@@ -108,10 +108,18 @@ def test_each_r_warning_is_re_emitted_at_the_callers_line(fake_rpy2):
 
 
 def test_r_errors_name_the_function(fake_rpy2):
-    fake_rpy2.output = sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError("Error in f() : boom\n")
-    with pytest.raises(RuntimeError, match=r"da\.aldex2: R stopped: Error in f\(\) : boom") as caught:
+    fake_rpy2.error = "boom\n"
+    with pytest.raises(RuntimeError, match=r"^da\.aldex2: R stopped: boom$"):
         bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
-    assert isinstance(caught.value.__cause__, sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError)
+
+
+def test_r_warnings_before_an_error_are_in_its_message(fake_rpy2):
+    fake_rpy2.warnings = ["first", "second"]
+    fake_rpy2.error = "boom"
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(RuntimeError, match=r"^da\.aldex2: R stopped: boom \(R warned first: first; second\)$"):
+            bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
 
 
 def test_numeric_group_raises(fake_rpy2):
@@ -213,3 +221,32 @@ def test_r_messages_are_not_warnings():
 def test_aldex2_table_passes_the_consensus_checks():
     out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
     assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
+
+
+@pytest.mark.r
+def test_r_warnings_before_an_error_are_in_its_message_in_r():
+    from biotapy.da._r import call_r, r_function
+
+    function = r_function('function() { warning("before"); stop("boom") }', package="base", func="da.x")
+    with pytest.raises(RuntimeError, match=r"^da\.x: R stopped: boom \(R warned first: before\)$"):
+        call_r(function)
+
+
+def test_single_sample_raises(fake_rpy2):
+    with pytest.raises(ValueError, match=r"compares two levels, but obs\['group'\] has 1"):
+        bt.da.aldex2(bt.datasets.toy()[:1].copy(), "group")
+    assert fake_rpy2.calls == []
+
+
+@pytest.mark.r
+@pytest.mark.parametrize("seeded", [True, False])
+def test_r_random_state_is_left_as_found(seeded):
+    from rpy2.robjects import r
+
+    drop = 'if (exists(".Random.seed", globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())'
+    r("set.seed(1)" if seeded else drop)
+    before = list(r(".Random.seed")) if seeded else None
+    bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+    assert r('exists(".Random.seed", globalenv(), inherits = FALSE)')[0] == seeded
+    if seeded:
+        assert list(r(".Random.seed")) == before

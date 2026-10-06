@@ -40,7 +40,7 @@ def aldex2(
         its first category (sorted values for a string column). It changes the
         Monte Carlo draws as well as the sign (Notes).
     seed
-        Seeds R's random number generator through ``set.seed``; the same seed
+        Seeds R's random number generator through ``set.seed`` for the call; the same seed
         gives the same table.
 
     Returns
@@ -94,8 +94,8 @@ def aldex2(
 
     Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
     'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
-    ``seed`` becomes one integer for R's ``set.seed``, which sets the random
-    state of the R session rpy2 embeds in Python.
+    ``seed`` becomes one integer for R's ``set.seed``; the call puts the
+    embedded R session's random state back as it found it.
 
     rpy2 converts dense tables only, so ``X`` is densified once: 8 bytes x
     samples x features, plus R's copy and its Monte Carlo draws (about

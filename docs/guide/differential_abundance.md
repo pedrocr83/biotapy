@@ -112,7 +112,7 @@ table = bt.da.aldex2(tdata, "group", seed=0)
 ```
 
 ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
-`seed` sets R's random state, so the same seed gives the same table, and on the GlobalPatterns
+`seed` seeds R for the call (your R session's own random state is restored afterwards), so the same seed gives the same table, and on the GlobalPatterns
 genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14 (when `reference` is R's
 first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
 Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
