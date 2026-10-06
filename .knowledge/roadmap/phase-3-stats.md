@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T11:40:31Z }
+commit: e9ec091
 sources:
   - id: spec
     resource: ../../plan.md
@@ -570,6 +570,7 @@ goldens need no biotapy code and both golden tests read them; `pp.philr`
 reuses `pp.clr`'s pseudocount helper.
 
 Execution order inside 3B: **3.B0 -> 3.5 -> 3.4 -> 3.8 -> 3.9 -> Checkpoint B.**
+Execution order inside 3C: **3.6 -> 3.7 -> 3.11 -> Checkpoint C.**
 LinDA first: it is native end to end, so the schema's every column (with a
 real `se`) is fixed by code biotapy owns before a wrapper maps a library's
 columns onto it.
@@ -585,7 +586,7 @@ columns onto it.
 - [x] 3.4 `da.ancombc2(adata, group, *, covariates=(), reference=None) -> pd.DataFrame`
 - [x] 3.8 `da.consensus(results, *, alpha=0.05, min_methods=2) -> pd.DataFrame` and the agreement decision
 - [x] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
-- [ ] Checkpoint B (review, exit-gate check and knowledge done; push open)
+- [x] Checkpoint B (PR #22 merged; the user approved slice 3B on 2026-10-05)
 - [ ] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [ ] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [ ] 3.11 CI job `r-bridge` for `-m r` tests
@@ -4850,44 +4851,2019 @@ methods); design notes 7 and 10 carry slice 3B decisions 1, 2 and 12 if approved
      `docs/generated/` first: stale autosummary stubs of later functions make
      `sphinx-build -W` fail (seen once on the replay, not a code problem).
 
-## Slice 3C - R bridges (outline)
+## Slice 3C - R bridges
 
-**Goal:** with `pip install 'biotapy[r]'` and R, a user runs ALDEx2 and
-MaAsLin 3 from Python and gets the same schema; CI runs them on Linux.
+**Goal:** with R, the R package and `pip install 'biotapy[r]'`, a user runs ALDEx2
+and MaAsLin 3 from Python and gets the same seven-column table as `da.linda` and
+`da.ancombc2`; with the same seed, the numbers equal R's own call digit for digit;
+without R, the call stops with an `ImportError` that says what to install; CI runs
+the bridges on Linux, including the four-method consensus on the exit-gate data.
 
-### Slice 3C design (proposed)
-- **Where the code goes.** `da/_r.py` (`r_packages(*names) -> ...`: imports
-  `rpy2.robjects` through `import_optional(..., extra="r")`, loads R
-  packages with `importr`, turns a failure into `ImportError` naming the
-  package and the `BiocManager::install` line; `r_seed(seed)`: derives an
-  `int` from `as_generator(seed)` and calls `set.seed`; `to_r_frame` /
-  `from_r_frame` inside a local converter context), `da/_aldex2.py`,
-  `da/_maaslin3.py`. `pyproject.toml` gains `[project.optional-dependencies]
-  r = ["rpy2>=3.6.8"]` and the mypy override for rpy2.
-- **3.6 `da.aldex2`.** `aldex.clr(reads, conds, mc.samples, denom = "all",
-  useMC = FALSE)`, `aldex.ttest`, `aldex.effect`; features as rows; a
-  two-level `group` only (more levels or `covariates` raise). Golden: ALDEx2
-  in the image (own commit), `set.seed(20260927)`, the benchmark data;
-  compared by sign agreement and Spearman correlation of `effect` (contract
-  DA rule; numbers fixed when measured). Tests without R: canned
-  `aldex` output -> schema mapping (`diff.btw` -> `effect`, `we.ep`,
-  `we.eBH`), seed derivation, missing-rpy2 `ImportError` naming the extra,
-  missing-R-package `ImportError` naming `BiocManager::install("ALDEx2")`.
-- **3.7 `da.maaslin3`.** `maaslin3(input_data, input_metadata, output =
-  <tempdir>, formula = "~ <group> + <covariates>", reference = "<group>,<ref>",
-  evaluate_only = "abundance", min_prevalence = 0, plot_summary_plot =
-  FALSE, plot_associations = FALSE, cores = 1, verbosity = "ERROR")`, then
-  `all_results.tsv` filtered to `metadata == group` and `model ==
-  "abundance"`. Golden: maaslin3 in the image (own commit). Same no-R tests.
-  [UNVERIFIED] until expanded: `evaluate_only`'s exact behaviour, the
-  `reference` string syntax and `name` values for a two-level factor in
-  1.2.0.
-- **3.11 CI `r-bridge` job.** Design note 8; `tests/test_ci.py` gains
-  `test_r_bridge_job_runs_the_r_marker` and `check.needs` includes it. The
-  job also runs the four-method consensus test on the benchmark data
-  (marker `r` + `network`, the pooch cache step copied from the network job).
-- **Decision update:** `optional-heavy-dependencies.md` records rpy2 (R9.2);
-  `r-bridge-before-ports.md`'s consequence line is met.
+**How slice 3C was checked.** Every file below was written into a scratch clone
+of the repository at `e9ec091` (`phase-3c`, after slice 3B and the R6.2 wording
+commit) and replayed as one commit per step that says "commit" (seven commits).
+Each committed state was gated; the `r` column is `pytest -m r` inside a local
+image built `FROM` the golden image of that commit's `tests/r/Dockerfile`, plus
+Python 3.13.16 and uv (tagged `biotapy-p3c-py`, never pushed), with the clone
+mounted:
+
+| Commit | `uvx prek run --all-files` | `uv run --group test pytest -q -W error::UserWarning` | `pytest -q -m "golden or network"` | `sphinx-build -W` | `pytest -q -m r` (R image) |
+|---|---|---|---|---|---|
+| 3.6 `build(r)` (ALDEx2) `f10f61f` | passed | 1174 passed, 29 deselected | 36 passed | build succeeded | none selected (no `r` test yet) |
+| 3.6 `test(golden)` (ALDEx2) `b0519fe` | passed | 1175 passed, 29 deselected | 36 passed | build succeeded | none selected |
+| 3.6 `feat(da)` (ALDEx2, extra `r`) `83f9422` | passed | 1190 passed, 35 deselected | 36 passed | build succeeded | 6 passed |
+| 3.7 `build(r)` (maaslin3) `bda991c` | passed | 1190 passed, 35 deselected | 36 passed | build succeeded | 6 passed |
+| 3.7 `test(golden)` (MaAsLin 3) `1da6805` | passed | 1191 passed, 35 deselected | 36 passed | build succeeded | 6 passed |
+| 3.7 `feat(da)` (MaAsLin 3) `e8f483f` | passed | 1203 passed, 44 deselected | 36 passed | build succeeded | 15 passed |
+| 3.11 `ci` (`r-bridge`) `da686e3` | passed | 1206 passed, 45 deselected | 36 passed | build succeeded | 16 passed |
+
+The master count before the slice is 1174 passed, 29 deselected (Checkpoint B);
+the hashes are the scratch clone's, not the repository's.
+
+- prek covers ruff 0.16.9 check and format, `mypy --strict`, import-linter,
+  pyproject-fmt and zizmor (which checked the new job). Every run exported
+  `BIOTAPY_DATA_DIR` to a scratch pooch cache; `~/.cache/biotapy` was checked
+  absent afterwards. `docs/generated/` was deleted before each docs build.
+- Coverage on the final state, without R (`coverage run -m pytest`, the default
+  marker set): `da/_r.py`, `da/_aldex2.py` and `da/_maaslin3.py` are each 100%, as is every other `da` file; the package is at 99% (1206 passed, 45 deselected under coverage). The no-R tests reach every line because they replace
+  only the rpy2 modules (design, "Tests").
+- The RED results in each "expect failure" step were reproduced by running the
+  task's new tests against the previous commit.
+- The golden image was rebuilt from each edited `tests/r/Dockerfile` (tagged
+  `biotapy-golden-p3c-aldex2` after the ALDEx2 commit and `biotapy-golden-p3c`
+  after the maaslin3 commit). A rebuild from the committed maaslin3 Dockerfile
+  hit the cache with the same image id; a rebuild from the committed ALDEx2
+  Dockerfile recompiled the ANCOMBC and ALDEx2 layers and regenerated all 41
+  files byte for byte. Layer times: ALDEx2 122 s (MatrixGenerics, GenomicRanges,
+  S4Arrays, SparseArray, DelayedArray, BiocParallel, SummarizedExperiment and
+  ALDEx2 compile from source; the CRAN dependencies are P3M binaries), maaslin3
+  74 s (SingleCellExperiment, TreeSummarizedExperiment, maaslin3; lme4 was already
+  there for ANCOMBC). No apt package was needed. `export_golden.R` ran twice on
+  each image: bit-identical (41 files, then 42), and every older file unchanged.
+  The ALDEx2 section prints `Warning: stack imbalance in '::', 10 then 12` (ALDEx2's
+  namespace loading inside a call; harmless, and the reason the bridge loads
+  packages with `importr`, design).
+- **Parity measured** (the 636 GlobalPatterns genera of slice 3B's goldens, 9
+  human samples against 17 others):
+  - `da.aldex2(benchmark, "host", reference="human", seed=20260927)` against
+    `set.seed(1165433077); ALDEx2::aldex(counts, host, mc.samples = 128, test = "t",
+    effect = TRUE, denom = "all")`: `effect` vs `diff.btw` largest absolute
+    difference 5.3e-15 (relative 4.2e-15), `pvalue` vs `we.ep` 5.0e-16 (relative
+    8.4e-13). Exact: 1165433077 is the integer biotapy derives from seed 20260927,
+    and `reference="human"` keeps R's sorted level order, so the Monte Carlo draws
+    are the same. With other seeds (1, 2, 3) the Monte Carlo spread is: Spearman
+    correlation of effects 0.993, signs agree on 612-617 of 636 genera, largest
+    effect difference 0.64-0.83 log2, p-values within 0.12, 11-12 calls at
+    q < 0.05 (the same calls on 635-636 genera). With `reference="other"` (draws in
+    the other order) Spearman 0.995 against the negated golden. Calls: BH of
+    `we.ep` 11 genera, ALDEx2's own `we.eBH` 19 (slice 3C decision 3).
+  - `da.maaslin3(benchmark, "host", covariates, reference="other",
+    seed=20260927)` against `set.seed(1165433077); maaslin3::maaslin3(...,
+    evaluate_only = "abundance", warn_prevalence = FALSE, subtract_median = TRUE)`,
+    models `host` and `host + log_depth`: the same 36 genera untested (fit errors,
+    R's p-value NA); `effect` vs `coef` 5.3e-15 (relative 2.1e-14), `se` vs
+    `stderr` 5.3e-15, `pvalue` vs `pval_individual` 5.0e-16 (relative 7.2e-13).
+    Exact, for the same reason (the median test's 10,000 normal draws). Other
+    seeds change only the p-values (largest change 0.0015; 52 calls either way).
+    Calls at q < 0.05: 52 (`host`) and 45 (`host + log_depth`) with BH over the
+    group's p-values; MaAsLin 3's `qval_individual` gives 52 and 20, because it
+    pools the covariate's p-values (slice 3C decision 4).
+  - `subtract_median = TRUE` (slice 3C decision 5): the median coefficient is
+    -1.70 log2; the effect's sign differs from the raw coefficient's for 109 of
+    600 tested genera and for none of the 52 called; signs agree with LinDA's on
+    484 of 600 tested genera (437 with the raw coefficient) and on 50 of the 50
+    genera both call.
+  - **Four methods** (`reference="other"`, `seed=0` for the bridges; 15 s in
+    all): calls 208 (ANCOM-BC2), 118 (LinDA), 13 (ALDEx2), 52 (MaAsLin 3);
+    `n_tested` 4 for 600 genera and 2 for 36; `n_significant` 0/1/2/3/4 for
+    413/114/62/35/12 genera; consensus 223, 109, 47 and 12 genera at
+    `min_methods` 1, 2, 3 and 4; no conflict; the 12 four-way calls are all up in
+    human hosts.
+- **rpy2, measured.** `uv lock` resolves rpy2 3.6.8 with rpy2-rinterface 3.6.7
+  and rpy2-robjects 3.6.5 (new transitive packages: cffi, jinja2, tzlocal;
+  `uv.lock` is git-ignored, so nothing else is committed). rpy2-rinterface is an
+  sdist on Linux and links `R CMD config --ldflags`, which on R 4.5.3 lists
+  `-lpcre2-8 -ldeflate -lzstd -llzma -lbz2 -licuuc ...`. Without those `-dev`
+  packages its API-mode build fails at the linker and it silently installs the
+  ABI mode instead, whose import then fails with `libR.so: cannot open shared
+  object file` unless `LD_LIBRARY_PATH` holds R's `lib`. With the packages it
+  builds in API mode and imports cleanly; with `RPY2_CFFI_MODE=API` and without
+  them the install fails loudly (`Failed to build rpy2-rinterface==3.6.7 ...
+  cannot find -lpcre2-8`). Without R, `pip install rpy2==3.6.8` fails ("rpy2 in
+  API mode cannot be built without R in the PATH or R_HOME defined"); with R
+  removed after the build, `import rpy2.robjects` raises `ModuleNotFoundError`,
+  an `ImportError`, so `import_optional` turns it into the "pip install
+  'biotapy[r]'" message with the cause chained (resolves design note 8's
+  [UNVERIFIED]). `py.typed` ships only in `rpy2/rinterface`,
+  `rpy2/rinterface_lib`, `rpy2/rlike` and `rpy2/situation`, not in
+  `rpy2/robjects` or `rpy2/` (resolves the [UNVERIFIED] in the global
+  constraints; slice 3C decision 11).
+- **CI install, simulated.** In a fresh `rocker/r-ver:4.5.3` container on the
+  image's dated CRAN snapshot, pak (stable) resolves Bioconductor 3.22 for R 4.5.3
+  (`pak::repo_status()`), and `pak::pkg_install(c("bioc::ALDEx2",
+  "bioc::maaslin3"), dependencies = NA)` installed 98 packages (116.8 MB) in
+  2 min 40 s, 20 of them Bioconductor packages built from source, plus the system
+  packages `libpng-dev cmake libuv1-dev libicu-dev`; the versions equal the
+  image's. Expected `r-bridge` job time: about 5 minutes cold (R, pak, packages,
+  rpy2's build, the tests: 30 s for the `r` tests in the container) and about
+  2 minutes with the package cache; [UNVERIFIED] on GitHub's runners.
+- APIs checked in the installed versions, R side read at source in the image:
+  ALDEx2 1.42.0 (`aldex(reads, conditions, mc.samples = 128, test = "t", effect
+  = TRUE, include.sample.summary = FALSE, verbose = FALSE, paired.test = FALSE,
+  denom = "all", iterate = FALSE, gamma = NULL)` runs `aldex.clr`, `aldex.ttest`,
+  `aldex.effect` in that order; `aldex.clr` removes features with no read, adds
+  0.5, fails on a factor `conds` (`'round' not meaningful for factors`) and warns
+  below 128 draws; `aldex.ttest`/`aldex.effect` take `as.factor(conditions)`,
+  so the levels are sorted, and `diff.btw` is the second level minus the first;
+  `aldex.effect` stops when a level has fewer than two samples; `we.ep` is the
+  per-draw two-sided Welch p averaged, `we.eBH` the per-draw BH values averaged;
+  output columns `rab.all, rab.win.<l1>, rab.win.<l2>, diff.btw, diff.win,
+  effect, overlap, we.ep, we.eBH, wi.ep, wi.eBH`). maaslin3 1.2.0
+  (`maaslin3(input_data, input_metadata, output, formula, ..., min_abundance =
+  0, min_prevalence = 0, normalization = "TSS", transform = "LOG", standardize =
+  TRUE, median_comparison_abundance = TRUE, subtract_median = FALSE,
+  warn_prevalence = TRUE, evaluate_only = NULL, plot_summary_plot = TRUE,
+  plot_associations = TRUE, cores = 1, verbosity = "FINEST")`; `evaluate_only`
+  with `warn_prevalence = TRUE` stops; `LOG` is `log2` of the non-zero values; a
+  factor column not named in `reference` keeps its levels, the first being the
+  reference; `reference` is a `"var,level;..."` string split on `,` and `;`;
+  numeric columns are z-scored; the median comparison draws `rnorm` 10,000
+  times per term; `subtract_median = TRUE` reports `coef - median` with the same
+  p-values; `add_qvals` applies BH over every row of both models, setting rows
+  with an `error` to NA; with `evaluate_only = "abundance"`, `pval_individual =
+  pval`; the return value's `fit_data_abundance$results` holds `feature,
+  metadata, value, name, coef, null_hypothesis, stderr, pval_individual,
+  qval_individual, pval_joint, qval_joint, error, model, N, N_not_zero`; the
+  output folder is written even with plots off; fits go through `pbapply`, whose
+  progress bar ignores `verbosity`). rpy2 3.6.8 (`rpy2.robjects.r(code)`,
+  `packages.importr`, `packages.PackageNotInstalledError`, an `ImportError`
+  subclass; `default_converter + pandas2ri.converter` and `.context()`;
+  `pandas2ri` alone does not convert NumPy arrays (`NotImplementedError`); a
+  `pd.Series` of strings becomes a character vector; a `DataFrame` keeps its row
+  and column names unmangled; a `Categorical` becomes a factor only when its
+  categories are strings, otherwise rpy2 warns and sends strings; R `NA`
+  character comes back as rpy2's `NA_character_` object, not NaN; R's
+  `message()` output goes to the `rpy2.rinterface_lib.callbacks` logger at
+  WARNING). r-lib/actions v2 is v2.14.0 at
+  `f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05` (`gh api
+  repos/r-lib/actions/git/ref/tags/v2`); `setup-r` takes `r-version`,
+  `use-public-rspm`, `cran`; `setup-r-dependencies` takes `packages` (default
+  `deps::., any::sessioninfo`, which needs a DESCRIPTION file biotapy does not
+  have), `extra-packages`, `dependencies` (an R expression, default `"all"`) and
+  caches the library keyed on its lockfile.
+
+### Slice 3C design
+
+- **Where the code goes.**
+
+  | File | Holds |
+  |---|---|
+  | `tests/r/Dockerfile` | ALDEx2 (3.6), maaslin3 (3.7), one `build(r)` commit each |
+  | `tests/r/export_golden.R` | the ALDEx2 (3.6) and MaAsLin 3 (3.7) sections, seeded with the integer biotapy derives |
+  | `tests/golden/global_patterns/{aldex2,maaslin3}.csv.gz` | the goldens (19.4 KB, 43.4 KB) |
+  | `pyproject.toml` | `optional-dependencies.r = [ "rpy2>=3.6.8" ]` (3.6); nothing for mypy |
+  | `da/_r.py` | `r_seed`, `r_function`, `call_r`: the only code that touches rpy2 (3.6) |
+  | `da/_aldex2.py` | `aldex2`, `_conditions` (3.6) |
+  | `da/_maaslin3.py` | `maaslin3`, `_string_levels` (3.7) |
+  | `tests/da/conftest.py` | the `fake_rpy2` fixture (3.6) |
+  | `tests/da/test_aldex2.py`, `test_maaslin3.py` | no-R tests and `r` tests per bridge |
+  | `tests/da/test_aldex2_golden.py`, `test_maaslin3_golden.py` | the goldens (`r`) |
+  | `tests/da/test_consensus.py` | the four-method consensus (`r`, 3.11) |
+  | `.github/workflows/test.yaml`, `tests/test_ci.py` | the `r-bridge` job (3.11) |
+
+  `_r.py` serves the two `da` bridges only, so it stays in `da` (R4.3). The
+  shared helpers `_design.model`, `_design.dense_counts` and `_schema.result` are
+  reused unchanged; nothing the bridges need is missing from them.
+- **The bridge module (`da/_r.py`).** Three functions, each a few lines:
+  - `r_seed(seed) -> int`: `int(as_generator(seed).integers(2**31 - 1))`, one
+    draw, a non-negative 32-bit integer for `set.seed` (R3.4).
+  - `r_function(code, *, package, func)`: imports `rpy2.robjects` and
+    `rpy2.robjects.packages` through `import_optional(..., extra="r")`, loads the
+    package with `importr` (a `PackageNotInstalledError` becomes `ImportError:
+    da.aldex2 needs the R package ALDEx2. Install it in R with:
+    BiocManager::install("ALDEx2")`), and returns the R function `code` defines.
+    `importr` first matters: a namespace that `::` loads in the middle of a call
+    made from rpy2 makes R print "stack imbalance" warnings (measured).
+  - `call_r(function, *args)`: calls it inside a local `(default_converter +
+    pandas2ri.converter).context()`, never rpy2's global activation, so pandas
+    arguments become R vectors and data frames and the R data frame it returns a
+    pandas one.
+  Each bridge holds its R code as a short closure string that calls `set.seed`
+  first and returns a data frame, so all mapping to the schema is Python.
+- **ALDEx2.** `aldex2(adata, group, *, mc_samples=128, reference=None,
+  seed=None)` (roadmap 3.6's signature). `model(..., covariates=())` checks the
+  group; `_conditions` refuses a numeric group (ALDEx2's t-test has no slope)
+  and a level in fewer than two samples (ALDEx2 stops there), then sends the
+  levels as `"0"` (reference) and `"1"`: ALDEx2 breaks on a factor and sorts
+  character labels, which depends on R's locale for level names. `mc_samples`
+  is an int >= 1. `X` is densified once (features as rows, as ALDEx2 wants).
+  The R closure runs `set.seed(seed)` and `suppressMessages(ALDEx2::aldex(reads,
+  conditions, mc.samples, test = "t", effect = TRUE, denom = "all"))`.
+  Mapping: `effect = diff.btw` (log2), `se` NaN, `pvalue = we.ep`, rows reindexed
+  to `var_names` (ALDEx2 drops a feature with no read: NaN, untested), then
+  `_schema.result` computes BH over the finite p-values.
+- **MaAsLin 3.** `maaslin3(adata, group, *, covariates=(), reference=None,
+  seed=None)` (roadmap 3.7's signature). The model frame goes to R with its
+  columns renamed `x0, x1, ...` and the formula `"~ x0 + x1"` (no quoting for
+  names such as `"body site"`, as `da.ancombc2` does for patsy); categorical
+  columns go as factors with string levels in `model()`'s order, so the group's
+  first level is the reference and no `reference` string is built (its
+  `"var,level"` syntax breaks on a comma). Bool levels are renamed to strings
+  first: rpy2 sends non-string categories as plain strings with a UserWarning,
+  maaslin3 then sorts them, and `reference="True"` would silently flip the sign
+  (found and fixed in the prototype; review focus 2). The R closure calls
+  `maaslin3(counts, metadata, tempfile(), formula, min_abundance = 0,
+  min_prevalence = 0, evaluate_only = "abundance", warn_prevalence = FALSE,
+  subtract_median = TRUE, plot_summary_plot = FALSE, plot_associations = FALSE,
+  cores = 1, verbosity = "ERROR")` with pbapply's progress bar off, deletes the
+  folder on exit, and returns `feature, metadata, coef, stderr, pval, failed =
+  !is.na(error)` from `fit_data_abundance$results`. Mapping: the rows of
+  `metadata == "x0"`, reindexed to `var_names`; a failed fit or a missing row is
+  untested (NaN); `effect = coef` (already minus the median), `se = stderr`,
+  `pvalue = pval_individual`; BH by `_schema.result` over the group's rows.
+- **Seeds.** Both bridges call `set.seed(r_seed(seed))` inside the R closure,
+  right before the method. ALDEx2 is random throughout; MaAsLin 3 only in its
+  median test (10,000 normal draws per term), so its `effect` and `se` do not
+  depend on the seed and its p-values move by about 0.001. The goldens use
+  `set.seed(1165433077)`, the integer `seed=20260927` becomes, so the bridges
+  are compared elementwise.
+- **Tests.** Without R (every CI leg): the `fake_rpy2` fixture puts stand-in
+  modules for `rpy2`, `rpy2.robjects`, `rpy2.robjects.packages` and
+  `rpy2.robjects.pandas2ri` into `sys.modules` (monkeypatch), whose R functions
+  record their arguments and return a canned data frame. biotapy's own code runs
+  unchanged: argument checks, labels, orientation, seed derivation, the schema
+  mapping and both `ImportError` messages (a missing rpy2 is simulated by `None`
+  entries in `sys.modules`, so the test also holds where rpy2 is installed). The
+  canned tables are R's real output on `toy()`; an `r` test checks each against
+  R. With R (marker `r`): toy tables, seeds, reference swaps, an all-zero
+  feature, schema validity through `bt.da.consensus([table], min_methods=1)`, the
+  goldens and the four-method consensus. Bridge tests carry `r` only, never
+  `golden` or `network` (slice 3C decision 1).
+- **CI job `r-bridge`.** Ubuntu 24.04 (the CRAN snapshot's binaries are for
+  noble), `r-lib/actions/setup-r` with R 4.5.3 and CRAN at the image's P3M
+  snapshot, `setup-r-dependencies` with `packages: bioc::ALDEx2, bioc::maaslin3`
+  and hard dependencies only, the six `-dev` packages rpy2's link needs, uv with
+  Python 3.13, the pooch cache step of the network job, then `uv run --group test
+  --extra r pytest -m r` with `RPY2_CFFI_MODE=API`. Added to `check.needs`.
+- **Docs.** The DA guide gains "Methods that run in R" (install, licences, the
+  `ImportError`, densifying), with an ALDEx2 (3.6) and a MaAsLin 3 (3.7)
+  subsection; `api.md` gains both; `contributing.md` gains "R bridge tests".
+  Slice 3D's method pages and tutorial are unchanged by 3C.
+
+### Slice 3C global constraints (in addition to the Phase 3 list)
+- rpy2 is reached only through `import_optional` inside `da/_r.py`'s functions;
+  no module imports rpy2 at load time, so `import biotapy` and the
+  `import-without-extras` job need no R.
+- Bridge tests carry `r` (and only `r`); the default run and `-m "golden or
+  network"` never need R. Tests reach the bridges through `bt.da.aldex2` and
+  `bt.da.maaslin3`; the only stand-in is `fake_rpy2`, at the rpy2 boundary.
+- Every bridge golden is seed-matched and compared at the contract's default
+  `rtol=1e-7`.
+- Run commands: host as in slice 3B; the `r` tests with `uv run --group test
+  --extra r pytest -m r` where R and the packages are installed (the prototype
+  used the image above with `BIOTAPY_DATA_DIR` mounted).
+- Commits stage explicit paths only (never `.claude/`, `.superpowers/`,
+  `.worktrees/`, `notebooks/`, `build/`). Each task's last commit stages
+  `.knowledge/roadmap/phase-3-stats.md` with its box ticked and
+  `.knowledge/log.md` with its line, under the heading `## <date of the commit>
+  (Phase 3, slice 3C)` at the top of the log (create it if the date differs).
+
+### Slice 3C review focus
+The five ways a user is most likely to get a wrong answer from slice 3C without
+an error, each pinned by a named test:
+
+1. **The sign is the other way round in R.** ALDEx2 sorts its labels; maaslin3
+   sorts character levels. Expected: `reference` decides the sign in both
+   bridges, in any R locale. Tests: `tests/da/test_aldex2.py::test_aldex2_sends_features_as_rows_the_reference_as_0_and_one_seed`,
+   `test_reference_sets_the_sign_in_r`;
+   `tests/da/test_maaslin3.py::test_maaslin3_gets_counts_plain_column_names_a_formula_and_one_seed`,
+   `test_reference_sets_the_sign_in_r`.
+2. **A bool group reaches R as unordered strings.** Expected: levels are sent as
+   strings in the reference's order. Tests:
+   `test_maaslin3.py::test_bool_levels_reach_r_as_strings_in_reference_order`,
+   `test_bool_reference_sets_the_sign_in_r`.
+3. **R's own q-values mixed with biotapy's.** ALDEx2's `we.eBH` averages per-draw
+   corrections; MaAsLin 3's `qval_individual` pools covariates. Expected: BH over
+   the group's tested features, as for the native methods. Tests:
+   `test_aldex2.py::test_aldex2_maps_aldex_onto_the_schema`,
+   `test_maaslin3.py::test_maaslin3_maps_the_group_rows_onto_the_schema`, and
+   both goldens.
+4. **A feature R could not fit counted as tested.** Expected: ALDEx2's dropped
+   rows and MaAsLin 3's fit errors are NaN and left out of BH. Tests:
+   `test_aldex2.py::test_feature_aldex2_drops_is_not_tested`,
+   `test_all_zero_feature_is_not_tested_in_r`;
+   `test_maaslin3.py::test_failed_fit_is_not_tested`,
+   `test_feature_without_a_row_is_not_tested`,
+   `test_all_zero_feature_is_not_tested_in_r`,
+   `tests/da/test_maaslin3_golden.py` (the 36 genera).
+5. **An unreproducible or silently different R run.** Expected: one `seed`
+   gives one table, the goldens match R digit for digit, and a missing rpy2 or R
+   package raises naming the fix. Tests: `test_seed_reproduces_the_table_in_r`
+   (both), `test_seed_accepts_a_generator`,
+   `test_missing_rpy2_names_the_extra` and
+   `test_missing_r_package_names_the_install_line` (both),
+   `tests/da/test_aldex2_golden.py::test_aldex2_matches_aldex2_aldex`,
+   `test_maaslin3_golden.py::test_maaslin3_matches_maaslin3_maaslin3`.
+
+Plus purity (R3.3): `test_aldex2_keeps_input`, `test_maaslin3_keeps_input`.
+
+Execution order: **3.6 -> 3.7 -> 3.11 -> Checkpoint C.** 3.6 brings the extra,
+`_r.py` and the fixture that 3.7 reuses; the CI job runs both bridges and the
+consensus over all four methods.
+
+---
+### Task 3.6: `da.aldex2` and the extra `r`
+
+**Files:** modify `tests/r/Dockerfile`, `tests/r/export_golden.R`,
+`tests/golden/VERSIONS.txt`, `pyproject.toml`, `src/biotapy/da/__init__.py`,
+`tests/da/conftest.py`, `docs/guide/differential_abundance.md`, `docs/api.md`,
+`docs/contributing.md`, `.knowledge/contracts/r-golden-parity.md`; create
+`tests/golden/global_patterns/aldex2.csv.gz`, `src/biotapy/da/_r.py`,
+`src/biotapy/da/_aldex2.py`, `tests/da/test_aldex2.py`,
+`tests/da/test_aldex2_golden.py`.
+**Not touched:** `da/_design.py`, `da/_schema.py`, `da/_linda.py`,
+`da/_ancombc.py`, `da/_consensus.py`, `_core` (`import_optional` and
+`as_generator` are used as they are), `[tool.mypy]`, `[tool.pytest]` (the `r`
+marker is already registered), `.github/`.
+**Interfaces:**
+- Consumes: `_core.import_optional`, `_core.as_generator`; `model`,
+  `dense_counts` (3.5); `result` (3.5); the `benchmark` fixture.
+- Produces: `bt.da.aldex2(adata: AnnData, group: str, *, mc_samples: int = 128,
+  reference: str | None = None, seed: int | np.random.Generator | None = None)
+  -> pd.DataFrame`; private `da._r.r_seed(seed) -> int`,
+  `r_function(code: str, *, package: str, func: str) -> Callable[..., Any]`,
+  `call_r(function, /, *args: object) -> pd.DataFrame`; the `fake_rpy2` test
+  fixture (`.output`, `.installed`, `.calls`); `aldex2.csv.gz`; the extra `r`.
+
+- [ ] **Step 1: Approval on record.** The extra `r = ["rpy2>=3.6.8"]` (Phase 3
+  decision 14) and ALDEx2 in the image (Phase 3 decision 6) were approved with
+  the Phase 3 plan. rpy2 3.6.8 brings rpy2-rinterface 3.6.7, rpy2-robjects
+  3.6.5, cffi, jinja2 and tzlocal (all installed only with the extra). Nothing
+  new to ask.
+- [ ] **Step 2: Add ALDEx2 to the image.** `tests/r/Dockerfile`:
+  ```diff
+  @@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgsl27 && rm
+   RUN Rscript -e 'install.packages(c("Rmpfr", "gmp", "ECOSolveR", "scs", "osqp", "bit64", "cli", "Rcpp", "RcppEigen"))' \
+       && Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/CVXR/CVXR_1.0-15.tar.gz", repos = NULL, type = "source")'
+   RUN Rscript -e 'BiocManager::install("ANCOMBC", version = "3.22", ask = FALSE, update = FALSE)'
+  -RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE))'
+  +# ALDEx2 (Bioconductor, GPL-3): the da.aldex2 golden file and the bridge's r tests; biotapy calls it through rpy2.
+  +RUN Rscript -e 'BiocManager::install("ALDEx2", version = "3.22", ask = FALSE, update = FALSE)'
+  +RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE), requireNamespace("ALDEx2", quietly = TRUE))'
+   WORKDIR /work
+   CMD ["Rscript", "tests/r/export_golden.R"]
+  ```
+  `.knowledge/contracts/r-golden-parity.md` statement 1:
+  ```diff
+  @@ -22,8 +22,9 @@ sources:
+      Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
+      `fs` binary loads, CRAN `MicrobiomeStat` for `da.linda`, and Bioconductor
+      `ANCOMBC` for `da.ancombc2`, with CRAN's archived CVXR 1.0-15 and the
+  -   `libgsl27` runtime library it needs); a new golden function that needs another
+  -   package adds it in its own commit (rules.md R2.3).
+  +   `libgsl27` runtime library it needs, and Bioconductor `ALDEx2` for
+  +   `da.aldex2`); a new golden function that needs another package adds it in
+  +   its own commit (rules.md R2.3).
+   1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
+      `tests/humann/export_golden.py`, run with
+      `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
+  ```
+  Log line (top of the slice 3C heading):
+  ```text
+  - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `ALDEx2` for the `da.aldex2` golden file.
+  ```
+  Build: `docker build -t biotapy-golden tests/r`. Expected: the guard layer
+  passes; `docker run --rm biotapy-golden Rscript -e 'packageVersion("ALDEx2")'`
+  prints `1.42.0` (zCompositions 1.6.1, Rfast 2.1.5.2 as P3M binaries); every
+  earlier package unchanged. The ALDEx2 layer takes about two minutes (eight
+  Bioconductor packages compile).
+- [ ] **Step 3: Commit the image change on its own:**
+  ```bash
+  git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
+  git commit -m "build(r): add ALDEx2 to the golden image
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+- [ ] **Step 4: Export.** In `tests/r/export_golden.R`, after the ANCOM-BC2
+  section, and `VERSIONS.txt` gains ALDEx2. The seed is the integer
+  `bt.da.aldex2(..., seed=20260927)` passes to R; check it before running:
+  `uv run python -c "import numpy as np; print(np.random.default_rng(20260927).integers(2**31 - 1))"`
+  prints `1165433077` (NumPy 2.5.3).
+  ```diff
+  @@ -173,6 +173,20 @@ ancombc_rows <- lapply(da_formulas, function(f) {
+   })
+   write_golden(do.call(rbind, ancombc_rows), file.path(gp, "ancombc2.csv.gz"))
+
+  +## Slice 3C golden files: the R bridges, on the same data
+  +# ALDEx2 is Monte Carlo. 1165433077 is the integer bt.da.aldex2(..., seed=20260927) passes to set.seed
+  +# (np.random.default_rng(20260927).integers(2**31 - 1)), so the bridge test can compare digits, not only ranks.
+  +# The conditions sort "human" before "other", so diff.btw is other - human; the test sets reference="human".
+  +set.seed(1165433077)
+  +aldex_out <- suppressMessages(ALDEx2::aldex(
+  +  da_counts, as.character(da_meta$host), mc.samples = 128, test = "t", effect = TRUE, denom = "all"
+  +))
+  +write_golden(
+  +  data.frame(taxon_id = rownames(aldex_out), diff_btw = aldex_out$diff.btw, we_ep = aldex_out$we.ep,
+  +             we_eBH = aldex_out$we.eBH),
+  +  file.path(gp, "aldex2.csv.gz")
+  +)
+  +
+   ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
+   counts <- rbind(
+     c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
+  @@ -238,5 +252,6 @@ writeLines(c(
+     paste0("MicrobiomeStat ", packageVersion("MicrobiomeStat")),
+     paste0("modeest ", packageVersion("modeest")),
+     paste0("ANCOMBC ", packageVersion("ANCOMBC")),
+  -  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)")
+  +  paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)"),
+  +  paste0("ALDEx2 ", packageVersion("ALDEx2"))
+   ), "tests/golden/VERSIONS.txt")
+  ```
+  Run twice and check bit identity as in 3.5 Step 4. Expected: every line `OK`
+  (41 files; each run about three minutes); `git status` shows `M
+  tests/golden/VERSIONS.txt` (one new line, `ALDEx2 1.42.0`), `M
+  tests/r/export_golden.R` and the new `aldex2.csv.gz` (19.4 KB, 636 rows,
+  columns `taxon_id, diff_btw, we_ep, we_eBH`). Besides the known lines the run
+  prints `Warning: stack imbalance in '::', 10 then 12` and `... in '<-', 2 then
+  4` while ALDEx2's namespace loads; harmless.
+- [ ] **Step 5: Gate and commit.** `uv run --group test pytest
+  tests/test_data_files.py -q` -> passes; `uvx prek run --all-files`;
+  ```bash
+  git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/aldex2.csv.gz
+  git commit -m "test(golden): export the ALDEx2 golden file
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+- [ ] **Step 6: Failing tests.** `tests/da/conftest.py` gains the fixture:
+  ```diff
+  @@ -1,3 +1,7 @@
+  +import contextlib
+  +import sys
+  +from types import ModuleType, SimpleNamespace
+  +
+   import numpy as np
+   import pandas as pd
+   import pytest
+  @@ -14,3 +18,49 @@ def benchmark():
+       tdata.obs["host"] = pd.Categorical(np.where(human, "human", "other"))
+       tdata.obs["log_depth"] = np.log(np.asarray(tdata.X.sum(axis=1)).ravel())
+       return tdata
+  +
+  +
+  +class _Converter:
+  +    """rpy2's converter as the bridge uses it: ``a + b``, then ``.context()``."""
+  +
+  +    def __add__(self, other):
+  +        return self
+  +
+  +    def context(self):
+  +        return contextlib.nullcontext()
+  +
+  +
+  +@pytest.fixture
+  +def fake_rpy2(monkeypatch):
+  +    """The rpy2 modules the R bridges import, without R: every R function returns ``fake.output`` and logs its call.
+  +
+  +    The bridges' own code (seeds, labels, orientation, the schema mapping) runs unchanged; only rpy2 is replaced.
+  +    """
+  +    fake = SimpleNamespace(output=None, installed={"ALDEx2", "maaslin3"}, calls=[])
+  +
+  +    def r(code):
+  +        def function(*args):
+  +            fake.calls.append((code, args))
+  +            return fake.output
+  +
+  +        return function
+  +
+  +    robjects = ModuleType("rpy2.robjects")
+  +    robjects.r = r
+  +    robjects.default_converter = _Converter()
+  +    packages = ModuleType("rpy2.robjects.packages")
+  +    # rpy2's own class is an ImportError subclass too (rpy2.robjects.packages.LibraryError).
+  +    packages.PackageNotInstalledError = type("PackageNotInstalledError", (ImportError,), {})
+  +
+  +    def importr(name):
+  +        if name not in fake.installed:
+  +            raise packages.PackageNotInstalledError(f'The R package "{name}" is not installed.')
+  +
+  +    packages.importr = importr
+  +    pandas2ri = ModuleType("rpy2.robjects.pandas2ri")
+  +    pandas2ri.converter = _Converter()
+  +    modules = {"rpy2": ModuleType("rpy2"), "rpy2.robjects": robjects}
+  +    modules |= {"rpy2.robjects.packages": packages, "rpy2.robjects.pandas2ri": pandas2ri}
+  +    for name, module in modules.items():
+  +        monkeypatch.setitem(sys.modules, name, module)
+  +    return fake
+  ```
+  `tests/da/test_aldex2.py` (the canned table is R's output on `toy()` with the
+  seed `seed=0` becomes, `1826701614`):
+  ```python
+  import sys
+
+  import numpy as np
+  import pandas as pd
+  import pytest
+  import scipy.sparse as sp
+  from scipy.stats import false_discovery_control
+
+  import biotapy as bt
+
+  # ALDEx2::aldex(t(toy counts), rep(c("0", "1"), each = 3), mc.samples = 128, ...) after set.seed(1826701614), the
+  # integer bt.da.aldex2(toy, "group", seed=0) passes to R (6 significant digits; test_aldex2_on_toy_is_the_canned_table checks it in R).
+  CANNED = pd.DataFrame(
+      {
+          "diff.btw": [-3.70251, -2.8971, -2.66143, -1.72769, -0.198703, 4.06776, 3.66243, 2.69778],
+          "effect": [-1.69089, -1.24091, -2.09973, -1.91244, -0.0639279, 2.14194, 1.99029, 1.03629],
+          "we.ep": [0.08828, 0.125246, 0.0447655, 0.0520091, 0.736825, 0.074296, 0.0783649, 0.172146],
+          "we.eBH": [0.219275, 0.269506, 0.154564, 0.161972, 0.880257, 0.28763, 0.296191, 0.46741],
+      },
+      index=[f"f{i}" for i in range(1, 9)],
+  )
+
+
+  def test_aldex2_maps_aldex_onto_the_schema(fake_rpy2):
+      fake_rpy2.output = CANNED.iloc[::-1]  # R's row order does not matter
+      out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      assert out.index.tolist() == bt.datasets.toy().var_names.tolist()
+      np.testing.assert_array_equal(out["effect"], CANNED["diff.btw"])
+      np.testing.assert_array_equal(out["pvalue"], CANNED["we.ep"])
+      assert out["se"].isna().all()
+      # BH of the expected p-values, as for every method; ALDEx2's we.eBH averages per-draw corrections instead.
+      np.testing.assert_allclose(out["qvalue"], false_discovery_control(CANNED["we.ep"]), rtol=1e-12)
+      assert (out["method"] == "aldex2").all() and (out["contrast"] == "B vs A").all()
+
+
+  def test_aldex2_sends_features_as_rows_the_reference_as_0_and_one_seed(fake_rpy2):
+      fake_rpy2.output = CANNED
+      bt.da.aldex2(bt.datasets.toy(), "group", mc_samples=64, reference="B", seed=7)
+      ((code, (reads, conditions, mc_samples, seed)),) = fake_rpy2.calls
+      assert "set.seed(seed)" in code and "ALDEx2::aldex(" in code
+      assert reads.shape == (8, 6) and reads.index.tolist() == bt.datasets.toy().var_names.tolist()
+      np.testing.assert_array_equal(reads.to_numpy(), bt.datasets.toy().X.toarray().T)
+      assert conditions.tolist() == ["1"] * 3 + ["0"] * 3  # reference B is "0", which ALDEx2 sorts first
+      assert mc_samples == 64 and seed == int(np.random.default_rng(7).integers(2**31 - 1))
+
+
+  def test_seed_accepts_a_generator(fake_rpy2):
+      fake_rpy2.output = CANNED
+      bt.da.aldex2(bt.datasets.toy(), "group", seed=np.random.default_rng(3))
+      bt.da.aldex2(bt.datasets.toy(), "group", seed=3)
+      assert fake_rpy2.calls[0][1][3] == fake_rpy2.calls[1][1][3]
+
+
+  def test_feature_aldex2_drops_is_not_tested(fake_rpy2):
+      fake_rpy2.output = CANNED.drop(index="f7")  # ALDEx2 removes a feature with no read before its draws
+      out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      assert out.loc["f7", ["effect", "pvalue", "qvalue"]].isna().all() and out.loc["f7", "direction"] == 0
+      np.testing.assert_allclose(out["qvalue"].drop("f7"), false_discovery_control(CANNED["we.ep"].drop("f7")))
+
+
+  def test_missing_rpy2_names_the_extra(monkeypatch):
+      for name in ("rpy2", "rpy2.robjects", "rpy2.robjects.packages", "rpy2.robjects.pandas2ri"):
+          monkeypatch.setitem(sys.modules, name, None)
+      with pytest.raises(ImportError, match=r"pip install 'biotapy\[r\]'"):
+          bt.da.aldex2(bt.datasets.toy(), "group")
+
+
+  def test_missing_r_package_names_the_install_line(fake_rpy2):
+      fake_rpy2.installed = set()
+      with pytest.raises(
+          ImportError, match=r'da\.aldex2 needs the R package ALDEx2\. .*BiocManager::install\("ALDEx2"\)'
+      ):
+          bt.da.aldex2(bt.datasets.toy(), "group")
+
+
+  def test_numeric_group_raises(fake_rpy2):
+      tdata = bt.datasets.toy()
+      tdata.obs["ph"] = [5.1, 5.6, 6.0, 6.8, 7.1, 7.4]
+      with pytest.raises(ValueError, match=r"compares two levels, but obs\['ph'\] is numeric"):
+          bt.da.aldex2(tdata, "ph")
+
+
+  def test_level_in_one_sample_raises(fake_rpy2):
+      tdata = bt.datasets.toy()
+      tdata.obs["arm"] = ["x"] * 5 + ["y"]
+      with pytest.raises(ValueError, match=r"needs two samples in each level of obs\['arm'\]"):
+          bt.da.aldex2(tdata, "arm")
+
+
+  @pytest.mark.parametrize(("mc_samples", "error"), [(1.5, TypeError), (True, TypeError), (0, ValueError)])
+  def test_mc_samples_must_be_a_positive_int(fake_rpy2, mc_samples, error):
+      with pytest.raises(error, match="mc_samples"):
+          bt.da.aldex2(bt.datasets.toy(), "group", mc_samples=mc_samples)
+
+
+  def test_shared_model_checks_apply(fake_rpy2):
+      tdata = bt.datasets.toy()
+      tdata.obs["site"] = ["a", "b", "c", "a", "b", "c"]
+      with pytest.raises(ValueError, match=r"compares two levels, but obs\['site'\] has 3"):
+          bt.da.aldex2(tdata, "site")
+      dense = tdata.X.toarray()
+      dense[1] = 0
+      tdata.X = sp.csr_matrix(dense)
+      with pytest.raises(ValueError, match=r"1 sample\(s\) have none"):
+          bt.da.aldex2(tdata, "group")
+      assert fake_rpy2.calls == []
+
+
+  def test_aldex2_keeps_input(fake_rpy2, assert_unchanged):
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      before = tdata.copy()
+      bt.da.aldex2(tdata, "group", seed=0)
+      assert_unchanged(before, tdata)
+
+
+  @pytest.mark.r
+  def test_aldex2_on_toy_is_the_canned_table():
+      out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      # CANNED holds 6 significant digits of R's output, hence rtol=1e-5.
+      np.testing.assert_allclose(out["effect"], CANNED["diff.btw"], rtol=1e-5)
+      np.testing.assert_allclose(out["pvalue"], CANNED["we.ep"], rtol=1e-5)
+
+
+  @pytest.mark.r
+  def test_seed_reproduces_the_table_in_r():
+      tdata = bt.datasets.toy()
+      first = bt.da.aldex2(tdata, "group", seed=0)
+      pd.testing.assert_frame_equal(bt.da.aldex2(tdata, "group", seed=0), first)
+      assert not bt.da.aldex2(tdata, "group", seed=1)["effect"].equals(first["effect"])
+
+
+  @pytest.mark.r
+  def test_reference_sets_the_sign_in_r():
+      tdata = bt.datasets.toy()
+      a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
+      assert (b_first["contrast"] == "A vs B").all()
+      # Swapping the reference reorders ALDEx2's draws, so the effects flip sign but are not exactly opposite.
+      assert (a_first["direction"] == -b_first["direction"]).all()
+      np.testing.assert_allclose(b_first["effect"], -a_first["effect"], atol=0.7)
+
+
+  @pytest.mark.r
+  def test_all_zero_feature_is_not_tested_in_r():
+      tdata = bt.datasets.toy()
+      dense = tdata.X.toarray()
+      dense[:, tdata.var_names.get_loc("f7")] = 0
+      tdata.X = sp.csr_matrix(dense)
+      out = bt.da.aldex2(tdata, "group", seed=0)
+      assert out.loc["f7", ["effect", "pvalue", "qvalue"]].isna().all()
+      assert np.isfinite(out.drop(index="f7")[["effect", "pvalue", "qvalue"]].to_numpy()).all()
+
+
+  @pytest.mark.r
+  def test_aldex2_table_passes_the_consensus_checks():
+      out = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+      assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
+  ```
+  `tests/da/test_aldex2_golden.py`:
+  ```python
+  from pathlib import Path
+
+  import numpy as np
+  import pandas as pd
+  import pytest
+  from scipy.stats import false_discovery_control
+
+  import biotapy as bt
+
+  GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+  # Marker r only: it needs R, and the r-bridge CI job gives it the network job's pooch cache.
+  pytestmark = pytest.mark.r
+
+
+  def test_aldex2_matches_aldex2_aldex(benchmark):
+      # R: set.seed(1165433077); ALDEx2::aldex(counts, as.character(host), mc.samples = 128, test = "t", effect = TRUE,
+      # denom = "all"). 1165433077 is the integer seed=20260927 becomes, and reference="human" keeps R's sorted level
+      # order, so the Monte Carlo draws are the same and the numbers match to rounding.
+      golden = pd.read_csv(GOLDEN / "aldex2.csv.gz", dtype={"taxon_id": str}).set_index("taxon_id")
+      out = bt.da.aldex2(benchmark, "host", reference="human", seed=20260927)
+      assert out.index.tolist() == golden.index.tolist()
+      assert (out["contrast"] == "other vs human").all()
+      np.testing.assert_allclose(out["effect"], golden["diff_btw"], rtol=1e-7)
+      np.testing.assert_allclose(out["pvalue"], golden["we_ep"], rtol=1e-7)
+      np.testing.assert_allclose(out["qvalue"], false_discovery_control(golden["we_ep"]), rtol=1e-7)
+  ```
+- [ ] **Step 7: Run, expect failure** -
+  `uv run --group test pytest tests/da/test_aldex2.py -q` -> `13 failed, 5
+  deselected` (`AttributeError: module 'biotapy.da' has no attribute
+  'aldex2'`). Where R and rpy2 are installed, the six `r` tests (five in
+  `test_aldex2.py`, the golden) fail with the same `AttributeError`.
+- [ ] **Step 8: Implement.** `pyproject.toml` (pyproject-fmt keeps the extra
+  after `dependencies`):
+  ```diff
+  @@ -44,6 +44,8 @@ dependencies = [
+     "treedata>=0.3.1,<0.4",
+     "xarray",
+   ]
+  +# The ALDEx2 and MaAsLin 3 bridges (decisions/optional-heavy-dependencies); R and the R packages are the user's install.
+  +optional-dependencies.r = [ "rpy2>=3.6.8" ]
+   # https://docs.pypi.org/project_metadata/#project-urls
+   urls.Documentation = "https://biotapy.readthedocs.io/"
+   urls.Homepage = "https://github.com/pedrocr83/biotapy"
+  ```
+  `src/biotapy/da/_r.py`:
+  ```python
+  """The rpy2 bridge for the da methods only R implements (decisions/r-bridge-before-ports); extra ``r``."""
+
+  from collections.abc import Callable
+  from typing import Any, cast
+
+  import numpy as np
+  import pandas as pd
+
+  from biotapy._core import as_generator, import_optional
+
+  # R's set.seed takes a 32-bit signed integer; drawing below 2**31 - 1 keeps it non-negative and never R's NA.
+  _SEED_BOUND = 2**31 - 1
+
+
+  def r_seed(seed: int | np.random.Generator | None) -> int:
+      """The integer for R's ``set.seed``, drawn once from ``as_generator(seed)`` (rules.md R3.4)."""
+      return int(as_generator(seed).integers(_SEED_BOUND))
+
+
+  def r_function(code: str, *, package: str, func: str) -> Callable[..., Any]:
+      """The R function ``code`` defines; ImportError naming the extra without rpy2, or the install line without ``package``."""
+      robjects = import_optional("rpy2.robjects", extra="r")
+      rpackages = import_optional("rpy2.robjects.packages", extra="r")
+      try:
+          # Loaded before the call: a package that `::` loads during it makes R print "stack imbalance" warnings.
+          rpackages.importr(package)
+      except rpackages.PackageNotInstalledError as err:
+          msg = f'{func} needs the R package {package}. Install it in R with: BiocManager::install("{package}")'
+          raise ImportError(msg) from err
+      return cast("Callable[..., Any]", robjects.r(code))
+
+
+  def call_r(function: Callable[..., Any], /, *args: object) -> pd.DataFrame:
+      """``function(*args)``: pandas arguments become R vectors and data frames, the R data frame it returns pandas."""
+      robjects = import_optional("rpy2.robjects", extra="r")
+      pandas2ri = import_optional("rpy2.robjects.pandas2ri", extra="r")
+      # A local converter, never rpy2's global activation, so the user's own rpy2 session keeps its conversion rules.
+      with (robjects.default_converter + pandas2ri.converter).context():
+          return cast("pd.DataFrame", function(*args))
+  ```
+  `src/biotapy/da/_aldex2.py`:
+  ```python
+  """ALDEx2 through the R bridge: Monte Carlo CLR values of two groups compared by Welch's t-test."""
+
+  import numpy as np
+  import pandas as pd
+  from anndata import AnnData
+
+  from ._design import dense_counts, model
+  from ._r import call_r, r_function, r_seed
+  from ._schema import result
+
+  # aldex() is ALDEx2's documented entry point and the golden file's call; its progress notes are R messages, which
+  # rpy2 would log as warnings.
+  _ALDEX = """function(reads, conditions, mc_samples, seed) {
+    set.seed(seed)
+    suppressMessages(ALDEx2::aldex(reads, conditions, mc.samples = mc_samples, test = "t", effect = TRUE, denom = "all"))
+  }"""
+
+
+  def aldex2(
+      adata: AnnData,
+      group: str,
+      *,
+      mc_samples: int = 128,
+      reference: str | None = None,
+      seed: int | np.random.Generator | None = None,
+  ) -> pd.DataFrame:
+      """Differential abundance of each feature between two groups by ALDEx2, run in R.
+
+      Parameters
+      ----------
+      adata
+          Samples x features; ``X`` holds raw counts.
+      group
+          The ``obs`` column whose two levels are compared: a categorical, string or
+          bool column with two levels, each in at least two samples.
+      mc_samples
+          Monte Carlo draws from each sample's Dirichlet posterior (``mc.samples``).
+      reference
+          The level of ``group`` that the other level is compared with; by default
+          its first category (sorted values for a string column).
+      seed
+          Seeds R's random number generator through ``set.seed``; the same seed
+          gives the same table.
+
+      Returns
+      -------
+      pandas.DataFrame
+          One row per feature, in ``var_names`` order, indexed by ``feature``:
+          ``effect`` (ALDEx2's ``diff.btw``, the median log2 difference between the
+          groups), ``se`` (NaN: ALDEx2 has none), ``pvalue`` (``we.ep``),
+          ``qvalue`` (Benjamini-Hochberg over the tested features), ``direction``,
+          ``method`` (``"aldex2"``) and ``contrast``. A feature with no read in any
+          sample is not tested: NaN values and ``direction`` 0.
+
+      Raises
+      ------
+      ImportError
+          rpy2 (the extra ``r``) or the R package ALDEx2 is not installed.
+      KeyError
+          ``group`` is not an ``obs`` column.
+      TypeError
+          ``reference`` is not a string, or ``mc_samples`` not an int.
+      ValueError
+          ``X`` does not hold raw counts, has an empty sample or fewer than two
+          features; ``group`` is numeric, has missing values or other than two
+          levels, or a level in fewer than two samples; ``reference`` is not one of
+          them; ``mc_samples`` is below 1.
+
+      Notes
+      -----
+      R equivalent: ``ALDEx2::aldex``
+      Guide: :doc:`/guide/differential_abundance`
+
+      Calls ``ALDEx2::aldex(reads, conditions, mc.samples, test = "t", effect =
+      TRUE, denom = "all")`` (Fernandes et al. 2014) through rpy2: Dirichlet Monte
+      Carlo draws of each sample's proportions (0.5 added to every count), their
+      log2 centred log-ratios, and per draw a Welch t-test, whose two-sided
+      p-values are averaged into ``we.ep``. ``effect`` is ``diff.btw``, already
+      log2; ALDEx2's own ``effect`` column is a standardised size, not a fold
+      change, and is not carried. ``qvalue`` is the Benjamini-Hochberg correction
+      of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
+      corrected values of the draws instead and is not carried. ALDEx2 compares
+      two groups without covariates (its ``glm`` test is not wrapped).
+
+      Needs R with ALDEx2 (``BiocManager::install("ALDEx2")``) and ``pip install
+      'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
+      ``seed`` becomes one integer for R's ``set.seed``, which sets the random
+      state of the R session rpy2 embeds in Python.
+
+      rpy2 converts dense tables only, so ``X`` is densified once: 8 bytes x
+      samples x features, plus R's copy and its Monte Carlo draws (about
+      ``mc_samples`` times the table).
+
+      References
+      ----------
+      Fernandes AD, Reid JN, Macklaim JM, McMurrough TA, Edgell DR, Gloor GB (2014)
+      Unifying the analysis of high-throughput sequencing datasets: characterizing
+      RNA-seq, 16S rRNA gene sequencing and selective growth experiments by
+      compositional data analysis. Microbiome 2:15.
+
+      Fernandes AD, Macklaim JM, Linn TG, Reid G, Gloor GB (2013) ANOVA-like
+      differential gene expression analysis of single-organism and meta-RNA-seq.
+      PLoS ONE 8:e67019.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> table = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)  # doctest: +SKIP
+      >>> table.loc["f6", "contrast"]  # doctest: +SKIP
+      'B vs A'
+      """
+      frame, contrast = model(adata, group, covariates=(), reference=reference, func="da.aldex2")
+      conditions = _conditions(frame[group], func="da.aldex2")
+      if isinstance(mc_samples, bool) or not isinstance(mc_samples, int | np.integer):
+          msg = f"da.aldex2: mc_samples must be an int, got {type(mc_samples).__name__}"
+          raise TypeError(msg)
+      if mc_samples < 1:
+          msg = f"da.aldex2: mc_samples must be at least 1, got {mc_samples}"
+          raise ValueError(msg)
+      # rpy2 has no sparse converter (rules.md R6.2): the one dense copy of X, features as rows as ALDEx2 wants them.
+      reads = pd.DataFrame(dense_counts(adata, func="da.aldex2").T, index=adata.var_names, columns=adata.obs_names)
+      aldex = r_function(_ALDEX, package="ALDEx2", func="da.aldex2")
+      table = call_r(aldex, reads, conditions, int(mc_samples), r_seed(seed)).reindex(adata.var_names)
+      effect = table["diff.btw"].to_numpy(np.float64)
+      pvalue = table["we.ep"].to_numpy(np.float64)
+      se = np.full(adata.n_vars, np.nan)
+      return result(adata.var_names, effect=effect, se=se, pvalue=pvalue, method="aldex2", contrast=contrast)
+
+
+  def _conditions(values: pd.Series, *, func: str) -> pd.Series:
+      """The group as "0" (reference) and "1" labels; raises for a numeric group or a level in fewer than two samples."""
+      if not isinstance(values.dtype, pd.CategoricalDtype):
+          msg = f"{func} compares two levels, but obs[{values.name!r}] is numeric; ALDEx2's t-test has no slope"
+          raise ValueError(msg)
+      sizes = values.value_counts()
+      if (sizes < 2).any():
+          msg = f"{func} needs two samples in each level of obs[{values.name!r}], which has {sizes.to_dict()}"
+          raise ValueError(msg)
+      # ALDEx2 sorts the labels and reports the second minus the first; "0" < "1" in every R locale, unlike level names.
+      return values.cat.codes.astype(str)
+  ```
+  `src/biotapy/da/__init__.py`:
+  ```diff
+  @@ -1,7 +1,8 @@
+   """Differential abundance: methods that share one result table (contracts/data-model-slots, DA results)."""
+
+  +from ._aldex2 import aldex2
+   from ._ancombc import ancombc2
+   from ._consensus import consensus
+   from ._linda import linda
+
+  -__all__ = ["ancombc2", "consensus", "linda"]
+  +__all__ = ["aldex2", "ancombc2", "consensus", "linda"]
+  ```
+  No mypy override: biotapy reaches rpy2 only through `import_optional`, whose
+  `ModuleType` attributes are `Any` (hence the two `cast`s), and the lint
+  environment has no rpy2 (it cannot build without R). Slice 3C decision 11.
+- [ ] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
+  -> `117 passed, 10 deselected`; in the R environment (`uv sync --group test
+  --extra r` with R 4.5.3 and ALDEx2 installed) `uv run --group test --extra r
+  pytest -m r tests/da/test_aldex2.py tests/da/test_aldex2_golden.py -q` ->
+  `6 passed` (the golden about 10 s, GlobalPatterns from the pooch cache).
+  If rpy2 imports with "Error importing in API mode", the R link headers are
+  missing: install `libpcre2-dev libdeflate-dev libzstd-dev` and rebuild it with
+  `RPY2_CFFI_MODE=API` (design, CI job).
+- [ ] **Step 10: Docs.**
+  ````diff
+  @@ -86,6 +86,38 @@ here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to
+   plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
+   Choose `reference` on the biology (the control or baseline level), not to change the results.
+
+  +## Methods that run in R
+  +
+  +ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
+  +[rpy2](https://rpy2.github.io/). They need R, the R package, and biotapy's `r` extra, which builds
+  +rpy2 against that R (Linux and macOS; it fails to install when no R is found):
+  +
+  +```bash
+  +Rscript -e 'install.packages("BiocManager"); BiocManager::install("ALDEx2")'
+  +pip install 'biotapy[r]'
+  +```
+  +
+  +rpy2 is GPL-2.0-or-later and the R packages have their own licences; biotapy itself does not ship
+  +any of them. Without rpy2 or the R package, the call raises an `ImportError` that names what to
+  +install. Each call converts `X` to a dense table once, because rpy2 has no sparse converter.
+  +
+  +### ALDEx2
+  +
+  +`bt.da.aldex2` runs `ALDEx2::aldex` (Fernandes et al. 2014): Monte Carlo draws from each sample's
+  +Dirichlet posterior, their log2 centred log-ratios, and a Welch t-test per draw, whose p-values are
+  +averaged. `effect` is ALDEx2's `diff.btw`, the median log2 difference between the two groups:
+  +
+  +```python
+  +table = bt.da.aldex2(tdata, "group", seed=0)
+  +```
+  +
+  +ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
+  +`seed` sets R's random state, so the same seed gives the same table, and on the GlobalPatterns
+  +genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to 1e-14. `qvalue` is the
+  +Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
+  +`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
+  +those genera).
+  +
+   ## Where methods agree
+
+   `bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,
+  ````
+  ```diff
+  @@ -100,6 +100,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+   .. autosummary::
+       :toctree: generated
+
+  +    da.aldex2
+       da.ancombc2
+       da.consensus
+       da.linda
+  ```
+  ````diff
+  @@ -67,6 +67,16 @@ per-user cache directory - CI caches it across runs the same way:
+   BIOTAPY_DATA_DIR=.pooch uv run --group test pytest -m "network or golden"
+   ```
+
+  +### R bridge tests
+  +
+  +Tests that call R through rpy2 (`bt.da.aldex2`) carry the marker `r` and are excluded from the
+  +runs above. They need R with the packages `tests/r/Dockerfile` installs and the `r` extra; those
+  +that read GlobalPatterns also need the pooch cache:
+  +
+  +```bash
+  +BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
+  +```
+  +
+   ### Regenerating the R golden files
+
+   The golden CSVs under `tests/golden/` and the R-written fixtures under
+  ````
+- [ ] **Step 11: Contract.** `.knowledge/contracts/r-golden-parity.md`
+  statement 4 and "Enforced by":
+  ```diff
+  @@ -52,6 +52,7 @@ sources:
+      | HUMAnN parity (func_glom, renorm) | elementwise, matched by row id | rtol=1e-7; renorm rtol=5e-6, because humann_renorm_table prints %.6g |
+      | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+      | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
+  +   | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13) |
+      | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
+
+   5. Any looser tolerance is written in the test with a one-line comment giving the reason.
+  @@ -94,6 +95,10 @@ invariants keeps them honest.
+     They also carry `network`, because the golden inputs (e.g. GlobalPatterns)
+     are downloaded by pooch; they run in the network CI job
+     (`pytest -m "network or golden"`).
+  +- `tests/da/test_*_golden.py` of the R bridges, marker `r` only: they need R
+  +  and rpy2 and run in the `r-bridge` CI job, which gives them the network job's
+  +  pooch cache; marked `golden` or `network`, they would run in the network job,
+  +  which has no R.
+   - `tests/fn/*_golden.py`, marker `golden` only: their inputs are committed, so
+     they run in every CI job.
+   - Missing golden file = test error, not skip.
+  ```
+  Log line:
+  ```text
+  - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.aldex2` is compared with `ALDEx2::aldex` elementwise (the golden's seed is the one biotapy derives, so the Monte Carlo draws match); R bridge golden tests carry the marker `r` only. [phase-3-stats](roadmap/phase-3-stats.md) task 3.6 done.
+  ```
+- [ ] **Step 12: Gate and commit** (tick 3.6 in the checklist first)
+  ```bash
+  git add pyproject.toml src/biotapy/da/__init__.py src/biotapy/da/_r.py src/biotapy/da/_aldex2.py \
+    tests/da/conftest.py tests/da/test_aldex2.py tests/da/test_aldex2_golden.py docs/guide/differential_abundance.md \
+    docs/api.md docs/contributing.md .knowledge/contracts/r-golden-parity.md .knowledge/roadmap/phase-3-stats.md \
+    .knowledge/log.md
+  uvx prek run --all-files
+  uv run --group doc sphinx-build -W -b html docs docs/_build/html
+  git commit -m "feat(da): add the ALDEx2 bridge and the r extra
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+
+---
+
+### Task 3.7: `da.maaslin3`
+
+**Files:** modify `tests/r/Dockerfile`, `tests/r/export_golden.R`,
+`tests/golden/VERSIONS.txt`, `src/biotapy/da/__init__.py`,
+`docs/guide/differential_abundance.md`, `docs/api.md`, `docs/contributing.md`,
+`.knowledge/contracts/r-golden-parity.md`; create
+`tests/golden/global_patterns/maaslin3.csv.gz`, `src/biotapy/da/_maaslin3.py`,
+`tests/da/test_maaslin3.py`, `tests/da/test_maaslin3_golden.py`.
+**Not touched:** `da/_r.py`, `da/_aldex2.py`, `tests/da/conftest.py` (the
+fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
+**Interfaces:**
+- Consumes: `r_function`, `call_r`, `r_seed`, `fake_rpy2` (3.6); `model`,
+  `dense_counts`, `result`; the `benchmark` fixture.
+- Produces: `bt.da.maaslin3(adata: AnnData, group: str, *, covariates:
+  Sequence[str] = (), reference: str | None = None, seed: int |
+  np.random.Generator | None = None) -> pd.DataFrame`; `maaslin3.csv.gz`.
+
+- [ ] **Step 1: Approval on record.** maaslin3 (Bioconductor, MIT) in the image
+  was approved with the Phase 3 plan. New here: `VERSIONS.txt` also records
+  multcomp, whose `glht` computes the median test's p-values (a record, not a
+  pin). The behavioural choices (`subtract_median = TRUE`, BH over the group's
+  rows) are slice 3C decisions 4 and 5.
+- [ ] **Step 2: Add maaslin3 to the image.** `tests/r/Dockerfile`:
+  ```diff
+  @@ -30,6 +30,8 @@ RUN Rscript -e 'install.packages(c("Rmpfr", "gmp", "ECOSolveR", "scs", "osqp", "
+   RUN Rscript -e 'BiocManager::install("ANCOMBC", version = "3.22", ask = FALSE, update = FALSE)'
+   # ALDEx2 (Bioconductor, GPL-3): the da.aldex2 golden file and the bridge's r tests; biotapy calls it through rpy2.
+   RUN Rscript -e 'BiocManager::install("ALDEx2", version = "3.22", ask = FALSE, update = FALSE)'
+  -RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE), requireNamespace("ALDEx2", quietly = TRUE))'
+  +# maaslin3 (Bioconductor, MIT): the da.maaslin3 golden file and the bridge's r tests; biotapy calls it through rpy2.
+  +RUN Rscript -e 'BiocManager::install("maaslin3", version = "3.22", ask = FALSE, update = FALSE)'
+  +RUN Rscript -e 'stopifnot(requireNamespace("phyloseq", quietly = TRUE), requireNamespace("Biostrings", quietly = TRUE), requireNamespace("picante", quietly = TRUE), requireNamespace("philr", quietly = TRUE), requireNamespace("MicrobiomeStat", quietly = TRUE), requireNamespace("ANCOMBC", quietly = TRUE), requireNamespace("ALDEx2", quietly = TRUE), requireNamespace("maaslin3", quietly = TRUE))'
+   WORKDIR /work
+   CMD ["Rscript", "tests/r/export_golden.R"]
+  ```
+  ```diff
+  @@ -22,9 +22,9 @@ sources:
+      Bioconductor `philr` for `pp.philr`, with the `libuv1` runtime library its
+      `fs` binary loads, CRAN `MicrobiomeStat` for `da.linda`, and Bioconductor
+      `ANCOMBC` for `da.ancombc2`, with CRAN's archived CVXR 1.0-15 and the
+  -   `libgsl27` runtime library it needs, and Bioconductor `ALDEx2` for
+  -   `da.aldex2`); a new golden function that needs another package adds it in
+  -   its own commit (rules.md R2.3).
+  +   `libgsl27` runtime library it needs, Bioconductor `ALDEx2` for `da.aldex2`
+  +   and Bioconductor `maaslin3` for `da.maaslin3`); a new golden function that
+  +   needs another package adds it in its own commit (rules.md R2.3).
+   1b. HUMAnN golden files (`fn.func_glom`, `fn.renorm`) are produced by
+      `tests/humann/export_golden.py`, run with
+      `uv run --no-project --with humann==3.9 --with pandas==3.0.6`, never
+  ```
+  Log line:
+  ```text
+  - **Update**: [r-golden-parity](contracts/r-golden-parity.md) statement 1: the golden image also installs Bioconductor `maaslin3` for the `da.maaslin3` golden file.
+  ```
+  Build. Expected: the guard passes; `maaslin3 1.2.0`, `multcomp 1.4.30`,
+  `lme4 2.0.1` (from ANCOMBC, unchanged); the layer takes about 75 s.
+- [ ] **Step 3: Commit the image change on its own:**
+  ```bash
+  git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
+  git commit -m "build(r): add maaslin3 to the golden image
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+- [ ] **Step 4: Export.** After the ALDEx2 section:
+  ```diff
+  @@ -187,6 +187,24 @@ write_golden(
+     file.path(gp, "aldex2.csv.gz")
+   )
+
+  +# MaAsLin 3 tests each coefficient against the median over features by simulation (rnorm): the same seed again. Abundance
+  +# model only (warn_prevalence must then be FALSE), no prevalence filter, each coefficient minus that median, no plots.
+  +maaslin_rows <- lapply(da_formulas, function(f) {
+  +  output <- tempfile()
+  +  set.seed(1165433077)
+  +  fit <- maaslin3::maaslin3(
+  +    as.data.frame(t(da_counts)), da_meta, output, formula = paste0("~", f), min_abundance = 0, min_prevalence = 0,
+  +    evaluate_only = "abundance", warn_prevalence = FALSE, subtract_median = TRUE, plot_summary_plot = FALSE,
+  +    plot_associations = FALSE, cores = 1, verbosity = "ERROR"
+  +  )
+  +  unlink(output, recursive = TRUE)
+  +  out <- fit$fit_data_abundance$results
+  +  out <- out[out$metadata == "host", ]
+  +  data.frame(formula = f, taxon_id = out$feature, coef = out$coef, stderr = out$stderr, pval = out$pval_individual,
+  +             qval = out$qval_individual, error = !is.na(out$error))
+  +})
+  +write_golden(do.call(rbind, maaslin_rows), file.path(gp, "maaslin3.csv.gz"))
+  +
+   ## Synthetic phyloseq fixtures: biotapy's toy() numbers, no third-party data
+   counts <- rbind(
+     c(10, 5, 20, 30, 0, 2, 1, 0), c(8, 7, 25, 22, 3, 0, 0, 1), c(12, 4, 18, 35, 1, 5, 2, 0),
+  @@ -253,5 +271,7 @@ writeLines(c(
+     paste0("modeest ", packageVersion("modeest")),
+     paste0("ANCOMBC ", packageVersion("ANCOMBC")),
+     paste0("CVXR ", packageVersion("CVXR"), " (CRAN archive, pinned in tests/r/Dockerfile)"),
+  -  paste0("ALDEx2 ", packageVersion("ALDEx2"))
+  +  paste0("ALDEx2 ", packageVersion("ALDEx2")),
+  +  paste0("maaslin3 ", packageVersion("maaslin3")),
+  +  paste0("multcomp ", packageVersion("multcomp"))
+   ), "tests/golden/VERSIONS.txt")
+  ```
+  Run twice. Expected: every line `OK` (42 files, about three minutes a run);
+  `M tests/golden/VERSIONS.txt` (`maaslin3 1.2.0`, `multcomp 1.4.30`), `M
+  tests/r/export_golden.R`, the new `maaslin3.csv.gz` (43.4 KB, 636 rows per
+  model, 36 with `error` TRUE in each); every older file byte-identical.
+- [ ] **Step 5: Gate and commit.** `tests/test_data_files.py` passes; prek;
+  ```bash
+  git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/maaslin3.csv.gz
+  git commit -m "test(golden): export the MaAsLin 3 golden file
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+- [ ] **Step 6: Failing tests.** `tests/da/test_maaslin3.py` (the canned rows
+  are what the R closure returns for `toy()` with `seed=0`):
+  ```python
+  import sys
+
+  import numpy as np
+  import pandas as pd
+  import pytest
+  import scipy.sparse as sp
+  from scipy.stats import false_discovery_control
+
+  import biotapy as bt
+
+  # What biotapy's R call returns for bt.da.maaslin3(toy, "group", seed=0): maaslin3's abundance results (sorted by its
+  # q-value) for the group term x0, 6 significant digits; test_maaslin3_on_toy_is_the_canned_table checks it in R.
+  CANNED = pd.DataFrame(
+      {
+          "feature": ["f6", "f7", "f8", "f1", "f3", "f2", "f4", "f5"],
+          "metadata": "x0",
+          "coef": [4.64115, 4.38614, 2.45111, -1.85211, -1.50564, -1.0101, -0.625606, 0.625606],
+          "stderr": [0.452717, 0.372327, 0.667219, 0.378469, 0.320919, 0.507362, 0.187502, 0.994888],
+          "pval": [0.0337446, 0.036925, 0.206379, 0.226817, 0.27898, 0.474965, 0.619162, 0.657504],
+          "failed": False,
+      }
+  )
+  EXPECTED = CANNED.set_index("feature").reindex(bt.datasets.toy().var_names)
+
+
+  def test_maaslin3_maps_the_group_rows_onto_the_schema(fake_rpy2):
+      covariate = CANNED.assign(metadata="x1", coef=9.0, pval=1e-9)  # rows of a covariate are not the result
+      fake_rpy2.output = pd.concat([covariate, CANNED], ignore_index=True)
+      out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      assert out.index.tolist() == bt.datasets.toy().var_names.tolist()
+      np.testing.assert_array_equal(out["effect"], EXPECTED["coef"])
+      np.testing.assert_array_equal(out["se"], EXPECTED["stderr"])
+      np.testing.assert_array_equal(out["pvalue"], EXPECTED["pval"])
+      # BH over the group's p-values only; maaslin3's qval_individual would pool them with the covariate's.
+      np.testing.assert_allclose(out["qvalue"], false_discovery_control(EXPECTED["pval"]), rtol=1e-12)
+      assert (out["method"] == "maaslin3").all() and (out["contrast"] == "B vs A").all()
+
+
+  def test_maaslin3_gets_counts_plain_column_names_a_formula_and_one_seed(fake_rpy2):
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      tdata.obs["body site"] = pd.Categorical(["x", "y", "x", "y", "x", "y"])
+      bt.da.maaslin3(tdata, "group", covariates=["body site"], reference="B", seed=5)
+      ((code, (counts, metadata, formula, seed)),) = fake_rpy2.calls
+      assert 'evaluate_only = "abundance"' in code and "subtract_median = TRUE" in code and "set.seed(seed)" in code
+      np.testing.assert_array_equal(counts.to_numpy(), tdata.X.toarray())
+      assert counts.index.tolist() == tdata.obs_names.tolist() and counts.columns.tolist() == tdata.var_names.tolist()
+      assert formula == "~ x0 + x1" and metadata.columns.tolist() == ["x0", "x1"]
+      assert metadata["x0"].cat.categories.tolist() == ["B", "A"]  # maaslin3 keeps a factor's first level as reference
+      assert seed == int(np.random.default_rng(5).integers(2**31 - 1))
+
+
+  def test_bool_levels_reach_r_as_strings_in_reference_order(fake_rpy2):
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      tdata.obs["treated"] = [False] * 3 + [True] * 3
+      out = bt.da.maaslin3(tdata, "treated", reference="True", seed=0)
+      assert fake_rpy2.calls[0][1][1]["x0"].cat.categories.tolist() == ["True", "False"]
+      assert (out["contrast"] == "False vs True").all()
+
+
+  def test_failed_fit_is_not_tested(fake_rpy2):
+      failed = CANNED["feature"] == "f3"
+      fake_rpy2.output = CANNED.assign(failed=failed)
+      out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      assert out.loc["f3", ["effect", "se", "pvalue", "qvalue"]].isna().all() and out.loc["f3", "direction"] == 0
+      np.testing.assert_allclose(out["qvalue"].drop("f3"), false_discovery_control(EXPECTED["pval"].drop("f3")))
+
+
+  def test_feature_without_a_row_is_not_tested(fake_rpy2):
+      fake_rpy2.output = CANNED[CANNED["feature"] != "f7"]
+      out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      assert out.loc["f7", ["effect", "pvalue"]].isna().all() and out["effect"].notna().sum() == 7
+
+
+  def test_numeric_group_reports_its_slope(fake_rpy2):
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      tdata.obs["ph"] = [5.1, 5.6, 6.0, 6.8, 7.1, 7.4]
+      out = bt.da.maaslin3(tdata, "ph", seed=0)
+      assert (out["contrast"] == "ph").all()
+      assert fake_rpy2.calls[0][1][1]["x0"].dtype == np.float64
+
+
+  def test_missing_rpy2_names_the_extra(monkeypatch):
+      for name in ("rpy2", "rpy2.robjects", "rpy2.robjects.packages", "rpy2.robjects.pandas2ri"):
+          monkeypatch.setitem(sys.modules, name, None)
+      with pytest.raises(ImportError, match=r"pip install 'biotapy\[r\]'"):
+          bt.da.maaslin3(bt.datasets.toy(), "group")
+
+
+  def test_missing_r_package_names_the_install_line(fake_rpy2):
+      fake_rpy2.installed = {"ALDEx2"}
+      with pytest.raises(ImportError, match=r'BiocManager::install\("maaslin3"\)'):
+          bt.da.maaslin3(bt.datasets.toy(), "group")
+
+
+  def test_shared_model_checks_apply(fake_rpy2):
+      tdata = bt.datasets.toy()
+      tdata.obs["arm"] = ["x"] * 3 + ["y"] * 3
+      with pytest.raises(ValueError, match="are collinear"):
+          bt.da.maaslin3(tdata, "group", covariates=["arm"])
+      with pytest.raises(ValueError, match=r"obs\['age'\] is missing for 1 sample"):
+          tdata.obs["age"] = [30.0, np.nan, 52, 38, 45, 60]
+          bt.da.maaslin3(tdata, "group", covariates=["age"])
+      assert fake_rpy2.calls == []
+
+
+  def test_maaslin3_keeps_input(fake_rpy2, assert_unchanged):
+      fake_rpy2.output = CANNED
+      tdata = bt.datasets.toy()
+      before = tdata.copy()
+      bt.da.maaslin3(tdata, "group", seed=0)
+      assert_unchanged(before, tdata)
+
+
+  @pytest.mark.r
+  def test_maaslin3_on_toy_is_the_canned_table():
+      out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      # CANNED holds 6 significant digits of R's output, hence rtol=1e-5.
+      for ours, theirs in {"effect": "coef", "se": "stderr", "pvalue": "pval"}.items():
+          np.testing.assert_allclose(out[ours], EXPECTED[theirs], rtol=1e-5, err_msg=ours)
+
+
+  @pytest.mark.r
+  def test_seed_reproduces_the_table_in_r():
+      tdata = bt.datasets.toy()
+      first = bt.da.maaslin3(tdata, "group", seed=0)
+      pd.testing.assert_frame_equal(bt.da.maaslin3(tdata, "group", seed=0), first)
+      assert not bt.da.maaslin3(tdata, "group", seed=1)["pvalue"].equals(first["pvalue"])
+
+
+  @pytest.mark.r
+  def test_reference_sets_the_sign_in_r():
+      tdata = bt.datasets.toy()
+      a_first, b_first = bt.da.maaslin3(tdata, "group", seed=0), bt.da.maaslin3(tdata, "group", reference="B", seed=0)
+      assert (b_first["contrast"] == "A vs B").all()
+      np.testing.assert_allclose(b_first["effect"], -a_first["effect"], rtol=1e-9, atol=1e-12)
+      np.testing.assert_allclose(b_first["se"], a_first["se"], rtol=1e-9)
+
+
+  @pytest.mark.r
+  def test_covariates_and_odd_column_names_reach_r():
+      tdata = bt.datasets.toy()
+      tdata.obs["body site"] = pd.Categorical(["x", "y", "x", "y", "x", "y"])
+      tdata.obs["treated"] = [False] * 3 + [True] * 3
+      adjusted = bt.da.maaslin3(tdata, "treated", covariates=["body site"], seed=0)
+      assert (adjusted["contrast"] == "True vs False").all() and adjusted["effect"].notna().all()
+      assert not np.allclose(adjusted["se"], bt.da.maaslin3(tdata, "treated", seed=0)["se"])
+
+
+  @pytest.mark.r
+  def test_bool_reference_sets_the_sign_in_r():
+      tdata = bt.datasets.toy()
+      tdata.obs["treated"] = [False] * 3 + [True] * 3
+      default, swapped = (
+          bt.da.maaslin3(tdata, "treated", seed=0),
+          bt.da.maaslin3(tdata, "treated", reference="True", seed=0),
+      )
+      np.testing.assert_allclose(swapped["effect"], -default["effect"], rtol=1e-9, atol=1e-12)
+
+
+  @pytest.mark.r
+  def test_all_zero_feature_is_not_tested_in_r():
+      tdata = bt.datasets.toy()
+      dense = tdata.X.toarray()
+      dense[:, tdata.var_names.get_loc("f7")] = 0
+      tdata.X = sp.csr_matrix(dense)
+      out = bt.da.maaslin3(tdata, "group", seed=0)
+      assert out.loc["f7", ["effect", "pvalue", "qvalue"]].isna().all()
+      assert np.isfinite(out.drop(index="f7")[["effect", "pvalue", "qvalue"]].to_numpy()).all()
+
+
+  @pytest.mark.r
+  def test_maaslin3_table_passes_the_consensus_checks():
+      out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      assert bt.da.consensus([out], min_methods=1)["n_tested"].tolist() == [1] * 8
+  ```
+  `tests/da/test_maaslin3_golden.py`:
+  ```python
+  from pathlib import Path
+
+  import numpy as np
+  import pandas as pd
+  import pytest
+  from scipy.stats import false_discovery_control
+
+  import biotapy as bt
+
+  GOLDEN = Path(__file__).parents[1] / "golden" / "global_patterns"
+  # Marker r only: it needs R, and the r-bridge CI job gives it the network job's pooch cache.
+  pytestmark = pytest.mark.r
+
+
+  @pytest.mark.parametrize(("formula", "covariates"), [("host", ()), ("host + log_depth", ("log_depth",))])
+  def test_maaslin3_matches_maaslin3_maaslin3(benchmark, formula, covariates):
+      # R: set.seed(1165433077); maaslin3(counts, meta, output, formula, min_prevalence = 0, evaluate_only = "abundance",
+      # warn_prevalence = FALSE, subtract_median = TRUE), the host rows. The seed is the integer seed=20260927 becomes, so
+      # the median test's simulations are the same and the numbers match to rounding.
+      golden = pd.read_csv(GOLDEN / "maaslin3.csv.gz", dtype={"taxon_id": str}).query("formula == @formula")
+      golden = golden.set_index("taxon_id").reindex(benchmark.var_names)
+      out = bt.da.maaslin3(benchmark, "host", covariates=covariates, reference="other", seed=20260927)
+      assert (out["contrast"] == "human vs other").all()
+      # The 36 genera whose fit reports an error (no read in one host group): maaslin3 leaves them out of its q-values.
+      untested = golden["error"]
+      assert untested.sum() == 36 and out["effect"].isna().equals(untested.rename("effect"))
+      ours, theirs = out[~untested], golden[~untested]
+      for column, name in {"effect": "coef", "se": "stderr", "pvalue": "pval"}.items():
+          np.testing.assert_allclose(ours[column], theirs[name], rtol=1e-7, err_msg=column)
+      # BH over the group's p-values; maaslin3's qval pools them with the covariate's (20 calls against 45 with log_depth).
+      np.testing.assert_allclose(ours["qvalue"], false_discovery_control(theirs["pval"]), rtol=1e-7)
+  ```
+- [ ] **Step 7: Run, expect failure** -
+  `uv run --group test pytest tests/da/test_maaslin3.py -q` -> `10 failed, 7
+  deselected` (`AttributeError: module 'biotapy.da' has no attribute
+  'maaslin3'`); in the R environment the nine `r` tests fail the same way.
+- [ ] **Step 8: Implement.** `src/biotapy/da/_maaslin3.py`:
+  ```python
+  """MaAsLin 3 through the R bridge: its abundance model, linear models of log2 relative abundance where present."""
+
+  from collections.abc import Sequence
+
+  import numpy as np
+  import pandas as pd
+  from anndata import AnnData
+
+  from ._design import dense_counts, model
+  from ._r import call_r, r_function, r_seed
+  from ._schema import result
+
+  # evaluate_only = "abundance" needs warn_prevalence = FALSE (maaslin3 stops otherwise). subtract_median = TRUE reports
+  # each coefficient minus the median its p-value is tested against. The output folder maaslin3 insists on is deleted,
+  # and pbapply's progress bar, which verbosity does not reach, is off for the call.
+  _MAASLIN = """function(counts, metadata, formula, seed) {
+    output <- tempfile("biotapy-maaslin3-")
+    progress <- pbapply::pboptions(type = "none")
+    on.exit({unlink(output, recursive = TRUE); pbapply::pboptions(progress)})
+    set.seed(seed)
+    fit <- maaslin3::maaslin3(
+      counts, metadata, output, formula = formula, min_abundance = 0, min_prevalence = 0, evaluate_only = "abundance",
+      warn_prevalence = FALSE, subtract_median = TRUE, plot_summary_plot = FALSE, plot_associations = FALSE,
+      cores = 1, verbosity = "ERROR"
+    )
+    out <- fit$fit_data_abundance$results
+    data.frame(feature = out$feature, metadata = out$metadata, coef = out$coef, stderr = out$stderr,
+               pval = out$pval_individual, failed = !is.na(out$error))
+  }"""
+
+
+  def maaslin3(
+      adata: AnnData,
+      group: str,
+      *,
+      covariates: Sequence[str] = (),
+      reference: str | None = None,
+      seed: int | np.random.Generator | None = None,
+  ) -> pd.DataFrame:
+      """Differential abundance of each feature between two groups by MaAsLin 3's abundance model, run in R.
+
+      Parameters
+      ----------
+      adata
+          Samples x features; ``X`` holds raw counts.
+      group
+          The ``obs`` column whose effect is reported: a categorical, string or bool
+          column with two levels, or a numeric column, whose effect is per standard
+          deviation (MaAsLin 3 standardises numeric columns).
+      covariates
+          ``obs`` columns to adjust for: numeric ones standardised, others as one
+          indicator per level against their first level.
+      reference
+          The level of a categorical ``group`` that the other level is compared
+          with; by default its first category (sorted values for a string column).
+      seed
+          Seeds R's random number generator through ``set.seed``; MaAsLin 3's test
+          against the median simulates, so the same seed gives the same table.
+
+      Returns
+      -------
+      pandas.DataFrame
+          One row per feature, in ``var_names`` order, indexed by ``feature``:
+          ``effect`` (log2 fold change of the relative abundance where the feature
+          is present, minus the median over features), ``se``, ``pvalue``,
+          ``qvalue`` (Benjamini-Hochberg over the tested features), ``direction``,
+          ``method`` (``"maaslin3"``) and ``contrast``. A feature MaAsLin 3 could
+          not fit has NaN values and ``direction`` 0.
+
+      Raises
+      ------
+      ImportError
+          rpy2 (the extra ``r``) or the R package maaslin3 is not installed.
+      KeyError
+          ``group`` or a covariate is not an ``obs`` column.
+      TypeError
+          ``covariates`` is not a list of column names, or ``reference`` is not a string.
+      ValueError
+          ``X`` does not hold raw counts, has an empty sample or fewer than two
+          features; a used ``obs`` column has missing values, is constant or is
+          repeated; ``group`` has other than two levels; ``reference`` is not one of
+          them or is given for a numeric ``group``; the model has at least as many
+          terms as samples, or collinear columns.
+
+      Notes
+      -----
+      R equivalent: ``maaslin3::maaslin3``
+      Guide: :doc:`/guide/differential_abundance`
+
+      Calls ``maaslin3::maaslin3(counts, metadata, output, formula, min_prevalence
+      = 0, evaluate_only = "abundance", warn_prevalence = FALSE, subtract_median =
+      TRUE)`` (Nickols et al.) through rpy2, with its other defaults: counts
+      are divided by each sample's total (TSS), zeros are left out and the rest
+      log2-transformed, one linear model per feature is fitted on the samples where
+      it is present, and each coefficient is tested against the median coefficient
+      over features (``median_comparison_abundance = TRUE``), MaAsLin 3's
+      correction for compositionality, which draws 10,000 normal samples.
+      ``effect`` is that coefficient minus the median, so its sign is the side of
+      the median the test is about; MaAsLin 3's default output reports the
+      coefficient itself. Only the abundance model runs: the prevalence model's
+      log-odds cannot share a column with fold changes. ``qvalue`` is the
+      Benjamini-Hochberg correction of the group's p-values; MaAsLin 3's
+      ``qval_individual`` corrects them together with every covariate's. A feature
+      whose fit reports an error is not tested, as MaAsLin 3 leaves it out of its
+      own correction.
+
+      Needs R with maaslin3 (``BiocManager::install("maaslin3")``) and ``pip
+      install 'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
+      ``seed`` becomes one integer for R's ``set.seed``, which sets the random
+      state of the R session rpy2 embeds in Python. Plots are off and MaAsLin 3's
+      output folder is a temporary one, deleted afterwards.
+
+      rpy2 converts dense tables only, so ``X`` is densified once: 8 bytes x
+      samples x features, plus R's copies of the table.
+
+      References
+      ----------
+      Nickols WA, et al. MaAsLin 3: refining and extending generalized multivariable
+      linear models for meta-omic association discovery. Nature Methods,
+      doi:10.1038/s41592-025-02923-9.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> table = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)  # doctest: +SKIP
+      >>> table.loc["f6", "contrast"]  # doctest: +SKIP
+      'B vs A'
+      """
+      frame, contrast = model(adata, group, covariates=covariates, reference=reference, func="da.maaslin3")
+      # rpy2 has no sparse converter (rules.md R6.2): the one dense copy of X.
+      counts = pd.DataFrame(dense_counts(adata, func="da.maaslin3"), index=adata.obs_names, columns=adata.var_names)
+      # Plain names in the formula, so an obs column such as "body site" needs no quoting. rpy2 makes an R factor, whose
+      # first level maaslin3 keeps as reference, only from string categories; bool ones would arrive as sorted strings.
+      metadata = pd.DataFrame(
+          {f"x{i}": _string_levels(frame[name]) for i, name in enumerate(frame.columns)}, index=frame.index
+      )
+      fit = r_function(_MAASLIN, package="maaslin3", func="da.maaslin3")
+      table = call_r(fit, counts, metadata, "~ " + " + ".join(metadata.columns), r_seed(seed))
+      rows = table[table["metadata"] == "x0"].set_index("feature").reindex(adata.var_names)
+      untested = rows["failed"].fillna(True).to_numpy(bool) | ~np.isfinite(rows["pval"].to_numpy(np.float64))
+      effect, se, pvalue = (np.where(untested, np.nan, rows[c].to_numpy(np.float64)) for c in ("coef", "stderr", "pval"))
+      return result(adata.var_names, effect=effect, se=se, pvalue=pvalue, method="maaslin3", contrast=contrast)
+
+
+  def _string_levels(values: pd.Series) -> pd.Series:
+      """A categorical column with its levels as strings, in the same order; a numeric one as it is."""
+      if isinstance(values.dtype, pd.CategoricalDtype):
+          return values.cat.rename_categories([str(level) for level in values.cat.categories])
+      return values
+  ```
+  `src/biotapy/da/__init__.py`:
+  ```diff
+  @@ -4,5 +4,6 @@ from ._aldex2 import aldex2
+   from ._ancombc import ancombc2
+   from ._consensus import consensus
+   from ._linda import linda
+  +from ._maaslin3 import maaslin3
+
+  -__all__ = ["aldex2", "ancombc2", "consensus", "linda"]
+  +__all__ = ["aldex2", "ancombc2", "consensus", "linda", "maaslin3"]
+  ```
+- [ ] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
+  -> `127 passed, 19 deselected`; in the R environment `uv run --group test
+  --extra r pytest -m r tests/da -q` -> `15 passed`. Also with `-W
+  error::UserWarning`: rpy2's "categories are strings" warning must not appear.
+- [ ] **Step 10: Docs.**
+  ````diff
+  @@ -93,7 +93,7 @@ ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
+   rpy2 against that R (Linux and macOS; it fails to install when no R is found):
+
+   ```bash
+  -Rscript -e 'install.packages("BiocManager"); BiocManager::install("ALDEx2")'
+  +Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("ALDEx2", "maaslin3"))'
+   pip install 'biotapy[r]'
+   ```
+
+  @@ -118,6 +118,26 @@ Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every
+   `we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
+   those genera).
+
+  +### MaAsLin 3
+  +
+  +`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
+  +"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
+  +log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
+  +is tested against the median coefficient over features, MaAsLin 3's correction for
+  +compositionality; `effect` is the coefficient minus that median, so its sign says on which side
+  +of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
+  +
+  +```python
+  +table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
+  +```
+  +
+  +Numeric columns are standardised, so a numeric group's effect is per standard deviation, as in
+  +`da.linda`. The test against the median simulates, so `seed` makes the p-values reproducible; on the
+  +GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
+  +are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
+  +MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
+  +covariate called 20 genera where biotapy calls 45.
+  +
+   ## Where methods agree
+
+   `bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,
+  ````
+  ````diff
+  @@ -104,6 +104,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+       da.ancombc2
+       da.consensus
+       da.linda
+  +    da.maaslin3
+   ```
+
+   ## Plots
+  ````
+  ```diff
+  @@ -69,7 +69,7 @@ BIOTAPY_DATA_DIR=.pooch uv run --group test pytest -m "network or golden"
+
+   ### R bridge tests
+
+  -Tests that call R through rpy2 (`bt.da.aldex2`) carry the marker `r` and are excluded from the
+  +Tests that call R through rpy2 (`bt.da.aldex2`, `bt.da.maaslin3`) carry the marker `r` and are excluded from the
+   runs above. They need R with the packages `tests/r/Dockerfile` installs and the `r` extra; those
+   that read GlobalPatterns also need the pooch cache:
+
+  ```
+- [ ] **Step 11: Contract.**
+  ```diff
+  @@ -53,6 +53,7 @@ sources:
+      | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
+      | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
+      | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13) |
+  +   | `da.maaslin3` vs `maaslin3::maaslin3(evaluate_only = "abundance", subtract_median = TRUE)` (its median test simulates; the same seed as `da.aldex2`'s golden) | the same untested features (fit errors); `effect` vs `coef`, `se` vs `stderr`, `pvalue` vs `pval_individual` elementwise; `qvalue` vs BH of R's p-values over the group's rows | `rtol=1e-7` (measured 2e-14, 5e-15 and 7e-13), both models |
+      | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
+
+   5. Any looser tolerance is written in the test with a one-line comment giving the reason.
+  ```
+  Log line:
+  ```text
+  - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.maaslin3` is compared with `maaslin3::maaslin3` (abundance model, median subtracted) elementwise, seed-matched. [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 done.
+  ```
+- [ ] **Step 12: Gate and commit** (tick 3.7)
+  ```bash
+  git add src/biotapy/da/_maaslin3.py src/biotapy/da/__init__.py tests/da/test_maaslin3.py \
+    tests/da/test_maaslin3_golden.py docs/guide/differential_abundance.md docs/api.md docs/contributing.md \
+    .knowledge/contracts/r-golden-parity.md .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+  uvx prek run --all-files
+  uv run --group doc sphinx-build -W -b html docs docs/_build/html
+  git commit -m "feat(da): add the MaAsLin 3 bridge
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+
+---
+
+### Task 3.11: CI job `r-bridge`
+
+**Files:** modify `.github/workflows/test.yaml`, `tests/test_ci.py`,
+`tests/da/test_consensus.py`, `docs/contributing.md`,
+`.knowledge/decisions/r-bridge-before-ports.md`.
+**Not touched:** the other jobs (the network job's `-m "network or golden"`
+selects no bridge test), `pyproject.toml`, `src/`.
+**Interfaces:**
+- Consumes: the four methods; the `benchmark` fixture; the network job's pooch
+  cache key.
+- Produces: the `r-bridge` job in `check.needs`; the exit gate's four-method
+  consensus as a test.
+
+- [ ] **Step 1: Approval on record.** The job and the two actions pinned by SHA
+  were approved (Phase 3 decision 15). New and to confirm (slice 3C decision 15):
+  the job installs six apt `-dev` packages on the runner (CI only), sets
+  `RPY2_CFFI_MODE=API`, runs on `ubuntu-24.04` instead of `ubuntu-latest`, and
+  points CRAN at the image's dated P3M snapshot instead of the latest P3M.
+- [ ] **Step 2: Look up the SHAs** (never guessed):
+  `gh api repos/r-lib/actions/git/ref/tags/v2 --jq .object.sha` ->
+  `f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05`, which `gh api
+  repos/r-lib/actions/tags` lists as `v2.14.0`. Both actions live in that
+  repository, so one SHA pins both. If the tag has moved by execution time, use
+  the new SHA and its version in the comment.
+- [ ] **Step 3: Failing tests.** `tests/test_ci.py`:
+  ```diff
+  @@ -35,6 +35,25 @@ def test_network_job_blocks_merges():
+       assert "network" in WORKFLOW["jobs"]["check"]["needs"]
+
+
+  +def test_r_bridge_job_runs_the_r_marker():
+  +    steps = WORKFLOW["jobs"]["r-bridge"]["steps"]
+  +    run = [step for step in steps if step.get("run", "").strip() == "uv run --group test --extra r pytest -m r"]
+  +    assert run and "BIOTAPY_DATA_DIR" in run[0]["env"] and run[0]["env"]["RPY2_CFFI_MODE"] == "API"
+  +
+  +
+  +def test_r_bridge_job_installs_the_image_r_and_packages():
+  +    steps = {step.get("uses", "").split("@")[0]: step for step in WORKFLOW["jobs"]["r-bridge"]["steps"]}
+  +    assert steps["r-lib/actions/setup-r"]["with"]["r-version"] == "4.5.3"
+  +    dockerfile = (ROOT / "tests" / "r" / "Dockerfile").read_text(encoding="utf-8")
+  +    assert "FROM rocker/r-ver:4.5.3" in dockerfile and 'version = "3.22"' in dockerfile
+  +    packages = steps["r-lib/actions/setup-r-dependencies"]["with"]["packages"]
+  +    assert {name.strip() for name in packages.split(",")} == {"bioc::ALDEx2", "bioc::maaslin3"}
+  +
+  +
+  +def test_r_bridge_job_blocks_merges():
+  +    assert "r-bridge" in WORKFLOW["jobs"]["check"]["needs"]
+  +
+  +
+   def test_coverage_below_90_percent_fails_the_test_job():
+       coverage = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["coverage"]
+       assert coverage["report"]["fail_under"] == 90
+  ```
+  `tests/da/test_consensus.py` (an acceptance test: the code exists, so it
+  passes where R is):
+  ```diff
+  @@ -166,3 +166,22 @@ def test_numpy_scalars_are_valid_options():
+       results = [_table("a", [1.0], [0.01]), _table("b", [1.0], [0.01])]
+       out = bt.da.consensus(results, alpha=np.float32(0.05), min_methods=np.int64(1))
+       assert out["consensus"].tolist() == [True]
+  +
+  +
+  +@pytest.mark.r
+  +def test_four_methods_on_the_exit_gate_data(benchmark):
+  +    # The Phase 3 exit-gate consensus: GlobalPatterns genera, human hosts against the rest, the two native methods and the
+  +    # two R bridges. Seeded, so the counts are fixed: calls 208 (ANCOM-BC2), 118 (LinDA), 13 (ALDEx2), 52 (MaAsLin 3).
+  +    results = [
+  +        bt.da.ancombc2(benchmark, "host", reference="other"),
+  +        bt.da.linda(benchmark, "host", reference="other"),
+  +        bt.da.aldex2(benchmark, "host", reference="other", seed=0),
+  +        bt.da.maaslin3(benchmark, "host", reference="other", seed=0),
+  +    ]
+  +    assert [int((table["qvalue"] < 0.05).sum()) for table in results] == [208, 118, 13, 52]
+  +    table = bt.da.consensus(results)
+  +    # ANCOM-BC2 and MaAsLin 3 cannot fit the 36 genera absent from one group; LinDA and ALDEx2 test all 636.
+  +    assert table["n_tested"].value_counts().to_dict() == {4: 600, 2: 36}
+  +    assert table["n_significant"].value_counts().sort_index().to_dict() == {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
+  +    assert int(table["consensus"].sum()) == 109 and not table["conflict"].any()
+  +    assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
+  ```
+- [ ] **Step 4: Run, expect failure** - `uv run --group test pytest
+  tests/test_ci.py -q` -> `3 failed, 12 passed` (two `KeyError: 'r-bridge'`,
+  and `'r-bridge' in ...check.needs` is false).
+- [ ] **Step 5: The job.** `.github/workflows/test.yaml`:
+  ```diff
+  @@ -161,6 +161,47 @@ jobs:
+             BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
+           run: uv run --group test pytest -m "network or golden"
+
+  +  # Runs the R bridge tests (marker r, decisions/r-bridge-before-ports): R 4.5.3 with Bioconductor 3.22's ALDEx2 and
+  +  # maaslin3, as tests/r/Dockerfile pins them, on CRAN's snapshot of that image, so the seed-matched goldens hold. The
+  +  # four-method consensus reads GlobalPatterns through the network job's pooch cache.
+  +  r-bridge:
+  +    runs-on: ubuntu-24.04
+  +    steps:
+  +      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  +        with:
+  +          filter: blob:none
+  +          fetch-depth: 0
+  +          persist-credentials: false
+  +      - name: Install R
+  +        uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+  +        with:
+  +          r-version: "4.5.3"
+  +          use-public-rspm: false
+  +          cran: https://p3m.dev/cran/__linux__/noble/2026-04-23
+  +      - name: Install ALDEx2 and maaslin3
+  +        uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2.14.0
+  +        with:
+  +          packages: bioc::ALDEx2, bioc::maaslin3
+  +          dependencies: '"hard"'
+  +      # rpy2 builds against R's link flags; without these headers it silently falls back to a mode that cannot load R.
+  +      - name: Install the libraries rpy2 links R with
+  +        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpcre2-dev libdeflate-dev libzstd-dev liblzma-dev libbz2-dev libicu-dev
+  +      - name: Install uv
+  +        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+  +        with:
+  +          python-version: "3.13"
+  +      - name: Cache pooch downloads
+  +        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+  +        with:
+  +          path: ${{ github.workspace }}/.pooch
+  +          key: pooch-${{ hashFiles('src/biotapy/datasets/_remote.py') }}
+  +      - name: Run the R bridge tests
+  +        env:
+  +          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
+  +          # Fail the rpy2 build instead of falling back to its ABI mode.
+  +          RPY2_CFFI_MODE: API
+  +        run: uv run --group test --extra r pytest -m r
+  +
+     # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
+     # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network
+     # job's pooch cache.
+  @@ -217,6 +258,7 @@ jobs:
+         - lint
+         - import-without-extras
+         - network
+  +      - r-bridge
+         - docs
+       runs-on: ubuntu-latest
+       steps:
+  ```
+- [ ] **Step 6: Run, expect pass** - the same command -> `15 passed`; `uvx prek
+  run --all-files` passes (zizmor reads the new job); in the R environment
+  `uv run --group test --extra r pytest -m r tests/da/test_consensus.py -q` ->
+  `1 passed` (about 25 s).
+- [ ] **Step 7: Docs and decision.**
+  ````diff
+  @@ -77,6 +77,9 @@ that read GlobalPatterns also need the pooch cache:
+   BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
+   ```
+
+  +CI runs them in the `r-bridge` job, with R 4.5.3 and the Bioconductor 3.22 packages the golden image
+  +pins.
+  +
+   ### Regenerating the R golden files
+
+   The golden CSVs under `tests/golden/` and the R-written fixtures under
+  ````
+  ```diff
+  @@ -31,6 +31,8 @@ as open.[^spec]
+
+   # Consequences
+   - CI needs a job with R available for bridge tests; other jobs skip them via a
+  -  pytest marker `r`.
+  +  pytest marker `r`. Since slice 3C that is the `r-bridge` job in
+  +  `.github/workflows/test.yaml` (R 4.5.3, Bioconductor 3.22, the image's CRAN
+  +  snapshot), which blocks merges.
+
+   [^spec]: Python Microbiome Toolkit development report, sections Risks and Open questions
+  ```
+  Log line:
+  ```text
+  - **Update**: [r-bridge-before-ports](decisions/r-bridge-before-ports.md) consequence: the `r-bridge` CI job runs the `r` tests. [phase-3-stats](roadmap/phase-3-stats.md) task 3.11 done.
+  ```
+- [ ] **Step 8: Gate and commit** (tick 3.11)
+  ```bash
+  git add .github/workflows/test.yaml tests/test_ci.py tests/da/test_consensus.py docs/contributing.md \
+    .knowledge/decisions/r-bridge-before-ports.md .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+  uvx prek run --all-files
+  git commit -m "ci: run the R bridge tests in an r-bridge job
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+  The job runs for the first time on the pull request (Checkpoint C); read its
+  log for the rpy2 build line (`CFFI_MODE.API`), the package install time and
+  the `r` count (`16 passed`).
+
+### Checkpoint C - review slice 3C
+- [ ] Review the whole slice (superpowers:requesting-code-review, opus: the
+  bridges are glue whose failure modes are silent sign and unit errors) against
+  every contract, pure-by-default, the Phase 3 and slice 3C review focus and the
+  measured parity; then a fix pass, one commit per finding, each with a test (an
+  `r` test where only R shows the bug, plus a no-R test through `fake_rpy2`
+  where the mapping can show it). Record the counts (Critical / Important /
+  Minor) and the fix range here.
+- [ ] Run the exit-gate check for 3C: in the R environment `uv run --group test
+  --extra r pytest -m r -q` (expected `16 passed`), and on the host `uv run
+  --group test pytest -q -W error::UserWarning` (expected `1206 passed, 45 deselected`) and
+  `uv run --group test pytest -m "golden or network" -q` (expected `36
+  passed`); record the three counts. The Phase 3 exit gate's "`da.aldex2`,
+  `da.maaslin3` in the `r-bridge` job" box is ticked when that job is green on
+  the pull request.
+- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+  - **Update `.knowledge/modules/da.md`** for the bridges: Responsibility gains
+    `aldex2` and `maaslin3` (R-only methods through rpy2, extra `r`) and drops
+    "the R bridges are later tasks"; Entry points `_aldex2.py:aldex2`,
+    `_conditions`, `_maaslin3.py:maaslin3`, `_string_levels`,
+    `_r.py:r_seed`, `r_function`, `call_r`; Invariants: rpy2 only through
+    `import_optional` inside `_r.py`, one `set.seed(r_seed(seed))` per call
+    inside the R closure, local converter only, BH recomputed (not `we.eBH`, not
+    `qval_individual`), ALDEx2 labels `"0"`/`"1"`, MaAsLin 3 factors with string
+    levels and plain names `x0..`, fit errors untested; Gotchas: ALDEx2 breaks on
+    a factor `conds` and sorts labels by locale, `aldex.effect` needs two samples
+    per level, maaslin3 stops on `evaluate_only` with `warn_prevalence = TRUE`,
+    its raw coefficient is not what its p-value tests (hence `subtract_median`),
+    `qval_individual` pools covariates, rpy2 sends non-string categories as
+    sorted strings with only a UserWarning, a namespace loaded by `::` during an
+    rpy2 call prints "stack imbalance", rpy2's silent ABI fallback without the
+    link headers, R `NA` strings return as `NA_character_`; Dependencies: rpy2
+    (extra `r`), R packages ALDEx2 and maaslin3 (user-installed);
+    Verification adds `uv run --group test --extra r pytest -m r tests/da -q`.
+    Description copied into `modules/index.md`.
+  - **Update `.knowledge/decisions/optional-heavy-dependencies.md`** (R9.2), a
+    sentence in the core-dependencies history: "Phase 3 task 3.6 added the extra
+    `r` (`rpy2>=3.6.8`, approved 2026-10-05): ALDEx2 and MaAsLin 3 exist only in
+    R. rpy2 (GPL-2.0-or-later) brings rpy2-rinterface, rpy2-robjects, cffi,
+    jinja2 and tzlocal; rpy2-rinterface is an sdist on Linux that links against
+    the user's R and needs R's link headers (`libpcre2-dev`, `libdeflate-dev`,
+    `libzstd-dev` on Ubuntu), and fails to install without R. biotapy imports it
+    only through `import_optional` in `da/_r.py` and never bundles it." The
+    extras table's `r` row gains "(rpy2 3.6.8)".
+  - **Refresh frontmatter** (`generated.at`, `commit`) of the concepts slice 3C
+    edited: r-golden-parity, r-bridge-before-ports (its `verified` stays the
+    human's), da, optional-heavy-dependencies, phase-3-stats.
+  - **Update `.knowledge/roadmap/phase-3-stats.md`**: tick Checkpoint C's
+    boxes; task 3.14's line drops "for the R bridges" (done here).
+  - **Verification bump** for the concepts `bash scripts/knowledge_stale.sh
+    --touched` lists whose statements still hold, as Checkpoints A and B did.
+  - Log lines for each.
+- [ ] Push `phase-3c`, open the PR and merge (merge commit) when CI is green,
+  including the new `r-bridge` job, docs, the network job and the knowledge
+  report (push, PR and merge on green approved for Phase 3 slice branches,
+  2026-10-05). If `r-bridge` fails only on numbers (CI's R build differs from
+  the image), stop and report the measured differences instead of loosening a
+  tolerance (R11.3, R11.5).
+- [ ] Ask the user to review slice 3C before slice 3D is expanded (R1.2a).
+
+### Slice 3C decisions for the user
+Recommended answer first. Items 1-5 change what the approved plan said; 6-14
+resolve the outline or an [UNVERIFIED]; 15-16 need fresh approval.
+
+1. **Bridge tests carry the marker `r` only**, never `golden` or `network`, even
+   when they read a golden file or download GlobalPatterns. Then `pytest -m
+   "golden or network"` (contributing.md, the network job, this plan's gate)
+   never needs R, and the `r-bridge` job gets the pooch cache. The outline gave
+   the consensus test `r` + `network`, which the network job would select and
+   fail. Alternative: keep the extra markers and change the network job to `-m
+   "(network or golden) and not r"` (and every documented command).
+2. **Bridge goldens are seed-matched and compared elementwise at `rtol=1e-7`**,
+   not by signs and ranks. The R script calls `set.seed(1165433077)`, the
+   integer `seed=20260927` becomes, so R and biotapy draw the same numbers;
+   measured differences are 1e-14 to 1e-12. The outline said sign agreement and
+   Spearman "numbers fixed when measured". Cost: the R script hard-codes a
+   NumPy-derived integer, so a change in NumPy's `Generator.integers` stream
+   would break the two goldens loudly (not silently).
+3. **ALDEx2's `qvalue` is BH of `we.ep`**, computed by `_schema.result` as for
+   every method, not ALDEx2's `we.eBH` (design note 7 said `qvalue = we.eBH`).
+   `we.eBH` averages the BH values of the Monte Carlo draws, a different
+   quantity; on the benchmark it calls 19 genera where BH of `we.ep` calls 11.
+   Alternative: carry `we.eBH` (needs a `qvalue` argument in `result()` and
+   breaks "BH over finite p" for one method).
+4. **MaAsLin 3's `qvalue` is BH over the group's p-values only**, not
+   `qval_individual`, which pools the covariates' p-values (and, without
+   `evaluate_only`, the prevalence model's). With one covariate it calls 45
+   genera against MaAsLin 3's 20; without covariates the two agree (52).
+   Design note 5 said `qval_individual` is BH. Alternative: carry
+   `qval_individual` (a covariate then changes the group's q-values).
+5. **MaAsLin 3's `effect` is the coefficient minus the median coefficient**
+   (`subtract_median = TRUE`), the quantity its default p-value tests, not the
+   raw `coef` (design note 7). Same p-values; the sign differs from the raw
+   coefficient for 109 of 600 tested genera (none of the 52 called), and agrees
+   with LinDA's on 484 of 600 instead of 437. Alternative: the raw coefficient,
+   whose sign can contradict the test.
+6. **MaAsLin 3 results come from the return value** (`fit_data_abundance$results`),
+   not `all_results.tsv`; MaAsLin 3 still writes its folder, an R `tempfile()`
+   deleted on exit; pbapply's progress bar is off for the call.
+7. **MaAsLin 3 gets factors, not a `reference` string**, and plain names
+   `x0, x1, ...` with `"~ x0 + x1"` (as `da.ancombc2` does for patsy): its
+   `"var,level"` syntax breaks on commas in level names and its formula on
+   column names such as `"body site"`. Categorical levels go as strings: bool
+   categories otherwise reach R as plain strings that maaslin3 sorts, which
+   flipped `reference="True"` silently in the prototype.
+8. **ALDEx2 receives the labels `"0"` (reference) and `"1"`**: `aldex.clr`
+   fails on a factor, and the order of character labels depends on R's locale.
+9. **ALDEx2 refuses a numeric group, a level in fewer than two samples, and
+   `mc_samples` that is not an int >= 1**, with messages naming the argument;
+   ALDEx2 itself would stop on the second deep inside R.
+10. **Untested rows:** a feature ALDEx2 drops (no read) and a MaAsLin 3 row with
+    an `error` are NaN and left out of BH (MaAsLin 3 also leaves them out of its
+    own q-values; 36 genera on the benchmark, the same as ANCOM-BC2's).
+11. **No mypy override for rpy2.** rpy2 3.6.8 ships `py.typed` only in
+    `rinterface`, `rinterface_lib`, `rlike` and `situation`, not `robjects`;
+    biotapy reaches rpy2 only through `import_optional` (typed `Any`), and the
+    lint environment cannot install rpy2 without R. The outline planned a
+    `follow_untyped_imports` override.
+12. **`da/_r.py` is three functions** (`r_seed`, `r_function(code, *, package,
+    func)`, `call_r(function, *args)`), not the outline's `r_packages(*names)`
+    and `to_r_frame`/`from_r_frame`: each bridge needs one package and one call,
+    and the local converter converts both ways. Packages load with `importr`
+    because a namespace loaded by `::` during an rpy2 call prints R "stack
+    imbalance" warnings.
+13. **No-R tests replace the rpy2 modules** (`fake_rpy2` in `sys.modules`)
+    rather than monkeypatching a private R call (design note 8), so every line
+    of biotapy's bridge code runs without R; the canned tables are R's real
+    output on `toy()`, checked by `r` tests.
+14. **Examples are `# doctest: +SKIP`**, as the network examples in
+    `datasets` are: the doctest run has no R. The `r` tests run the same calls.
+15. **CI job details (fresh approval):** `runs-on: ubuntu-24.04`; CRAN at the
+    image's snapshot `https://p3m.dev/cran/__linux__/noble/2026-04-23` with
+    `use-public-rspm: false`, so CI's CRAN dependencies equal the image's and the
+    seed-matched goldens hold (alternative: latest P3M, faster updates, digits
+    may drift); `setup-r-dependencies` with `packages: bioc::ALDEx2,
+    bioc::maaslin3` and `dependencies: '"hard"'` (its default `deps::.` needs a
+    DESCRIPTION file); apt `libpcre2-dev libdeflate-dev libzstd-dev liblzma-dev
+    libbz2-dev libicu-dev` on the runner; `RPY2_CFFI_MODE=API` so rpy2's silent
+    ABI fallback fails the build instead of the import. Both actions at
+    `f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05` (v2.14.0).
+16. **`VERSIONS.txt` also records multcomp** (1.4.30), whose `glht` gives
+    MaAsLin 3's median-test p-values. A record, not a pin.
+
+Edits outside this section that the plan commit should make: design note 5's
+"ALDEx2's `we.eBH` and MaAsLin 3's `qval_individual` (abundance model only) are
+BH" and design note 7's "`qvalue = we.eBH`", "`effect = coef`", "`qvalue =
+qval_individual`" and "read back from `all_results.tsv`" follow decisions 3-6 if
+approved; the global constraint on mypy and rpy2 follows decision 11; design
+note 8's "monkeypatching the private R call" follows decision 13; the outline
+"Slice 3C - R bridges (outline)" is replaced by this section.
+
+### Slice 3C self-review
+1. **Spec coverage.** The extra `r` (3.6 Step 8) and its R9.2 line
+   (Checkpoint C); `da/_r.py` with `import_optional`, `importr`, the install
+   message, `set.seed` from `as_generator`, a local converter (3.6); ALDEx2's
+   arguments, column mapping, two-group rule and seeding (3.6, decisions 3, 8,
+   9); MaAsLin 3 abundance-only with `min_prevalence = 0`, the reference, the
+   output folder, the mapping (3.7, decisions 4-7); every [UNVERIFIED] of the
+   outline resolved: `evaluate_only` (needs `warn_prevalence = FALSE`), the
+   `reference` syntax (not used), `name`/`metadata` values (`metadata == "x0"`),
+   log2 (`LOG` is `log2`), rpy2's failure without R (`ImportError`), rpy2's
+   `py.typed` (partial), pak's Bioconductor for R 4.5.3 (3.22), the job's time
+   (measured locally); tests without R (canned output, seed derivation, missing
+   rpy2, missing R package) and with R (`r`, registered already); goldens on the
+   benchmark, seed-matched; the CI job pinned by SHA, in `check.needs`, with a
+   `tests/test_ci.py` assertion; the four-method consensus with its counts;
+   Checkpoint C with knowledge and push/PR/merge.
+2. **Placeholder scan.** Every step carries the full file or the exact diff,
+   rendered from the scratch clone's commits that passed every gate; no "TBD".
+   The values left to the executor are the log heading's date and, if the `v2`
+   tag moves, the action SHA (Step 2 says how to look it up).
+3. **Type consistency.** `r_seed(seed) -> int`, `r_function(code, *, package,
+   func) -> Callable[..., Any]`, `call_r(function, /, *args) -> pd.DataFrame`;
+   `aldex2(adata, group, *, mc_samples=128, reference=None, seed=None)` and
+   `maaslin3(adata, group, *, covariates=(), reference=None, seed=None)` as
+   roadmap 3.6 and 3.7 give them; both return `_schema.result`'s table; the
+   fixture's `output`, `installed`, `calls` as the tests use them.
+4. **Review focus.** Every test named in the slice 3C review focus exists in
+   the rendered code (checked by searching this section for each name).
+5. **Known residual risks and what was not verified.**
+   - CI was not run: the `r-bridge` job's first run is on the pull request.
+     Unverified there: `setup-r`'s `cran` input with `use-public-rspm: false`
+     giving P3M binaries on the runner, the job time (about 5 minutes cold was
+     measured in a container, 2 min 40 s of it for 98 R packages), and whether
+     GitHub's R 4.5.3 build gives the same digits as the rocker image (the
+     goldens' `rtol=1e-7` leaves room for BLAS-level differences; the Monte Carlo
+     draws use R's own RNG, which is platform independent).
+   - The seed-matched goldens hard-code NumPy's `default_rng(20260927)
+     .integers(2**31 - 1)`; NumPy does not promise that stream across releases.
+     A change fails both goldens loudly; the fix is to re-derive the integer and
+     regenerate.
+   - `set.seed` changes the R session's global random state; the docstrings say
+     so. Restoring the previous state would need more R glue (R2.3).
+   - R's console messages (for example ALDEx2's warning below 128 draws) reach
+     Python as log records of `rpy2.rinterface_lib.callbacks`, not as
+     `warnings`; biotapy does not translate them.
+   - The bridges are Linux/macOS-first (rpy2 builds from source); Windows and
+     macOS were not run.
+   - A missing R after rpy2 was built surfaces as the "pip install
+     'biotapy[r]'" message with the real cause chained (`libR.so` not found):
+     accurate about the extra, indirect about R.
+   - MaAsLin 3's median test makes its p-values move with the seed by about
+     0.001; its `effect` and `se` do not.
+   - The ALDEx2 image layer was rebuilt from the committed Dockerfile in the
+     prototype and the ALDEx2 and ANCOMBC layers recompiled (a pruned build cache); that image regenerated all 41 files at `b0519fe` byte for byte, so the committed Dockerfile, not a cached layer, reproduces the goldens. The maaslin3 image was confirmed only by a cache hit on the committed file (same image id).
 
 ## Slice 3D - Docs and release (outline)
 
