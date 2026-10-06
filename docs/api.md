@@ -104,6 +104,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     da.ancombc2
     da.consensus
     da.linda
+    da.maaslin3
 ```
 
 ## Plots

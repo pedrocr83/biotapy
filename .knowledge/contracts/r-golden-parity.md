@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:40:12Z }
-commit: eb5040b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:58:14Z }
+commit: 1bee468
 sources:
   - id: spec
     resource: ../../plan.md
@@ -53,6 +53,7 @@ sources:
    | DA methods | sign agreement and rank correlation of effect sizes; exact match where the R method is deterministic, or Monte Carlo and seeded with the integer biotapy derives from its `seed` | per method |
    | `da.linda` vs `MicrobiomeStat::linda(is.winsor = FALSE)` (deterministic) | `effect`, `se`, `pvalue`, `qvalue` elementwise, matched by taxon | `rtol=1e-7` |
    | `da.aldex2` vs `ALDEx2::aldex` (Monte Carlo; the golden's `set.seed` is the integer biotapy derives from `seed=20260927`, and `reference="human"` keeps R's level order, so the draws are the same) | `effect` vs `diff.btw` and `pvalue` vs `we.ep` elementwise, matched by taxon; `qvalue` vs BH of `we.ep` | `rtol=1e-7` (measured 4e-15 and 8e-13); 1165433077 is `np.random.default_rng(20260927).integers(2**31 - 1)`, so a NumPy change to that stream fails the test loudly: recompute the integer and re-export |
+   | `da.maaslin3` vs `maaslin3::maaslin3(evaluate_only = "abundance", subtract_median = TRUE)` (its median test simulates; the same seed as `da.aldex2`'s golden) | the same untested features (fit errors); `effect` vs `coef`, `se` vs `stderr`, `pvalue` vs `pval_individual` elementwise; `qvalue` vs BH of R's p-values over the group's rows | `rtol=1e-7` (measured 2e-14, 5e-15 and 7e-13), both models |
    | `da.ancombc2` vs `ANCOMBC::ancombc2` (deterministic, but its bias E-M can stop at 100 iterations before converging, on a slightly different iterate in scikit-bio) | the same untested features; `effect`, `se`, `pvalue` elementwise; Spearman correlation of effects; the same calls at `q < 0.05`, with R's p-values corrected over the tested features | `host` model: `effect` atol 0.015 (log2), `se` rtol 2e-3, `pvalue` atol 0.02, Spearman > 0.9999; `host + log_depth`: all three at 1e-6, Spearman > 0.999999 |
 
 5. Any looser tolerance is written in the test with a one-line comment giving the reason.
@@ -87,9 +88,9 @@ sources:
 
 # Why
 R and NumPy random generators differ, so a stochastic output matches R only
-when biotapy hands R the seed integer (`da.aldex2` does: the golden's
+when biotapy hands R the seed integer (`da.aldex2` and `da.maaslin3` do: the goldens'
 `set.seed(1165433077)` is `np.random.default_rng(20260927).integers(2**31 - 1)`,
-so a change in NumPy's stream fails that golden loudly: recompute the integer
+so a change in NumPy's stream fails those goldens loudly: recompute the integer
 and re-export). Everywhere else demanding bit-for-bit would force skipping
 tests, and comparing invariants keeps them honest.
 

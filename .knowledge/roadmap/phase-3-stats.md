@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T12:34:00Z }
-commit: eca790a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:00:13Z }
+commit: 1bee468
 sources:
   - id: spec
     resource: ../../plan.md
@@ -588,7 +588,7 @@ columns onto it.
 - [x] 3.9 `pl.consensus(table, *, top=30, ax=None) -> Axes`
 - [x] Checkpoint B (PR #22 merged; the user approved slice 3B on 2026-10-05)
 - [x] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
-- [ ] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
+- [x] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [ ] 3.11 CI job `r-bridge` for `-m r` tests
 - [ ] Checkpoint C
 - [ ] 3.10 Method pages in `docs/methods/` and the DA guide
@@ -6031,12 +6031,12 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   Sequence[str] = (), reference: str | None = None, seed: int |
   np.random.Generator | None = None) -> pd.DataFrame`; `maaslin3.csv.gz`.
 
-- [ ] **Step 1: Approval on record.** maaslin3 (Bioconductor, MIT) in the image
+- [x] **Step 1: Approval on record.** maaslin3 (Bioconductor, MIT) in the image
   was approved with the Phase 3 plan. New here: `VERSIONS.txt` also records
   multcomp, whose `glht` computes the median test's p-values (a record, not a
   pin). The behavioural choices (`subtract_median = TRUE`, BH over the group's
   rows) are slice 3C decisions 4 and 5.
-- [ ] **Step 2: Add maaslin3 to the image.** `tests/r/Dockerfile`:
+- [x] **Step 2: Add maaslin3 to the image.** `tests/r/Dockerfile`:
   ```diff
   @@ -30,6 +30,8 @@ RUN Rscript -e 'install.packages(c("Rmpfr", "gmp", "ECOSolveR", "scs", "osqp", "
    RUN Rscript -e 'BiocManager::install("ANCOMBC", version = "3.22", ask = FALSE, update = FALSE)'
@@ -6070,14 +6070,14 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   ```
   Build. Expected: the guard passes; `maaslin3 1.2.0`, `multcomp 1.4.30`,
   `lme4 2.0.1` (from ANCOMBC, unchanged); the layer takes about 75 s.
-- [ ] **Step 3: Commit the image change on its own:**
+- [x] **Step 3: Commit the image change on its own:**
   ```bash
   git add tests/r/Dockerfile .knowledge/contracts/r-golden-parity.md .knowledge/log.md
   git commit -m "build(r): add maaslin3 to the golden image
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-- [ ] **Step 4: Export.** After the ALDEx2 section:
+- [x] **Step 4: Export.** After the ALDEx2 section:
   ```diff
   @@ -187,6 +187,24 @@ write_golden(
      file.path(gp, "aldex2.csv.gz")
@@ -6114,18 +6114,18 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   +  paste0("multcomp ", packageVersion("multcomp"))
    ), "tests/golden/VERSIONS.txt")
   ```
-  Run twice. Expected: every line `OK` (42 files, about three minutes a run);
+  Run twice. Measured: the script prints no `OK` lines (only R's `phylo` class notes and the known `stack imbalance` warnings; no maaslin3 warning or message), and the second run's output is byte-identical to the first (about three minutes a run, 37 files under `tests/golden/*/`);
   `M tests/golden/VERSIONS.txt` (`maaslin3 1.2.0`, `multcomp 1.4.30`), `M
   tests/r/export_golden.R`, the new `maaslin3.csv.gz` (43.4 KB, 636 rows per
   model, 36 with `error` TRUE in each); every older file byte-identical.
-- [ ] **Step 5: Gate and commit.** `tests/test_data_files.py` passes; prek;
+- [x] **Step 5: Gate and commit.** `tests/test_data_files.py` passes; prek;
   ```bash
   git add tests/r/export_golden.R tests/golden/VERSIONS.txt tests/golden/global_patterns/maaslin3.csv.gz
   git commit -m "test(golden): export the MaAsLin 3 golden file
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-- [ ] **Step 6: Failing tests.** `tests/da/test_maaslin3.py` (the canned rows
+- [x] **Step 6: Failing tests.** `tests/da/test_maaslin3.py` (the canned rows
   are what the R closure returns for `toy()` with `seed=0`):
   ```python
   import sys
@@ -6244,6 +6244,49 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       assert_unchanged(before, tdata)
 
 
+  def test_seed_accepts_a_generator(fake_rpy2):
+      fake_rpy2.output = CANNED
+      bt.da.maaslin3(bt.datasets.toy(), "group", seed=np.random.default_rng(3))
+      bt.da.maaslin3(bt.datasets.toy(), "group", seed=3)
+      assert fake_rpy2.calls[0][1][3] == fake_rpy2.calls[1][1][3]
+      generator = np.random.default_rng(3)
+      bt.da.maaslin3(bt.datasets.toy(), "group", seed=generator)
+      bt.da.maaslin3(bt.datasets.toy(), "group", seed=generator)
+      assert fake_rpy2.calls[2][1][3] != fake_rpy2.calls[3][1][3]  # the caller's generator advances
+
+
+  @pytest.mark.parametrize(("axis", "fix"), [("var", "var_names_make_unique"), ("obs", "obs_names_make_unique")])
+  def test_repeated_names_raise(fake_rpy2, axis, fix):
+      tdata = bt.datasets.toy()
+      names = getattr(tdata, f"{axis}_names").tolist()
+      setattr(tdata, f"{axis}_names", ["x", "x", *names[2:]])
+      with pytest.raises(ValueError, match=rf"unique {axis} names.*\['x'\].*adata\.{fix}\(\)"):
+          bt.da.maaslin3(tdata, "group")
+      assert fake_rpy2.calls == []
+
+
+  def test_seed_is_checked_before_rpy2_is_imported(monkeypatch):
+      for name in ("rpy2", "rpy2.robjects", "rpy2.robjects.packages", "rpy2.robjects.pandas2ri"):
+          monkeypatch.setitem(sys.modules, name, None)
+      with pytest.raises(TypeError, match="seed must be"):
+          bt.da.maaslin3(bt.datasets.toy(), "group", seed="abc")
+
+
+  def test_each_r_warning_is_re_emitted_at_the_callers_line(fake_rpy2):
+      fake_rpy2.output = CANNED
+      fake_rpy2.warnings = ["values are unreliable"]
+      with pytest.warns(UserWarning) as record:
+          bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+      assert [str(w.message) for w in record] == ["da.maaslin3: R warned: values are unreliable"]
+      assert record[0].filename == __file__
+
+
+  def test_r_errors_name_the_function(fake_rpy2):
+      fake_rpy2.output = sys.modules["rpy2.rinterface_lib.embedded"].RRuntimeError("Error in f() : boom\n")
+      with pytest.raises(RuntimeError, match=r"da\.maaslin3: R stopped: Error in f\(\) : boom"):
+          bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
+
+
   @pytest.mark.r
   def test_maaslin3_on_toy_is_the_canned_table():
       out = bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
@@ -6340,11 +6383,13 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       # BH over the group's p-values; maaslin3's qval pools them with the covariate's (20 calls against 45 with log_depth).
       np.testing.assert_allclose(ours["qvalue"], false_discovery_control(theirs["pval"]), rtol=1e-7)
   ```
-- [ ] **Step 7: Run, expect failure** -
+- [x] **Step 7: Run, expect failure** -
   `uv run --group test pytest tests/da/test_maaslin3.py -q` -> `10 failed, 7
   deselected` (`AttributeError: module 'biotapy.da' has no attribute
-  'maaslin3'`); in the R environment the nine `r` tests fail the same way.
-- [ ] **Step 8: Implement.** `src/biotapy/da/_maaslin3.py`:
+  'maaslin3'`); in the R environment the seven `r` tests of that file fail the same way.
+  Fix-round tests (a generator seed, repeated names, the seed checked before rpy2, R warnings
+  and errors, as for `da.aldex2`) are in the same file and pass with the implementation.
+- [x] **Step 8: Implement.** `src/biotapy/da/_maaslin3.py`:
   ```python
   """MaAsLin 3 through the R bridge: its abundance model, linear models of log2 relative abundance where present."""
 
@@ -6423,8 +6468,11 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
           ``group`` or a covariate is not an ``obs`` column.
       TypeError
           ``covariates`` is not a list of column names, or ``reference`` is not a string.
+      RuntimeError
+          R stops with an error.
       ValueError
-          ``X`` does not hold raw counts, has an empty sample or fewer than two
+          ``X`` does not hold raw counts, has an empty sample, repeated
+          ``var_names`` or ``obs_names``, or fewer than two
           features; a used ``obs`` column has missing values, is constant or is
           repeated; ``group`` has other than two levels; ``reference`` is not one of
           them or is given for a numeric ``group``; the model has at least as many
@@ -6450,7 +6498,8 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       Benjamini-Hochberg correction of the group's p-values; MaAsLin 3's
       ``qval_individual`` corrects them together with every covariate's. A feature
       whose fit reports an error is not tested, as MaAsLin 3 leaves it out of its
-      own correction.
+      own correction. Each R warning raised during the call is re-emitted as a
+      ``UserWarning``, and an R error is raised as a ``RuntimeError``.
 
       Needs R with maaslin3 (``BiocManager::install("maaslin3")``) and ``pip
       install 'biotapy[r]'``, which builds rpy2 (GPL-2.0-or-later) against that R.
@@ -6475,6 +6524,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
       'B vs A'
       """
       frame, contrast = model(adata, group, covariates=covariates, reference=reference, func="da.maaslin3")
+      seed_for_r = r_seed(seed)
       # rpy2 has no sparse converter (rules.md R6.2): the one dense copy of X.
       counts = pd.DataFrame(dense_counts(adata, func="da.maaslin3"), index=adata.obs_names, columns=adata.var_names)
       # Plain names in the formula, so an obs column such as "body site" needs no quoting. rpy2 makes an R factor, whose
@@ -6483,7 +6533,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
           {f"x{i}": _string_levels(frame[name]) for i, name in enumerate(frame.columns)}, index=frame.index
       )
       fit = r_function(_MAASLIN, package="maaslin3", func="da.maaslin3")
-      table = call_r(fit, counts, metadata, "~ " + " + ".join(metadata.columns), r_seed(seed))
+      table = call_r(fit, counts, metadata, "~ " + " + ".join(metadata.columns), seed_for_r)
       rows = table[table["metadata"] == "x0"].set_index("feature").reindex(adata.var_names)
       untested = rows["failed"].fillna(True).to_numpy(bool) | ~np.isfinite(rows["pval"].to_numpy(np.float64))
       effect, se, pvalue = (np.where(untested, np.nan, rows[c].to_numpy(np.float64)) for c in ("coef", "stderr", "pval"))
@@ -6507,11 +6557,11 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   -__all__ = ["aldex2", "ancombc2", "consensus", "linda"]
   +__all__ = ["aldex2", "ancombc2", "consensus", "linda", "maaslin3"]
   ```
-- [ ] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
-  -> `127 passed, 19 deselected`; in the R environment `uv run --group test
-  --extra r pytest -m r tests/da -q` -> `15 passed`. Also with `-W
+- [x] **Step 9: Run, expect pass** - `uv run --group test pytest tests/da -q`
+  -> `142 passed, 21 deselected`; in the R environment `uv run --group test
+  --extra r pytest -m r tests/da -q` -> `17 passed`. Also with `-W
   error::UserWarning`: rpy2's "categories are strings" warning must not appear.
-- [ ] **Step 10: Docs.**
+- [x] **Step 10: Docs.**
   ````diff
   @@ -93,7 +93,7 @@ ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
    rpy2 against that R (Linux and macOS; it fails to install when no R is found):
@@ -6544,7 +6594,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
   +GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
   +are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
   +MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
-  +covariate called 20 genera where biotapy calls 45.
+  +covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
   +
    ## Where methods agree
 
@@ -6571,7 +6621,7 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
    that read GlobalPatterns also need the pooch cache:
 
   ```
-- [ ] **Step 11: Contract.**
+- [x] **Step 11: Contract.**
   ```diff
   @@ -53,6 +53,7 @@ sources:
       | DA methods | sign agreement and rank correlation of effect sizes; exact match only where the R method is deterministic | per method |
@@ -6582,11 +6632,13 @@ fixture already lists `maaslin3` as installed), the shared helpers, `.github/`.
 
    5. Any looser tolerance is written in the test with a one-line comment giving the reason.
   ```
+  The "Why" section's seed sentence now reads "(`da.aldex2` and `da.maaslin3` do: the goldens'
+  `set.seed(1165433077)` is ... so a change in NumPy's stream fails those goldens loudly".
   Log line:
   ```text
   - **Update**: [r-golden-parity](contracts/r-golden-parity.md): `da.maaslin3` is compared with `maaslin3::maaslin3` (abundance model, median subtracted) elementwise, seed-matched. [phase-3-stats](roadmap/phase-3-stats.md) task 3.7 done.
   ```
-- [ ] **Step 12: Gate and commit** (tick 3.7)
+- [x] **Step 12: Gate and commit** (tick 3.7)
   ```bash
   git add src/biotapy/da/_maaslin3.py src/biotapy/da/__init__.py tests/da/test_maaslin3.py \
     tests/da/test_maaslin3_golden.py docs/guide/differential_abundance.md docs/api.md docs/contributing.md \

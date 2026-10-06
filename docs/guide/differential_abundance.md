@@ -93,7 +93,7 @@ ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
 rpy2 against that R (Linux and macOS; it fails to install when no R is found):
 
 ```bash
-Rscript -e 'install.packages("BiocManager"); BiocManager::install("ALDEx2")'
+Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("ALDEx2", "maaslin3"))'
 pip install 'biotapy[r]'
 ```
 
@@ -124,6 +124,26 @@ so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, wh
 4 log2 wide), with the same p-values there. Each R warning raised during the call, such as the one
 for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
 `RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
+
+### MaAsLin 3
+
+`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
+"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
+log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
+is tested against the median coefficient over features, MaAsLin 3's correction for
+compositionality; `effect` is the coefficient minus that median, so its sign says on which side
+of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
+
+```python
+table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
+```
+
+Numeric columns are standardised, so a numeric group's effect is per standard deviation, as in
+`da.linda`. The test against the median simulates, so `seed` makes the p-values reproducible; on the
+GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
+are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
+MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
+covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
 
 ## Where methods agree
 

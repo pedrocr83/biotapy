@@ -69,7 +69,7 @@ BIOTAPY_DATA_DIR=.pooch uv run --group test pytest -m "network or golden"
 
 ### R bridge tests
 
-Tests that call R through rpy2 (`bt.da.aldex2`) carry the marker `r` and are excluded from the
+Tests that call R through rpy2 (`bt.da.aldex2`, `bt.da.maaslin3`) carry the marker `r` and are excluded from the
 runs above. They need R with the packages `tests/r/Dockerfile` installs and the `r` extra; those
 that read GlobalPatterns also need the pooch cache:
 
