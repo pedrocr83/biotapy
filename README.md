@@ -14,9 +14,9 @@ against R on real data.
 
 ## Status
 
-**biotapy 0.2 is an early release.** The API can still change between minor versions.
+**biotapy 0.3 is an early release.** The API can still change between minor versions.
 
-What 0.2 does (full signatures in the [API reference][api]):
+What 0.3 does (full signatures in the [API reference][api]):
 
 - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
@@ -34,17 +34,24 @@ What 0.2 does (full signatures in the [API reference][api]):
   and `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached
   on first use.
 - **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
-  `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`.
+  `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`, and
+  the compositional transforms `bt.pp.clr` and `bt.pp.philr` (checked against
+  vegan and philr).
 - **Function**: `bt.fn.load_hierarchy`, `bt.fn.func_glom` and `bt.fn.renorm`
   (checked against HUMAnN's own output), `bt.fn.contributions` and
   `bt.fn.functional_redundancy`.
 - **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
   `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
+- **Differential abundance**: `bt.da.linda` and `bt.da.ancombc2` in Python,
+  `bt.da.aldex2` and `bt.da.maaslin3` through R (the `r` extra below), all
+  returning one result table and checked against their R packages, and
+  `bt.da.consensus`, which reports where the methods agree.
 - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
-  `bt.pl.scree`, `bt.pl.heatmap` and `bt.pl.contributions`.
+  `bt.pl.scree`, `bt.pl.heatmap`, `bt.pl.contributions` and
+  `bt.pl.consensus`.
 
-Next, in 0.3: compositional transforms (CLR, PhILR) and differential abundance
-(ANCOM-BC, LinDA, ALDEx2, MaAsLin 3) behind one result format. See the
+Next, in 0.4: multi-omics conventions on MuData, leak-free scikit-learn
+transformers, a PyTorch loader and an interface for embedding models. See the
 [roadmap][roadmap]; no dates are promised.
 
 ## Installation
@@ -70,6 +77,17 @@ pixi add --pypi biotapy
 
 The development version installs straight from GitHub:
 `pip install git+https://github.com/pedrocr83/biotapy.git`.
+
+ALDEx2 and MaAsLin 3 run in R. They need R with the R packages
+(`BiocManager::install(c("ALDEx2", "maaslin3"))`) and the `r` extra, which
+builds rpy2 against that R (Linux and macOS):
+
+```bash
+pip install 'biotapy[r]'
+```
+
+rpy2 is GPL-2.0-or-later and the R packages carry their own licences; biotapy
+does not ship any of them.
 
 On Python 3.14, the `biom-format` dependency has no wheels yet, so it is built
 from source and needs a C compiler until biom-format publishes 3.14 wheels
