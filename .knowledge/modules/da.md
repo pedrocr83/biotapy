@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T00:00:00Z }
-commit: 3695c4b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T13:20:00Z }
+commit: 51e0475
 status: stable
 ---
 
@@ -229,7 +229,7 @@ per-module command exists: unknown.
 - **LinDA densifies `X` and is native; the bridges densify too.**
   `_design.py:dense_counts` calls `toarray()` once (rpy2 has no sparse
   converter, so the bridges use it as well); the docstring gives the memory cost (about 5x the dense
-  table at peak; ANCOM-BC2 about 7x). rules.md R6.2 allows it: a native
+  table at peak; ANCOM-BC2 4.5x to 7.5x, depending on the table's shape). rules.md R6.2 allows it: a native
   method whose algorithm needs the full table may densify once (the user
   approved that wording after Checkpoint B, 2026-10-05).
 - Replicate rows within a group give `se = 0` in LinDA and p-values that are
