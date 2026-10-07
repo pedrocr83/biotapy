@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T13:40:00Z }
-commit: 29efd9c
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:30:00Z }
+commit: d88e3f6
 sources:
   - id: spec
     resource: ../../plan.md
@@ -610,8 +610,9 @@ columns onto it.
 - [ ] 3.15 Release 0.3.0
 
 # Exit gate
-- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus, human
-  vs environmental), executed notebook in docs (CI docs job).
+- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus,
+  human-associated vs the other samples: environmental and mock communities),
+  executed notebook in docs (CI docs job).
 - [x] Per-method agreement with the R reference, per
   [r-golden-parity](/contracts/r-golden-parity.md): `pp.clr`, `pp.philr`,
   `da.linda`, `da.ancombc2` in the network job; `da.aldex2`, `da.maaslin3` in
@@ -7153,7 +7154,7 @@ biotapy 0.3.0 on PyPI, with every outward step (tag, GitHub release, PyPI upload
 user's explicit approval.
 
 **Architecture:** docs, tests, benchmarks, knowledge and the release only. No `src/` file
-changes. New pages: `docs/methods/` (an index and five pages) and
+changes, except the two approved `docs(da)` docstring commits (`3b6239f`, `b9cb006`) and the Checkpoint D fix pass's docstring lines. New pages: `docs/methods/` (an index and five pages) and
 `docs/tutorials/differential_abundance.md`; the DA guide is restructured (the per-method depth
 moves to the method pages). The tutorial executes ANCOM-BC2 and LinDA; the two R bridges are shown
 as a non-executed block with the numbers the `r-bridge` CI job measures, kept in step by a test
@@ -7275,7 +7276,7 @@ Each settled question gives the answer and the reason. **(user)** marks the ones
   (untested features, `reference`). "Methods that run in R" keeps install, licence, the
   `ImportError`, densifying, and now also the generic bridge behaviour (seed and R's restored
   state, warnings, errors, repeated names) that used to sit in the ALDEx2 subsection. The guide
-  stays the docstrings' `Guide:` target, so no `src/` file changes. Duplicating the depth in both
+  stays the docstrings' `Guide:` target, so no `src/` file changes (bar the docstring-prose commits the ledger approved later). Duplicating the depth in both
   places would let them drift.
 - **Citations are plain text with a DOI link**, as the function guide cites Tian et al.; no
   `references.bib` entries (the bibliography page would need `{cite}` roles across pages and a new
@@ -7393,7 +7394,7 @@ No `phyloseq_to_deseq2` row is added to `r_idioms.toml` (not asked for; R1.4).
 
 ### Slice 3D global constraints (in addition to the Phase 3 list)
 
-- No `src/` change and no new dependency (runtime, extra or dev). New calls, each checked in the
+- No `src/` change (except the two approved `docs(da)` docstring commits (`3b6239f`, `b9cb006`) and the Checkpoint D fix pass's docstring lines) and no new dependency (runtime, extra or dev). New calls, each checked in the
   installed versions: none in Python beyond what the tutorial uses (`pd.crosstab`, already pandas
   3.0.6); docs syntax: MyST `{code-cell}`, `{doc}`, `{ref}`, `(label)=` targets and `$$` math.
 - Every `pytest`, Python, asv and Sphinx run exports an **absolute**
@@ -7471,7 +7472,8 @@ outside it:
   `docs/methods/aldex2.md`, `docs/methods/maaslin3.md`, `docs/methods/consensus.md`.
 - Modify: `docs/guide/differential_abundance.md`, `docs/index.md`.
 
-**Not touched:** any `src/` file (the docstrings' `Guide:` lines keep pointing at the guide),
+**Not touched:** any `src/` file (the docstrings' `Guide:` lines keep pointing at the guide; the
+docstring-prose fixes the ledger approved are the exception),
 `docs/api.md` (it already lists the five `da` functions and `pl.consensus`), `docs/guide/transforms.md`
 (CLR and PhILR stay documented there; the outline's method pages are for DA), `docs/references.bib`,
 `docs/conf.py`, the tests.
@@ -7484,7 +7486,7 @@ outside it:
 - Produces: the pages `methods/*`; the label `da-methods-in-r` on the guide's "Methods that run
   in R" section, which 3.10b's tutorial and the ALDEx2 and MaAsLin 3 pages reference.
 
-- [ ] **Step 1: The method pages.** Create `docs/methods/index.md`:
+- [x] **Step 1: The method pages.** Create `docs/methods/index.md`:
 
 ````markdown
 # Methods
@@ -7946,7 +7948,7 @@ in microbial differential abundance analysis. *Briefings in Bioinformatics* 26:b
     `test_ancombc_golden.py` (`MODELS`), `test_aldex2_golden.py`, `test_maaslin3_golden.py` and the
     slice 3B/3C measurements in this concept;
   - the reference-swap paragraphs: moved from the guide and the docstrings' Notes, unchanged.
-- [ ] **Step 2: The guide keeps the workflow.** `docs/guide/differential_abundance.md` (the four
+- [x] **Step 2: The guide keeps the workflow.** `docs/guide/differential_abundance.md` (the four
   method sections move into the pages; a "Choosing methods" table links them; the generic bridge
   behaviour moves up into "Methods that run in R", which gets the label `da-methods-in-r`):
 
@@ -8119,14 +8121,14 @@ index 34a172c..2dc0253 100644
 
 ````
 
-- [ ] **Step 3: Build and read.**
+- [x] **Step 3: Build and read.**
   `rm -rf docs/_build docs/generated && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
   -> `build succeeded.` (39.8 s in the prototype). Open `docs/_build/html/methods/linda.html`:
   the math renders (KaTeX), the `linda` table's first row reads `(1 | subject)` (the escaped pipe);
   `methods/aldex2.html` links to `guide/differential_abundance.html#da-methods-in-r`; the guide's
   "Choosing methods" table links the four pages. Every `{func}` link resolves (the build is
   nitpicky).
-- [ ] **Step 4: Bookkeeping.**
+- [x] **Step 4: Bookkeeping.**
   - `.knowledge/roadmap/phase-3-stats.md`: `- [ ] 3.10 Method pages in \`docs/methods/\` and the DA guide`
     becomes `- [x] ...`.
   - `.knowledge/log.md`, a new heading at the top:
@@ -8136,7 +8138,7 @@ index 34a172c..2dc0253 100644
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10 done: `docs/methods/` holds one page per `da` method and the consensus (model, units, the R defaults biotapy changes, agreement with R, reference); the DA guide keeps the workflow and links to them.
 ```
 
-- [ ] **Step 5: Gate and commit.**
+- [x] **Step 5: Gate and commit.**
 
 ```bash
 git add docs/methods/index.md docs/methods/linda.md docs/methods/ancombc2.md docs/methods/aldex2.md \
@@ -8998,19 +9000,22 @@ contract's body.
 - Produces: a bundle with 0 stale concepts against `HEAD`.
 
 - [ ] **Step 1: Concepts the slice changes.** Re-check each sentence against the code after the
-  fix pass (a fix may change a number), then:
+  fix pass (a fix may change a number). `modules/da.md` already has the ANCOM-BC2 memory gotcha
+  (`b9cb006`: "4.5x to 7.5x, depending on the table's shape") and the MaAsLin 3 and ALDEx2
+  bounds as measured; what is left is the frontmatter, the Verification paragraph and the
+  tutorial gotcha:
 
 ````diff
 diff --git a/.knowledge/modules/da.md b/.knowledge/modules/da.md
-index 06be216..48bd81a 100644
+index 49b19ac..0fbbac9 100644
 --- a/.knowledge/modules/da.md
 +++ b/.knowledge/modules/da.md
 @@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
  resource: /src/biotapy/da/
  paths: ["src/biotapy/da/**"]
  tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
--generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:11:24Z }
--commit: 64fe39d
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:00:00Z }
+-commit: df27399
 +generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
 +commit: d6d82ef
  status: stable
@@ -9026,13 +9031,8 @@ index 06be216..48bd81a 100644
  The second needs the pooch cache of GlobalPatterns (`BIOTAPY_DATA_DIR`); at
  the 64fe39d check it gave `4 passed`. The third needs R with ALDEx2 and
  maaslin3 installed (the `r-bridge` CI job, or the golden image in
-@@ -228,9 +231,17 @@ per-module command exists: unknown.
- - **LinDA densifies `X` and is native; the bridges densify too.**
-   `_design.py:dense_counts` calls `toarray()` once (rpy2 has no sparse
-   converter, so the bridges use it as well); the docstring gives the memory cost (about 5x the dense
--  table at peak; ANCOM-BC2 about 7x). rules.md R6.2 allows it: a native
-+  table at peak; ANCOM-BC2 about 7x on 400 x 1,000 and 200 x 2,000 tables, 4.5x on the 2,000 x
-+  10,000 asv table, `docs/performance.md`). rules.md R6.2 allows it: a native
+@@ -232,6 +235,13 @@ per-module command exists: unknown.
+   table at peak; ANCOM-BC2 4.5x to 7.5x, depending on the table's shape). rules.md R6.2 allows it: a native
    method whose algorithm needs the full table may densify once (the user
    approved that wording after Checkpoint B, 2026-10-05).
 +- **The tutorial quotes the four-method counts.** The docs build has no R, so
@@ -9044,6 +9044,7 @@ index 06be216..48bd81a 100644
 +  the constants and the tutorial together.
  - Replicate rows within a group give `se = 0` in LinDA and p-values that are
    floating-point noise; R does the same.
+
 
 diff --git a/.knowledge/playbooks/add-a-function.md b/.knowledge/playbooks/add-a-function.md
 index 9425ed2..6350bad 100644
@@ -9074,12 +9075,19 @@ index 9425ed2..6350bad 100644
 ````
 
 - [ ] **Step 2: Concepts the diff only touches.** Run
-  `bash scripts/knowledge_stale.sh --touched --against master` before Step 1's edits. In the
-  prototype it listed `phase-0-foundation`, `phase-1-core`, `engine-parity`, `r-golden-parity`
-  and `add-a-function` (Step 1). Read each against the slice diff; nothing they state became false
-  (engine-parity's 5,000 x 50,000 table still gates compiled engines; r-golden-parity's rows are
-  unchanged, the `r` test only reads constants now). Bump only `generated` and `commit` on each,
-  and on `modules/da.md`, `add-a-function` and `phase-3-stats`:
+  `bash scripts/knowledge_stale.sh --against HEAD` before Step 1's edits; on the fix pass's final
+  commit it reports `16 current, 9 stale, 12 uncheckable`, the nine being `phase-0-foundation`,
+  `phase-1-core`, `da`, `data-model-slots`, `engine-parity`, `function-shape`, `module-boundaries`,
+  `r-golden-parity` and `add-a-function`. (`phase-3-stats` is current because the fix pass bumped
+  it; Steps 3 and 4 edit it again, so bump it here too.) `da` and `add-a-function` are edited by
+  Step 1; read each of the other seven against the slice diff, and nothing they state became false.
+  Engine-parity's 5,000 x 50,000 table still gates compiled engines, and r-golden-parity's rows are
+  unchanged (the `r` test only reads constants now). The three contracts that cover
+  `src/biotapy/**` are stale because `3b6239f`, `b9cb006` and the fix pass edit docstring prose in
+  `src/biotapy/da/` (`_aldex2.py`, `_ancombc.py`, `_maaslin3.py`) and nothing else: no signature,
+  slot, result key, layer or import changed, so data-model-slots, function-shape and
+  module-boundaries state the same things. Bump only `generated` and `commit` on
+  each, and on `modules/da.md`, `add-a-function` and `phase-3-stats`:
 
 ```diff
 diff --git a/.knowledge/contracts/engine-parity.md b/.knowledge/contracts/engine-parity.md
@@ -9107,6 +9115,51 @@ index 17076d8..eb7afa6 100644
  paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:50:53Z }
 -commit: 8a1f184
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
++commit: d6d82ef
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index 0c6fdb1..20817b8 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the
+ tags: [data-model, api]
+ status: stable
+ paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
++commit: d6d82ef
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/function-shape.md b/.knowledge/contracts/function-shape.md
+index 23963bd..df5b987 100644
+--- a/.knowledge/contracts/function-shape.md
++++ b/.knowledge/contracts/function-shape.md
+@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
+ tags: [api, conventions, docs]
+ status: stable
+ paths: ["src/biotapy/**/*.py"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
++commit: d6d82ef
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/module-boundaries.md b/.knowledge/contracts/module-boundaries.md
+index b1067bc..d9cdb45 100644
+--- a/.knowledge/contracts/module-boundaries.md
++++ b/.knowledge/contracts/module-boundaries.md
+@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public
+ tags: [architecture, modularization]
+ status: stable
+ paths: ["src/biotapy/**", "pyproject.toml"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
 +generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
 +commit: d6d82ef
  sources:
@@ -9151,9 +9204,9 @@ index fe70fd5..0f6a419 100644
 - [ ] **Step 4: Log**, first under the slice 3D heading:
 
 ```markdown
-- **Update**: [da](modules/da.md): Verification names the tutorial and the method pages; the ANCOM-BC2 memory gotcha gains the asv measurement (4.5x on 2,000 x 10,000); new gotcha: the tutorial quotes the `r` test's four-method counts through shared constants and a test.
+- **Update**: [da](modules/da.md): Verification names the tutorial and the method pages; new gotcha: the tutorial quotes the `r` test's four-method counts through shared constants and a test.
 - **Update**: [add-a-function](playbooks/add-a-function.md) step 8: a `da` method also gets a page in `docs/methods/` and a row in the guide's method table.
-- **Verification**: re-checked against `29efd9c..<HEAD>` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [r-golden-parity](contracts/r-golden-parity.md).
+- **Verification**: re-checked against `29efd9c..<HEAD>` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [r-golden-parity](contracts/r-golden-parity.md), [data-model-slots](contracts/data-model-slots.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md).
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.14 done.
 ```
 
@@ -9162,6 +9215,7 @@ index fe70fd5..0f6a419 100644
 ```bash
 git add .knowledge/modules/da.md .knowledge/playbooks/add-a-function.md .knowledge/roadmap/phase-0-foundation.md \
   .knowledge/roadmap/phase-1-core.md .knowledge/contracts/engine-parity.md .knowledge/contracts/r-golden-parity.md \
+  .knowledge/contracts/data-model-slots.md .knowledge/contracts/function-shape.md .knowledge/contracts/module-boundaries.md \
   .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
 git commit -m "docs(knowledge): document the DA docs and benchmarks and refresh concepts for slice 3D
 
@@ -9377,8 +9431,9 @@ uv run python -c "import biotapy; print(biotapy.__version__)"  # 0.3.0
     `module-boundaries`, `tree-access`, `cut-a-release`. Check each against the bump, which changes
     nothing they state, and bump `commit` and `generated`.
   - `playbooks/cut-a-release.md` step 3, the check this release added, and the roadmap's exit
-    gate (filled in with Checkpoint D's PR number, Test run id and docs job id) and Checkpoint D
-    boxes:
+    gate (items 1 and 3 ticked with Checkpoint D's PR number, Test run id and docs job id; item 2
+    was ticked by the plan commit, and item 1 already carries the wording of slice 3D decision 2)
+    and Checkpoint D boxes:
 
 ````diff
 diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-release.md
@@ -9422,19 +9477,21 @@ index e8c8124..58cb3ad 100644
  sources:
    - id: spec
      resource: ../../plan.md
-@@ -610,13 +610,14 @@ columns onto it.
+@@ -610,14 +610,16 @@ columns onto it.
  - [ ] 3.15 Release 0.3.0
 
  # Exit gate
 -- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus, human
 -  vs environmental), executed notebook in docs (CI docs job).
-+- [x] Consensus report on one benchmark dataset (GlobalPatterns genus, human
-+  vs environmental), executed notebook in docs (CI docs job). Proven on PR
-+  #<Checkpoint D PR>: docs job run <id> executed `tutorials/differential_abundance.md`.
- - [ ] Per-method agreement with the R reference, per
++- [x] Consensus report on one benchmark dataset (GlobalPatterns genus,
++  human-associated vs the other samples: environmental and mock communities),
++  executed notebook in docs (CI docs job). Proven on PR #<Checkpoint D PR>:
++  docs job run <id> executed `tutorials/differential_abundance.md`.
+ - [x] Per-method agreement with the R reference, per
    [r-golden-parity](/contracts/r-golden-parity.md): `pp.clr`, `pp.philr`,
    `da.linda`, `da.ancombc2` in the network job; `da.aldex2`, `da.maaslin3` in
-   the `r-bridge` job.
+   the `r-bridge` job. Proven on PR #23 (run `37479113322`): `network`
+   job `36 passed`, `r-bridge` job `24 passed`.
 -- [ ] All Phase 1 and 2 gates still green.
 +- [x] All Phase 1 and 2 gates still green. Proven on PR #<Checkpoint D PR>: every CI job green (run <id>).
 
@@ -9522,8 +9579,8 @@ open questions; 10-13 are outward-facing or need fresh approval.
 1. **Method pages in `docs/methods/`** (an index and pages for LinDA, ANCOM-BC2, ALDEx2,
    MaAsLin 3 and the consensus), in the "User guide" toctree, and **the DA guide restructured**:
    its four method sections move, text kept, into the pages; it gains a "Choosing methods" table;
-   the generic bridge behaviour moves into "Methods that run in R". No `src/` change: docstrings
-   keep linking the guide. Alternative: Phase 2's convention, method text only in the guide (no
+   the generic bridge behaviour moves into "Methods that run in R". No `src/` change in the plan
+   (two approved docstring-prose commits followed): docstrings keep linking the guide. Alternative: Phase 2's convention, method text only in the guide (no
    `docs/methods/`), which the outline departed from.
 2. **The tutorial uses the `benchmark` fixture's contrast exactly**: 9 human-associated samples
    against the 17 others, which are 14 environmental samples and 3 mock communities (design note
@@ -9622,7 +9679,7 @@ open questions; 10-13 are outward-facing or need fresh approval.
      record, not a gate.
    - The tutorial's prose names data facts (636 genera, 36 untested, 9 against 17) that golden
      tests pin; the live outputs carry every other number.
-   - Coverage was not re-measured: the slice changes no `src/` file (the last measurement,
+   - Coverage was not re-measured: the slice changes no `src/` code, only docstring prose (the last measurement,
      slice 3C's, stands).
 
 # Decisions for the user
@@ -9673,7 +9730,7 @@ a judgement call. Recommended answer first.
 15. **CI job `r-bridge`** (Linux, Python 3.13, R 4.5.3 / Bioconductor 3.22,
     `-m r`), added to `check.needs` with a `tests/test_ci.py` test.
     Alternative: no R in CI, bridge tests local only.
-16. **Exit-gate notebook (slice 3D decision 2):** GlobalPatterns genus, human vs environmental;
+16. **Exit-gate notebook (slice 3D decision 2):** GlobalPatterns genus, human-associated vs the other samples (environmental and mock communities);
     ANCOM-BC2 and LinDA live, the bridges as a non-executed block (no R in
     the docs builds); the four-method consensus runs in the `r-bridge` job.
 17. **Task changes:** new 3.0, 3.10b, 3.12, 3.13, 3.14, 3.15; 3.3 delivered
