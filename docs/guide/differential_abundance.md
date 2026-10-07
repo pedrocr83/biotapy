@@ -61,8 +61,9 @@ matches the R package on real data. Two things to know before you choose:
   fitted: its row is NaN. LinDA adds 0.5 to every count when the table has a zero, and ALDEx2
   draws around every count, so both test it.
 - `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
-  reference level) and ALDEx2 (its random draws follow the label order). Choose it on the biology,
-  the control or baseline level, before you look at any result.
+  reference level) and ALDEx2 (its effect's random resampling follows the label order), and
+  slightly in MaAsLin 3 (its p-values move by up to 1e-3 with the same `seed`, the calls do not).
+  Choose it on the biology, the control or baseline level, before you look at any result.
 
 (da-methods-in-r)=
 ## Methods that run in R

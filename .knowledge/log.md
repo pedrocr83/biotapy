@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-07 (Phase 3, slice 3D)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) and [da](modules/da.md) fix round 1 for task 3.10: ALDEx2's `we.ep` (one-sided Welch p doubled per direction, averaged, smaller kept) and reference swap (only `diff.btw`'s resampling follows label order; the draws and `we.ep` do not) corrected after reading ALDEx2 1.42.0; earlier statements marked `[corrected 2026-10-07: ...]`, the Task 3.10 page blocks synced to the committed pages, and "11 or 12" calls replaced by "11 to 13 depending on the seed".
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10 done: `docs/methods/` holds one page per `da` method and the consensus (model, units, the R defaults biotapy changes, agreement with R, reference); the DA guide keeps the workflow and links to them.
 
 ## 2026-10-07 (Phase 3, slice 3D plan)

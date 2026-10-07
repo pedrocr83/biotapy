@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:11:24Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T00:00:00Z }
+commit: 3695c4b
 status: stable
 ---
 
@@ -198,8 +198,9 @@ per-module command exists: unknown.
   `tests/da/test_aldex2_golden.py`, `tests/da/test_maaslin3_golden.py`). A
   NumPy change to that stream, or to the bound, fails the goldens loudly:
   recompute the integer and regenerate, do not loosen the test.
-- **ALDEx2's reference swap is not exactly antisymmetric.** It draws Monte
-  Carlo samples in label order, so swapping `reference` with the same seed
+- **ALDEx2's reference swap is not exactly antisymmetric.** Its `diff.btw` resamples each
+  group's pooled draws in label order (the draws and `we.ep` do not follow the
+  labels), so swapping `reference` with the same seed
   moves effects by up to 0.65 log2 on GlobalPatterns' genera, where 15 of 636
   do not change direction; p-values and calls are the same (benchmark
   measurement of Checkpoint C). `_aldex2.py:aldex2` Notes.

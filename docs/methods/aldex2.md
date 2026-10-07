@@ -24,9 +24,10 @@ c^{(k)}_{ij} = \log_2 p^{(k)}_{ij} - \frac{1}{m} \sum_{l=1}^{m} \log_2 p^{(k)}_{
 $$
 
 For each draw $k$ and feature $j$, a Welch t-test compares the two groups' values $c^{(k)}_{ij}$;
-`pvalue` is the mean of the draws' two-sided p-values (ALDEx2's `we.ep`). `effect` is ALDEx2's
-`diff.btw`, the median of the differences between the two groups' values over all draws, already
-log2. ALDEx2
+`pvalue` is ALDEx2's `we.ep`: for each draw ALDEx2 doubles the one-sided Welch p-value in each
+direction (capped at 1), averages each direction over the draws, and keeps the smaller average.
+`effect` is ALDEx2's `diff.btw`, the median difference between values resampled at random from each
+group's pooled draws, already log2. ALDEx2
 reports no standard error, so `se` is NaN for every feature, and `qvalue` is the
 Benjamini-Hochberg correction of `pvalue`, as for every method. A feature with no read in any
 sample is dropped by ALDEx2 and is NaN in the table (not tested).
@@ -61,17 +62,19 @@ ALDEx2 is random, but `seed` becomes one integer for R's `set.seed`, so biotapy 
 numbers. The golden test runs `set.seed(...); ALDEx2::aldex(...)` with that integer on the 636
 GlobalPatterns genera in at least 20% of samples, human hosts against the rest: `effect` and
 `diff.btw` agree to a relative 4e-15 and `pvalue` and `we.ep` to 8.4e-13 (checked at 1e-7). The
-golden passes `reference="human"`, the level R sorts first, so both sides draw in the same label
-order. With other seeds, effects correlate
-at 0.993 (Spearman) and 11 or 12 genera are called.
+golden passes `reference="human"`, the level R sorts first, so both sides resample `diff.btw` in the same
+label order. With other seeds, effects correlate
+at 0.993 (Spearman) and 11 to 13 genera are called, depending on the seed (13 at `seed=0`, the
+tutorial's).
 
 ## Choosing the reference
 
-Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label
-order, so the same `seed` gives different effects, and the two runs are not exact mirror images.
-They differ from exact antisymmetry by up to 0.25 log2 on `toy()` (whose effects are about 4 log2
-wide) and up to 0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change
-direction. The p-values and the calls are the same.
+Swapping `reference` does more than flip the sign. ALDEx2 draws the same Monte Carlo instances, so
+`pvalue` and the calls are unchanged, but `diff.btw` comes from a random resampling of each group's
+values done in label order, so the same `seed` gives different effects, and the two runs are not
+exact mirror images. They differ from exact antisymmetry by 0.1 to 0.3 log2 on `toy()`, depending
+on the seed (its effects are about 4 log2 wide), and by up to 0.65 log2 on the GlobalPatterns
+genera, 15 of 636 of which then do not change direction. The p-values and the calls are the same.
 
 ## Reference
 

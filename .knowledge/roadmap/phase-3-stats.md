@@ -4922,11 +4922,12 @@ the hashes are the scratch clone's, not the repository's.
     difference 5.3e-15 (relative 4.2e-15), `pvalue` vs `we.ep` 5.0e-16 (relative
     8.4e-13). Exact: 1165433077 is the integer biotapy derives from seed 20260927,
     and `reference="human"` keeps R's sorted level order, so the Monte Carlo draws
-    are the same. With other seeds (1, 2, 3) the Monte Carlo spread is: Spearman
+    are the same [corrected 2026-10-07: the Dirichlet draws do not depend on the labels; only `aldex.effect`'s
+    resampling of `diff.btw` follows the label order]. With other seeds (1, 2, 3) the Monte Carlo spread is: Spearman
     correlation of effects 0.993, signs agree on 612-617 of 636 genera, largest
     effect difference 0.64-0.83 log2, p-values within 0.12, 11-12 calls at
-    q < 0.05 (the same calls on 635-636 genera). With `reference="other"` (draws in
-    the other order) Spearman 0.995 against the negated golden. Calls: BH of
+    q < 0.05 (the same calls on 635-636 genera). With `reference="other"` (`diff.btw` resampled in
+    the other order [corrected 2026-10-07: was "draws in the other order"]) Spearman 0.995 against the negated golden. Calls: BH of
     `we.ep` 11 genera, ALDEx2's own `we.eBH` 19 (slice 3C decision 3).
   - `da.maaslin3(benchmark, "host", covariates, reference="other",
     seed=20260927)` against `set.seed(1165433077); maaslin3::maaslin3(...,
@@ -4987,7 +4988,8 @@ the hashes are the scratch clone's, not the repository's.
   below 128 draws; `aldex.ttest`/`aldex.effect` take `as.factor(conditions)`,
   so the levels are sorted, and `diff.btw` is the second level minus the first;
   `aldex.effect` stops when a level has fewer than two samples; `we.ep` is the
-  per-draw two-sided Welch p averaged, `we.eBH` the per-draw BH values averaged;
+  per-draw two-sided Welch p averaged [corrected 2026-10-07: per draw the one-sided Welch p is doubled in each direction and capped at 1, each
+  direction is averaged over the draws, and the smaller average is kept], `we.eBH` the per-draw BH values averaged;
   output columns `rab.all, rab.win.<l1>, rab.win.<l2>, diff.btw, diff.win,
   effect, overlap, we.ep, we.eBH, wi.ep, wi.eBH`). maaslin3 1.2.0
   (`maaslin3(input_data, input_metadata, output, formula, ..., min_abundance =
@@ -5801,7 +5803,7 @@ marker is already registered), `.github/`.
       TRUE, denom = "all")`` (Fernandes et al. 2014) through rpy2: Dirichlet Monte
       Carlo draws of each sample's proportions (0.5 added to every count), their
       log2 centred log-ratios, and per draw a Welch t-test, whose two-sided
-      p-values are averaged into ``we.ep``. ``effect`` is ``diff.btw``, already
+      p-values are averaged into ``we.ep`` [corrected 2026-10-07: one-sided p doubled per direction, averaged over the draws, smaller kept; see the corrected docstring]. ``effect`` is ``diff.btw``, already
       log2; ALDEx2's own ``effect`` column is a standardised size, not a fold
       change, and is not carried. ``qvalue`` is the Benjamini-Hochberg correction
       of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
@@ -5809,7 +5811,7 @@ marker is already registered), `.github/`.
       two groups without covariates (its ``glm`` test is not wrapped).
 
       Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
-      Carlo draws in label order, so the same ``seed`` gives different effects
+      Carlo draws in label order [corrected 2026-10-07: only `diff.btw`'s resampling does; the draws and `we.ep` do not], so the same ``seed`` gives different effects
       (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
       the same p-values on ``toy()``. Each R warning raised during the call, such as
       the one for fewer than 128 ``mc_samples``, is re-emitted as a
@@ -5936,7 +5938,7 @@ marker is already registered), `.github/`.
   +`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
   +those genera).
   +
-  +Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
+  +Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order [corrected 2026-10-07: only `diff.btw`'s resampling does],
   +so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, where they are about
   +4 log2 wide), with the same p-values there. Anything R prints during the call, such as the warning
   +for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
@@ -7708,9 +7710,10 @@ c^{(k)}_{ij} = \log_2 p^{(k)}_{ij} - \frac{1}{m} \sum_{l=1}^{m} \log_2 p^{(k)}_{
 $$
 
 For each draw $k$ and feature $j$, a Welch t-test compares the two groups' values $c^{(k)}_{ij}$;
-`pvalue` is the mean of the draws' two-sided p-values (ALDEx2's `we.ep`). `effect` is ALDEx2's
-`diff.btw`, the median of the differences between the two groups' values over all draws, already
-log2. ALDEx2
+`pvalue` is ALDEx2's `we.ep`: for each draw ALDEx2 doubles the one-sided Welch p-value in each
+direction (capped at 1), averages each direction over the draws, and keeps the smaller average.
+`effect` is ALDEx2's `diff.btw`, the median difference between values resampled at random from each
+group's pooled draws, already log2. ALDEx2
 reports no standard error, so `se` is NaN for every feature, and `qvalue` is the
 Benjamini-Hochberg correction of `pvalue`, as for every method. A feature with no read in any
 sample is dropped by ALDEx2 and is NaN in the table (not tested).
@@ -7745,17 +7748,19 @@ ALDEx2 is random, but `seed` becomes one integer for R's `set.seed`, so biotapy 
 numbers. The golden test runs `set.seed(...); ALDEx2::aldex(...)` with that integer on the 636
 GlobalPatterns genera in at least 20% of samples, human hosts against the rest: `effect` and
 `diff.btw` agree to a relative 4e-15 and `pvalue` and `we.ep` to 8.4e-13 (checked at 1e-7). The
-golden passes `reference="human"`, the level R sorts first, so both sides draw in the same label
-order. With other seeds, effects correlate
-at 0.993 (Spearman) and 11 or 12 genera are called.
+golden passes `reference="human"`, the level R sorts first, so both sides resample `diff.btw` in the same
+label order. With other seeds, effects correlate
+at 0.993 (Spearman) and 11 to 13 genera are called, depending on the seed (13 at `seed=0`, the
+tutorial's).
 
 ## Choosing the reference
 
-Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label
-order, so the same `seed` gives different effects, and the two runs are not exact mirror images.
-They differ from exact antisymmetry by up to 0.25 log2 on `toy()` (whose effects are about 4 log2
-wide) and up to 0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change
-direction. The p-values and the calls are the same.
+Swapping `reference` does more than flip the sign. ALDEx2 draws the same Monte Carlo instances, so
+`pvalue` and the calls are unchanged, but `diff.btw` comes from a random resampling of each group's
+values done in label order, so the same `seed` gives different effects, and the two runs are not
+exact mirror images. They differ from exact antisymmetry by 0.1 to 0.3 log2 on `toy()`, depending
+on the seed (its effects are about 4 log2 wide), and by up to 0.65 log2 on the GlobalPatterns
+genera, 15 of 636 of which then do not change direction. The p-values and the calls are the same.
 
 ## Reference
 
@@ -8012,8 +8017,9 @@ index 9e8d2ad..7cb7117 100644
 +  fitted: its row is NaN. LinDA adds 0.5 to every count when the table has a zero, and ALDEx2
 +  draws around every count, so both test it.
 +- `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
-+  reference level) and ALDEx2 (its random draws follow the label order). Choose it on the biology,
-+  the control or baseline level, before you look at any result.
++  reference level) and ALDEx2 (its effect's random resampling follows the label order), and
++  slightly in MaAsLin 3 (its p-values move by up to 1e-3 with the same `seed`, the calls do not).
++  Choose it on the biology, the control or baseline level, before you look at any result.
 
 +(da-methods-in-r)=
  ## Methods that run in R
