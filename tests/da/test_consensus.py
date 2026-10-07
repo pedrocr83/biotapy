@@ -175,6 +175,7 @@ def test_numpy_scalars_are_valid_options():
 FOUR_METHOD_CALLS = {"ancombc2": 208, "linda": 118, "aldex2": 13, "maaslin3": 52}
 FOUR_METHOD_N_SIGNIFICANT = {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
 FOUR_METHOD_CONSENSUS = 109
+FOUR_METHOD_CONFLICTS = 0
 TUTORIAL = Path(__file__).parents[2] / "docs" / "tutorials" / "differential_abundance.md"
 
 
@@ -191,7 +192,8 @@ def test_four_methods_on_the_exit_gate_data(benchmark):
     # ANCOM-BC2 and MaAsLin 3 cannot fit the 36 genera absent from one group; LinDA and ALDEx2 test all 636.
     assert table["n_tested"].value_counts().to_dict() == {4: 600, 2: 36}
     assert table["n_significant"].value_counts().sort_index().to_dict() == FOUR_METHOD_N_SIGNIFICANT
-    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS and not table["conflict"].any()
+    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS
+    assert int(table["conflict"].sum()) == FOUR_METHOD_CONFLICTS
     assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
 
 
@@ -200,4 +202,13 @@ def test_the_tutorial_quotes_the_four_method_counts():
     for method, calls in FOUR_METHOD_CALLS.items():
         assert f"| `{method}` | {calls} |" in page
     assert "| Genera | " + " | ".join(map(str, FOUR_METHOD_N_SIGNIFICANT.values())) + " |" in page
-    assert f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`" in page
+    sentence = (
+        f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`, "
+        f"{_count_word(FOUR_METHOD_CONFLICTS)} is a conflict, and the {FOUR_METHOD_N_SIGNIFICANT[4]} genera all four "
+        "methods call are all more abundant in human-associated samples"
+    )
+    assert sentence in " ".join(page.split())
+
+
+def _count_word(count: int) -> str:
+    return "none" if count == 0 else str(count)

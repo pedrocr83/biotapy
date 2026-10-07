@@ -34,7 +34,7 @@ import biotapy as bt
 ## The data
 
 Counts are merged to genus, and genera present in fewer than 20% of the samples are dropped. This
-is the one filter: the methods never filter on their own, so each of them tests the same 636
+is the one filter: the methods never filter on their own, so each of them is given the same 636
 genera.
 
 ```{code-cell} ipython3
@@ -108,7 +108,8 @@ bt.pl.consensus(genera[genera["n_significant"] == 1], top=30);
 ## Adding the methods that run in R
 
 ALDEx2 and MaAsLin 3 run in R ({ref}`Methods that run in R <da-methods-in-r>`), which this
-documentation is built without, so the code below is shown but not run here:
+documentation is built without, so the code below is shown but not run here. To run it, install
+the extra with `pip install 'biotapy[r]'` and, in R, `BiocManager::install(c("ALDEx2", "maaslin3"))`:
 
 ```python
 results = [

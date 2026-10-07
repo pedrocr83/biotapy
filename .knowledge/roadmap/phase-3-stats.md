@@ -8195,6 +8195,7 @@ index 6d53ae0..9dc61c5 100644
 +FOUR_METHOD_CALLS = {"ancombc2": 208, "linda": 118, "aldex2": 13, "maaslin3": 52}
 +FOUR_METHOD_N_SIGNIFICANT = {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
 +FOUR_METHOD_CONSENSUS = 109
++FOUR_METHOD_CONFLICTS = 0
 +TUTORIAL = Path(__file__).parents[2] / "docs" / "tutorials" / "differential_abundance.md"
 +
 +
@@ -8216,7 +8217,8 @@ index 6d53ae0..9dc61c5 100644
 -    assert table["n_significant"].value_counts().sort_index().to_dict() == {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
 -    assert int(table["consensus"].sum()) == 109 and not table["conflict"].any()
 +    assert table["n_significant"].value_counts().sort_index().to_dict() == FOUR_METHOD_N_SIGNIFICANT
-+    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS and not table["conflict"].any()
++    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS
++    assert int(table["conflict"].sum()) == FOUR_METHOD_CONFLICTS
      assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
 +
 +
@@ -8225,7 +8227,16 @@ index 6d53ae0..9dc61c5 100644
 +    for method, calls in FOUR_METHOD_CALLS.items():
 +        assert f"| `{method}` | {calls} |" in page
 +    assert "| Genera | " + " | ".join(map(str, FOUR_METHOD_N_SIGNIFICANT.values())) + " |" in page
-+    assert f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`" in page
++    sentence = (
++        f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`, "
++        f"{_count_word(FOUR_METHOD_CONFLICTS)} is a conflict, and the {FOUR_METHOD_N_SIGNIFICANT[4]} genera all four "
++        "methods call are all more abundant in human-associated samples"
++    )
++    assert sentence in " ".join(page.split())
++
++
++def _count_word(count: int) -> str:
++    return "none" if count == 0 else str(count)
 ```
 
 - [x] **Step 2: Run, expect failure.**
@@ -8271,7 +8282,7 @@ import biotapy as bt
 ## The data
 
 Counts are merged to genus, and genera present in fewer than 20% of the samples are dropped. This
-is the one filter: the methods never filter on their own, so each of them tests the same 636
+is the one filter: the methods never filter on their own, so each of them is given the same 636
 genera.
 
 ```{code-cell} ipython3
@@ -8345,7 +8356,8 @@ bt.pl.consensus(genera[genera["n_significant"] == 1], top=30);
 ## Adding the methods that run in R
 
 ALDEx2 and MaAsLin 3 run in R ({ref}`Methods that run in R <da-methods-in-r>`), which this
-documentation is built without, so the code below is shown but not run here:
+documentation is built without, so the code below is shown but not run here. To run it, install
+the extra with `pip install 'biotapy[r]'` and, in R, `BiocManager::install(c("ALDEx2", "maaslin3"))`:
 
 ```python
 results = [

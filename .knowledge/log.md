@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-07 (Phase 3, slice 3D)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10b fix round 1: the tutorial says each method is given the same 636 genera, names the `r` extra and the R packages for its non-executed block, and a test pins the whole four-method sentence (conflict count and the 12 all-up genera) through shared constants the `r` test also asserts.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10b done: `docs/tutorials/differential_abundance.md` runs ANCOM-BC2, LinDA and their consensus on the GlobalPatterns genera on every docs build, and quotes the four-method counts the `r-bridge` job measures (a test keeps the two in step).
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) and [da](modules/da.md) fix round 1 for task 3.10: ALDEx2's `we.ep` (one-sided Welch p doubled per direction, averaged, smaller kept) and reference swap (only `diff.btw`'s resampling follows label order; the draws and `we.ep` do not) corrected after reading ALDEx2 1.42.0; earlier statements marked `[corrected 2026-10-07: ...]`, the Task 3.10 page blocks synced to the committed pages, and "11 or 12" calls replaced by "11 to 13 depending on the seed".
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10 done: `docs/methods/` holds one page per `da` method and the consensus (model, units, the R defaults biotapy changes, agreement with R, reference); the DA guide keeps the workflow and links to them.
