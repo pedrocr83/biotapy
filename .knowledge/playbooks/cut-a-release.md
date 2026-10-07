@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:41:00Z }
+commit: 73848df
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/
@@ -37,7 +37,9 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
 3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
    (merge commit, not squash). Before the PR, build and run `pytest` from the
    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it
-   must pass with no errors.
+   must pass with no errors. Check the wheel's `METADATA` too: `Version`, every
+   runtime `Requires-Dist`, and a `Provides-Extra` line for each extra (0.3.0
+   added `r`).
 4. With explicit user approval for each (rules.md R13.3), tag the merged commit
    and push only the tag:
    ```bash
