@@ -38,7 +38,8 @@ def aldex2(
     reference
         The level of ``group`` that the other level is compared with; by default
         its first category (sorted values for a string column). It changes the
-        Monte Carlo draws as well as the sign (Notes).
+        effects' random resampling as well as the sign; the p-values do not
+        change (Notes).
     seed
         Seeds R's random number generator through ``set.seed`` for the call; the same seed
         gives the same table.

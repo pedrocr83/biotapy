@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-07 (Phase 3, slice 3D)
+- **Update**: `da.aldex2`'s `reference` parameter says it changes the effects' random resampling and not the p-values (the 3.10 fix had corrected only Notes); the two test comments that said the Monte Carlo draws follow the labels say the same (Checkpoint D finding I1).
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.13's `peakmem_ancombc2` docstring block gives the measured 4.5x to 7.5x range, matching the benchmark file.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.13 done: asv baselines for `pp.philr`, `da.linda` and `da.ancombc2` in docs/performance.md.
 - **Update**: [da](modules/da.md) and `da.ancombc2`'s docstring state ANCOM-BC2's peak memory as 4.5x to 7.5x the dense table, depending on shape (4.5x on the asv table, 7.2x to 7.5x on 400 x 1,000 and 200 x 2,000), replacing "about seven".

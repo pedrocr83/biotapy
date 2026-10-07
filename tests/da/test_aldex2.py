@@ -184,7 +184,8 @@ def test_reference_sets_the_sign_in_r():
     tdata = bt.datasets.toy()
     a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
     assert (b_first["contrast"] == "A vs B").all()
-    # Swapping the reference reorders ALDEx2's draws, so the effects flip sign but are not exactly opposite.
+    # Swapping the reference flips the sign, but diff.btw's resampling follows the labels, so effects are not exactly
+    # opposite; the p-values do not change.
     assert (a_first["direction"] == -b_first["direction"]).all()
     np.testing.assert_allclose(b_first["effect"], -a_first["effect"], atol=0.7)
 
