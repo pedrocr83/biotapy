@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T16:30:00Z }
-commit: 716ce33
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
+commit: a1b54be
 sources:
   - id: spec
     resource: ../../plan.md
@@ -606,7 +606,7 @@ columns onto it.
 - [x] 3.12 Coming-from-R check
 - [x] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
-- [ ] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
+- [x] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
 - [ ] 3.15 Release 0.3.0
 
 # Exit gate
@@ -8940,7 +8940,7 @@ rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html 
 
 ### Checkpoint D - review slice 3D
 
-- [ ] **Review the whole slice** with superpowers:requesting-code-review (opus: the pages are
+- [x] **Review the whole slice** with superpowers:requesting-code-review (opus: the pages are
   claims about statistics a user will act on), against:
   - data-model-slots ("DA results"), function-shape, r-golden-parity, module-boundaries;
   - pure-by-default and da-consensus-agreement;
@@ -8953,7 +8953,10 @@ rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html 
   fix pass, one commit per finding, each with a test where a test can show it (a docs-only finding
   is shown by the docs build or a `tests/test_ci.py`-style check); then a scoped re-review of the
   fix pass. Record: review counts (Critical / Important / Minor), fix pass range, re-review result.
-- [ ] **Task 3.14** (below), after the fix pass.
+  Recorded: 0 Critical / 1 Important / 5 Minor; fix pass `48279d2..9cc69d3` plus `e5209f0`
+  (the ALDEx2 reference-swap test); re-review `48279d2..716ce33`: I1, M1, M2, M4 addressed, M3 and
+  M5 partial (roadmap text only, fixed by `716ce33` and `a1b54be`).
+- [x] **Task 3.14** (below), after the fix pass.
 - [ ] **Run the gates** on the committed tree (`git status --short` empty first), every command
   with an absolute `BIOTAPY_DATA_DIR`:
   - `uvx prek run --all-files`;

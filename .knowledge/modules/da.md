@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:00:00Z }
-commit: df27399
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
+commit: a1b54be
 status: stable
 ---
 
@@ -142,6 +142,9 @@ uv run --group test pytest -m "golden or network" tests/da -q
 uv run --group test --extra r pytest -m r tests/da -q
 ```
 
+The docs build also runs `da.linda`, `da.ancombc2` and `da.consensus` in
+`docs/tutorials/differential_abundance.md`; each method's model, R settings
+and measured agreement with R are written up in `docs/methods/`.
 The second needs the pooch cache of GlobalPatterns (`BIOTAPY_DATA_DIR`); at
 the 64fe39d check it gave `4 passed`. The third needs R with ALDEx2 and
 maaslin3 installed (the `r-bridge` CI job, or the golden image in
@@ -232,6 +235,13 @@ per-module command exists: unknown.
   table at peak; ANCOM-BC2 4.5x to 7.5x, depending on the table's shape). rules.md R6.2 allows it: a native
   method whose algorithm needs the full table may densify once (the user
   approved that wording after Checkpoint B, 2026-10-05).
+- **The tutorial quotes the four-method counts.** The docs build has no R, so
+  `docs/tutorials/differential_abundance.md` prints the counts the `r` test
+  `tests/da/test_consensus.py::test_four_methods_on_the_exit_gate_data`
+  measures; both read the constants `FOUR_METHOD_*` in that file, and
+  `test_the_tutorial_quotes_the_four_method_counts` fails until the tutorial
+  matches them. A change to any method's numbers on GlobalPatterns updates
+  the constants and the tutorial together.
 - Replicate rows within a group give `se = 0` in LinDA and p-values that are
   floating-point noise; R does the same.
 
