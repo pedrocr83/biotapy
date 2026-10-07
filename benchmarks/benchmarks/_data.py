@@ -1,4 +1,4 @@
-"""Synthetic benchmark data: a sparse count table with taxonomy and a tree, a function table, and taxon traits."""
+"""Synthetic benchmark data: a count table with taxonomy and a tree, a genus table, a function table, taxon traits."""
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,10 @@ _RANK_SIZES = {"phylum": 10_000, "class": 5_000, "order": 2_500, "family": 500, 
 N_SAMPLES, N_FUNCTIONS, N_STRATA, N_GROUPS = 1_600, 500, 43, 50
 # Tian et al.'s functional redundancy at 2,000 taxa, as measured when fn.functional_redundancy was written.
 N_TAXA, N_GENES, N_ABUNDANCE_SAMPLES = 2_000, 2_500, 100
+# PhILR densifies X: 1,000 samples keep it at 400 MB on the 50,000-feature table.
+N_PHILR_OBS = 1_000
+# Differential abundance on a large genus-level study: 2,000 samples in two groups, 10,000 features, 30% non-zero.
+N_DA_OBS, N_DA_VARS, DA_DENSITY = 2_000, 10_000, 0.3
 
 
 def synthetic(n_obs: int = N_OBS, n_vars: int = N_VARS) -> TreeData:
@@ -72,3 +76,14 @@ def synthetic_traits() -> tuple[AnnData, pd.DataFrame]:
     )
     copies = rng.integers(1, 6, size=(N_TAXA, N_GENES)) * (rng.random((N_TAXA, N_GENES)) >= 0.7)
     return adata, pd.DataFrame(copies, index=taxa, columns=[f"g{k}" for k in range(N_GENES)])
+
+
+def synthetic_genera() -> AnnData:
+    """2,000 samples x 10,000 features, 30% non-zero counts from 1 to 99, ``obs["group"]`` a / b, seed 0."""
+    rng = np.random.default_rng(SEED)
+    X = sp.random(
+        N_DA_OBS, N_DA_VARS, density=DA_DENSITY, format="csr", rng=rng, data_rvs=lambda size: rng.integers(1, 100, size)
+    )
+    group = pd.Categorical(np.repeat(["a", "b"], N_DA_OBS // 2))
+    obs = pd.DataFrame({"group": group}, index=[f"s{i}" for i in range(N_DA_OBS)])
+    return AnnData(X=X, obs=obs, var=pd.DataFrame(index=[f"f{j}" for j in range(N_DA_VARS)]))
