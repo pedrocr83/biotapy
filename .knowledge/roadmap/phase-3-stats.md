@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T11:26:51Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:00:47Z }
 commit: 29efd9c
 sources:
   - id: spec
@@ -603,7 +603,7 @@ columns onto it.
 - [x] Checkpoint C (PR #23 merged; the user approved slice 3C on 2026-10-07)
 - [x] 3.10 Method pages in `docs/methods/` and the DA guide
 - [x] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
-- [ ] 3.12 Coming-from-R check
+- [x] 3.12 Coming-from-R check
 - [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
 - [ ] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
@@ -8490,7 +8490,7 @@ line), any docstring, the other idioms (no `phyloseq_to_deseq2` row: not asked f
   vignette now links.
 - Produces: the label `"not in 0.3"`; a test pinning the seven Phase 3 rows.
 
-- [ ] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
+- [x] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
 
 ```diff
 diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
@@ -8547,11 +8547,11 @@ index fc82dc0..af6009c 100644
 
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/test_coming_from_r.py -q` -> `5 failed, 45 passed`: each
   `test_uncovered_functions_are_marked` case fails (`['not in 0.2'] == ['not in 0.3']`). The seven
   new cases pass at once: the rows already come from the 3A-3C docstrings; they are pins.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 
 ````diff
 diff --git a/docs/_data/r_idioms.toml b/docs/_data/r_idioms.toml
@@ -8622,17 +8622,17 @@ index dba4dcf..6dcad6f 100644
  esophagus = bt.datasets.esophagus()
 ````
 
-- [ ] **Step 4: Run, expect pass.**
+- [x] **Step 4: Run, expect pass.**
   `uv run --group test pytest tests/test_coming_from_r.py -q` -> `50 passed`.
-- [ ] **Step 5: Check the rendered page.** Build the docs, then read
+- [x] **Step 5: Check the rendered page.** Build the docs, then read
   `docs/generated/coming_from_r_table.md`: 58 rows (`grep -c '^| \`' ...`); the seven Phase 3 rows
   link `bt.pp.*` and `bt.da.*`; five rows read "not in 0.3"; no "not in 0.2" anywhere
   (`grep -rn "not in 0.2" docs --include=*.md --include=*.toml` prints nothing outside
   `docs/_build`). The vignette's first bullet list links the tutorial.
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line `- [ ] 3.12 Coming-from-R check` becomes `- [x] 3.12 Coming-from-R check`.
   - Log line: `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.12 done: the Coming-from-R rows for \`pp.clr\`, \`pp.philr\` and the four \`da\` methods are pinned by a test; phyloseq calls without an equivalent read "not in 0.3", and the phyloseq vignette points its differential abundance section to the new tutorial.`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
 
 ```bash
 git add docs/_data/r_idioms.toml docs/coming_from_r.md docs/tutorials/phyloseq_analysis.md tests/test_coming_from_r.py \

@@ -23,8 +23,8 @@
 "phyloseq::prune_samples" = '`tdata[keep].copy()`'
 "phyloseq::subset_taxa" = '`tdata[:, tdata.var["phylum"] == "Chlamydiae"].copy()`'
 "phyloseq::subset_samples" = '`tdata[tdata.obs["SampleType"] == "Feces"].copy()`'
-"phyloseq::tip_glom" = "not in 0.2"
-"phyloseq::merge_samples" = "not in 0.2"
-"phyloseq::psmelt" = "not in 0.2"
-"phyloseq::plot_tree" = "not in 0.2"
-"phyloseq::plot_net" = "not in 0.2"
+"phyloseq::tip_glom" = "not in 0.3"
+"phyloseq::merge_samples" = "not in 0.3"
+"phyloseq::psmelt" = "not in 0.3"
+"phyloseq::plot_tree" = "not in 0.3"
+"phyloseq::plot_net" = "not in 0.3"

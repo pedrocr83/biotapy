@@ -16,7 +16,7 @@ PHYLOSEQ_31 = """otu_table sample_data tax_table phy_tree refseq nsamples ntaxa 
 sample_sums taxa_sums rank_names sample_variables get_taxa_unique prune_taxa prune_samples subset_taxa
 subset_samples filter_taxa transform_sample_counts rarefy_even_depth tax_glom estimate_richness distance
 UniFrac ordinate plot_bar plot_richness plot_ordination plot_heatmap import_biom""".split()
-NOT_IN_0_2 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
+NOT_IN_0_3 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
 
 
 def test_the_list_has_31_functions():
@@ -26,12 +26,12 @@ def test_the_list_has_31_functions():
 @pytest.mark.parametrize("name", PHYLOSEQ_31)
 def test_table_maps_each_of_the_31(name):
     cells = coming_from_r.rows()[f"phyloseq::{name}"]
-    assert cells and "not in 0.2" not in cells
+    assert cells and "not in 0.3" not in cells
 
 
-@pytest.mark.parametrize("name", NOT_IN_0_2)
+@pytest.mark.parametrize("name", NOT_IN_0_3)
 def test_uncovered_functions_are_marked(name):
-    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.2"]
+    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.3"]
 
 
 @pytest.mark.parametrize(
@@ -39,6 +39,22 @@ def test_uncovered_functions_are_marked(name):
 )
 def test_mia_importers_map_to_the_function_readers(r_name, function):
     assert coming_from_r.rows()[f"mia::{r_name}"] == [f"{{func}}`bt.io.{function} <biotapy.io.{function}>`"]
+
+
+@pytest.mark.parametrize(
+    ("r_name", "functions"),
+    [
+        ("ANCOMBC::ancombc2", ["da.ancombc2"]),
+        ("MicrobiomeStat::linda", ["da.linda"]),
+        ("ALDEx2::aldex", ["da.aldex2"]),
+        ("maaslin3::maaslin3", ["da.maaslin3"]),
+        ("philr::philr", ["pp.philr"]),
+        ("vegan::decostand", ["pp.clr"]),
+        ("mia::transformAssay", ["pp.clr", "pp.philr", "pp.relative"]),
+    ],
+)
+def test_transforms_and_da_methods_map_to_their_r_functions(r_name, functions):
+    assert coming_from_r.rows()[r_name] == [f"{{func}}`bt.{name} <biotapy.{name}>`" for name in functions]
 
 
 def test_plot_functions_link_to_pl():
