@@ -8339,8 +8339,8 @@ pd.crosstab(table["significant_ancombc2"], table["significant_linda"])
 
 The dot plot shows the genera called by most methods first, then by the size of their effect.
 Feature ids in GlobalPatterns are OTU numbers, so the rows are labelled with the genus name; a
-name can appear twice, because GlobalPatterns files some genera under more than one family and
-`tax_glom` keeps the lineages apart.
+name can appear more than once, because GlobalPatterns files some genera under more than one
+family and `tax_glom` keeps the lineages apart.
 
 ```{code-cell} ipython3
 genera = table.rename(index=tdata.var["genus"])
