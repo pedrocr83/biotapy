@@ -29,5 +29,5 @@ class DifferentialAbundance:
         bt.da.ancombc2(adata, "group")
 
     def peakmem_ancombc2(self, adata: AnnData) -> None:
-        """Peak memory; the docstring says about seven dense copies of ``X``."""
+        """Peak memory; ``da.ancombc2``'s docstring gives 4.5x to 7.5x the dense ``X``, 4.5x on this table."""
         bt.da.ancombc2(adata, "group")

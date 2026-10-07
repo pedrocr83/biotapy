@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-07 (Phase 3, slice 3D)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.13's `peakmem_ancombc2` docstring block gives the measured 4.5x to 7.5x range, matching the benchmark file.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.13 done: asv baselines for `pp.philr`, `da.linda` and `da.ancombc2` in docs/performance.md.
 - **Update**: [da](modules/da.md) and `da.ancombc2`'s docstring state ANCOM-BC2's peak memory as 4.5x to 7.5x the dense table, depending on shape (4.5x on the asv table, 7.2x to 7.5x on 400 x 1,000 and 200 x 2,000), replacing "about seven".
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.12 done: the Coming-from-R rows for `pp.clr`, `pp.philr` and the four `da` methods are pinned by a test; phyloseq calls without an equivalent read "not in 0.3", and the phyloseq vignette points its differential abundance section to the new tutorial.

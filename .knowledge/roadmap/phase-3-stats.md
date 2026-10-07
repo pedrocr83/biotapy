@@ -8780,7 +8780,7 @@ class DifferentialAbundance:
         bt.da.ancombc2(adata, "group")
 
     def peakmem_ancombc2(self, adata: AnnData) -> None:
-        """Peak memory; the docstring says about seven dense copies of ``X``."""
+        """Peak memory; ``da.ancombc2``'s docstring gives 4.5x to 7.5x the dense ``X``, 4.5x on this table."""
         bt.da.ancombc2(adata, "group")
 ```
 
@@ -8901,8 +8901,9 @@ index bd48d26..df4e2a0 100644
  `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
 -`.asv/results`. Add `--bench "^fn\."` to `asv run` and `asv show` to run or show only the function
 -benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
-+`.asv/results`. Add `--bench "^fn\."` (or `"^(da\.|pp\.Philr)"`) to `asv run` and `asv show` to run or
-+show only the function (or transform and differential abundance) benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
++`.asv/results`. Add `--bench "^fn\."` (or `"^(da\.|pp\.Philr)"`) to `asv run` and `asv show` to
++run or show only the function (or transform and differential abundance) benchmarks. The whole suite
++took about 13 minutes on this run and needs about 3 GB of free memory.
  `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
 ````
 
