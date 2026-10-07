@@ -602,7 +602,7 @@ columns onto it.
 - [x] 3.11 CI job `r-bridge` for `-m r` tests
 - [x] Checkpoint C (PR #23 merged; the user approved slice 3C on 2026-10-07)
 - [x] 3.10 Method pages in `docs/methods/` and the DA guide
-- [ ] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
+- [x] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
 - [ ] 3.12 Coming-from-R check
 - [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
@@ -8172,7 +8172,7 @@ the workflows and `.readthedocs.yaml` (design 2: no change), `tests/da/conftest.
   `FOUR_METHOD_CALLS`, `FOUR_METHOD_N_SIGNIFICANT`, `FOUR_METHOD_CONSENSUS` and `TUTORIAL` in
   `tests/da/test_consensus.py`.
 
-- [ ] **Step 1: Failing test.** In `tests/da/test_consensus.py`, the `r` test reads the shared
+- [x] **Step 1: Failing test.** In `tests/da/test_consensus.py`, the `r` test reads the shared
   constants and a default-run test checks the tutorial quotes them:
 
 ```diff
@@ -8228,11 +8228,11 @@ index 6d53ae0..9dc61c5 100644
 +    assert f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`" in page
 ```
 
-- [ ] **Step 2: Run, expect failure.**
+- [x] **Step 2: Run, expect failure.**
   `uv run --group test pytest tests/da/test_consensus.py -q` -> `1 failed, 25 passed, 1
   deselected`: `test_the_tutorial_quotes_the_four_method_counts` raises `FileNotFoundError` (the
   page does not exist). The `r` test is deselected here; Step 6 runs it with R.
-- [ ] **Step 3: The tutorial.** Create `docs/tutorials/differential_abundance.md`:
+- [x] **Step 3: The tutorial.** Create `docs/tutorials/differential_abundance.md`:
 
 ````markdown
 ---
@@ -8428,7 +8428,7 @@ index 018f1e4..bcd81ef 100644
 ````
 
   Run `uv run --group test pytest tests/da/test_consensus.py -q` -> `26 passed, 1 deselected`.
-- [ ] **Step 4: Build and read the page.**
+- [x] **Step 4: Build and read the page.**
   `rm -rf docs/_build docs/generated && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
   -> `build succeeded.` with `tutorials/differential_abundance.md: Executed notebook in <n>
   seconds` (8.0-9.1 s in the prototype, GlobalPatterns cached). Open
@@ -8438,19 +8438,19 @@ index 018f1e4..bcd81ef 100644
   14 LinDA only, 104 both); two figures: 30 bold rows of red dots in both columns (Porphyromonas,
   Dialister, Finegoldia, ... at the top), then 30 rows with one filled dot and one hollow dot each.
   The R block is shown as code with no output.
-- [ ] **Step 5: Bookkeeping.**
+- [x] **Step 5: Bookkeeping.**
   - The checklist line `- [ ] 3.10b \`docs/tutorials/differential_abundance.md\`, the exit-gate notebook`
     becomes `- [x] ...`.
   - Log line, first under the slice 3D heading:
     `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10b done: \`docs/tutorials/differential_abundance.md\` runs ANCOM-BC2, LinDA and their consensus on the GlobalPatterns genera on every docs build, and quotes the four-method counts the \`r-bridge\` job measures (a test keeps the two in step).`
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
 
 ```bash
 git add docs/tutorials/differential_abundance.md docs/tutorials/index.md docs/methods/index.md \
   docs/guide/differential_abundance.md tests/da/test_consensus.py .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
 git commit -m "docs: add the differential abundance tutorial on GlobalPatterns
 
-Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git status --short                                   # empty
 uvx prek run --all-files                             # all Passed
 uv run --group test pytest -q -W error::UserWarning  # 1231 passed, 53 deselected

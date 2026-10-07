@@ -2,7 +2,8 @@
 
 Differential abundance (DA) asks which features are more abundant in one group of samples than in
 another. Every `bt.da` method takes the same arguments and returns the same table, so their answers
-can be put side by side.
+can be put side by side. The {doc}`tutorial </tutorials/differential_abundance>` runs them on
+GlobalPatterns.
 
 ## One question, one table
 

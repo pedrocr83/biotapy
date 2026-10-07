@@ -3,7 +3,8 @@
 One page per differential abundance method: the model it fits, the units of its `effect`, how
 biotapy's call differs from the R function's defaults, how closely the two agree on real data,
 and the paper to cite. The {doc}`differential abundance guide </guide/differential_abundance>`
-says how to run them.
+says how to run them, and the {doc}`tutorial </tutorials/differential_abundance>` runs them on
+GlobalPatterns.
 
 ```{toctree}
 :maxdepth: 1

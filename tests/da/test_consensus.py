@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -168,20 +170,34 @@ def test_numpy_scalars_are_valid_options():
     assert out["consensus"].tolist() == [True]
 
 
+# The Phase 3 exit-gate consensus: GlobalPatterns genera, human hosts against the rest, the two native methods and the
+# two R bridges, seeded. The r test measures these counts; the tutorial, whose docs build has no R, quotes them.
+FOUR_METHOD_CALLS = {"ancombc2": 208, "linda": 118, "aldex2": 13, "maaslin3": 52}
+FOUR_METHOD_N_SIGNIFICANT = {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
+FOUR_METHOD_CONSENSUS = 109
+TUTORIAL = Path(__file__).parents[2] / "docs" / "tutorials" / "differential_abundance.md"
+
+
 @pytest.mark.r
 def test_four_methods_on_the_exit_gate_data(benchmark):
-    # The Phase 3 exit-gate consensus: GlobalPatterns genera, human hosts against the rest, the two native methods and the
-    # two R bridges. Seeded, so the counts are fixed: calls 208 (ANCOM-BC2), 118 (LinDA), 13 (ALDEx2), 52 (MaAsLin 3).
     results = [
         bt.da.ancombc2(benchmark, "host", reference="other"),
         bt.da.linda(benchmark, "host", reference="other"),
         bt.da.aldex2(benchmark, "host", reference="other", seed=0),
         bt.da.maaslin3(benchmark, "host", reference="other", seed=0),
     ]
-    assert [int((table["qvalue"] < 0.05).sum()) for table in results] == [208, 118, 13, 52]
+    assert {table["method"].iloc[0]: int((table["qvalue"] < 0.05).sum()) for table in results} == FOUR_METHOD_CALLS
     table = bt.da.consensus(results)
     # ANCOM-BC2 and MaAsLin 3 cannot fit the 36 genera absent from one group; LinDA and ALDEx2 test all 636.
     assert table["n_tested"].value_counts().to_dict() == {4: 600, 2: 36}
-    assert table["n_significant"].value_counts().sort_index().to_dict() == {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
-    assert int(table["consensus"].sum()) == 109 and not table["conflict"].any()
+    assert table["n_significant"].value_counts().sort_index().to_dict() == FOUR_METHOD_N_SIGNIFICANT
+    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS and not table["conflict"].any()
     assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
+
+
+def test_the_tutorial_quotes_the_four_method_counts():
+    page = TUTORIAL.read_text(encoding="utf-8")
+    for method, calls in FOUR_METHOD_CALLS.items():
+        assert f"| `{method}` | {calls} |" in page
+    assert "| Genera | " + " | ".join(map(str, FOUR_METHOD_N_SIGNIFICANT.values())) + " |" in page
+    assert f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`" in page
