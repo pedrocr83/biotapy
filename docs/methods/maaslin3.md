@@ -72,13 +72,13 @@ and R draw the same numbers. The golden test runs `set.seed(...); maaslin3::maas
 that integer on the 636 GlobalPatterns genera in at least 20% of samples, human hosts against the
 rest, with and without a sequencing-depth covariate: the same 36 genera fail to fit, and `effect`,
 `se` and `pvalue` agree with R's `coef`, `stderr` and `pval_individual` to a relative 7.2e-13 or
-better (checked at 1e-7). With other seeds only the p-values move, by up to 0.0015.
+better (checked at 1e-7). With other seeds only the p-values move, by up to about 1.6e-3.
 
 ## Choosing the reference
 
 Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
-coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
-`qvalue` by up to 2e-3 on the GlobalPatterns genera (the calls are the same).
+coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to about 1.2e-3 and
+`qvalue` by up to about 3.3e-3 on the GlobalPatterns genera (the calls are the same).
 
 ## Reference
 

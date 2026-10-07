@@ -108,8 +108,8 @@ def maaslin3(
     whose fit reports an error is not tested, as MaAsLin 3 leaves it out of its
     own correction. Swapping ``reference`` negates ``effect`` exactly, but the
     simulation draws around the coefficients, not their negatives, so the same
-    ``seed`` moves ``pvalue`` by up to 1e-3 and ``qvalue`` by up to 2e-3 on the
-    GlobalPatterns genera (the calls are the same there). Each R warning raised
+    ``seed`` moves ``pvalue`` by up to about 1.2e-3 and ``qvalue`` by up to about
+    3.3e-3 on the GlobalPatterns genera (the calls are the same there). Each R warning raised
     during the call is re-emitted as a ``UserWarning``, and an R error is raised
     as a ``RuntimeError``.
 

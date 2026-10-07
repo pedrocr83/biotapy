@@ -63,7 +63,7 @@ matches the R package on real data. Two things to know before you choose:
   draws around every count, so both test it.
 - `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
   reference level) and ALDEx2 (its effect's random resampling follows the label order), and
-  slightly in MaAsLin 3 (its p-values move by up to 1e-3 with the same `seed`, the calls do not).
+  slightly in MaAsLin 3 (its p-values move by up to about 1.2e-3 with the same `seed`, the calls do not).
   Choose it on the biology, the control or baseline level, before you look at any result.
 
 (da-methods-in-r)=

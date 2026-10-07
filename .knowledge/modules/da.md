@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T13:20:00Z }
-commit: 51e0475
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:00:00Z }
+commit: df27399
 status: stable
 ---
 
@@ -204,9 +204,9 @@ per-module command exists: unknown.
   moves effects by up to 0.65 log2 on GlobalPatterns' genera, where 15 of 636
   do not change direction; p-values and calls are the same (benchmark
   measurement of Checkpoint C). `_aldex2.py:aldex2` Notes.
-- **MaAsLin 3's p-value moves about 1e-3 on a reference swap.** `effect`
+- **MaAsLin 3's p-value moves about 1.2e-3 on a reference swap.** `effect`
   negates exactly, but the median test simulates around the coefficients, not
-  their negatives (`pvalue` up to 1e-3, `qvalue` up to 2e-3 on the same data,
+  their negatives (`pvalue` up to about 1.2e-3, `qvalue` up to about 3.3e-3 on the same data,
   calls unchanged). `_maaslin3.py:maaslin3` Notes.
 - **ALDEx2 breaks on a factor `conds` and sorts labels by locale**, so
   `_aldex2.py:_conditions` passes the strings `"0"`/`"1"`; `aldex.effect`
