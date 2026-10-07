@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-07 (Phase 3, slice 3D plan)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3D (3.10 method pages and guide, 3.10b tutorial, 3.12 Coming-from-R, 3.13 benchmarks, Checkpoint D with 3.14 knowledge, 3.15 release 0.3.0) into full TDD steps, prototyped and gated per commit; ticks Checkpoint C (PR #23 merged, slice 3C approved) and exit-gate item 2 (PR #23's network and r-bridge jobs).
+
 ## 2026-10-06 (Phase 3, Checkpoint C)
 - **Verification**: [phase-0-foundation](roadmap/phase-0-foundation.md) re-checked against the r-bridge log-step fix (`bade2ba`) and bumped only.
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) Task 3.11's workflow block reads the rpy2 version from package metadata (`rpy2` has no `__version__`; the PR #23 run failed on it).
