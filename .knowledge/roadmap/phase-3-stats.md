@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:30:00Z }
-commit: 9cc69d3
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T16:30:00Z }
+commit: 716ce33
 sources:
   - id: spec
     resource: ../../plan.md
@@ -5775,6 +5775,7 @@ marker is already registered), `.github/`.
           The level of ``group`` that the other level is compared with; by default
           its first category (sorted values for a string column). It changes the
           Monte Carlo draws as well as the sign (Notes).
+          [corrected 2026-10-07: a reference swap leaves the draws and p-values unchanged; only diff.btw's resampling follows the labels]
       seed
           Seeds R's random number generator through ``set.seed``; the same seed
           gives the same table.
@@ -7860,13 +7861,13 @@ and R draw the same numbers. The golden test runs `set.seed(...); maaslin3::maas
 that integer on the 636 GlobalPatterns genera in at least 20% of samples, human hosts against the
 rest, with and without a sequencing-depth covariate: the same 36 genera fail to fit, and `effect`,
 `se` and `pvalue` agree with R's `coef`, `stderr` and `pval_individual` to a relative 7.2e-13 or
-better (checked at 1e-7). With other seeds only the p-values move, by up to 0.0015.
+better (checked at 1e-7). With other seeds only the p-values move, by up to about 1.6e-3.
 
 ## Choosing the reference
 
 Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
-coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
-`qvalue` by up to 2e-3 on the GlobalPatterns genera (the calls are the same).
+coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to about 1.2e-3 and
+`qvalue` by up to about 3.3e-3 on the GlobalPatterns genera (the calls are the same).
 
 ## Reference
 
@@ -8031,7 +8032,7 @@ index 9e8d2ad..7cb7117 100644
 +  draws around every count, so both test it.
 +- `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
 +  reference level) and ALDEx2 (its effect's random resampling follows the label order), and
-+  slightly in MaAsLin 3 (its p-values move by up to 1e-3 with the same `seed`, the calls do not).
++  slightly in MaAsLin 3 (its p-values move by up to about 1.2e-3 with the same `seed`, the calls do not).
 +  Choose it on the biology, the control or baseline level, before you look at any result.
 
 +(da-methods-in-r)=
@@ -9026,8 +9027,8 @@ index 49b19ac..0fbbac9 100644
  tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:00:00Z }
 -commit: df27399
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  status: stable
  ---
 
@@ -9066,8 +9067,8 @@ index 9425ed2..6350bad 100644
  paths: ["src/biotapy/**", "tests/**", "docs/**"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  ---
 
  # When
@@ -9097,7 +9098,10 @@ index 9425ed2..6350bad 100644
   `src/biotapy/da/` (`_aldex2.py`, `_ancombc.py`, `_maaslin3.py`) and nothing else: no signature,
   slot, result key, layer or import changed, so data-model-slots, function-shape and
   module-boundaries state the same things. Bump only `generated` and `commit` on
-  each, and on `modules/da.md`, `add-a-function` and `phase-3-stats`:
+  each, and on `modules/da.md`, `add-a-function` and `phase-3-stats`. In every diff below the `+generated`
+  and `+commit` lines are placeholders: write the model that runs the task, the UTC time (`date -u
+  +%FT%TZ`) and, for `commit:`, the parent of the commit you are about to make (`git rev-parse
+  --short HEAD`); every other line applies as written:
 
 ```diff
 diff --git a/.knowledge/contracts/engine-parity.md b/.knowledge/contracts/engine-parity.md
@@ -9110,8 +9114,8 @@ index a7d96ec..819d2d2 100644
  paths: ["src/biotapy/**/*.py", "rust/**", "benchmarks/**"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9125,8 +9129,8 @@ index 17076d8..eb7afa6 100644
  paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:50:53Z }
 -commit: 8a1f184
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9140,8 +9144,8 @@ index 0c6fdb1..20817b8 100644
  paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9155,8 +9159,8 @@ index 23963bd..df5b987 100644
  paths: ["src/biotapy/**/*.py"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9170,8 +9174,8 @@ index b1067bc..d9cdb45 100644
  paths: ["src/biotapy/**", "pyproject.toml"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9185,8 +9189,8 @@ index de08f7c..1555cd0 100644
  paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
 -generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T14:27:16Z }
 -commit: bade2ba
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9200,8 +9204,8 @@ index fe70fd5..0f6a419 100644
  paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
-+commit: d6d82ef
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
@@ -9439,7 +9443,10 @@ uv run python -c "import biotapy; print(biotapy.__version__)"  # 0.3.0
   - `bash scripts/knowledge_stale.sh --against HEAD`. The bump re-stales the concepts whose
     `paths` hold `pyproject.toml` or `CHANGELOG.md`; in the prototype: `phase-0-foundation`,
     `module-boundaries`, `tree-access`, `cut-a-release`. Check each against the bump, which changes
-    nothing they state, and bump `commit` and `generated`.
+    nothing they state, and bump `commit` and `generated`. As in Task 3.14 Step 2, the `+generated` and
+    `+commit` lines below are placeholders (the model, the UTC time, and `commit:` = the parent of the
+    commit you are about to make), and the phase-3-stats `-generated`/`-commit` lines are whatever
+    Task 3.14 wrote.
   - `playbooks/cut-a-release.md` step 3, the check this release added, and the roadmap's exit
     gate (items 1 and 3 ticked with Checkpoint D's PR number, Test run id and docs job id; item 2
     was ticked by the plan commit, and item 1 already carries the wording of slice 3D decision 2)
@@ -9456,8 +9463,8 @@ index c8681a6..81a47eb 100644
  paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
 -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
 -commit: 64fe39d
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:50:00Z }
-+commit: 93f47c3
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: trusted-publishing
      resource: https://docs.pypi.org/trusted-publishers/
@@ -9480,19 +9487,20 @@ index e8c8124..58cb3ad 100644
  effort: ~4 weeks part-time
  depends_on: [/roadmap/phase-2-function.md]
  paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
--generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:40:00Z }
--commit: d6d82ef
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-07T08:50:00Z }
-+commit: 93f47c3
+-generated: <as Task 3.14 wrote it>
+-commit: <as Task 3.14 wrote it>
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
  sources:
    - id: spec
      resource: ../../plan.md
-@@ -610,14 +610,16 @@ columns onto it.
+@@ -610,15 +610,16 @@ columns onto it.
  - [ ] 3.15 Release 0.3.0
 
  # Exit gate
--- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus, human
--  vs environmental), executed notebook in docs (CI docs job).
+-- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus,
+-  human-associated vs the other samples: environmental and mock communities),
+-  executed notebook in docs (CI docs job).
 +- [x] Consensus report on one benchmark dataset (GlobalPatterns genus,
 +  human-associated vs the other samples: environmental and mock communities),
 +  executed notebook in docs (CI docs job). Proven on PR #<Checkpoint D PR>:
