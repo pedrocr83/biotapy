@@ -1,5 +1,10 @@
 # Knowledge bundle log
 
+## 2026-10-07 (release 0.3.0)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 3: check the wheel's `METADATA` for the version, the runtime requirements and a `Provides-Extra` line per extra.
+- **Verification**: re-checked against the 0.3.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md).
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) ticks the exit gate's notebook and "all gates green" items (docs job 112804560533 and Test run 37625042980 on PR #24), Checkpoint D and Task 3.15 Steps 1-8.
+
 ## 2026-10-07 (Phase 3, slice 3D)
 - **Update**: [da](modules/da.md): Verification names the tutorial and the method pages; new gotcha: the tutorial quotes the `r` test's four-method counts through shared constants and a test.
 - **Update**: [add-a-function](playbooks/add-a-function.md) step 8: a `da` method also gets a page in `docs/methods/` and a row in the guide's method table.

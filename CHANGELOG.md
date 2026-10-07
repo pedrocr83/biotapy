@@ -10,6 +10,44 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
+### Added
+
+- `bt.pp.clr`: centred log-ratio transform into `layers["clr"]`, equal to
+  `vegan::decostand(x, "clr", pseudocount = 0.5)`.
+- `bt.pp.philr`: PhILR balances along the phylogeny into `obsm["X_philr"]`,
+  equal to `philr::philr` with its default weights.
+- `bt.da.linda`, `bt.da.ancombc2`: differential abundance by LinDA (a port
+  of `MicrobiomeStat::linda`) and ANCOM-BC2 (through scikit-bio), both in
+  Python and compared with R in golden tests.
+- `bt.da.aldex2`, `bt.da.maaslin3`: ALDEx2 and MaAsLin 3's abundance model,
+  run in R through rpy2. They need R, the R package, and the new extra
+  `biotapy[r]` (`rpy2>=3.6.8`, GPL-2.0-or-later, built against your R).
+- One result table for every method: log2 `effect`, `se`, `pvalue`,
+  Benjamini-Hochberg `qvalue` over the features the method tested,
+  `direction`, `method` and `contrast`. Methods take `group`, `covariates`
+  and `reference` instead of a formula, and never filter features.
+- `bt.da.consensus` and `bt.pl.consensus`: count, per feature, the methods
+  that call it and whether they agree on its direction, as a table and as a
+  dot matrix.
+- A differential abundance guide, a page per method, and a tutorial on the
+  GlobalPatterns genera.
+- asv benchmarks for `pp.philr`, `da.linda` and `da.ancombc2`, with their
+  baselines in the docs.
+
+### Changed
+
+- The readers infer `x_kind` `"counts"` only for non-negative whole numbers,
+  and the functions that need counts (`pp.rarefy`, `tl.alpha`'s
+  `observed_features` and `chao1`, weighted `tl.unifrac`) refuse a table with
+  a negative value.
+- `bt.pl.bar` and `bt.pl.heatmap` raise `ValueError` for a table with a
+  negative value, such as `layers["clr"]`, instead of drawing it as
+  abundances.
+- The Coming-from-R page marks the phyloseq calls biotapy does not cover yet
+  "not in 0.3".
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
