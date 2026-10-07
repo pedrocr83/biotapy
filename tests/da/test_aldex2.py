@@ -191,6 +191,15 @@ def test_reference_sets_the_sign_in_r():
 
 
 @pytest.mark.r
+def test_reference_swap_leaves_pvalues_and_calls_unchanged_in_r():
+    tdata = bt.datasets.toy()
+    a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
+    # we.ep is symmetric in the two groups and the draws do not follow the labels, so the same seed gives the same bits.
+    pd.testing.assert_series_equal(b_first["pvalue"], a_first["pvalue"], check_exact=True)
+    pd.testing.assert_series_equal(b_first["qvalue"] < 0.05, a_first["qvalue"] < 0.05)
+
+
+@pytest.mark.r
 def test_all_zero_feature_is_not_tested_in_r():
     tdata = bt.datasets.toy()
     dense = tdata.X.toarray()
