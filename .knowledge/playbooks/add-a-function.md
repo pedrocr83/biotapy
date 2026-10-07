@@ -5,8 +5,8 @@ description: The only sanctioned path from "we need X" to a merged public functi
 tags: [workflow, api, testing]
 status: stable
 paths: ["src/biotapy/**", "tests/**", "docs/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
+commit: a1b54be
 ---
 
 # When
@@ -39,7 +39,9 @@ Any new entry in a subpackage `__all__`.
    feeds the generated Coming-from-R page; `tests/test_docstrings.py` fails
    if it cannot be parsed.
 8. **Docs page**: add or extend the `docs/guide/<concept>.md` page the
-   docstring links to; add the function to `docs/api.md`.
+   docstring links to; add the function to `docs/api.md`. A `da` method also
+   gets a page in `docs/methods/` (model, units, the R defaults it changes,
+   agreement with R, reference) and a row in the guide's method table.
 9. **Knowledge**: update `.knowledge/` only if a contract, decision or module
    concept is now wrong or incomplete - see [maintain-knowledge](/playbooks/maintain-knowledge.md).
 10. **Tick** the task checkbox in the active phase concept.

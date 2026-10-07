@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
+commit: a1b54be
 sources:
   - id: spec
     resource: ../../plan.md
@@ -34,8 +34,7 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Slice 3A has full TDD steps; slices
-> 3B-3D are outlines, expanded into TDD steps (rules.md R1.2a) when each is reached.
+> (recommended) or superpowers:executing-plans. Every slice has full TDD steps.
 
 **Goal:** 0.3 adds compositional statistics: CLR and PhILR transforms equal to
 vegan and philr, two native differential abundance (DA) methods (ANCOM-BC2,
@@ -456,14 +455,15 @@ a roadmap signature and are repeated under "Decisions for the user".
 
 10. **Exit-gate notebook (`docs/tutorials/differential_abundance.md`).**
     GlobalPatterns glommed to genus, filtered once (`min_prevalence=0.2`),
-    human samples (Feces, Skin, Tongue: 8) vs environmental (18): research C
+    human samples (Feces, Skin, Tongue: 9) vs the 17 others (14 environmental, 3 mock communities): research C
     ran three scikit-bio methods on exactly this in 1.3 s with 5-43 hits each
     and visible disagreement. It is already a pooch dataset (no new
     download, hash or licence) and holds counts, which every method needs.
     The notebook says the contrast is a demonstration, not a biological
     claim. It runs ANCOM-BC2 and LinDA live: the docs build (CI docs job,
     Read the Docs) has no R, so the ALDEx2 and MaAsLin 3 calls are shown as
-    a non-executed code block with their extra, and the CI `r-bridge` job
+    a non-executed code block with their extra and the numbers the
+    `r-bridge` job checks, pinned by a test, and the CI `r-bridge` job
     runs the same four-method consensus as a test. **(user)** An HMP2
     contrast was rejected: research C found 0-1 hits per method there, a
     poor demonstration.
@@ -600,22 +600,24 @@ columns onto it.
 - [x] 3.6 `da.aldex2(adata, group, *, mc_samples=128, reference=None, seed=None) -> pd.DataFrame` and the extra `r`
 - [x] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [x] 3.11 CI job `r-bridge` for `-m r` tests
-- [ ] Checkpoint C (review, exit-gate check and knowledge done; push open)
-- [ ] 3.10 Method pages in `docs/methods/` and the DA guide
-- [ ] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
-- [ ] 3.12 Coming-from-R check
-- [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
+- [x] Checkpoint C (PR #23 merged; the user approved slice 3C on 2026-10-07)
+- [x] 3.10 Method pages in `docs/methods/` and the DA guide
+- [x] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
+- [x] 3.12 Coming-from-R check
+- [x] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
-- [ ] 3.14 Knowledge (updates `modules/da.md`, created at Checkpoint B and extended for the R bridges at Checkpoint C)
+- [x] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
 - [ ] 3.15 Release 0.3.0
 
 # Exit gate
-- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus, human
-  vs environmental), executed notebook in docs (CI docs job).
-- [ ] Per-method agreement with the R reference, per
+- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus,
+  human-associated vs the other samples: environmental and mock communities),
+  executed notebook in docs (CI docs job).
+- [x] Per-method agreement with the R reference, per
   [r-golden-parity](/contracts/r-golden-parity.md): `pp.clr`, `pp.philr`,
   `da.linda`, `da.ancombc2` in the network job; `da.aldex2`, `da.maaslin3` in
-  the `r-bridge` job.
+  the `r-bridge` job. Proven on PR #23 (run `37479113322`): `network`
+  job `36 passed`, `r-bridge` job `24 passed`.
 - [ ] All Phase 1 and 2 gates still green.
 
 # Risks
@@ -4921,11 +4923,12 @@ the hashes are the scratch clone's, not the repository's.
     difference 5.3e-15 (relative 4.2e-15), `pvalue` vs `we.ep` 5.0e-16 (relative
     8.4e-13). Exact: 1165433077 is the integer biotapy derives from seed 20260927,
     and `reference="human"` keeps R's sorted level order, so the Monte Carlo draws
-    are the same. With other seeds (1, 2, 3) the Monte Carlo spread is: Spearman
+    are the same [corrected 2026-10-07: the Dirichlet draws do not depend on the labels; only `aldex.effect`'s
+    resampling of `diff.btw` follows the label order]. With other seeds (1, 2, 3) the Monte Carlo spread is: Spearman
     correlation of effects 0.993, signs agree on 612-617 of 636 genera, largest
     effect difference 0.64-0.83 log2, p-values within 0.12, 11-12 calls at
-    q < 0.05 (the same calls on 635-636 genera). With `reference="other"` (draws in
-    the other order) Spearman 0.995 against the negated golden. Calls: BH of
+    q < 0.05 (the same calls on 635-636 genera). With `reference="other"` (`diff.btw` resampled in
+    the other order [corrected 2026-10-07: was "draws in the other order"]) Spearman 0.995 against the negated golden. Calls: BH of
     `we.ep` 11 genera, ALDEx2's own `we.eBH` 19 (slice 3C decision 3).
   - `da.maaslin3(benchmark, "host", covariates, reference="other",
     seed=20260927)` against `set.seed(1165433077); maaslin3::maaslin3(...,
@@ -4986,7 +4989,8 @@ the hashes are the scratch clone's, not the repository's.
   below 128 draws; `aldex.ttest`/`aldex.effect` take `as.factor(conditions)`,
   so the levels are sorted, and `diff.btw` is the second level minus the first;
   `aldex.effect` stops when a level has fewer than two samples; `we.ep` is the
-  per-draw two-sided Welch p averaged, `we.eBH` the per-draw BH values averaged;
+  per-draw two-sided Welch p averaged [corrected 2026-10-07: per draw the one-sided Welch p is doubled in each direction and capped at 1, each
+  direction is averaged over the draws, and the smaller average is kept], `we.eBH` the per-draw BH values averaged;
   output columns `rab.all, rab.win.<l1>, rab.win.<l2>, diff.btw, diff.win,
   effect, overlap, we.ep, we.eBH, wi.ep, wi.eBH`). maaslin3 1.2.0
   (`maaslin3(input_data, input_metadata, output, formula, ..., min_abundance =
@@ -5559,9 +5563,19 @@ marker is already registered), `.github/`.
       tdata = bt.datasets.toy()
       a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
       assert (b_first["contrast"] == "A vs B").all()
-      # Swapping the reference reorders ALDEx2's draws, so the effects flip sign but are not exactly opposite.
+      # Swapping the reference flips the sign, but diff.btw's resampling follows the labels, so effects are not exactly
+      # opposite; the p-values do not change.
       assert (a_first["direction"] == -b_first["direction"]).all()
       np.testing.assert_allclose(b_first["effect"], -a_first["effect"], atol=0.7)
+
+
+  @pytest.mark.r
+  def test_reference_swap_leaves_pvalues_and_calls_unchanged_in_r():
+      tdata = bt.datasets.toy()
+      a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
+      # we.ep is symmetric in the two groups and the draws do not follow the labels, so the same seed gives the same bits.
+      pd.testing.assert_series_equal(b_first["pvalue"], a_first["pvalue"], check_exact=True)
+      pd.testing.assert_series_equal(b_first["qvalue"] < 0.05, a_first["qvalue"] < 0.05)
 
 
   @pytest.mark.r
@@ -5761,6 +5775,7 @@ marker is already registered), `.github/`.
           The level of ``group`` that the other level is compared with; by default
           its first category (sorted values for a string column). It changes the
           Monte Carlo draws as well as the sign (Notes).
+          [corrected 2026-10-07: a reference swap leaves the draws and p-values unchanged; only diff.btw's resampling follows the labels]
       seed
           Seeds R's random number generator through ``set.seed``; the same seed
           gives the same table.
@@ -5800,7 +5815,7 @@ marker is already registered), `.github/`.
       TRUE, denom = "all")`` (Fernandes et al. 2014) through rpy2: Dirichlet Monte
       Carlo draws of each sample's proportions (0.5 added to every count), their
       log2 centred log-ratios, and per draw a Welch t-test, whose two-sided
-      p-values are averaged into ``we.ep``. ``effect`` is ``diff.btw``, already
+      p-values are averaged into ``we.ep`` [corrected 2026-10-07: one-sided p doubled per direction, averaged over the draws, smaller kept; see the corrected docstring]. ``effect`` is ``diff.btw``, already
       log2; ALDEx2's own ``effect`` column is a standardised size, not a fold
       change, and is not carried. ``qvalue`` is the Benjamini-Hochberg correction
       of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
@@ -5808,7 +5823,7 @@ marker is already registered), `.github/`.
       two groups without covariates (its ``glm`` test is not wrapped).
 
       Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
-      Carlo draws in label order, so the same ``seed`` gives different effects
+      Carlo draws in label order [corrected 2026-10-07: only `diff.btw`'s resampling does; the draws and `we.ep` do not], so the same ``seed`` gives different effects
       (by up to 0.25 log2 on ``toy()``, whose effects are about 4 log2 wide), and
       the same p-values on ``toy()``. Each R warning raised during the call, such as
       the one for fewer than 128 ``mc_samples``, is re-emitted as a
@@ -5935,7 +5950,7 @@ marker is already registered), `.github/`.
   +`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
   +those genera).
   +
-  +Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
+  +Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order [corrected 2026-10-07: only `diff.btw`'s resampling does],
   +so the same `seed` gives different effects (up to 0.25 log2 apart on `toy()`, where they are about
   +4 log2 wide), with the same p-values there. Anything R prints during the call, such as the warning
   +for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
@@ -6975,13 +6990,14 @@ selects no bridge test), `pyproject.toml`, `src/`.
   - **Verification bump** for the concepts `bash scripts/knowledge_stale.sh
     --touched` lists whose statements still hold, as Checkpoints A and B did.
   - Log lines for each.
-- [ ] Push `phase-3c`, open the PR and merge (merge commit) when CI is green,
+- [x] Push `phase-3c`, open the PR and merge (merge commit) when CI is green,
   including the new `r-bridge` job, docs, the network job and the knowledge
   report (push, PR and merge on green approved for Phase 3 slice branches,
   2026-10-05). If `r-bridge` fails only on numbers (CI's R build differs from
   the image), stop and report the measured differences instead of loosening a
-  tolerance (R11.3, R11.5).
-- [ ] Ask the user to review slice 3C before slice 3D is expanded (R1.2a).
+  tolerance (R11.3, R11.5). Done 2026-10-06: PR #23 merged as `29efd9c`, Test run
+  `37479113322` 21/21 green (`r-bridge` `24 passed`, `network` `36 passed`).
+- [x] Ask the user to review slice 3C before slice 3D is expanded (R1.2a). Approved 2026-10-07.
 
 ### Slice 3C decisions for the user
 Recommended answer first. Items 1-5 change what the approved plan said; 6-14
@@ -7135,40 +7151,2557 @@ note 8's "monkeypatching the private R call" follows decision 13; the outline
    - The ALDEx2 image layer was rebuilt from the committed Dockerfile in the
      prototype and the ALDEx2 and ANCOMBC layers recompiled (a pruned build cache); that image regenerated all 41 files at `b0519fe` byte for byte, so the committed Dockerfile, not a cached layer, reproduces the goldens. The maaslin3 image was confirmed only by a cache hit on the committed file (same image id).
 
-## Slice 3D - Docs and release (outline)
+## Slice 3D - Docs and release
 
-### Slice 3D design (proposed)
-- **Inputs for the writers.** Take the bridges' table semantics from the
-  `data-model-slots` contract and the guide, not from design notes 5 and 7
-  above (superseded): `qvalue` is BH everywhere, ALDEx2's `se` is NaN for
-  every feature, MaAsLin 3's `effect` is the coefficient minus the median.
-- **3.10 docs.** `docs/methods/` with one page per method (`ancombc2.md`,
-  `linda.md`, `aldex2.md`, `maaslin3.md`, `consensus.md`: model, units,
-  what the R defaults are and which biotapy changes, references) and
-  `docs/guide/differential_abundance.md` (filter once, choose methods
-  first, read the consensus table, the plot; the `r` extra and its GPL
-  note). Both listed in the docs toctrees; `api.md` gains a "Differential
-  abundance" section.
-- **3.10b tutorial.** Design note 10, executed by myst-nb in the docs job
-  with the pooch cache, as Phase 2's function tutorial.
-- **3.12 Coming-from-R check.** New rows come from docstrings
-  (`ANCOMBC::ancombc2`, `MicrobiomeStat::linda`, `ALDEx2::aldex`,
-  `maaslin3::maaslin3`, `philr::philr`, `vegan::decostand`); a test pins
-  them as `tests/test_coming_from_r.py` pins the mia importers; the
-  "not in 0.2" labels become "not in 0.3" where still true (cut-a-release
-  step 2c).
-- **3.13 benchmarks.** asv entries for `pp.philr` (GlobalPatterns, 2,572
-  taxa), `da.linda`, `da.ancombc2` (benchmark data); baselines in
-  `docs/performance.md`. Measurements only; no optimisation (R10.1).
-- **Checkpoint D and 3.14 knowledge.** Update `.knowledge/modules/da.md`
-  (created at Checkpoint B; add the R bridges: the schema, BH,
-  no filtering, no formulas, R imports inside functions; verification
-  `uv run --group test pytest tests/da -q`; gotchas: patsy's alphabetical
-  reference, Holm defaults, rpy2 on Linux); update `da.md` (created at
-  Checkpoint B) for the bridges, `pl.md`, `core.md`,
-  `optional-heavy-dependencies.md`; index entries and log lines.
-- **3.15 release 0.3.0** per the cut-a-release playbook, after the user
-  approves the tag (R13.3).
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
+> (recommended) or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for
+> tracking. This section replaces the slice 3D outline (rules.md R1.2a).
+
+**Goal:** a user can read, per differential abundance method, what it fits, what biotapy changes
+from the R defaults and how closely it matches R; runs the exit-gate analysis (GlobalPatterns
+genera, human-associated samples against the rest) in an executed tutorial; finds the Phase 3
+functions on the Coming-from-R page; sees asv baselines for PhILR, LinDA and ANCOM-BC2; and gets
+biotapy 0.3.0 on PyPI, with every outward step (tag, GitHub release, PyPI upload) waiting for the
+user's explicit approval.
+
+**Architecture:** docs, tests, benchmarks, knowledge and the release only. No `src/` file
+changes, except the two approved `docs(da)` docstring commits (`3b6239f`, `b9cb006`) and the Checkpoint D fix pass's docstring lines. New pages: `docs/methods/` (an index and five pages) and
+`docs/tutorials/differential_abundance.md`; the DA guide is restructured (the per-method depth
+moves to the method pages). The tutorial executes ANCOM-BC2 and LinDA; the two R bridges are shown
+as a non-executed block with the numbers the `r-bridge` CI job measures, kept in step by a test
+that shares constants with the `r` test. New asv module `benchmarks/benchmarks/da.py` and a
+`Philr` class in `pp.py`.
+
+**Tech stack:** sphinx 9.1.0 · myst-nb 1.4.0 (`nb_execution_mode = "cache"`,
+`nb_execution_timeout = 300`, both already set) · MyST `dollarmath` (already enabled) with
+sphinxcontrib-katex · asv 0.6.6 · hatchling/`uv build` · twine. No new dependency (R9.1).
+
+**Spec:** this concept's design note 10 (exit-gate notebook), the slice 3D outline it replaces,
+the data-model-slots contract's "DA results" (design notes 5, 7 and 8 are superseded for the
+bridges), rules.md, [cut-a-release](/playbooks/cut-a-release.md) and Phase 2's slice 2D (how 0.2.0
+was documented, benchmarked and released).
+
+**How slice 3D was checked.** Every file below was written into a scratch clone of the
+repository at `29efd9c` (master after PR #23, slice 3C) and replayed as one commit per step that
+says "commit": six on `phase-3d` (3.10, 3.10b, 3.12, 3.13 suite, 3.13 page, 3.14) and two on
+`release-0.3.0` (the release and its knowledge commit). Each committed state was gated with a
+clean tree (`git status --short` empty), `BIOTAPY_DATA_DIR` set to an absolute scratch pooch
+path, `docs/_build` and `docs/generated` deleted before every docs build:
+
+| Commit (scratch hash) | `uvx prek run --all-files` | `uv run --group test pytest -q -W error::UserWarning` | `pytest -q -m "golden or network"` | `sphinx-build -W` (tutorial execution) | `asv check --python=same` |
+|---|---|---|---|---|---|
+| `29efd9c` (baseline) | passed | 1230 passed, 53 deselected | 36 passed, 1247 deselected | build succeeded, 52.9 s | No problems found |
+| 3.10 `b0a7975` | passed | 1230 passed, 53 deselected | 36 passed, 1247 deselected | build succeeded, 39.8 s | No problems found |
+| 3.10b `508de9b` | passed | 1231 passed, 53 deselected | 36 passed, 1248 deselected | build succeeded, 50.3 s (8.9 s) | No problems found |
+| 3.12 `3588378` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 50.1 s (8.2 s) | No problems found |
+| 3.13 suite `7b15403` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 49.8 s | No problems found |
+| 3.13 page `d6d82ef` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 60.2 s | No problems found |
+| 3.14 `048fb2a` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 47.2 s | No problems found |
+| 3.15 release `93f47c3` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 49.5 s | No problems found |
+| 3.15 knowledge `cc371a6` | passed | 1238 passed, 53 deselected | 36 passed, 1255 deselected | build succeeded, 68.3 s | No problems found |
+
+(The hashes are the scratch clone's. The tutorial executed in 8.0-9.1 s in every build; the
+whole build stayed under 70 s with the pooch cache warm.)
+
+- prek covers ruff 0.16.9 check and format, `mypy --strict`, import-linter, pyproject-fmt,
+  zizmor and the file hooks (14 hooks, all `Passed`). `~/.cache/biotapy` was checked absent after
+  every gate. A relative `BIOTAPY_DATA_DIR` resolves inside `docs/` when myst-nb runs a notebook
+  (the prototype's first build wrote a `docs/pooch/` that way): always pass an absolute path.
+- The RED results in each "expect failure" step were reproduced by running the new tests
+  against the previous commit's code.
+- **R side.** The `-m r` suite ran in the local `biotapy-r-py` image (R 4.5.3, ALDEx2 1.42.0,
+  maaslin3 1.2.0, rpy2 3.6.8, Python 3.13; never pushed) on an export of `508de9b`, the commit that
+  touches the `r` test: `24 passed, 1260 deselected`. The four-method consensus, run there on the
+  exit-gate data with the tutorial's code, took 16.9 s and gave calls 208 (ANCOM-BC2), 118 (LinDA),
+  13 (ALDEx2) and 52 (MaAsLin 3); `n_tested` 4 for 600 genera and 2 for 36; `n_significant`
+  0/1/2/3/4 for 413/114/62/35/12 genera; consensus 223, 109, 47 and 12 genera at `min_methods`
+  1, 2, 3 and 4; no conflict; of the 109, 106 are up in human-associated samples and 3 down; all 12
+  four-way calls are up. These equal slice 3C's measurement.
+- **CI evidence already on record (PR #23, merged as `29efd9c` on 2026-10-06).** Test workflow
+  run `37479113322`, every one of its 21 checks `SUCCESS`: the `network` job (job
+  `112322946830`) `36 passed, 1247 deselected`, which holds the `pp.clr`, `pp.philr`, `da.linda`
+  and `da.ancombc2` goldens; the `r-bridge` job (job `112322946896`) with R 4.5.3, ALDEx2 1.42.0,
+  maaslin3 1.2.0, rpy2 3.6.8 and `RPY2_CFFI_MODE: API`, `24 passed, 1259 deselected`, which holds
+  the `da.aldex2` and `da.maaslin3` goldens; the `docs` job (job `112322946845`) executed the four
+  existing notebooks. (The `r-bridge` log shows the env var, not a `CFFI_MODE.API` build line: uv
+  builds rpy2 quietly. The import and the 24 tests are the proof the API build worked.)
+- **The release state.** `uv build` and `uvx twine check --strict dist/*` PASSED for both
+  files; the sdist holds no `benchmarks/` and does hold `docs/methods/` and the tutorial; the
+  wheel's METADATA reads `Version: 0.3.0`, `Requires-Dist: mudata>=0.4`, `Provides-Extra: r` and
+  `Requires-Dist: rpy2>=3.6.8; extra == 'r'`; `pytest` inside the extracted sdist: `1145 passed,
+  53 deselected`; `import biotapy; biotapy.__version__` prints `0.3.0`.
+- **Benchmarks.** asv 0.6.6 ran on `7b15403` (load average 2.21, 3.04, 2.75 before and 5.37,
+  4.03, 3.12 after; 61 s): `time_philr` 3.04 s, `peakmem_philr` 2.14 GB, `time_linda` 469 ms,
+  `peakmem_linda` 1.15 GB, `time_ancombc2` 3.92 s, `peakmem_ancombc2` 1.07 GB. asv's
+  `branches: ["master"]` needs a local `master` branch: the scratch clone had none and asv stopped
+  with `Unknown branch master in configuration` until `git branch master origin/master` (the real
+  repository has one). Outside asv, the calls' own peaks above the loaded table: `pp.philr` 1.72 GB
+  (4.3x its 400 MB dense table), `da.linda` 821 MB (5.1x its 160 MB table), `da.ancombc2` 723 MB
+  (4.5x).
+- **APIs and facts checked** (R2.2): myst-nb 1.4.0's `NbParserConfig` (printed by every build:
+  `execution_mode='cache'`, `execution_timeout=300`, `execution_raise_on_error=True`); a fenced
+  ` ```python ` block in a MyST notebook is not executed, a `{code-cell}` is;
+  `tests/test_ci.py::test_no_page_overrides_the_notebook_execution_settings` forbids per-page
+  `mystnb` metadata, so a skip-execution route is closed. Read the Docs runs `uvx hatch run
+  docs:build` (`.readthedocs.yaml`), i.e. `sphinx-build -M html docs docs/_build -W`, executing
+  every notebook itself with no pooch cache; the phyloseq vignette already downloads GlobalPatterns
+  in the same build, so the tutorial adds no download. The R defaults in the method pages were read
+  with `formals()` in the golden image: MicrobiomeStat 1.4 `linda`, ANCOMBC 2.12.0 `ancombc2`,
+  ALDEx2 1.42.0 `aldex`, maaslin3 1.2.0 `maaslin3`. scikit-bio 0.7.4's ANCOM-BC2 steps (E-M
+  mixture bias, sampling-fraction correction and refit, `(sqrt(v) + sqrt(v_delta))^2` plus the
+  `var_quantile` offset, two-sided t with per-feature df) were read at source. Every citation was
+  checked against Crossref (LinDA, ANCOM-BC2, ALDEx2, MaAsLin 3 at *Nature Methods* 23:554-564,
+  Nearing, Pelto). The phyloseq analysis vignette's "Multiple Testing and Differential Abundance"
+  section only points to DESeq2 (read at source on GitHub).
+
+### Slice 3D design
+
+Each settled question gives the answer and the reason. **(user)** marks the ones repeated under
+"Slice 3D decisions for the user".
+
+#### Where the work goes
+
+| File | Holds |
+|---|---|
+| `docs/methods/{index,linda,ancombc2,aldex2,maaslin3,consensus}.md` (new, 3.10) | one page per method: model, units, the R defaults biotapy changes, agreement with R, reference |
+| `docs/guide/differential_abundance.md` (3.10, 3.10b) | the workflow: one table, choosing methods (a table linking the pages), methods that run in R (label `da-methods-in-r`), consensus, plot |
+| `docs/index.md` (3.10) | `methods/index.md` in the "User guide" toctree |
+| `docs/tutorials/differential_abundance.md` (new, 3.10b), `docs/tutorials/index.md` | the exit-gate notebook |
+| `tests/da/test_consensus.py` (3.10b) | the `FOUR_METHOD_*` constants shared by the `r` test and a new tutorial test |
+| `tests/test_coming_from_r.py`, `docs/_data/r_idioms.toml`, `docs/coming_from_r.md`, `docs/tutorials/phyloseq_analysis.md` (3.12) | the Phase 3 rows pinned; "not in 0.3" |
+| `benchmarks/benchmarks/{_data,pp,da}.py` (3.13), `docs/performance.md` | the suite and its baselines |
+| `.knowledge/...` (3.14, 3.15) | `modules/da.md`, `playbooks/add-a-function.md`, `playbooks/cut-a-release.md`, verification bumps |
+| `pyproject.toml`, `CHANGELOG.md`, `README.md` (3.15) | the release |
+
+#### 1. Method pages and the guide (3.10)
+
+- **Five pages and an index under `docs/methods/`, linked from the "User guide" toctree. (user)**
+  Each page: a runnable call, `## Model` (MyST `dollarmath`, as the function guide's functional
+  redundancy section), `## Units`, `## Compared with R` (a table of the R function's arguments,
+  their R defaults as `formals()` gives them, and what biotapy does), `## Agreement with R` (the
+  golden test's measured numbers), `## Choosing the reference` where the method is not
+  antisymmetric (ANCOM-BC2, ALDEx2, MaAsLin 3), and `## Reference` with the DOI.
+- **The guide keeps the workflow and drops the per-method depth.** Its "LinDA", "ANCOM-BC2",
+  "ALDEx2" and "MaAsLin 3" sections move, text kept, into the pages; a new "Choosing methods"
+  section holds a comparison table that links each page and the two cross-method warnings
+  (untested features, `reference`). "Methods that run in R" keeps install, licence, the
+  `ImportError`, densifying, and now also the generic bridge behaviour (seed and R's restored
+  state, warnings, errors, repeated names) that used to sit in the ALDEx2 subsection. The guide
+  stays the docstrings' `Guide:` target, so no `src/` file changes (bar the docstring-prose commits the ledger approved later). Duplicating the depth in both
+  places would let them drift.
+- **Citations are plain text with a DOI link**, as the function guide cites Tian et al.; no
+  `references.bib` entries (the bibliography page would need `{cite}` roles across pages and a new
+  convention). The consensus page cites Nearing et al. and Pelto et al.
+- No new test: the docs build with `-W` (nitpicky, so every `{func}`, `{doc}` and `{ref}` must
+  resolve) is the check, as for Phase 2's guide pages.
+
+#### 2. The exit-gate tutorial (3.10b)
+
+- **Data: the `benchmark` fixture's contrast exactly.** GlobalPatterns glommed to genus, one
+  `pp.filter_features(min_prevalence=0.2)`, `host` = `"human"` for Feces, Skin and Tongue (9
+  samples) and `"other"` for the 17 others, `reference="other"`. The 17 "others" are 14
+  environmental samples and 3 mock communities; the tutorial's note says so, and that the contrast
+  is a demonstration. Design note 10's "8 vs 18" was a miscount. Keeping the fixture's contrast
+  makes the tutorial's numbers the goldens' and the `r` test's numbers. **(user)**
+- **Live cells:** load, glom, filter, `host`; `ancombc2` and `linda` with their call counts; the
+  36 genera ANCOM-BC2 cannot test; `da.consensus`; `n_significant` counts; consensus and conflict
+  totals; a `pd.crosstab` of the two methods' calls; `pl.consensus` of the top 30 (genus labels),
+  and `pl.consensus` of the genera only one method calls (hollow dots visible). No numeric claim
+  in the prose that the outputs do not show, except data facts pinned by golden tests (636 genera,
+  36 untested, 9 against 17).
+- **The R bridges: a fenced, non-executed ` ```python ` block with the four-method code, then two
+  static tables and one sentence of the numbers the `r-bridge` job measures. (user)** Read the
+  Docs and the `docs` job have no R. The numbers cannot drift silently:
+  `tests/da/test_consensus.py` gains `FOUR_METHOD_CALLS`, `FOUR_METHOD_N_SIGNIFICANT` and
+  `FOUR_METHOD_CONSENSUS`; the existing `r` test `test_four_methods_on_the_exit_gate_data` asserts
+  against them, and a new default-run test `test_the_tutorial_quotes_the_four_method_counts`
+  asserts the tutorial's table rows and sentence render them. A change in any method's numbers
+  fails the `r` test; fixing the constants then fails the tutorial test until the page matches.
+  No silent fallback (R7.4): the page says the block is not run and why.
+  Rejected: (a) "recorded outputs" through a `.ipynb` with stored outputs or a `skip-execution`
+  tag: per-page execution metadata is forbidden by
+  `test_no_page_overrides_the_notebook_execution_settings`, the format would differ from every
+  other tutorial, and stored outputs are not checked; (b) a CSV written by the `r-bridge` job and
+  committed for an executed cell to read: a new artifact path and a CI change for numbers that a
+  constant pins as well; (c) dropping the mock samples so "other" is purely environmental: new R
+  runs and constants, and the tutorial would no longer match the goldens.
+- **No workflow change and no Read the Docs change. (user)** The `docs` job already caches pooch
+  under the `_remote.py` key and executes every notebook; Read the Docs runs the same
+  `hatch run docs:build` without a cache, as Phase 2 left it ("Read the Docs has no pooch cache":
+  no workflow change). GlobalPatterns is already fetched in the same build by the phyloseq
+  vignette, so the tutorial adds about 9 s and no download.
+- `docs/methods/index.md` and the guide link the tutorial (added in 3.10b, because 3.10's build
+  would fail on a `{doc}` link to a page that does not exist yet).
+
+#### 3. Coming from R (3.12)
+
+The seven Phase 3 rows already come from docstrings: `ANCOMBC::ancombc2`, `MicrobiomeStat::linda`,
+`ALDEx2::aldex`, `maaslin3::maaslin3`, `philr::philr`, `vegan::decostand` and
+`mia::transformAssay` (now `pp.clr`, `pp.philr`, `pp.relative`); the table has 58 rows. A
+parametrized test pins them, as 2.13 pinned the mia importers. The five "not in 0.2" labels
+become "not in 0.3" (cut-a-release step 2c), with the page sentence, the test and the phyloseq
+vignette's three "0.2" statements. The vignette's bullet "multiple testing and differential
+abundance (biotapy 0.3)" becomes true text: phyloseq's section points to DESeq2
+(`phyloseq_to_deseq2`), which biotapy does not wrap; biotapy's own methods are in the new tutorial.
+No `phyloseq_to_deseq2` row is added to `r_idioms.toml` (not asked for; R1.4).
+
+#### 4. Benchmarks (3.13)
+
+- **Synthetic data, measured only (R10.1). (user)** asv never downloads (Phases 1 and 2 used
+  synthetic tables only; the lint job's `asv check` imports the suite on every PR). The outline's
+  "pp.philr on GlobalPatterns" would need pooch inside asv; a synthetic table of chosen size says
+  more about scaling anyway.
+- `Philr` in `pp.py`: `synthetic(n_obs=1_000)`, the Phase 1 table's construction (50,000
+  features, 2% non-zero, balanced tree whose one-child nodes PhILR skips) at 1,000 samples, so `X`
+  densifies to 400 MB; the full 5,000 samples would densify 2 GB and peak near 10 GB.
+- `DifferentialAbundance` in the new `da.py`: `synthetic_genera()`, 2,000 samples in two groups
+  of 1,000 x 10,000 features, 30% non-zero counts 1-99 (a large genus-level study; zeros are what
+  make ANCOM-BC2 treat values as missing), with `time_` and `peakmem_` for `linda` and
+  `ancombc2`. ALDEx2 and MaAsLin 3 are not benchmarked: their time is R's, and asv has no R.
+- Two commits, as 2.14: the suite (gated), then the page with the run's numbers, the commit hash
+  and the load averages.
+- **Fixed, approved 2026-10-07 (decision 8):** `da.ancombc2`'s docstring said peak memory is
+  "about seven" dense arrays (measured on 400 x 1,000 and 200 x 2,000); on the asv table it is
+  4.5x. The docstring now says 4.5x to 7.5x depending on the table's shape, in its own `docs(da)`
+  commit; the page states both ends.
+
+#### 5. Knowledge (3.14) and the release (3.15)
+
+- **3.14 is mostly done:** `modules/da.md` was rewritten for the bridges at Checkpoint C (entry
+  points, R bridge invariants, gotchas, the `-m r` verification). What remains: `da.md`
+  Verification names the tutorial and method pages; its memory gotcha gains the asv number; one new
+  gotcha (the tutorial's quoted counts and the shared constants); `add-a-function` step 8 (a `da`
+  method also gets a `docs/methods/` page and a guide table row); verification bumps for the four
+  concepts `knowledge_stale.sh --touched` lists (`phase-0-foundation`, `phase-1-core`,
+  `engine-parity`, `r-golden-parity`) after reading each against the diff (nothing they state
+  changed). `pl.md`, `pp.md`, `core.md` and `optional-heavy-dependencies.md` were re-read: no false
+  statement (`pp.md`'s "philr peaks at about five arrays" agrees with the measured 4.3x plus the
+  basis).
+- **3.15** follows cut-a-release and Task 2.15. `## [Unreleased]` is empty again (no 3A-3D PR
+  wrote an entry), so the 0.3.0 entries are written from `git log v0.2.0..master --no-merges`:
+  `feat:` commits under Added; under Changed the `fix:` commits that change a 0.2.0 function
+  (`dfa71fe`: readers infer counts only for non-negative whole numbers and count-needing functions
+  refuse negatives; `c920c7b`: `pl.bar`/`pl.heatmap` refuse negative tables) and 3.12's labels.
+  README: "0.3", the new Preprocessing, Differential abundance and Plots lines, the `r` extra with
+  its GPL note under Installation, "Next, in 0.4" from Phase 4's description. **(user)**
+- **Approvals.** Push, PR and merge-on-green of `phase-3d` are covered by the standing approval
+  for Phase 3 slice branches (2026-10-05). `release-0.3.0`'s push/PR/merge, then the tag, the tag
+  push, the GitHub release (the PyPI upload) and `close-phase-3` each need an explicit yes at the
+  moment named (R13.3). **(user)**
+
+#### 6. Which commit ticks which box
+
+| Box | Ticked in | Evidence |
+|---|---|---|
+| Checkpoint C's push/PR/merge box | the plan commit | PR #23 merged as `29efd9c`, Test run `37479113322` 21/21 green |
+| Checkpoint C's "ask the user to review 3C" box and the checklist's "Checkpoint C" | the plan commit | the user's approval of this slice 3D plan, which follows the 3C review |
+| Exit gate 2, per-method agreement with R | the plan commit | PR #23: `network` job `36 passed` (CLR, PhILR, LinDA, ANCOM-BC2 goldens); `r-bridge` job `24 passed` (ALDEx2, MaAsLin 3 goldens) |
+| 3.10, 3.10b, 3.12, 3.13, 3.14 checklist lines | each task's last commit | the gates above |
+| Checkpoint D (checklist and its boxes) | the 3.15 knowledge commit (`release-0.3.0`) | the `phase-3d` PR merged green |
+| Exit gate 1, executed notebook in the CI docs job | the 3.15 knowledge commit | that PR's `docs` job log: `tutorials/differential_abundance.md: Executed notebook` |
+| Exit gate 3, Phase 1 and 2 gates green | the 3.15 knowledge commit | every job of that PR's Test run green |
+| 3.15 Steps 1-8 | the 3.15 knowledge commit | |
+| 3.15 Steps 9-13, `phase_state: done` | `close-phase-3`, after the upload | the release workflow run |
+
+### Slice 3D global constraints (in addition to the Phase 3 list)
+
+- No `src/` change (except the two approved `docs(da)` docstring commits (`3b6239f`, `b9cb006`) and the Checkpoint D fix pass's docstring lines) and no new dependency (runtime, extra or dev). New calls, each checked in the
+  installed versions: none in Python beyond what the tutorial uses (`pd.crosstab`, already pandas
+  3.0.6); docs syntax: MyST `{code-cell}`, `{doc}`, `{ref}`, `(label)=` targets and `$$` math.
+- Every `pytest`, Python, asv and Sphinx run exports an **absolute**
+  `BIOTAPY_DATA_DIR=<scratchpad>/pooch`; `~/.cache/biotapy` must not appear, nor `docs/pooch/`.
+- Delete `docs/_build` and `docs/generated` before every docs build used as a gate.
+- The tutorial executes on every docs build (CI and Read the Docs); it must never call an R
+  bridge in a `{code-cell}`.
+- Method pages state only what a golden test, a docstring or the R function's `formals()` backs;
+  numbers are the golden tests' measured values.
+- Commits stage explicit paths only (never `.claude/`, `.superpowers/`, `.worktrees/`,
+  `notebooks/`, `build/`, `dist/`). Each task's last commit stages
+  `.knowledge/roadmap/phase-3-stats.md` with its checklist line ticked and `.knowledge/log.md`
+  with its line under `## <date of the commit> (Phase 3, slice 3D)`, newest line first.
+- Diff blocks below are for reading, not `git apply`.
+- Branch `phase-3d` from `master` (`29efd9c`). The release branch, the tag, the GitHub release and
+  the phase-closing branch each need the user's explicit approval at that moment (R13.3).
+
+### Slice 3D review focus
+
+The five ways a user is most likely to get a wrong answer, or a broken release, from this slice
+without an error, most likely first, each pinned by a test or a named check:
+
+1. **The tutorial quotes R-bridge numbers that are no longer what the bridges give.** The docs
+   cannot run R. Expected: the quoted counts and the `r` test read the same constants. Tests
+   (3.10b): `tests/da/test_consensus.py::test_the_tutorial_quotes_the_four_method_counts` and the
+   `r` test `test_four_methods_on_the_exit_gate_data`.
+2. **A method page states an R default or setting biotapy does not use**, so a user reproduces it
+   in R with different arguments. Expected: every row of each "Compared with R" table matches the
+   R function's `formals()` (recorded above) and the call in the docstring and in
+   `tests/r/export_golden.R`. Check: Checkpoint D's review reads each table against those three.
+3. **A user misreads the contrast.** The tutorial's "other" includes three mock communities;
+   `effect` is "human vs other". Expected: the note says what "other" holds, and the code passes
+   `reference="other"` to every method (consensus refuses mixed contrasts:
+   `tests/da/test_consensus.py::test_results_with_different_contrasts_raise`).
+4. **The Coming-from-R table maps an R function to the wrong biotapy function.** Expected: the
+   seven Phase 3 rows exactly. Test (3.12):
+   `tests/test_coming_from_r.py::test_transforms_and_da_methods_map_to_their_r_functions`.
+5. **The 0.3.0 wheel lacks the `r` extra or the README promises what 0.3 does not ship.**
+   Expected: METADATA has `Provides-Extra: r` and `Requires-Dist: rpy2>=3.6.8; extra == 'r'`; the
+   README lists only `__all__` members. Check (3.15 Step 6): the METADATA grep and, after the
+   upload, Step 12's `bt.da.__all__` print.
+
+Execution order: **plan commit -> 3.10 -> 3.10b -> 3.12 -> 3.13 -> Checkpoint D (review, fix pass,
+re-review, 3.14 knowledge, gates, PR) -> 3.15.** The tutorial links the method pages and the
+guide's `da-methods-in-r` label (3.10); 3.12 links the tutorial from the vignette; the benchmarks
+share no file with the docs; the knowledge pass documents the final state; the release comes
+last.
+
+**Plan commit (controller, before Task 3.10).** With this section, the plan commit also updates,
+outside it:
+- the header note: "Slice 3A has full TDD steps; slices 3B-3D are outlines, expanded into TDD
+  steps (rules.md R1.2a) when each is reached." becomes "Every slice has full TDD steps.";
+- "# Tasks (checklist)": `- [ ] Checkpoint C (review, exit-gate check and knowledge done; push
+  open)` becomes `- [x] Checkpoint C (PR #23 merged; the user approved slice 3C on 2026-10-07)`, and
+  `- [ ] 3.14 Knowledge (updates ...)` becomes
+  `- [ ] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)`;
+- Checkpoint C: tick the push box, adding "Done 2026-10-06: PR #23 merged as `29efd9c`, Test run
+  `37479113322` 21/21 green (`r-bridge` `24 passed`, `network` `36 passed`)", and the review-ask
+  box with the user's approval date;
+- "# Exit gate": tick the second item, adding "Proven on PR #23 (run `37479113322`): `network`
+  job `36 passed`, `r-bridge` job `24 passed`.";
+- design note 10: "(Feces, Skin, Tongue: 8) vs environmental (18)" becomes "(Feces, Skin,
+  Tongue: 9) vs the 17 others (14 environmental, 3 mock communities)", and "the ALDEx2 and MaAsLin
+  3 calls are shown as a non-executed code block with their extra" gains "and the numbers the
+  `r-bridge` job checks, pinned by a test";
+- "# Decisions for the user", item 16 gains "(slice 3D decision 2)";
+- `.knowledge/log.md`, under `## 2026-10-07 (Phase 3, slice 3D plan)`:
+  `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3D (3.10 method pages and guide, 3.10b tutorial, 3.12 Coming-from-R, 3.13 benchmarks, Checkpoint D with 3.14 knowledge, 3.15 release 0.3.0) into full TDD steps, prototyped and gated per commit; ticks Checkpoint C (PR #23 merged, slice 3C approved) and exit-gate item 2 (PR #23's network and r-bridge jobs).`
+
+---
+### Task 3.10: Method pages and the DA guide
+
+**Files:**
+- Create: `docs/methods/index.md`, `docs/methods/linda.md`, `docs/methods/ancombc2.md`,
+  `docs/methods/aldex2.md`, `docs/methods/maaslin3.md`, `docs/methods/consensus.md`.
+- Modify: `docs/guide/differential_abundance.md`, `docs/index.md`.
+
+**Not touched:** any `src/` file (the docstrings' `Guide:` lines keep pointing at the guide; the
+docstring-prose fixes the ledger approved are the exception),
+`docs/api.md` (it already lists the five `da` functions and `pl.consensus`), `docs/guide/transforms.md`
+(CLR and PhILR stay documented there; the outline's method pages are for DA), `docs/references.bib`,
+`docs/conf.py`, the tests.
+
+**Interfaces:**
+- Consumes: the docstrings' Notes of `da.linda`, `da.ancombc2`, `da.aldex2`, `da.maaslin3`,
+  `da.consensus`; the golden tests' measured tolerances (`tests/da/test_*_golden.py`,
+  [r-golden-parity](/contracts/r-golden-parity.md)); the decision
+  [da-consensus-agreement](/decisions/da-consensus-agreement.md); the R functions' `formals()`.
+- Produces: the pages `methods/*`; the label `da-methods-in-r` on the guide's "Methods that run
+  in R" section, which 3.10b's tutorial and the ALDEx2 and MaAsLin 3 pages reference.
+
+- [x] **Step 1: The method pages.** Create `docs/methods/index.md`:
+
+````markdown
+# Methods
+
+One page per differential abundance method: the model it fits, the units of its `effect`, how
+biotapy's call differs from the R function's defaults, how closely the two agree on real data,
+and the paper to cite. The {doc}`differential abundance guide </guide/differential_abundance>`
+says how to run them.
+
+```{toctree}
+:maxdepth: 1
+
+linda
+ancombc2
+aldex2
+maaslin3
+consensus
+```
+````
+
+  `docs/methods/linda.md`:
+
+````markdown
+# LinDA
+
+{func}`bt.da.linda <biotapy.da.linda>` fits one linear model per feature to the log2 centred
+log-ratios of the counts and removes the bias that compositionality adds to every coefficient.
+It runs in Python; no R is needed.
+
+```python
+import biotapy as bt
+
+tdata = bt.datasets.toy()
+tdata.obs["age"] = [30, 41, 52, 38, 45, 60]
+table = bt.da.linda(tdata, "group", covariates=["age"])
+table[table["qvalue"] < 0.05]
+```
+
+## Model
+
+For counts $y_{ij}$ of feature $j$ in sample $i$ ($n$ samples, $m$ features), 0.5 is added to
+every count when the table holds a zero. Each sample's log2 counts are centred:
+
+$$
+w_{ij} = \log_2 y_{ij} - \frac{1}{m} \sum_{k=1}^{m} \log_2 y_{ik}
+$$
+
+Each feature gets one least-squares fit $w_{\cdot j} = X \beta_j + \varepsilon_j$ on the design
+$X$ (an intercept, `group` and the `covariates`), with $p$ columns. The group coefficient
+$\tilde\beta_j$ estimates the log2 fold change plus a bias $b$ that is the same for every feature,
+because the centring divides by the geometric mean of a composition. LinDA estimates the bias as
+the mode of the coefficients and subtracts it:
+
+$$
+\hat b = \frac{1}{\sqrt n}\, \operatorname{mode}\{\sqrt n\, \tilde\beta_1, \dots, \sqrt n\, \tilde\beta_m\},
+\qquad \mathrm{effect}_j = \tilde\beta_j - \hat b
+$$
+
+The mode is found by a Gaussian mean shift started at the mean of the shortest half of the values
+(`shorth`), with `bw.nrd0`'s bandwidth, as `modeest::mlv(method = "meanshift")` does. The
+p-value is a two-sided t-test of $\mathrm{effect}_j / \mathrm{se}_j$ on $n - p$ degrees of
+freedom, where $\mathrm{se}_j$ is the least-squares standard error of $\tilde\beta_j$, and
+`qvalue` is the Benjamini-Hochberg correction over all features. Most features end up near zero;
+the ones that changed stand out.
+
+## Units
+
+`effect` is a log2 fold change of the other level over `reference`. Numeric columns, a numeric
+`group` included, are scaled to unit variance first, as LinDA does, so a numeric group's effect
+is per standard deviation.
+
+## Compared with R
+
+biotapy equals `MicrobiomeStat::linda(t(counts), meta, "~group + covariates", feature.dat.type =
+"count", is.winsor = FALSE)` (MicrobiomeStat 1.4) with fixed effects:
+
+| `linda` argument | R default | biotapy |
+|---|---|---|
+| `formula` | required | `group` and `covariates`, fixed effects only: no `(1 \| subject)` |
+| `feature.dat.type` | `"count"` | counts only: `X` must hold raw counts |
+| `prev.filter`, `mean.abund.filter`, `max.abund.filter` | `0` | no filter: run `bt.pp.filter_features` once, before any method |
+| `is.winsor`, `outlier.pct` | `TRUE`, `0.03` | no winsorisation |
+| `adaptive`, `zero.handling`, `pseudo.cnt` | `TRUE`, `"pseudo-count"`, `0.5` | 0.5 added to every count when the table has a zero, which is what R runs (below) |
+| `p.adj.method` | `"BH"` | Benjamini-Hochberg |
+| `alpha` | `0.05` | not an argument: `bt.da.consensus` makes the calls |
+
+MicrobiomeStat 1.4 announces an imputation of zeros when library size depends on the model, but
+its switch compares `"Imputation"` with `"imputation"` and never fires, so it always adds the
+pseudocount. biotapy computes what R returns.
+
+## Agreement with R
+
+The golden test compares `effect`, `se`, `pvalue` and `qvalue` with `MicrobiomeStat::linda` on
+the 636 GlobalPatterns genera in at least 20% of samples, human hosts against the rest, with and
+without a sequencing-depth covariate: they agree to a relative 1e-7.
+
+## Reference
+
+Zhou H, He K, Chen J, Zhang X (2022) LinDA: linear models for differential abundance analysis of
+microbiome compositional data. *Genome Biology* 23:95.
+[doi:10.1186/s13059-022-02655-5](https://doi.org/10.1186/s13059-022-02655-5)
+````
+
+  `docs/methods/ancombc2.md`:
+
+````markdown
+# ANCOM-BC2
+
+{func}`bt.da.ancombc2 <biotapy.da.ancombc2>` runs scikit-bio's ANCOM-BC2, which corrects each
+sample's log counts for the share of its ecosystem that was sequenced before it fits one linear
+model per feature. It runs in Python; no R is needed.
+
+```python
+import biotapy as bt
+
+table = bt.da.ancombc2(bt.datasets.toy(), "group")
+```
+
+## Model
+
+The log of an observed count is the log of the feature's abundance in the ecosystem plus the log
+of the sample's sampling fraction $\theta_i$, which differs between samples and biases every
+comparison of raw counts:
+
+$$
+\log o_{ij} = \theta_i + \log a_{ij}, \qquad \log a_{ij} = x_i^\top \beta_j + \varepsilon_{ij}
+$$
+
+ANCOM-BC2 (scikit-bio's {func}`~skbio.stats.composition.ancombc2`):
+
+1. treats zeros as missing (no pseudocount) and fits one least-squares model per feature to the
+   log counts on the design $x_i$ (an intercept, `group` and the `covariates`);
+2. estimates the bias the coefficients of each term share with an E-M algorithm that models them as
+   a mixture of a null, a negative and a positive normal component, at most 100 iterations;
+3. estimates each sample's $\theta_i$ from the bias-corrected fit, subtracts it from the sample's
+   log counts and fits the models again;
+4. widens every variance by the bias estimate's own variance and then by the 5% quantile of all
+   variances, so that rare features with tiny standard errors do not dominate, and tests
+   $W_j = \hat\beta_j / \mathrm{se}_j$ two-sided against a t distribution whose degrees of freedom
+   are the feature's observed samples minus the model's rank.
+
+`qvalue` is the Benjamini-Hochberg correction over the features ANCOM-BC2 could test. A feature
+whose zeros leave one level of `group` without an observed value, or that has no more observed
+samples than model terms, cannot be tested: its row is NaN.
+
+## Units
+
+ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
+every other method's. A numeric `group`'s effect is per unit, where `da.linda`'s and
+`da.maaslin3`'s are per standard deviation.
+
+## Compared with R
+
+scikit-bio's implementation matches `ANCOMBC::ancombc2` (ANCOMBC 2.12.0) with these settings:
+
+| `ancombc2` argument | R default | biotapy |
+|---|---|---|
+| `fix_formula` | required | `group` and `covariates` |
+| `rand_formula` | `NULL` | not offered: no random effects |
+| `p_adj_method` | `"holm"` | Benjamini-Hochberg |
+| `prv_cut`, `lib_cut` | `0.10`, `0` | `0`, `0`: run `bt.pp.filter_features` once, before any method |
+| `pseudo` | `0` | `0`: zeros are missing |
+| `pseudo_sens` | `TRUE` | not run, so the table has no `passed_ss` flag |
+| `s0_perc` | `0.05` | `0.05` |
+| `struc_zero`, `neg_lb` | `FALSE` | not run |
+| `em_control` | `tol = 1e-5`, `max_iter = 100` | the same |
+| `global`, `pairwise`, `dunnet`, `trend` | `FALSE` | not offered: `group` has two levels or is numeric |
+| `alpha` | `0.05` | not an argument: `bt.da.consensus` makes the calls |
+
+R reports a feature it cannot test with p = 1 and counts it in the correction; biotapy reports
+NaN and leaves it out, so its q-values are BH over the features actually tested.
+
+## Agreement with R
+
+The golden test compares biotapy with `ANCOMBC::ancombc2` on the 636 GlobalPatterns genera in at
+least 20% of samples, human hosts against the rest. With a sequencing-depth covariate, `effect`,
+`se` and `pvalue` agree to 1e-6. Without it, the bias E-M stops at R's cap of 100 iterations
+before it has converged, on a slightly different iterate in scikit-bio: effects agree within
+0.015 log2, standard errors to a relative 2e-3 and p-values within 0.02, and the significant
+genera are the same. With 1,000 iterations R moves every effect by about -0.28 log2 and calls 220
+genera instead of 208; biotapy keeps R's default.
+
+## Choosing the reference
+
+Unlike LinDA, ANCOM-BC2 is not antisymmetric in `reference`: the bias-corrected fit is made
+against the reference level, in R as here, so swapping it changes more than the sign of
+`effect`. On the GlobalPatterns genera the calls at q < 0.05 go from 208 to 230, and an effect
+plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
+Choose `reference` on the biology (the control or baseline level), not to change the results.
+
+## Reference
+
+Lin H, Peddada SD (2024) Multigroup analysis of compositions of microbiomes with covariate
+adjustments and repeated measures. *Nature Methods* 21:83-91.
+[doi:10.1038/s41592-023-02092-7](https://doi.org/10.1038/s41592-023-02092-7)
+````
+
+  `docs/methods/aldex2.md`:
+
+````markdown
+# ALDEx2
+
+{func}`bt.da.aldex2 <biotapy.da.aldex2>` runs `ALDEx2::aldex` in R through rpy2: it draws
+plausible relative abundances for each sample, takes their log2 centred log-ratios and compares
+the two groups with a Welch t-test on every draw. It needs R, the R package ALDEx2 and biotapy's
+`r` extra ({ref}`Methods that run in R <da-methods-in-r>`).
+
+```python
+import biotapy as bt
+
+table = bt.da.aldex2(bt.datasets.toy(), "group", seed=0)
+```
+
+## Model
+
+For each sample $i$, ALDEx2 draws `mc_samples` proportion vectors from a Dirichlet distribution
+whose parameters are the sample's counts plus 0.5, so a draw reflects how uncertain proportions
+are at that sequencing depth. Each draw is turned into log2 centred log-ratios over all features
+(`denom = "all"`):
+
+$$
+c^{(k)}_{ij} = \log_2 p^{(k)}_{ij} - \frac{1}{m} \sum_{l=1}^{m} \log_2 p^{(k)}_{il},
+\qquad p^{(k)}_{i\cdot} \sim \operatorname{Dirichlet}(y_{i\cdot} + 0.5)
+$$
+
+For each draw $k$ and feature $j$, a Welch t-test compares the two groups' values $c^{(k)}_{ij}$;
+`pvalue` is ALDEx2's `we.ep`: for each draw ALDEx2 doubles the one-sided Welch p-value in each
+direction (capped at 1), averages each direction over the draws, and keeps the smaller average.
+`effect` is ALDEx2's `diff.btw`, the median difference between values resampled at random from each
+group's pooled draws, already log2. ALDEx2
+reports no standard error, so `se` is NaN for every feature, and `qvalue` is the
+Benjamini-Hochberg correction of `pvalue`, as for every method. A feature with no read in any
+sample is dropped by ALDEx2 and is NaN in the table (not tested).
+
+## Units
+
+`effect` is the median log2 difference of the centred log-ratios between the other level and
+`reference`. ALDEx2 compares two groups only: a numeric `group`, covariates and a level in fewer
+than two samples are refused.
+
+## Compared with R
+
+biotapy calls `ALDEx2::aldex` (ALDEx2 1.42.0) with its defaults:
+
+| `aldex` argument or output | R default | biotapy |
+|---|---|---|
+| `conditions` | required | the labels `"0"` (`reference`) and `"1"`: ALDEx2 fails on a factor and sorts character labels in the R session's locale |
+| `mc.samples` | `128` | `mc_samples=128`; R warns below 128, and biotapy re-emits it as a `UserWarning` |
+| `test`, `effect`, `denom` | `"t"`, `TRUE`, `"all"` | the same |
+| `paired.test`, `iterate`, `gamma` | `FALSE`, `FALSE`, `NULL` | the same: no paired test, no scale model |
+| `we.ep` | output | `pvalue` |
+| `we.eBH` | output | not carried: it averages the draws' corrected values, a different quantity; `qvalue` is BH of `we.ep` |
+| `diff.btw` | output | `effect` |
+| `effect`, `overlap`, `wi.ep`, `wi.eBH`, `rab.*`, `diff.win` | outputs | not carried: ALDEx2's `effect` is a standardised size, not a fold change |
+| random state | R's global seed | `seed` sets R's seed for the call, and the R session's random state is put back afterwards |
+
+On the GlobalPatterns genera below, BH of `we.ep` calls 11 genera and ALDEx2's `we.eBH` 19.
+
+## Agreement with R
+
+ALDEx2 is random, but `seed` becomes one integer for R's `set.seed`, so biotapy and R draw the same
+numbers. The golden test runs `set.seed(...); ALDEx2::aldex(...)` with that integer on the 636
+GlobalPatterns genera in at least 20% of samples, human hosts against the rest: `effect` and
+`diff.btw` agree to a relative 4e-15 and `pvalue` and `we.ep` to 8.4e-13 (checked at 1e-7). The
+golden passes `reference="human"`, the level R sorts first, so both sides resample `diff.btw` in the same
+label order. With other seeds, effects correlate
+at 0.993 (Spearman) and 11 to 13 genera are called, depending on the seed (13 at `seed=0`, the
+tutorial's).
+
+## Choosing the reference
+
+Swapping `reference` does more than flip the sign. ALDEx2 draws the same Monte Carlo instances, so
+`pvalue` and the calls are unchanged, but `diff.btw` comes from a random resampling of each group's
+values done in label order, so the same `seed` gives different effects, and the two runs are not
+exact mirror images. They differ from exact antisymmetry by 0.1 to 0.3 log2 on `toy()`, depending
+on the seed (its effects are about 4 log2 wide), and by up to 0.65 log2 on the GlobalPatterns
+genera, 15 of 636 of which then do not change direction. The p-values and the calls are the same.
+
+## Reference
+
+Fernandes AD, Reid JN, Macklaim JM, McMurrough TA, Edgell DR, Gloor GB (2014) Unifying the
+analysis of high-throughput sequencing datasets: characterizing RNA-seq, 16S rRNA gene sequencing
+and selective growth experiments by compositional data analysis. *Microbiome* 2:15.
+[doi:10.1186/2049-2618-2-15](https://doi.org/10.1186/2049-2618-2-15)
+````
+
+  `docs/methods/maaslin3.md`:
+
+````markdown
+# MaAsLin 3
+
+{func}`bt.da.maaslin3 <biotapy.da.maaslin3>` runs the abundance model of `maaslin3::maaslin3` in R
+through rpy2: one linear model of each feature's log2 relative abundance, on the samples where the
+feature is present, tested against the median coefficient. It needs R, the R package maaslin3 and
+biotapy's `r` extra ({ref}`Methods that run in R <da-methods-in-r>`).
+
+```python
+import biotapy as bt
+
+tdata = bt.datasets.toy()
+tdata.obs["age"] = [30, 41, 52, 38, 45, 60]
+table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
+```
+
+## Model
+
+Counts are divided by their sample's total (total sum scaling). For feature $j$, on the samples
+where it is present ($y_{ij} > 0$):
+
+$$
+\log_2 \frac{y_{ij}}{\sum_k y_{ik}} = x_i^\top \beta_j + \varepsilon_{ij}
+$$
+
+with numeric columns of the design $x_i$ standardised. Compositionality shifts every coefficient
+of a term by about the same amount, so MaAsLin 3 tests each coefficient against the median
+coefficient $\tilde\beta$ of that term, taken over the features without a fit error whose own
+p-value is below 0.95; the test draws 10,000 normal samples, which is why `seed` matters.
+biotapy reports
+
+$$
+\mathrm{effect}_j = \hat\beta_j - \tilde\beta
+$$
+
+(`subtract_median = TRUE`), so the sign of `effect` is the side of the median the p-value is
+about. `qvalue` is the Benjamini-Hochberg correction of the group's p-values. A feature whose fit
+reports an error is NaN in the table (not tested), as MaAsLin 3 leaves it out of its own
+correction.
+
+## Units
+
+`effect` is a log2 fold change of the relative abundance where the feature is present, minus the
+median. Numeric columns are standardised, so a numeric `group`'s effect is per standard
+deviation, as in `da.linda`.
+
+## Compared with R
+
+biotapy calls `maaslin3::maaslin3` (maaslin3 1.2.0) with:
+
+| `maaslin3` argument | R default | biotapy |
+|---|---|---|
+| `formula` | `NULL` | `~ x0 + x1 + ...`, the `group` and `covariates` columns under plain names, so a column such as `"body site"` needs no quoting |
+| `reference` | `NULL` | not passed: categorical columns arrive as factors with string levels, `reference` first |
+| `random_effects`, `group_effects`, `ordered_effects`, `strata_effects` | `NULL` | not offered |
+| `min_abundance`, `min_prevalence` | `0`, `0` | the same: no filter |
+| `normalization`, `transform`, `standardize` | `"TSS"`, `"LOG"`, `TRUE` | the same |
+| `median_comparison_abundance` | `TRUE` | the same |
+| `subtract_median` | `FALSE` | `TRUE`: `effect` is what the p-value tests |
+| `evaluate_only` | `NULL` (both models) | `"abundance"`: the prevalence model's log-odds cannot share a column with fold changes |
+| `warn_prevalence` | `TRUE` | `FALSE`, which `evaluate_only` requires |
+| `correction` | `"BH"` | BH over the group's p-values only; MaAsLin 3's `qval_individual` corrects them together with every covariate's |
+| `plot_summary_plot`, `plot_associations` | `TRUE` | `FALSE`; the `output` folder is temporary and deleted |
+| `cores`, `verbosity` | `1`, `"FINEST"` | `1`, `"ERROR"` |
+
+With one numeric covariate on the GlobalPatterns genera below, `qval_individual` calls 20 genera
+where biotapy's `qvalue` calls 45; without covariates the two agree (52).
+
+## Agreement with R
+
+MaAsLin 3's median test simulates, but `seed` becomes one integer for R's `set.seed`, so biotapy
+and R draw the same numbers. The golden test runs `set.seed(...); maaslin3::maaslin3(...)` with
+that integer on the 636 GlobalPatterns genera in at least 20% of samples, human hosts against the
+rest, with and without a sequencing-depth covariate: the same 36 genera fail to fit, and `effect`,
+`se` and `pvalue` agree with R's `coef`, `stderr` and `pval_individual` to a relative 7.2e-13 or
+better (checked at 1e-7). With other seeds only the p-values move, by up to about 1.6e-3.
+
+## Choosing the reference
+
+Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
+coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to about 1.2e-3 and
+`qvalue` by up to about 3.3e-3 on the GlobalPatterns genera (the calls are the same).
+
+## Reference
+
+Nickols WA, Kuntz T, Shen J, Maharjan S, Mallick H, Franzosa EA, Thompson KN, Nearing JT,
+Huttenhower C (2026) MaAsLin 3: refining and extending generalized multivariable linear models
+for meta-omic association discovery. *Nature Methods* 23:554-564.
+[doi:10.1038/s41592-025-02923-9](https://doi.org/10.1038/s41592-025-02923-9)
+````
+
+  `docs/methods/consensus.md`:
+
+````markdown
+# Consensus
+
+{func}`bt.da.consensus <biotapy.da.consensus>` puts the result tables of several methods side by
+side and counts, per feature, the methods that call it and whether they agree on its direction.
+It runs no method itself: you choose and run the methods, and pass their tables.
+{func}`bt.pl.consensus <biotapy.pl.consensus>` draws the table it returns.
+
+```python
+import biotapy as bt
+
+tdata = bt.datasets.toy()
+results = [bt.da.ancombc2(tdata, "group"), bt.da.linda(tdata, "group")]
+table = bt.da.consensus(results, alpha=0.05, min_methods=2)
+```
+
+## Rule
+
+For feature $f$ and method $m$, with $q_{fm}$ the method's `qvalue` and $d_{fm}$ its `direction`:
+
+| Column | Definition |
+|---|---|
+| `significant_<m>` | $q_{fm} < \alpha$, strictly: $q = \alpha$ is not a call |
+| `n_tested` | methods whose `pvalue` for $f$ is finite; a method that could not test $f$, or whose table lacks it, does not count |
+| `n_significant` | methods that call $f$ |
+| `direction` | the sign $d_{fm}$ every calling method shares; 0 when none calls $f$ or their signs differ |
+| `consensus` | `n_significant` $\ge$ `min_methods` and `direction` is not 0 |
+| `conflict` | calling methods give $f$ opposite signs; never a consensus |
+
+A call whose `effect` is exactly 0 has no direction: it counts in `n_significant`, but then
+`direction` is 0, with no consensus and no conflict. The table also carries each method's
+`effect_<m>` and `qvalue_<m>`, in the order of `results`.
+
+## Why it is defined this way
+
+- **One correction.** Every method's `qvalue` is Benjamini-Hochberg over the features it tested,
+  so "significant" means the same false discovery rate in every column. R's defaults would mix
+  Holm (ANCOM-BC2), BH over the group's p-values (LinDA), BH pooled with the covariates'
+  (MaAsLin 3) and averaged per-draw BH (ALDEx2).
+- **Strict calls, recomputed.** Calls come from `qvalue` with one rule, never from a method's own
+  flag: LinDA's `reject` uses $q \le \alpha$, and ANCOM-BC2's `Signif` sits on Holm by default.
+- **Untested is not "not significant".** ANCOM-BC2 and MaAsLin 3 cannot fit a feature that is
+  absent from one group; counting that as a negative would let one method veto a feature it never
+  tested. `min_methods=len(results)` still asks for every method.
+- **Same contrast.** The tables must come from different methods and compare the same `contrast`;
+  `bt.da.consensus` raises otherwise, so run every method with the same `group` and `reference`.
+- **The user picks the methods.** A one-call consensus would hide which methods ran and invite
+  trying methods until one agrees. Methods disagree a lot on real data: Nearing et al. (2022)
+  recommend a consensus of several methods, Pelto et al. (2025) one simple method. Either way,
+  choose the methods before you look at their results. Methods that share a model, such as
+  ANCOM-BC and ANCOM-BC2, agree more often for that reason alone.
+
+The rule is recorded, with the options rejected, in the knowledge bundle's decision
+[da-consensus-agreement](https://github.com/pedrocr83/biotapy/blob/master/.knowledge/decisions/da-consensus-agreement.md).
+There is no R equivalent.
+
+## References
+
+Nearing JT, Douglas GM, Hayes MG, MacDonald J, Desai DK, Allward N, Jones CMA, Wright RJ, Dhanani
+AS, Comeau AM, Langille MGI (2022) Microbiome differential abundance methods produce different
+results across 38 datasets. *Nature Communications* 13:342.
+[doi:10.1038/s41467-022-28034-z](https://doi.org/10.1038/s41467-022-28034-z)
+
+Pelto J, Auranen K, Kujala JV, Lahti L (2025) Elementary methods provide more replicable results
+in microbial differential abundance analysis. *Briefings in Bioinformatics* 26:bbaf130.
+[doi:10.1093/bib/bbaf130](https://doi.org/10.1093/bib/bbaf130)
+````
+
+  Where each statement comes from (re-check each against the code after any fix, R0.2):
+  - the R defaults: `formals()` of `MicrobiomeStat::linda` (1.4), `ANCOMBC::ancombc2` (2.12.0),
+    `ALDEx2::aldex` (1.42.0) and `maaslin3::maaslin3` (1.2.0) in the golden image
+    (`docker run --rm --network none biotapy-golden Rscript -e 'formals(...)'`);
+  - what biotapy passes: `_linda.py`, `_ancombc.py` (`p_adjust=None`, BH in `_schema.result`),
+    `_aldex2.py:_ALDEX`, `_maaslin3.py:_MAASLIN`;
+  - ANCOM-BC2's steps: scikit-bio 0.7.4 `skbio/stats/composition/_ancombc.py`
+    (`_estimate_bias_em`, `_sample_fractions`, `_adjust_variance`, `_calc_pvalues`);
+  - the agreement numbers: `tests/da/test_linda_golden.py` (`rtol=1e-7`),
+    `test_ancombc_golden.py` (`MODELS`), `test_aldex2_golden.py`, `test_maaslin3_golden.py` and the
+    slice 3B/3C measurements in this concept;
+  - the reference-swap paragraphs: moved from the guide and the docstrings' Notes, unchanged.
+- [x] **Step 2: The guide keeps the workflow.** `docs/guide/differential_abundance.md` (the four
+  method sections move into the pages; a "Choosing methods" table links them; the generic bridge
+  behaviour moves up into "Methods that run in R", which gets the label `da-methods-in-r`):
+
+````diff
+diff --git a/docs/guide/differential_abundance.md b/docs/guide/differential_abundance.md
+index 9e8d2ad..7cb7117 100644
+--- a/docs/guide/differential_abundance.md
++++ b/docs/guide/differential_abundance.md
+@@ -42,51 +42,29 @@ filter features: filter once, with `bt.pp.filter_features`, before running any m
+ method tests the same features. Methods need raw counts in `X` and a read in every sample
+ (`bt.pp.filter_samples(tdata, min_depth=1)` drops empty ones).
+
+-## LinDA
++## Choosing methods
+
+-`bt.da.linda` fits one linear model per feature to the log2 centred log-ratios of the counts (with
+-0.5 added to every count when the table has a zero). Compositionality biases every coefficient by
+-the same amount; LinDA estimates that bias as the mode of all features' coefficients and subtracts
+-it, so most features end up near zero and the ones that changed stand out:
++biotapy has four methods. They model compositional counts differently, so they call different
++features, and no one of them is right on every dataset:
+
+-```python
+-tdata.obs["age"] = [30, 41, 52, 38, 45, 60]
+-table = bt.da.linda(tdata, "group", covariates=["age"])
+-table[table["qvalue"] < 0.05]
+-```
+-
+-It equals `MicrobiomeStat::linda(..., is.winsor = FALSE)` in R with fixed effects. Numeric columns
+-are scaled to unit variance first, as LinDA does, so a numeric group's effect is per standard
+-deviation. Not available: winsorisation (MicrobiomeStat's default), random effects such as
+-`(1 | subject)`, and LinDA's own prevalence filters.
+-
+-## ANCOM-BC2
++| Method | Model | Runs in | Covariates | Numeric `group` | `seed` |
++|---|---|---|---|---|---|
++| {doc}`bt.da.linda </methods/linda>` | least squares of log2 centred log-ratios, minus the mode of all coefficients | Python | yes | per standard deviation | no |
++| {doc}`bt.da.ancombc2 </methods/ancombc2>` | least squares of log counts corrected for each sample's sampling fraction | Python (scikit-bio) | yes | per unit | no |
++| {doc}`bt.da.aldex2 </methods/aldex2>` | Welch t-tests on Monte Carlo draws of centred log-ratios | R | no | no | yes |
++| {doc}`bt.da.maaslin3 </methods/maaslin3>` | least squares of log2 relative abundance where present, tested against the median | R | yes | per standard deviation | yes |
+
+-`bt.da.ancombc2` runs scikit-bio's ANCOM-BC2 (Lin and Peddada 2024): it estimates each sample's
+-sampling fraction, corrects the log counts for it and the coefficients for their shared bias, and
+-fits one linear model per feature. Zeros are treated as missing rather than given a pseudocount,
+-so a feature with no read in one of the groups cannot be fitted: its row is NaN and it is left out
+-of the Benjamini-Hochberg correction (R's `ANCOMBC::ancombc2` reports it with p = 1 and counts it).
+-
+-```python
+-table = bt.da.ancombc2(tdata, "group")
+-```
++Each method's page gives its model, the R defaults biotapy changes, and how closely biotapy
++matches the R package on real data. Two things to know before you choose:
+
+-ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
+-every other method's; a numeric `group`'s effect is per unit, where `da.linda`'s is per standard
+-deviation. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
+-pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis (its
+-`passed_ss` flag) or its 10% prevalence filter. On the GlobalPatterns genera that the golden tests
+-use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the
+-small difference comes from the bias estimate, whose iterations stop at R's cap of 100 before they
+-have converged on that data, in R as in scikit-bio.
+-
+-Unlike `da.linda`, ANCOM-BC2 is not antisymmetric in `reference`: swapping it changes more than the
+-sign of `effect`, because the bias-corrected E-M is fitted against the reference level, in R as
+-here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to 230, and `effect`
+-plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
+-Choose `reference` on the biology (the control or baseline level), not to change the results.
++- ANCOM-BC2 and MaAsLin 3 leave zeros out, so a feature with no read in one group cannot be
++  fitted: its row is NaN. LinDA adds 0.5 to every count when the table has a zero, and ALDEx2
++  draws around every count, so both test it.
++- `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
++  reference level) and ALDEx2 (its effect's random resampling follows the label order), and
++  slightly in MaAsLin 3 (its p-values move by up to about 1.2e-3 with the same `seed`, the calls do not).
++  Choose it on the biology, the control or baseline level, before you look at any result.
+
++(da-methods-in-r)=
+ ## Methods that run in R
+
+ ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
+@@ -102,57 +80,17 @@ rpy2 is GPL-2.0-or-later and the R packages have their own licences; biotapy its
+ any of them. Without rpy2 or the R package, the call raises an `ImportError` that names what to
+ install. Each call converts `X` to a dense table once, because rpy2 has no sparse converter.
+
+-### ALDEx2
+-
+-`bt.da.aldex2` runs `ALDEx2::aldex` (Fernandes et al. 2014): Monte Carlo draws from each sample's
+-Dirichlet posterior, their log2 centred log-ratios, and a Welch t-test per draw, whose p-values are
+-averaged. `effect` is ALDEx2's `diff.btw`, the median log2 difference between the two groups:
++Both methods draw random numbers in R. `seed` seeds R for the call, and your R session's own
++random state is restored afterwards, so the same seed gives the same table. Each R warning raised
++during the call, such as ALDEx2's for fewer than 128 `mc_samples`, is re-emitted as a Python
++`UserWarning`; an R error is raised as a `RuntimeError`. Repeated `var_names` or `obs_names`
++raise: call `adata.var_names_make_unique()` first.
+
+ ```python
+ table = bt.da.aldex2(tdata, "group", seed=0)
++table = bt.da.maaslin3(tdata, "group", seed=0)
+ ```
+
+-ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
+-`seed` seeds R for the call (your R session's own random state is restored afterwards), so the same seed gives the same table, and on the GlobalPatterns
+-genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to a relative 8.4e-13 (when `reference` is R's
+-first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
+-Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
+-`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
+-those genera).
+-
+-Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
+-so the same `seed` gives different effects, and the two runs are not exact mirror images: the effects
+-differ from exact antisymmetry by up to 0.25 log2 on `toy()` (where they are about 4 log2 wide) and up to
+-0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change direction. The p-values and
+-the calls are the same on both. Each R warning raised during the call, such as the one
+-for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
+-`RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
+-
+-### MaAsLin 3
+-
+-`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
+-"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
+-log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
+-is tested against the median coefficient, MaAsLin 3's correction for
+-compositionality (the median over the features without a fit error whose own p-value is below
+-0.95, as MaAsLin 3 computes it); `effect` is the coefficient minus that median, so its sign says on which side
+-of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
+-
+-```python
+-table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
+-```
+-
+-Numeric columns are standardised, so a numeric group's effect is per standard deviation, as in
+-`da.linda`. The test against the median simulates, so `seed` makes the p-values reproducible; on the
+-GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
+-are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
+-MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
+-covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
+-
+-Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
+-coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
+-`qvalue` by up to 2e-3 on those genera (the calls are the same); `seed` fixes the draws.
+-
+ ## Where methods agree
+
+ `bt.da.consensus` puts the tables of several methods side by side and counts, for each feature,
+@@ -169,7 +107,8 @@ A feature is a consensus hit when at least `min_methods` methods call it and all
+ the same sign. Methods that call it in opposite directions mark a `conflict`, which is never a
+ consensus. A method that could not test a feature does not count against it: `n_tested` says how
+ many methods tested each feature. The tables must come from different methods and compare the same
+-`contrast`, so run every method with the same `group` and `reference`.
++`contrast`, so run every method with the same `group` and `reference`. The
++{doc}`consensus page </methods/consensus>` defines every column.
+
+ Methods disagree a lot on real data, and the literature is split on what to do about it: Nearing
+ et al. (2022) recommend a consensus of several methods, Pelto et al. (2025) one simple method. Either
+````
+
+  and the toctree:
+
+````diff
+diff --git a/docs/index.md b/docs/index.md
+index 34a172c..2dc0253 100644
+--- a/docs/index.md
++++ b/docs/index.md
+@@ -16,6 +16,7 @@ tutorials/index.md
+ :caption: User guide
+
+ guide/index.md
++methods/index.md
+ coming_from_r.md
+ ```
+
+````
+
+- [x] **Step 3: Build and read.**
+  `rm -rf docs/_build docs/generated && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
+  -> `build succeeded.` (39.8 s in the prototype). Open `docs/_build/html/methods/linda.html`:
+  the math renders (KaTeX), the `linda` table's first row reads `(1 | subject)` (the escaped pipe);
+  `methods/aldex2.html` links to `guide/differential_abundance.html#da-methods-in-r`; the guide's
+  "Choosing methods" table links the four pages. Every `{func}` link resolves (the build is
+  nitpicky).
+- [x] **Step 4: Bookkeeping.**
+  - `.knowledge/roadmap/phase-3-stats.md`: `- [ ] 3.10 Method pages in \`docs/methods/\` and the DA guide`
+    becomes `- [x] ...`.
+  - `.knowledge/log.md`, a new heading at the top:
+
+```markdown
+## <date> (Phase 3, slice 3D)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10 done: `docs/methods/` holds one page per `da` method and the consensus (model, units, the R defaults biotapy changes, agreement with R, reference); the DA guide keeps the workflow and links to them.
+```
+
+- [x] **Step 5: Gate and commit.**
+
+```bash
+git add docs/methods/index.md docs/methods/linda.md docs/methods/ancombc2.md docs/methods/aldex2.md \
+  docs/methods/maaslin3.md docs/methods/consensus.md docs/guide/differential_abundance.md docs/index.md \
+  .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+git commit -m "docs: add a page per differential abundance method and link them from the guide
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1230 passed, 53 deselected
+uv run --group test pytest -q -m "golden or network" # 36 passed, 1247 deselected
+rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+### Task 3.10b: The exit-gate tutorial
+
+**Files:**
+- Create: `docs/tutorials/differential_abundance.md`.
+- Modify: `docs/tutorials/index.md`, `docs/methods/index.md`, `docs/guide/differential_abundance.md`,
+  `tests/da/test_consensus.py`.
+
+**Not touched:** `docs/conf.py` (`nb_execution_timeout = 300` and the cache mode already hold),
+the workflows and `.readthedocs.yaml` (design 2: no change), `tests/da/conftest.py` (the
+`benchmark` fixture is the tutorial's data, unchanged), any `src/` file.
+
+**Interfaces:**
+- Consumes: `bt.datasets.global_patterns()`, `bt.pp.tax_glom(adata, rank)`,
+  `bt.pp.filter_features(adata, *, min_prevalence)`, `bt.da.ancombc2` / `bt.da.linda`
+  `(adata, group, *, covariates=(), reference=None)`, `bt.da.consensus(results, *, alpha=0.05,
+  min_methods=2)`, `bt.pl.consensus(table, *, top=30, ax=None)`; the guide label
+  `da-methods-in-r` (3.10).
+- Produces: the page `tutorials/differential_abundance` (exit gate item 1); the constants
+  `FOUR_METHOD_CALLS`, `FOUR_METHOD_N_SIGNIFICANT`, `FOUR_METHOD_CONSENSUS` and `TUTORIAL` in
+  `tests/da/test_consensus.py`.
+
+- [x] **Step 1: Failing test.** In `tests/da/test_consensus.py`, the `r` test reads the shared
+  constants and a default-run test checks the tutorial quotes them:
+
+```diff
+diff --git a/tests/da/test_consensus.py b/tests/da/test_consensus.py
+index 6d53ae0..9dc61c5 100644
+--- a/tests/da/test_consensus.py
++++ b/tests/da/test_consensus.py
+@@ -1,3 +1,5 @@
++from pathlib import Path
++
+ import numpy as np
+ import pandas as pd
+ import pytest
+@@ -168,20 +170,34 @@ def test_numpy_scalars_are_valid_options():
+     assert out["consensus"].tolist() == [True]
+
+
++# The Phase 3 exit-gate consensus: GlobalPatterns genera, human hosts against the rest, the two native methods and the
++# two R bridges, seeded. The r test measures these counts; the tutorial, whose docs build has no R, quotes them.
++FOUR_METHOD_CALLS = {"ancombc2": 208, "linda": 118, "aldex2": 13, "maaslin3": 52}
++FOUR_METHOD_N_SIGNIFICANT = {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
++FOUR_METHOD_CONSENSUS = 109
++FOUR_METHOD_CONFLICTS = 0
++TUTORIAL = Path(__file__).parents[2] / "docs" / "tutorials" / "differential_abundance.md"
++
++
+ @pytest.mark.r
+ def test_four_methods_on_the_exit_gate_data(benchmark):
+-    # The Phase 3 exit-gate consensus: GlobalPatterns genera, human hosts against the rest, the two native methods and the
+-    # two R bridges. Seeded, so the counts are fixed: calls 208 (ANCOM-BC2), 118 (LinDA), 13 (ALDEx2), 52 (MaAsLin 3).
+     results = [
+         bt.da.ancombc2(benchmark, "host", reference="other"),
+         bt.da.linda(benchmark, "host", reference="other"),
+         bt.da.aldex2(benchmark, "host", reference="other", seed=0),
+         bt.da.maaslin3(benchmark, "host", reference="other", seed=0),
+     ]
+-    assert [int((table["qvalue"] < 0.05).sum()) for table in results] == [208, 118, 13, 52]
++    assert {table["method"].iloc[0]: int((table["qvalue"] < 0.05).sum()) for table in results} == FOUR_METHOD_CALLS
+     table = bt.da.consensus(results)
+     # ANCOM-BC2 and MaAsLin 3 cannot fit the 36 genera absent from one group; LinDA and ALDEx2 test all 636.
+     assert table["n_tested"].value_counts().to_dict() == {4: 600, 2: 36}
+-    assert table["n_significant"].value_counts().sort_index().to_dict() == {0: 413, 1: 114, 2: 62, 3: 35, 4: 12}
+-    assert int(table["consensus"].sum()) == 109 and not table["conflict"].any()
++    assert table["n_significant"].value_counts().sort_index().to_dict() == FOUR_METHOD_N_SIGNIFICANT
++    assert int(table["consensus"].sum()) == FOUR_METHOD_CONSENSUS
++    assert int(table["conflict"].sum()) == FOUR_METHOD_CONFLICTS
+     assert (table.loc[table["n_significant"] == 4, "direction"] == 1).all()
++
++
++def test_the_tutorial_quotes_the_four_method_counts():
++    page = TUTORIAL.read_text(encoding="utf-8")
++    for method, calls in FOUR_METHOD_CALLS.items():
++        assert f"| `{method}` | {calls} |" in page
++    assert "| Genera | " + " | ".join(map(str, FOUR_METHOD_N_SIGNIFICANT.values())) + " |" in page
++    sentence = (
++        f"With four methods, {FOUR_METHOD_CONSENSUS} genera are a consensus at `min_methods=2`, "
++        f"{_count_word(FOUR_METHOD_CONFLICTS)} is a conflict, and the {FOUR_METHOD_N_SIGNIFICANT[4]} genera all four "
++        "methods call are all more abundant in human-associated samples"
++    )
++    assert sentence in " ".join(page.split())
++
++
++def _count_word(count: int) -> str:
++    return "none" if count == 0 else str(count)
+```
+
+- [x] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/da/test_consensus.py -q` -> `1 failed, 25 passed, 1
+  deselected`: `test_the_tutorial_quotes_the_four_method_counts` raises `FileNotFoundError` (the
+  page does not exist). The `r` test is deselected here; Step 6 runs it with R.
+- [x] **Step 3: The tutorial.** Create `docs/tutorials/differential_abundance.md`:
+
+````markdown
+---
+jupytext:
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3
+  language: python
+  name: python3
+---
+
+# Differential abundance in GlobalPatterns
+
+This tutorial asks which genera differ between human-associated samples and the rest of
+GlobalPatterns, runs two differential abundance methods on the same question, and reports where
+they agree. It then shows the same report with the two methods that run in R.
+
+:::{note}
+The contrast is a demonstration of the workflow, not a biological finding. GlobalPatterns has 9
+human-associated samples (feces, skin and tongue) and 17 others: 14 from soil, sediment,
+freshwater and the ocean, and 3 mock communities. The data are downloaded from phyloseq's
+repository on first use and cached; they are licensed to phyloseq's authors under AGPL-3.
+:::
+
+```{code-cell} ipython3
+import numpy as np
+import pandas as pd
+
+import biotapy as bt
+```
+
+## The data
+
+Counts are merged to genus, and genera present in fewer than 20% of the samples are dropped. This
+is the one filter: the methods never filter on their own, so each of them is given the same 636
+genera.
+
+```{code-cell} ipython3
+global_patterns = bt.datasets.global_patterns()
+genus = bt.pp.tax_glom(global_patterns, "genus")
+tdata = bt.pp.filter_features(genus, min_prevalence=0.2)
+human = tdata.obs["SampleType"].isin(["Feces", "Skin", "Tongue"])
+tdata.obs["host"] = pd.Categorical(np.where(human, "human", "other"))
+tdata.obs["host"].value_counts()
+```
+
+## Two methods, chosen first
+
+ANCOM-BC2 and LinDA both run in Python. They are chosen before looking at any result, and run with
+the same `group` and `reference`, so their tables compare the same thing (`"human vs other"`): a
+positive `effect` means more abundant in human-associated samples.
+
+```{code-cell} ipython3
+results = [
+    bt.da.ancombc2(tdata, "host", reference="other"),
+    bt.da.linda(tdata, "host", reference="other"),
+]
+{table["method"].iloc[0]: int((table["qvalue"] < 0.05).sum()) for table in results}
+```
+
+ANCOM-BC2 leaves zeros out, so it cannot fit the 36 genera with no read in one of the two groups:
+their rows are NaN, and they count as not tested, not as "not significant".
+
+```{code-cell} ipython3
+int(results[0]["pvalue"].isna().sum())
+```
+
+## Where they agree
+
+`bt.da.consensus` counts, per genus, the methods that call it at `qvalue < 0.05` and whether they
+agree on its direction. A consensus genus is called by at least `min_methods` methods (2 by
+default), all with the same sign.
+
+```{code-cell} ipython3
+table = bt.da.consensus(results)
+table["n_significant"].value_counts().sort_index()
+```
+
+```{code-cell} ipython3
+table[["consensus", "conflict"]].sum()
+```
+
+Which method calls what, genus by genus:
+
+```{code-cell} ipython3
+pd.crosstab(table["significant_ancombc2"], table["significant_linda"])
+```
+
+The dot plot shows the genera called by most methods first, then by the size of their effect.
+Feature ids in GlobalPatterns are OTU numbers, so the rows are labelled with the genus name; a
+name can appear more than once, because GlobalPatterns files some genera under more than one
+family and `tax_glom` keeps the lineages apart.
+
+```{code-cell} ipython3
+genera = table.rename(index=tdata.var["genus"])
+bt.pl.consensus(genera, top=30);
+```
+
+The genera only one method calls are where the two disagree. A hollow dot is a genus the other
+method tested without calling it:
+
+```{code-cell} ipython3
+bt.pl.consensus(genera[genera["n_significant"] == 1], top=30);
+```
+
+## Adding the methods that run in R
+
+ALDEx2 and MaAsLin 3 run in R ({ref}`Methods that run in R <da-methods-in-r>`), which this
+documentation is built without, so the code below is shown but not run here. To run it, install
+the extra with `pip install 'biotapy[r]'` and, in R, `BiocManager::install(c("ALDEx2", "maaslin3"))`:
+
+```python
+results = [
+    bt.da.ancombc2(tdata, "host", reference="other"),
+    bt.da.linda(tdata, "host", reference="other"),
+    bt.da.aldex2(tdata, "host", reference="other", seed=0),
+    bt.da.maaslin3(tdata, "host", reference="other", seed=0),
+]
+table = bt.da.consensus(results)
+```
+
+biotapy's continuous integration runs exactly this on every pull request, in R 4.5.3 with
+Bioconductor 3.22's ALDEx2 and maaslin3, and checks that it gives these numbers:
+
+| Method | Genera called |
+|---|---|
+| `ancombc2` | 208 |
+| `linda` | 118 |
+| `aldex2` | 13 |
+| `maaslin3` | 52 |
+
+| Methods calling a genus | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| Genera | 413 | 114 | 62 | 35 | 12 |
+
+With four methods, 109 genera are a consensus at `min_methods=2`, none is a conflict, and the 12
+genera all four methods call are all more abundant in human-associated samples. The methods differ
+a lot in how many genera they call; the consensus table says which calls do not depend on the
+choice of method.
+
+## Reading the result
+
+- A genus called by one method only is a result of that method, not of the data alone.
+- `min_methods` is part of the analysis: decide it, like the methods, before looking.
+- The {doc}`method pages </methods/index>` say what each `effect` measures and how each method's
+  numbers compare with its R package.
+````
+
+  Link it from the tutorials toctree, the methods index and the guide:
+
+````diff
+diff --git a/docs/guide/differential_abundance.md b/docs/guide/differential_abundance.md
+index 7cb7117..76fed0e 100644
+--- a/docs/guide/differential_abundance.md
++++ b/docs/guide/differential_abundance.md
+@@ -2,7 +2,8 @@
+
+ Differential abundance (DA) asks which features are more abundant in one group of samples than in
+ another. Every `bt.da` method takes the same arguments and returns the same table, so their answers
+-can be put side by side.
++can be put side by side. The {doc}`tutorial </tutorials/differential_abundance>` runs them on
++GlobalPatterns.
+
+ ## One question, one table
+
+diff --git a/docs/methods/index.md b/docs/methods/index.md
+index c16667e..93e9853 100644
+--- a/docs/methods/index.md
++++ b/docs/methods/index.md
+@@ -3,7 +3,8 @@
+ One page per differential abundance method: the model it fits, the units of its `effect`, how
+ biotapy's call differs from the R function's defaults, how closely the two agree on real data,
+ and the paper to cite. The {doc}`differential abundance guide </guide/differential_abundance>`
+-says how to run them.
++says how to run them, and the {doc}`tutorial </tutorials/differential_abundance>` runs them on
++GlobalPatterns.
+
+ ```{toctree}
+ :maxdepth: 1
+diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
+index 018f1e4..bcd81ef 100644
+--- a/docs/tutorials/index.md
++++ b/docs/tutorials/index.md
+@@ -7,4 +7,5 @@ getting_started
+ quick_tour
+ phyloseq_analysis
+ function
++differential_abundance
+ ```
+````
+
+  Run `uv run --group test pytest tests/da/test_consensus.py -q` -> `26 passed, 1 deselected`.
+- [x] **Step 4: Build and read the page.**
+  `rm -rf docs/_build docs/generated && BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group doc sphinx-build -W -b html docs docs/_build/html`
+  -> `build succeeded.` with `tutorials/differential_abundance.md: Executed notebook in <n>
+  seconds` (8.0-9.1 s in the prototype, GlobalPatterns cached). Open
+  `docs/_build/html/tutorials/differential_abundance.html` and check the outputs: `host` counts
+  `other 17`, `human 9`; `{'ancombc2': 208, 'linda': 118}`; `36`; `n_significant` `0 414`,
+  `1 118`, `2 104`; `consensus 104`, `conflict 0`; the crosstab (414 neither, 104 ANCOM-BC2 only,
+  14 LinDA only, 104 both); two figures: 30 bold rows of red dots in both columns (Porphyromonas,
+  Dialister, Finegoldia, ... at the top), then 30 rows with one filled dot and one hollow dot each.
+  The R block is shown as code with no output.
+- [x] **Step 5: Bookkeeping.**
+  - The checklist line `- [ ] 3.10b \`docs/tutorials/differential_abundance.md\`, the exit-gate notebook`
+    becomes `- [x] ...`.
+  - Log line, first under the slice 3D heading:
+    `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10b done: \`docs/tutorials/differential_abundance.md\` runs ANCOM-BC2, LinDA and their consensus on the GlobalPatterns genera on every docs build, and quotes the four-method counts the \`r-bridge\` job measures (a test keeps the two in step).`
+- [x] **Step 6: Gate and commit.**
+
+```bash
+git add docs/tutorials/differential_abundance.md docs/tutorials/index.md docs/methods/index.md \
+  docs/guide/differential_abundance.md tests/da/test_consensus.py .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+git commit -m "docs: add the differential abundance tutorial on GlobalPatterns
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1231 passed, 53 deselected
+uv run --group test pytest -q -m "golden or network" # 36 passed, 1248 deselected
+rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+  Where R and the packages are installed (the prototype used the local `biotapy-r-py` image on an
+  export of the commit, with the pooch cache mounted):
+  `BIOTAPY_DATA_DIR=<pooch> RPY2_CFFI_MODE=API uv run --group test --extra r pytest -m r -q` ->
+  `24 passed, 1260 deselected`. Without a local R, the `r-bridge` job on the PR is this check.
+
+### Task 3.12: Coming-from-R check
+
+**Files:**
+- Modify: `tests/test_coming_from_r.py`, `docs/_data/r_idioms.toml`, `docs/coming_from_r.md`,
+  `docs/tutorials/phyloseq_analysis.md`.
+
+**Not touched:** `docs/extensions/coming_from_r.py` (it already reads every `R equivalent:`
+line), any docstring, the other idioms (no `phyloseq_to_deseq2` row: not asked for, R1.4).
+
+**Interfaces:**
+- Consumes: `docs/extensions/coming_from_r.py:rows()`, unchanged; the `R equivalent:` lines of
+  `pp.relative`, `pp.clr`, `pp.philr` and the four `da` methods; the tutorial page (3.10b) the
+  vignette now links.
+- Produces: the label `"not in 0.3"`; a test pinning the seven Phase 3 rows.
+
+- [x] **Step 1: Failing tests.** In `tests/test_coming_from_r.py`:
+
+```diff
+diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
+index fc82dc0..af6009c 100644
+--- a/tests/test_coming_from_r.py
++++ b/tests/test_coming_from_r.py
+@@ -16,7 +16,7 @@ PHYLOSEQ_31 = """otu_table sample_data tax_table phy_tree refseq nsamples ntaxa
+ sample_sums taxa_sums rank_names sample_variables get_taxa_unique prune_taxa prune_samples subset_taxa
+ subset_samples filter_taxa transform_sample_counts rarefy_even_depth tax_glom estimate_richness distance
+ UniFrac ordinate plot_bar plot_richness plot_ordination plot_heatmap import_biom""".split()
+-NOT_IN_0_2 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
++NOT_IN_0_3 = ["tip_glom", "merge_samples", "psmelt", "plot_tree", "plot_net"]
+
+
+ def test_the_list_has_31_functions():
+@@ -26,12 +26,12 @@ def test_the_list_has_31_functions():
+ @pytest.mark.parametrize("name", PHYLOSEQ_31)
+ def test_table_maps_each_of_the_31(name):
+     cells = coming_from_r.rows()[f"phyloseq::{name}"]
+-    assert cells and "not in 0.2" not in cells
++    assert cells and "not in 0.3" not in cells
+
+
+-@pytest.mark.parametrize("name", NOT_IN_0_2)
++@pytest.mark.parametrize("name", NOT_IN_0_3)
+ def test_uncovered_functions_are_marked(name):
+-    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.2"]
++    assert coming_from_r.rows()[f"phyloseq::{name}"] == ["not in 0.3"]
+
+
+ @pytest.mark.parametrize(
+@@ -41,6 +41,22 @@ def test_mia_importers_map_to_the_function_readers(r_name, function):
+     assert coming_from_r.rows()[f"mia::{r_name}"] == [f"{{func}}`bt.io.{function} <biotapy.io.{function}>`"]
+
+
++@pytest.mark.parametrize(
++    ("r_name", "functions"),
++    [
++        ("ANCOMBC::ancombc2", ["da.ancombc2"]),
++        ("MicrobiomeStat::linda", ["da.linda"]),
++        ("ALDEx2::aldex", ["da.aldex2"]),
++        ("maaslin3::maaslin3", ["da.maaslin3"]),
++        ("philr::philr", ["pp.philr"]),
++        ("vegan::decostand", ["pp.clr"]),
++        ("mia::transformAssay", ["pp.clr", "pp.philr", "pp.relative"]),
++    ],
++)
++def test_transforms_and_da_methods_map_to_their_r_functions(r_name, functions):
++    assert coming_from_r.rows()[r_name] == [f"{{func}}`bt.{name} <biotapy.{name}>`" for name in functions]
++
++
+ def test_plot_functions_link_to_pl():
+     assert coming_from_r.rows()["phyloseq::plot_bar"] == ["{func}`bt.pl.bar <biotapy.pl.bar>`"]
+
+```
+
+- [x] **Step 2: Run, expect failure.**
+  `uv run --group test pytest tests/test_coming_from_r.py -q` -> `5 failed, 45 passed`: each
+  `test_uncovered_functions_are_marked` case fails (`['not in 0.2'] == ['not in 0.3']`). The seven
+  new cases pass at once: the rows already come from the 3A-3C docstrings; they are pins.
+- [x] **Step 3: Implement.**
+
+````diff
+diff --git a/docs/_data/r_idioms.toml b/docs/_data/r_idioms.toml
+index fe7a431..1bab3b9 100644
+--- a/docs/_data/r_idioms.toml
++++ b/docs/_data/r_idioms.toml
+@@ -23,8 +23,8 @@
+ "phyloseq::prune_samples" = '`tdata[keep].copy()`'
+ "phyloseq::subset_taxa" = '`tdata[:, tdata.var["phylum"] == "Chlamydiae"].copy()`'
+ "phyloseq::subset_samples" = '`tdata[tdata.obs["SampleType"] == "Feces"].copy()`'
+-"phyloseq::tip_glom" = "not in 0.2"
+-"phyloseq::merge_samples" = "not in 0.2"
+-"phyloseq::psmelt" = "not in 0.2"
+-"phyloseq::plot_tree" = "not in 0.2"
+-"phyloseq::plot_net" = "not in 0.2"
++"phyloseq::tip_glom" = "not in 0.3"
++"phyloseq::merge_samples" = "not in 0.3"
++"phyloseq::psmelt" = "not in 0.3"
++"phyloseq::plot_tree" = "not in 0.3"
++"phyloseq::plot_net" = "not in 0.3"
+diff --git a/docs/coming_from_r.md b/docs/coming_from_r.md
+index 6788ba4..1125af9 100644
+--- a/docs/coming_from_r.md
++++ b/docs/coming_from_r.md
+@@ -2,7 +2,7 @@
+
+ Every public biotapy function names its R equivalent in its docstring. This table is generated
+ from those lines each time the docs are built, plus a short list of phyloseq accessors that are
+-plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.2" have no
++plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.3" have no
+ biotapy equivalent yet.
+
+ biotapy keeps samples as rows, so `tdata.X` is phyloseq's `otu_table` with
+diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analysis.md
+index dba4dcf..6dcad6f 100644
+--- a/docs/tutorials/phyloseq_analysis.md
++++ b/docs/tutorials/phyloseq_analysis.md
+@@ -15,16 +15,18 @@ kernelspec:
+
+ This notebook redoes the sections of phyloseq's
+ [analysis vignette](https://github.com/joey711/phyloseq/blob/master/vignettes/phyloseq-analysis.Rmd)
+-that biotapy 0.2 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
++that biotapy 0.3 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
+ Each section names the R chunk it follows. Everything runs in biotapy; nothing is read from R.
+
+-**Not in 0.2**, so left out:
++**Not in 0.3**, so left out:
+
+ - `plot_tree` (exploratory tree plots) and `plot_net` (sample networks);
+ - correspondence analysis (`ordinate(..., "CCA")`) and DPCoA, with their scree, species and biplot plots;
+ - the `ACE` richness estimator, and `betadiver` distances such as `distance(esophagus, "g")`;
+ - `hclust` dendrograms: SciPy's `scipy.cluster.hierarchy.linkage(..., method="average")` does it;
+-- multiple testing and differential abundance (biotapy 0.3).
++- the "Multiple Testing and Differential Abundance" section, which points to DESeq2
++  (`phyloseq_to_deseq2`): biotapy does not wrap DESeq2, and runs its own methods in the
++  {doc}`differential abundance tutorial <differential_abundance>`.
+
+ ```{code-cell} ipython3
+ import matplotlib.pyplot as plt
+@@ -168,7 +170,7 @@ bt.pl.ordination(global_patterns, basis="nmds", color="SampleType");
+
+ `distance(esophagus, "bray")`, `"wunifrac"` and `"jaccard"`. phyloseq's `"jaccard"` is vegan's
+ quantitative Jaccard; biotapy's is presence/absence, phyloseq's
+-`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.2.
++`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.3.
+
+ ```{code-cell} ipython3
+ esophagus = bt.datasets.esophagus()
+````
+
+- [x] **Step 4: Run, expect pass.**
+  `uv run --group test pytest tests/test_coming_from_r.py -q` -> `50 passed`.
+- [x] **Step 5: Check the rendered page.** Build the docs, then read
+  `docs/generated/coming_from_r_table.md`: 58 rows (`grep -c '^| \`' ...`); the seven Phase 3 rows
+  link `bt.pp.*` and `bt.da.*`; five rows read "not in 0.3"; no "not in 0.2" anywhere
+  (`grep -rn "not in 0.2" docs --include=*.md --include=*.toml` prints nothing outside
+  `docs/_build`). The vignette's first bullet list links the tutorial.
+- [x] **Step 6: Bookkeeping.**
+  - The checklist line `- [ ] 3.12 Coming-from-R check` becomes `- [x] 3.12 Coming-from-R check`.
+  - Log line: `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.12 done: the Coming-from-R rows for \`pp.clr\`, \`pp.philr\` and the four \`da\` methods are pinned by a test; phyloseq calls without an equivalent read "not in 0.3", and the phyloseq vignette points its differential abundance section to the new tutorial.`
+- [x] **Step 7: Gate and commit.**
+
+```bash
+git add docs/_data/r_idioms.toml docs/coming_from_r.md docs/tutorials/phyloseq_analysis.md tests/test_coming_from_r.py \
+  .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+git commit -m "docs: pin the transform and DA rows of Coming from R, mark uncovered calls not in 0.3
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected
+uv run --group test pytest -q -m "golden or network" # 36 passed, 1255 deselected
+rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+### Task 3.13: Benchmarks
+
+**Files:**
+- Create: `benchmarks/benchmarks/da.py`.
+- Modify (the `docs(da)` commit): `src/biotapy/da/_ancombc.py` (docstring), `.knowledge/modules/da.md`.
+- Modify: `benchmarks/benchmarks/_data.py`, `benchmarks/benchmarks/pp.py`, `docs/performance.md`.
+
+**Not touched:** `Preprocessing`, `tl.py`, `fn.py`, `synthetic()`, `asv.conf.json`, the workflows
+(the `lint` job's `asv check` already imports every module), any `src/` file but `da.ancombc2`'s
+docstring. No optimisation (R10.1). The ANCOM-BC2 memory figure is reworded in its own
+`docs(da)` commit (decision 8, approved 2026-10-07: a fix, not a report).
+
+**Interfaces:**
+- Consumes: `bt.pp.philr(tdata, *, pseudocount=0.5)`, `bt.da.linda`, `bt.da.ancombc2`;
+  `_data.py:synthetic(n_obs, n_vars)`.
+- Produces: `_data.py:N_PHILR_OBS`, `N_DA_OBS`, `N_DA_VARS`, `DA_DENSITY`,
+  `synthetic_genera() -> AnnData`; the asv classes `pp.Philr` and `da.DifferentialAbundance`; the
+  "Transforms and differential abundance" table in `docs/performance.md`.
+
+- [x] **Step 1: The suite.**
+
+```diff
+diff --git a/benchmarks/benchmarks/_data.py b/benchmarks/benchmarks/_data.py
+index f16e962..8bd5f49 100644
+--- a/benchmarks/benchmarks/_data.py
++++ b/benchmarks/benchmarks/_data.py
+@@ -1,4 +1,4 @@
+-"""Synthetic benchmark data: a sparse count table with taxonomy and a tree, a function table, and taxon traits."""
++"""Synthetic benchmark data: a count table with taxonomy and a tree, a genus table, a function table, taxon traits."""
+
+ import numpy as np
+ import pandas as pd
+@@ -16,6 +16,10 @@ _RANK_SIZES = {"phylum": 10_000, "class": 5_000, "order": 2_500, "family": 500,
+ N_SAMPLES, N_FUNCTIONS, N_STRATA, N_GROUPS = 1_600, 500, 43, 50
+ # Tian et al.'s functional redundancy at 2,000 taxa, as measured when fn.functional_redundancy was written.
+ N_TAXA, N_GENES, N_ABUNDANCE_SAMPLES = 2_000, 2_500, 100
++# PhILR densifies X: 1,000 samples keep it at 400 MB on the 50,000-feature table.
++N_PHILR_OBS = 1_000
++# Differential abundance on a large genus-level study: 2,000 samples in two groups, 10,000 features, 30% non-zero.
++N_DA_OBS, N_DA_VARS, DA_DENSITY = 2_000, 10_000, 0.3
+
+
+ def synthetic(n_obs: int = N_OBS, n_vars: int = N_VARS) -> TreeData:
+@@ -72,3 +76,14 @@ def synthetic_traits() -> tuple[AnnData, pd.DataFrame]:
+     )
+     copies = rng.integers(1, 6, size=(N_TAXA, N_GENES)) * (rng.random((N_TAXA, N_GENES)) >= 0.7)
+     return adata, pd.DataFrame(copies, index=taxa, columns=[f"g{k}" for k in range(N_GENES)])
++
++
++def synthetic_genera() -> AnnData:
++    """2,000 samples x 10,000 features, 30% non-zero counts from 1 to 99, ``obs["group"]`` a / b, seed 0."""
++    rng = np.random.default_rng(SEED)
++    X = sp.random(
++        N_DA_OBS, N_DA_VARS, density=DA_DENSITY, format="csr", rng=rng, data_rvs=lambda size: rng.integers(1, 100, size)
++    )
++    group = pd.Categorical(np.repeat(["a", "b"], N_DA_OBS // 2))
++    obs = pd.DataFrame({"group": group}, index=[f"s{i}" for i in range(N_DA_OBS)])
++    return AnnData(X=X, obs=obs, var=pd.DataFrame(index=[f"f{j}" for j in range(N_DA_VARS)]))
+diff --git a/benchmarks/benchmarks/pp.py b/benchmarks/benchmarks/pp.py
+index 4966725..a0aa8b6 100644
+--- a/benchmarks/benchmarks/pp.py
++++ b/benchmarks/benchmarks/pp.py
+@@ -1,9 +1,9 @@
+-"""Preprocessing at 5,000 samples x 50,000 features."""
++"""Preprocessing at 5,000 samples x 50,000 features, and PhILR at 1,000 samples."""
+
+ import biotapy as bt
+ from biotapy._core import TreeData
+
+-from ._data import synthetic
++from ._data import N_PHILR_OBS, synthetic
+
+
+ class Preprocessing:
+@@ -26,3 +26,21 @@ class Preprocessing:
+     def time_rarefy(self, tdata: TreeData) -> None:
+         """``pp.rarefy`` to the smallest sample depth."""
+         bt.pp.rarefy(tdata, seed=0)
++
++
++class Philr:
++    """``pp.philr`` at 1,000 samples x 50,000 features: ``X`` densified once (400 MB), then 49,999 balances."""
++
++    number, repeat, rounds, timeout = 1, 3, 1, 600
++
++    def setup_cache(self) -> TreeData:
++        """Build the table once; asv pickles it for every benchmark."""
++        return synthetic(n_obs=N_PHILR_OBS)
++
++    def time_philr(self, tdata: TreeData) -> None:
++        """Centred log-ratios times the tree's sparse orthonormal basis."""
++        bt.pp.philr(tdata)
++
++    def peakmem_philr(self, tdata: TreeData) -> None:
++        """Peak memory: the dense table, its log-ratios and the balances."""
++        bt.pp.philr(tdata)
+```
+
+  Create `benchmarks/benchmarks/da.py`:
+
+```python
+"""Differential abundance at 2,000 samples x 10,000 features: the two methods that run without R."""
+
+from anndata import AnnData
+
+import biotapy as bt
+
+from ._data import synthetic_genera
+
+
+class DifferentialAbundance:
+    """``da.linda`` and ``da.ancombc2``, two groups of 1,000 samples; each densifies ``X`` once (160 MB)."""
+
+    number, repeat, rounds, timeout = 1, 3, 1, 600
+
+    def setup_cache(self) -> AnnData:
+        """Build the table once; asv pickles it for every benchmark."""
+        return synthetic_genera()
+
+    def time_linda(self, adata: AnnData) -> None:
+        """One least-squares fit per feature, then the mode of the coefficients."""
+        bt.da.linda(adata, "group")
+
+    def peakmem_linda(self, adata: AnnData) -> None:
+        """Peak memory; the docstring says about five dense copies of ``X``."""
+        bt.da.linda(adata, "group")
+
+    def time_ancombc2(self, adata: AnnData) -> None:
+        """scikit-bio's ANCOM-BC2, its bias E-M capped at 100 iterations."""
+        bt.da.ancombc2(adata, "group")
+
+    def peakmem_ancombc2(self, adata: AnnData) -> None:
+        """Peak memory; ``da.ancombc2``'s docstring gives 4.5x to 7.5x the dense ``X``, 4.5x on this table."""
+        bt.da.ancombc2(adata, "group")
+```
+
+  Why the suite looks as it does: PhILR at 1,000 samples keeps the dense table at 400 MB (the
+  full 5,000 would be 2 GB and peak near 10 GB); `synthetic(n_obs=...)` reuses Phase 1's
+  construction, whose odd tree levels leave one-child nodes that `pp.philr` skips, as on a filtered
+  real tree. The DA table is 30% non-zero because zeros drive ANCOM-BC2's missing-value path; 2,000
+  x 10,000 is a large genus-level study. `AnnData` with counts inferred from the values (no `uns`),
+  as `synthetic_traits` builds its table.
+- [x] **Step 2: Check it imports.**
+  `cd benchmarks && uv run --group dev asv check --python=same` -> `No problems found.`; then
+  `uvx ruff check benchmarks` -> `All checks passed!` and `uvx ruff format --check benchmarks` ->
+  `6 files already formatted`.
+- [x] **Step 3: Gate and commit the suite.**
+
+```bash
+git add benchmarks/benchmarks/_data.py benchmarks/benchmarks/pp.py benchmarks/benchmarks/da.py
+git commit -m "perf: add asv benchmarks for PhILR, LinDA and ANCOM-BC2
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected
+```
+
+- [x] **Step 3b: The docstring fix** (decision 8), its own commit after the baseline run, so the
+  baseline is measured on the suite commit. In `src/biotapy/da/_ancombc.py`, `da.ancombc2`'s Notes:
+
+```diff
+-    samples x features. Peak memory is about seven such arrays (7.2x to 7.5x
+-    measured on 400 x 1,000 and 200 x 2,000 tables).
++    samples x features. Peak memory is 4.5x to 7.5x such an array, depending on
++    the table's shape: 4.5x measured on a 2,000 x 10,000 table (30% non-zero),
++    7.2x to 7.5x on 400 x 1,000 and 200 x 2,000 tables.
+```
+
+  `.knowledge/modules/da.md` ("ANCOM-BC2 about 7x" becomes "4.5x to 7.5x, depending on the table's
+  shape"; `generated` and `commit` bumped) and a `.knowledge/log.md` line go in the same commit:
+  `docs(da): state ANCOM-BC2's measured peak-memory range`.
+- [x] **Step 4: Run the baseline** on that commit, with `git status --short` empty and other heavy
+  work closed (the numbers are the record). asv's `branches: ["master"]` needs a local `master`
+  branch (`git branch --list master` must print it):
+
+```bash
+cat /proc/loadavg
+cd benchmarks
+uv run --group dev env HOME="$PWD/../.asv" asv machine --yes
+uv run --group dev env HOME="$PWD/../.asv" asv run --python=same --bench "^(da\.|pp\.Philr)" --set-commit-hash "$(git rev-parse HEAD)" --show-stderr
+uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)" --bench "^(da\.|pp\.Philr)"
+cat /proc/loadavg
+```
+
+  Done 2026-10-07 on `51e0475` (load average 1.66, 1.30, 1.21 before, 4.64, 2.23, 1.54 after;
+  55 s): `time_philr` 3.12 s, `peakmem_philr` 2.14 GB, `time_linda` 425 ms, `peakmem_linda` 1.15 GB,
+  `time_ancombc2` 3.62 s, `peakmem_ancombc2` 1.07 GB. The calls' own peaks on this run:
+  `pp.philr` 1.72 GB (4.31x its dense table), `da.linda` 822 MB (5.14x), `da.ancombc2` 726 MB
+  (4.54x). None is more than twice the prototype's.
+
+  Expect six results, each `ok`, in about 60 s. The prototype's (`7b15403`, the laptop of
+  Phases 1 and 2: 11th Gen Intel Core i7-11800H, 16 threads, 62 GB, Linux, Python 3.13):
+  `time_philr` 3.04 s, `peakmem_philr` 2.14 GB, `time_linda` 469 ms, `peakmem_linda` 1.15 GB,
+  `time_ancombc2` 3.92 s, `peakmem_ancombc2` 1.07 GB. A result more than twice these, or a
+  failure, is reported before it is recorded (R14.1).
+  The calls' own peaks (Step 5's second bullet), measured outside asv with
+  `/proc/self/statm` before the call and `resource.getrusage(...).ru_maxrss` after it, in a fresh
+  process per function on the same tables: `pp.philr` 1.72 GB, `da.linda` 821 MB, `da.ancombc2`
+  723 MB. Replace them with the run's values.
+- [x] **Step 5: The performance page.** Add the section before "## Running the benchmarks",
+  replacing the commit, date, load averages and every number with Step 4's run:
+
+````diff
+diff --git a/docs/performance.md b/docs/performance.md
+index bd48d26..df4e2a0 100644
+--- a/docs/performance.md
++++ b/docs/performance.md
+@@ -65,6 +65,37 @@ The hierarchy puts every function in two of 50 groups. Functional redundancy run
+ - `functional_redundancy` compares every pair of taxa, so its time grows with the square of the
+   taxa times the genes, and its memory with the square of the taxa.
+
++## Transforms and differential abundance
++
++Measured on commit `51e0475`, 2026-10-07, on the same laptop and environment, with
++`asv run --python=same --bench "^(da\.|pp\.Philr)"` (the two classes took about 55 s). The load
++average was 1.66, 1.30, 1.21 before the run and 4.64, 2.23, 1.54 after it. Release 0.3 sets no
++speed target either.
++
++PhILR runs on the synthetic table above built with 1,000 samples (50,000 features, 2% non-zero,
++the same balanced tree). The two differential abundance methods that run without R run on 2,000
++samples in two groups of 1,000 and 10,000 features, 30% non-zero counts from 1 to 99, the size of
++a large genus-level study. All of it comes from seed 0 (`benchmarks/benchmarks/_data.py`). ALDEx2
++and MaAsLin 3 are not benchmarked: their time is R's.
++
++| Benchmark | Result |
++|---|---|
++| `pp.philr`, 1,000 x 50,000 | 3.12 s |
++| `pp.philr`, peak memory | 2.14 GB |
++| `da.linda`, 2,000 x 10,000 | 425 ms |
++| `da.linda`, peak memory | 1.15 GB |
++| `da.ancombc2`, 2,000 x 10,000 | 3.62 s |
++| `da.ancombc2`, peak memory | 1.07 GB |
++
++- Each of the three densifies `X` once (rules.md R6.2): 400 MB for PhILR, 160 MB for the
++  differential abundance table. The peaks also hold the Python process (418 MB with PhILR's table
++  loaded, 345 MB with the differential abundance table).
++- Measured outside asv on the same tables, the call itself added 1.72 GB for `pp.philr` (4.3 times
++  the dense table, plus scikit-bio's sparse basis, as its docstring says), 822 MB for `da.linda`
++  (5.1 times, as its docstring says) and 726 MB for `da.ancombc2` (4.5 times; its docstring gives
++  4.5 times here and 7.2 to 7.5 times on the 400 x 1,000 and 200 x 2,000 tables it was first
++  measured on, so the range depends on the table's shape). Nothing is being optimised
++  (rules.md R10.1).
++
+ ## Running the benchmarks
+
+ ```bash
+@@ -77,6 +108,6 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
+ ```
+
+ `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
+-`.asv/results`. Add `--bench "^fn\."` to `asv run` and `asv show` to run or show only the function
+-benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
++`.asv/results`. Add `--bench "^fn\."` (or `"^(da\.|pp\.Philr)"`) to `asv run` and `asv show` to
++run or show only the function (or transform and differential abundance) benchmarks. The whole suite
++took about 13 minutes on this run and needs about 3 GB of free memory.
+ `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
+````
+
+- [x] **Step 6: Bookkeeping.**
+  - The checklist line `- [ ] 3.13 asv benchmarks for \`pp.philr\`, \`da.linda\`, \`da.ancombc2\``
+    becomes `- [x] ...`.
+  - Log line: `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.13 done: asv baselines for \`pp.philr\`, \`da.linda\` and \`da.ancombc2\` in docs/performance.md.`
+- [x] **Step 7: Gate and commit the page.**
+
+```bash
+git add docs/performance.md .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+git commit -m "docs: record the asv baselines for PhILR, LinDA and ANCOM-BC2
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected
+uv run --group test pytest -q -m "golden or network" # 36 passed, 1255 deselected
+rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html  # build succeeded.
+```
+
+### Checkpoint D - review slice 3D
+
+- [x] **Review the whole slice** with superpowers:requesting-code-review (opus: the pages are
+  claims about statistics a user will act on), against:
+  - data-model-slots ("DA results"), function-shape, r-golden-parity, module-boundaries;
+  - pure-by-default and da-consensus-agreement;
+  - the slice 3D design, review focus and global constraints above.
+
+  The reviewer reads each "Compared with R" table against the R `formals()` recorded in "How
+  slice 3D was checked", the call in the docstring and `tests/r/export_golden.R` (review focus
+  2), and each "Agreement with R" number against its golden test. Reviewers may download
+  GlobalPatterns (always with an absolute `BIOTAPY_DATA_DIR`) and read the rendered pages. Then a
+  fix pass, one commit per finding, each with a test where a test can show it (a docs-only finding
+  is shown by the docs build or a `tests/test_ci.py`-style check); then a scoped re-review of the
+  fix pass. Record: review counts (Critical / Important / Minor), fix pass range, re-review result.
+  Recorded: 0 Critical / 1 Important / 5 Minor; fix pass `48279d2..9cc69d3` plus `e5209f0`
+  (the ALDEx2 reference-swap test); re-review `48279d2..716ce33`: I1, M1, M2, M4 addressed, M3 and
+  M5 partial (roadmap text only, fixed by `716ce33` and `a1b54be`).
+- [x] **Task 3.14** (below), after the fix pass.
+- [ ] **Run the gates** on the committed tree (`git status --short` empty first), every command
+  with an absolute `BIOTAPY_DATA_DIR`:
+  - `uvx prek run --all-files`;
+  - `uv run --group test pytest -q -W error::UserWarning` (1238 passed, 53 deselected before the
+    fix pass);
+  - `uv run --group test pytest -q -m "golden or network"` (36 passed);
+  - `rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html`;
+  - `cd benchmarks && uv run --group dev asv check --python=same` (`No problems found.`);
+  - `bash scripts/knowledge_stale.sh --against HEAD` prints `25 current, 0 stale, 12 uncheckable`.
+
+  Confirm `~/.cache/biotapy` and `docs/pooch/` do not exist.
+- [ ] **Push** `phase-3d`, open the PR, and merge-commit on green (approved 2026-10-05 for Phase 3
+  slice branches). CI must be green: every hatch-test job, `lint` (with `asv check`, which imports
+  `da.py`), `import-without-extras`, `network`, `r-bridge` (its log shows `24 passed`: the `r`
+  test now reads the constants the tutorial test checks), `docs` (its log shows five `Executed
+  notebook` lines, one of them `tutorials/differential_abundance.md`). Record the PR number, the
+  merge commit, the Test run id and the docs job id: they are exit-gate items 1 and 3's evidence,
+  ticked in Task 3.15 Step 8. If `r-bridge` fails only on the four-method numbers, stop and report
+  the measured differences; do not edit the constants to match without the user (R11.5).
+- [ ] **After the merge**, once Read the Docs has built `master`:
+  `curl -s -o /dev/null -w "%{http_code}\n" https://biotapy.readthedocs.io/en/latest/tutorials/differential_abundance.html`
+  and the same for `methods/linda.html` print `200`, and the tutorial shows its two figures. Read
+  the Docs keeps no pooch cache, so its build downloads GlobalPatterns (already the case for the
+  phyloseq vignette). If a page is missing, read the build log on readthedocs.org and report it;
+  do not work around it.
+- [ ] **Ask the user, in one message:**
+  1. to review slice 3D before the release;
+  2. to approve pushing `release-0.3.0`, opening its PR and merge-committing it on green (Task
+     3.15 Steps 3-9; R13.3: the standing approval names slice branches only);
+  3. to confirm that on pypi.org project `biotapy` still lists the trusted publisher (owner
+     `pedrocr83`, repository `biotapy`, workflow `release.yaml`, environment `pypi`) that published
+     0.2.0. (Checked 2026-10-07 from GitHub's side: environment `pypi` exists with no protection
+     rules.)
+
+  Stop until the user answers.
+
+### Task 3.14: Knowledge
+
+Run as Checkpoint D's knowledge step, after the fix pass, so it documents the final code. Use the
+codebase-map templates (R12.2-R12.4). Most of `modules/da.md` was written at Checkpoints B and C;
+this task adds only what slice 3D changed.
+
+**Files:**
+- Modify: `.knowledge/modules/da.md`, `.knowledge/playbooks/add-a-function.md`,
+  `.knowledge/roadmap/phase-3-stats.md`, `.knowledge/log.md`, and `commit`/`generated` only on
+  the concepts Step 2 lists.
+
+**Not touched:** `modules/pp.md`, `modules/pl.md`, `modules/core.md`,
+`decisions/optional-heavy-dependencies.md` (re-read: nothing they state changed; `pp.md`'s "philr
+peaks at about five arrays" agrees with the measured 4.3x plus the basis), any `src/` file, every
+contract's body.
+
+**Interfaces:**
+- Consumes: the final slice 3D tree; `bash scripts/knowledge_stale.sh --touched --against master`.
+- Produces: a bundle with 0 stale concepts against `HEAD`.
+
+- [ ] **Step 1: Concepts the slice changes.** Re-check each sentence against the code after the
+  fix pass (a fix may change a number). `modules/da.md` already has the ANCOM-BC2 memory gotcha
+  (`b9cb006`: "4.5x to 7.5x, depending on the table's shape") and the MaAsLin 3 and ALDEx2
+  bounds as measured; what is left is the frontmatter, the Verification paragraph and the
+  tutorial gotcha:
+
+````diff
+diff --git a/.knowledge/modules/da.md b/.knowledge/modules/da.md
+index 49b19ac..0fbbac9 100644
+--- a/.knowledge/modules/da.md
++++ b/.knowledge/modules/da.md
+@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
+ resource: /src/biotapy/da/
+ paths: ["src/biotapy/da/**"]
+ tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:00:00Z }
+-commit: df27399
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ status: stable
+ ---
+
+@@ -142,6 +142,9 @@ uv run --group test pytest -m "golden or network" tests/da -q
+ uv run --group test --extra r pytest -m r tests/da -q
+ ```
+
++The docs build also runs `da.linda`, `da.ancombc2` and `da.consensus` in
++`docs/tutorials/differential_abundance.md`; each method's model, R settings
++and measured agreement with R are written up in `docs/methods/`.
+ The second needs the pooch cache of GlobalPatterns (`BIOTAPY_DATA_DIR`); at
+ the 64fe39d check it gave `4 passed`. The third needs R with ALDEx2 and
+ maaslin3 installed (the `r-bridge` CI job, or the golden image in
+@@ -232,6 +235,13 @@ per-module command exists: unknown.
+   table at peak; ANCOM-BC2 4.5x to 7.5x, depending on the table's shape). rules.md R6.2 allows it: a native
+   method whose algorithm needs the full table may densify once (the user
+   approved that wording after Checkpoint B, 2026-10-05).
++- **The tutorial quotes the four-method counts.** The docs build has no R, so
++  `docs/tutorials/differential_abundance.md` prints the counts the `r` test
++  `tests/da/test_consensus.py::test_four_methods_on_the_exit_gate_data`
++  measures; both read the constants `FOUR_METHOD_*` in that file, and
++  `test_the_tutorial_quotes_the_four_method_counts` fails until the tutorial
++  matches them. A change to any method's numbers on GlobalPatterns updates
++  the constants and the tutorial together.
+ - Replicate rows within a group give `se = 0` in LinDA and p-values that are
+   floating-point noise; R does the same.
+
+
+diff --git a/.knowledge/playbooks/add-a-function.md b/.knowledge/playbooks/add-a-function.md
+index 9425ed2..6350bad 100644
+--- a/.knowledge/playbooks/add-a-function.md
++++ b/.knowledge/playbooks/add-a-function.md
+@@ -5,8 +5,8 @@ description: The only sanctioned path from "we need X" to a merged public functi
+ tags: [workflow, api, testing]
+ status: stable
+ paths: ["src/biotapy/**", "tests/**", "docs/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ ---
+
+ # When
+@@ -39,7 +39,9 @@ Any new entry in a subpackage `__all__`.
+    feeds the generated Coming-from-R page; `tests/test_docstrings.py` fails
+    if it cannot be parsed.
+ 8. **Docs page**: add or extend the `docs/guide/<concept>.md` page the
+-   docstring links to; add the function to `docs/api.md`.
++   docstring links to; add the function to `docs/api.md`. A `da` method also
++   gets a page in `docs/methods/` (model, units, the R defaults it changes,
++   agreement with R, reference) and a row in the guide's method table.
+ 9. **Knowledge**: update `.knowledge/` only if a contract, decision or module
+    concept is now wrong or incomplete - see [maintain-knowledge](/playbooks/maintain-knowledge.md).
+ 10. **Tick** the task checkbox in the active phase concept.
+````
+
+- [ ] **Step 2: Concepts the diff only touches.** Run
+  `bash scripts/knowledge_stale.sh --against HEAD` before Step 1's edits; on the fix pass's final
+  commit it reports `16 current, 9 stale, 12 uncheckable`, the nine being `phase-0-foundation`,
+  `phase-1-core`, `da`, `data-model-slots`, `engine-parity`, `function-shape`, `module-boundaries`,
+  `r-golden-parity` and `add-a-function`. (`phase-3-stats` is current because the fix pass bumped
+  it; Steps 3 and 4 edit it again, so bump it here too.) `da` and `add-a-function` are edited by
+  Step 1; read each of the other seven against the slice diff, and nothing they state became false.
+  Engine-parity's 5,000 x 50,000 table still gates compiled engines, and r-golden-parity's rows are
+  unchanged (the `r` test only reads constants now). The three contracts that cover
+  `src/biotapy/**` are stale because `3b6239f`, `b9cb006` and the fix pass edit docstring prose in
+  `src/biotapy/da/` (`_aldex2.py`, `_ancombc.py`, `_maaslin3.py`) and nothing else: no signature,
+  slot, result key, layer or import changed, so data-model-slots, function-shape and
+  module-boundaries state the same things. Bump only `generated` and `commit` on
+  each, and on `modules/da.md`, `add-a-function` and `phase-3-stats`. In every diff below the `+generated`
+  and `+commit` lines are placeholders: write the model that runs the task, the UTC time (`date -u
+  +%FT%TZ`) and, for `commit:`, the parent of the commit you are about to make (`git rev-parse
+  --short HEAD`); every other line applies as written:
+
+```diff
+diff --git a/.knowledge/contracts/engine-parity.md b/.knowledge/contracts/engine-parity.md
+index a7d96ec..819d2d2 100644
+--- a/.knowledge/contracts/engine-parity.md
++++ b/.knowledge/contracts/engine-parity.md
+@@ -5,8 +5,8 @@ description: A compiled kernel is a drop-in behind an existing public function v
+ tags: [performance, testing]
+ status: stable
+ paths: ["src/biotapy/**/*.py", "rust/**", "benchmarks/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/r-golden-parity.md b/.knowledge/contracts/r-golden-parity.md
+index 17076d8..eb7afa6 100644
+--- a/.knowledge/contracts/r-golden-parity.md
++++ b/.knowledge/contracts/r-golden-parity.md
+@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
+ tags: [testing, r, validation]
+ status: stable
+ paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T13:50:53Z }
+-commit: 8a1f184
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
+index 0c6fdb1..20817b8 100644
+--- a/.knowledge/contracts/data-model-slots.md
++++ b/.knowledge/contracts/data-model-slots.md
+@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the
+ tags: [data-model, api]
+ status: stable
+ paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/function-shape.md b/.knowledge/contracts/function-shape.md
+index 23963bd..df5b987 100644
+--- a/.knowledge/contracts/function-shape.md
++++ b/.knowledge/contracts/function-shape.md
+@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
+ tags: [api, conventions, docs]
+ status: stable
+ paths: ["src/biotapy/**/*.py"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/contracts/module-boundaries.md b/.knowledge/contracts/module-boundaries.md
+index b1067bc..d9cdb45 100644
+--- a/.knowledge/contracts/module-boundaries.md
++++ b/.knowledge/contracts/module-boundaries.md
+@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public
+ tags: [architecture, modularization]
+ status: stable
+ paths: ["src/biotapy/**", "pyproject.toml"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/roadmap/phase-0-foundation.md b/.knowledge/roadmap/phase-0-foundation.md
+index de08f7c..1555cd0 100644
+--- a/.knowledge/roadmap/phase-0-foundation.md
++++ b/.knowledge/roadmap/phase-0-foundation.md
+@@ -9,8 +9,8 @@ phase_state: done
+ effort: ~1 week part-time
+ depends_on: []
+ paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
+-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-06T14:27:16Z }
+-commit: bade2ba
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+diff --git a/.knowledge/roadmap/phase-1-core.md b/.knowledge/roadmap/phase-1-core.md
+index fe70fd5..0f6a419 100644
+--- a/.knowledge/roadmap/phase-1-core.md
++++ b/.knowledge/roadmap/phase-1-core.md
+@@ -9,8 +9,8 @@ phase_state: done
+ effort: 6-8 weeks part-time (spec); slices 1A-1D with checkpoints
+ depends_on: [/roadmap/phase-0-foundation.md]
+ paths: ["src/biotapy/**", "tests/**", "docs/**", "benchmarks/**"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+```
+
+  Re-run `bash scripts/knowledge_stale.sh --against HEAD` after the commit: `25 current, 0 stale,
+  12 uncheckable`.
+- [ ] **Step 3: Roadmap.** The checklist line `- [ ] 3.14 Knowledge (...)` becomes `- [x] ...`;
+  record Checkpoint D's review counts, fix range and re-review in its first box.
+- [ ] **Step 4: Log**, first under the slice 3D heading:
+
+```markdown
+- **Update**: [da](modules/da.md): Verification names the tutorial and the method pages; new gotcha: the tutorial quotes the `r` test's four-method counts through shared constants and a test.
+- **Update**: [add-a-function](playbooks/add-a-function.md) step 8: a `da` method also gets a page in `docs/methods/` and a row in the guide's method table.
+- **Verification**: re-checked against `29efd9c..<HEAD>` and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [r-golden-parity](contracts/r-golden-parity.md), [data-model-slots](contracts/data-model-slots.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md).
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.14 done.
+```
+
+- [ ] **Step 5: Gate and commit.**
+
+```bash
+git add .knowledge/modules/da.md .knowledge/playbooks/add-a-function.md .knowledge/roadmap/phase-0-foundation.md \
+  .knowledge/roadmap/phase-1-core.md .knowledge/contracts/engine-parity.md .knowledge/contracts/r-golden-parity.md \
+  .knowledge/contracts/data-model-slots.md .knowledge/contracts/function-shape.md .knowledge/contracts/module-boundaries.md \
+  .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
+git commit -m "docs(knowledge): document the DA docs and benchmarks and refresh concepts for slice 3D
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected (plus the fix pass's tests)
+bash scripts/knowledge_stale.sh --against HEAD       # 25 current, 0 stale, 12 uncheckable
+```
+
+### Task 3.15: Release 0.3.0
+
+Follows [cut-a-release](/playbooks/cut-a-release.md) and Task 2.15. Publishing to PyPI is
+irreversible: a version can never be uploaded twice. Every outward step waits for the user's
+explicit approval of that step (R13.3).
+
+**Files:**
+- Modify (release commit): `pyproject.toml` (version), `CHANGELOG.md`, `README.md`.
+- Modify (knowledge commit): `.knowledge/playbooks/cut-a-release.md`, the concepts the version
+  bump makes stale, `.knowledge/roadmap/phase-3-stats.md`, `.knowledge/log.md`.
+- Modify (after the upload, branch `close-phase-3`): `.knowledge/roadmap/phase-3-stats.md`,
+  `.knowledge/roadmap/phase-4-ml-multiomics.md`, `.knowledge/roadmap/index.md`, `.knowledge/log.md`.
+
+**Interfaces:**
+- Consumes: `master` after Checkpoint D's merge; `.github/workflows/release.yaml` (on
+  `release: published`: `uv build`, then `pypa/gh-action-pypi-publish` v1.14.2 in environment
+  `pypi`).
+- Produces: `biotapy 0.3.0` on PyPI with the extra `r`; Phase 3 `phase_state: done`; Phase 4
+  active.
+
+**Not touched:** any `src/`, `tests/` or `docs/` file (the version reaches the docs through
+package metadata; `docs/changelog.md` includes `CHANGELOG.md`), the workflows. `uv.lock` is
+git-ignored, so the bump leaves no lock diff.
+
+- [ ] **Step 1: Approval in hand.** Checkpoint D's last box asked for the slice review, the
+  release branch push/PR/merge and the PyPI publisher check. Do not start until the user has
+  answered all three.
+- [ ] **Step 2: Check the publish action.**
+  `gh api repos/pypa/gh-action-pypi-publish/releases/latest --jq .tag_name` prints `v1.14.2`
+  (checked 2026-10-07; `release.yaml` pins `v1.14.2`). If it prints anything newer, stop and
+  report it: a stale pin failed 0.0.1 (the playbook's Common mistakes).
+- [ ] **Step 3: Branch.**
+  `git switch master && git pull --ff-only && git switch -c release-0.3.0`.
+- [ ] **Step 4: Version and changelog.** `## [Unreleased]` is empty (no slice 3A-3D PR wrote an
+  entry). Write the 0.3.0 entries from `git log v0.2.0..master --no-merges --oneline` and the diff
+  below, with the date from `date -u +%F`; leave a new empty `## [Unreleased]` above:
+
+```diff
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4f09d94..63c6bc2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -10,6 +10,44 @@ and this project adheres to [Semantic Versioning][].
+
+ ## [Unreleased]
+
++## [0.3.0] - 2026-10-07
++
++### Added
++
++- `bt.pp.clr`: centred log-ratio transform into `layers["clr"]`, equal to
++  `vegan::decostand(x, "clr", pseudocount = 0.5)`.
++- `bt.pp.philr`: PhILR balances along the phylogeny into `obsm["X_philr"]`,
++  equal to `philr::philr` with its default weights.
++- `bt.da.linda`, `bt.da.ancombc2`: differential abundance by LinDA (a port
++  of `MicrobiomeStat::linda`) and ANCOM-BC2 (through scikit-bio), both in
++  Python and compared with R in golden tests.
++- `bt.da.aldex2`, `bt.da.maaslin3`: ALDEx2 and MaAsLin 3's abundance model,
++  run in R through rpy2. They need R, the R package, and the new extra
++  `biotapy[r]` (`rpy2>=3.6.8`, GPL-2.0-or-later, built against your R).
++- One result table for every method: log2 `effect`, `se`, `pvalue`,
++  Benjamini-Hochberg `qvalue` over the features the method tested,
++  `direction`, `method` and `contrast`. Methods take `group`, `covariates`
++  and `reference` instead of a formula, and never filter features.
++- `bt.da.consensus` and `bt.pl.consensus`: count, per feature, the methods
++  that call it and whether they agree on its direction, as a table and as a
++  dot matrix.
++- A differential abundance guide, a page per method, and a tutorial on the
++  GlobalPatterns genera.
++- asv benchmarks for `pp.philr`, `da.linda` and `da.ancombc2`, with their
++  baselines in the docs.
++
++### Changed
++
++- The readers infer `x_kind` `"counts"` only for non-negative whole numbers,
++  and the functions that need counts (`pp.rarefy`, `tl.alpha`'s
++  `observed_features` and `chao1`, weighted `tl.unifrac`) refuse a table with
++  a negative value.
++- `bt.pl.bar` and `bt.pl.heatmap` raise `ValueError` for a table with a
++  negative value, such as `layers["clr"]`, instead of drawing it as
++  abundances.
++- The Coming-from-R page marks the phyloseq calls biotapy does not cover yet
++  "not in 0.3".
++
+ ## [0.2.0] - 2026-10-05
+
+ ### Added
+diff --git a/pyproject.toml b/pyproject.toml
+index 195dbd5..794071b 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ requires = [ "hatchling>=1.27" ]
+
+ [project]
+ name = "biotapy"
+-version = "0.2.0"
++version = "0.3.0"
+ description = "mia-style microbiome toolkit for Python on AnnData/TreeData"
+ readme = "README.md"
+ license = "BSD-3-Clause"
+```
+
+  Each "Changed" line is a fix to a function 0.2.0 shipped: `dfa71fe` (`infer_x_kind` and
+  `require_counts`: readers, `pp.rarefy`, `tl.alpha`, weighted `tl.unifrac`), `c920c7b`
+  (`pl.bar`, `pl.heatmap`), and Task 3.12. If Checkpoint D's fix pass changed another 0.2.0
+  function, add its line.
+- [ ] **Step 5: README** (PyPI's project page). Change only the Status section and Installation:
+
+````diff
+diff --git a/README.md b/README.md
+index cd201c8..f1ab12c 100644
+--- a/README.md
++++ b/README.md
+@@ -14,9 +14,9 @@ against R on real data.
+
+ ## Status
+
+-**biotapy 0.2 is an early release.** The API can still change between minor versions.
++**biotapy 0.3 is an early release.** The API can still change between minor versions.
+
+-What 0.2 does (full signatures in the [API reference][api]):
++What 0.3 does (full signatures in the [API reference][api]):
+
+ - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
+   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
+@@ -34,17 +34,24 @@ What 0.2 does (full signatures in the [API reference][api]):
+   and `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached
+   on first use.
+ - **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
+-  `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`.
++  `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`, and
++  the compositional transforms `bt.pp.clr` and `bt.pp.philr` (checked against
++  vegan and philr).
+ - **Function**: `bt.fn.load_hierarchy`, `bt.fn.func_glom` and `bt.fn.renorm`
+   (checked against HUMAnN's own output), `bt.fn.contributions` and
+   `bt.fn.functional_redundancy`.
+ - **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
+   `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
++- **Differential abundance**: `bt.da.linda` and `bt.da.ancombc2` in Python,
++  `bt.da.aldex2` and `bt.da.maaslin3` through R (the `r` extra below), all
++  returning one result table and checked against their R packages, and
++  `bt.da.consensus`, which reports where the methods agree.
+ - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
+-  `bt.pl.scree`, `bt.pl.heatmap` and `bt.pl.contributions`.
++  `bt.pl.scree`, `bt.pl.heatmap`, `bt.pl.contributions` and
++  `bt.pl.consensus`.
+
+-Next, in 0.3: compositional transforms (CLR, PhILR) and differential abundance
+-(ANCOM-BC, LinDA, ALDEx2, MaAsLin 3) behind one result format. See the
++Next, in 0.4: multi-omics conventions on MuData, leak-free scikit-learn
++transformers, a PyTorch loader and an interface for embedding models. See the
+ [roadmap][roadmap]; no dates are promised.
+
+ ## Installation
+@@ -71,6 +78,17 @@ pixi add --pypi biotapy
+ The development version installs straight from GitHub:
+ `pip install git+https://github.com/pedrocr83/biotapy.git`.
+
++ALDEx2 and MaAsLin 3 run in R. They need R with the R packages
++(`BiocManager::install(c("ALDEx2", "maaslin3"))`) and the `r` extra, which
++builds rpy2 against that R (Linux and macOS):
++
++```bash
++pip install 'biotapy[r]'
++```
++
++rpy2 is GPL-2.0-or-later and the R packages carry their own licences; biotapy
++does not ship any of them.
++
+ On Python 3.14, the `biom-format` dependency has no wheels yet, so it is built
+ from source and needs a C compiler until biom-format publishes 3.14 wheels
+ ([biocore/biom-format#1004][biom-format-1004]).
+````
+
+- [ ] **Step 6: Build check.**
+  - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files print `PASSED`.
+  - `tar tzf dist/biotapy-0.3.0.tar.gz | grep -c benchmarks` prints `0`;
+    `tar tzf dist/biotapy-0.3.0.tar.gz | grep -c "docs/methods\|tutorials/differential"` prints `7`.
+  - `unzip -p dist/biotapy-0.3.0-py3-none-any.whl 'biotapy-0.3.0.dist-info/METADATA' | grep -E "^(Version|Requires-Dist: (rpy2|mudata)|Provides-Extra)"`
+    prints `Version: 0.3.0`, `Requires-Dist: mudata>=0.4`, `Provides-Extra: r` and
+    `Requires-Dist: rpy2>=3.6.8; extra == 'r'`.
+  - The sdist's own tests (playbook step 3): extract it under `<scratchpad>/sdist`, then inside it
+    run `BIOTAPY_DATA_DIR=<scratchpad>/pooch uv run --group test pytest -q -p no:cacheprovider`
+    -> `1145 passed, 53 deselected` (the sdist leaves out `tests/test_ci.py`, the knowledge tests,
+    `tests/humann`, `tests/r`).
+  - `rm -rf dist <scratchpad>/sdist`.
+- [ ] **Step 7: Gate and commit.**
+
+```bash
+git add pyproject.toml CHANGELOG.md README.md
+git commit -m "chore: release 0.3.0
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+git status --short                                   # empty
+uvx prek run --all-files                             # all Passed
+uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected (plus the fix pass's tests)
+uv run python -c "import biotapy; print(biotapy.__version__)"  # 0.3.0
+```
+
+- [ ] **Step 8: Knowledge, second commit.**
+  - `bash scripts/knowledge_stale.sh --against HEAD`. The bump re-stales the concepts whose
+    `paths` hold `pyproject.toml` or `CHANGELOG.md`; in the prototype: `phase-0-foundation`,
+    `module-boundaries`, `tree-access`, `cut-a-release`. Check each against the bump, which changes
+    nothing they state, and bump `commit` and `generated`. As in Task 3.14 Step 2, the `+generated` and
+    `+commit` lines below are placeholders (the model, the UTC time, and `commit:` = the parent of the
+    commit you are about to make), and the phase-3-stats `-generated`/`-commit` lines are whatever
+    Task 3.14 wrote.
+  - `playbooks/cut-a-release.md` step 3, the check this release added, and the roadmap's exit
+    gate (items 1 and 3 ticked with Checkpoint D's PR number, Test run id and docs job id; item 2
+    was ticked by the plan commit, and item 1 already carries the wording of slice 3D decision 2)
+    and Checkpoint D boxes:
+
+````diff
+diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-release.md
+index c8681a6..81a47eb 100644
+--- a/.knowledge/playbooks/cut-a-release.md
++++ b/.knowledge/playbooks/cut-a-release.md
+@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
+ tags: [release, workflow]
+ status: stable
+ paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
+-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:26Z }
+-commit: 64fe39d
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: trusted-publishing
+     resource: https://docs.pypi.org/trusted-publishers/
+@@ -37,7 +37,9 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
+ 3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
+    (merge commit, not squash). Before the PR, build and run `pytest` from the
+    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it
+-   must pass with no errors.
++   must pass with no errors. Check the wheel's `METADATA` too: `Version`, every
++   runtime `Requires-Dist`, and a `Provides-Extra` line for each extra (0.3.0
++   added `r`).
+ 4. With explicit user approval for each (rules.md R13.3), tag the merged commit
+    and push only the tag:
+    ```bash
+diff --git a/.knowledge/roadmap/phase-3-stats.md b/.knowledge/roadmap/phase-3-stats.md
+index e8c8124..58cb3ad 100644
+--- a/.knowledge/roadmap/phase-3-stats.md
++++ b/.knowledge/roadmap/phase-3-stats.md
+@@ -9,8 +9,8 @@ phase_state: in-progress
+ effort: ~4 weeks part-time
+ depends_on: [/roadmap/phase-2-function.md]
+ paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
+-generated: <as Task 3.14 wrote it>
+-commit: <as Task 3.14 wrote it>
++generated: { by: claude-code/<model>, at: <UTC now> }
++commit: <parent of this commit>
+ sources:
+   - id: spec
+     resource: ../../plan.md
+@@ -610,15 +610,16 @@ columns onto it.
+ - [ ] 3.15 Release 0.3.0
+
+ # Exit gate
+-- [ ] Consensus report on one benchmark dataset (GlobalPatterns genus,
+-  human-associated vs the other samples: environmental and mock communities),
+-  executed notebook in docs (CI docs job).
++- [x] Consensus report on one benchmark dataset (GlobalPatterns genus,
++  human-associated vs the other samples: environmental and mock communities),
++  executed notebook in docs (CI docs job). Proven on PR #<Checkpoint D PR>:
++  docs job run <id> executed `tutorials/differential_abundance.md`.
+ - [x] Per-method agreement with the R reference, per
+   [r-golden-parity](/contracts/r-golden-parity.md): `pp.clr`, `pp.philr`,
+   `da.linda`, `da.ancombc2` in the network job; `da.aldex2`, `da.maaslin3` in
+   the `r-bridge` job. Proven on PR #23 (run `37479113322`): `network`
+   job `36 passed`, `r-bridge` job `24 passed`.
+-- [ ] All Phase 1 and 2 gates still green.
++- [x] All Phase 1 and 2 gates still green. Proven on PR #<Checkpoint D PR>: every CI job green (run <id>).
+
+ # Risks
+ - **rpy2 on Linux builds from source and lists Python <= 3.13** -> the CI job
+````
+
+  - Also tick Checkpoint D's boxes and its checklist line, with the PR, merge commit and Read the
+    Docs check recorded; tick Task 3.15 Steps 1-8.
+  - Log, under `## <date> (release 0.3.0)` at the top:
+
+```markdown
+## <date> (release 0.3.0)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 3: check the wheel's `METADATA` for the version, the runtime requirements and a `Provides-Extra` line per extra.
+- **Verification**: re-checked against the 0.3.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md).
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) ticks the exit gate's notebook and "all gates green" items (docs job <id> and Test run <id> on PR #<n>), Checkpoint D and Task 3.15 Steps 1-8.
+```
+
+  - `bash scripts/knowledge_stale.sh --against HEAD` prints `25 current, 0 stale, 12 uncheckable`.
+  - Commit `docs(knowledge): refresh concepts for the 0.3.0 release` (with the attribution line),
+    staging `.knowledge/playbooks/cut-a-release.md`, `.knowledge/roadmap/phase-0-foundation.md`,
+    `.knowledge/contracts/module-boundaries.md`, `.knowledge/contracts/tree-access.md`,
+    `.knowledge/roadmap/phase-3-stats.md` and `.knowledge/log.md`; gate as Step 7.
+- [ ] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.3.0`, open the PR,
+  wait for green CI (every job, `r-bridge` and `docs` included), merge with a merge commit (not a
+  squash).
+- [ ] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI, and that cannot be
+  undone. Ask the user, in one message, for explicit approval to:
+  1. tag the merged `master` commit `v0.3.0`;
+  2. push only that tag;
+  3. create the GitHub release `0.3.0`, which triggers the upload;
+  4. afterwards, push `close-phase-3` (Step 13), open its PR and merge-commit it on green.
+
+  Wait for a yes that names this release. An earlier approval does not count.
+- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+
+```bash
+git switch master && git pull --ff-only
+git log -1 --format=%s   # Merge pull request #<n> from pedrocr83/release-0.3.0
+git tag v0.3.0
+git push origin v0.3.0
+awk '/^## \[0.3.0\]/{on=1;next} /^## \[/{on=0} on' CHANGELOG.md > <scratchpad>/notes-0.3.0.md
+gh release create v0.3.0 --title "0.3.0" --notes-file <scratchpad>/notes-0.3.0.md
+gh run list --workflow release.yaml --limit 3 --json databaseId,headBranch,status
+```
+
+  - Pick the run whose `headBranch` is `v0.3.0`, then `gh run watch <its databaseId>
+    --exit-status`. If the `pypi` environment asks for a reviewer, the user approves it in the run.
+  - If the run fails before the upload: fix `master`, then delete the release and tag (`gh release
+    delete v0.3.0 --cleanup-tag`) and re-tag, each only with the user's approval (playbook, Common
+    mistakes).
+  - If it fails after the upload, report it: the version is spent, and the fix is 0.3.1.
+- [ ] **Step 12: Verify** (playbook Verification). Both print `0.3.0`:
+
+```bash
+curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
+uv run --no-project --with biotapy==0.3.0 python -c "import biotapy as bt; print(bt.__version__, bt.da.__all__, 'philr' in bt.pp.__all__)"
+```
+
+  The second also prints `['aldex2', 'ancombc2', 'consensus', 'linda', 'maaslin3'] True`, and
+  `curl -s https://pypi.org/pypi/biotapy/0.3.0/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['provides_extra'])"`
+  prints `['r']`.
+- [ ] **Step 13: Close Phase 3** (approved in Step 10), as `close-phase-2` did:
+  - `git switch master && git pull --ff-only && git switch -c close-phase-3`;
+  - `roadmap/phase-3-stats.md`: `phase_state: in-progress` becomes `phase_state: done`; tick Task
+    3.15 Steps 9-13 and the checklist's `3.15 Release 0.3.0`; bump `generated` and `commit`;
+  - `roadmap/phase-4-ml-multiomics.md`: `phase_state: not-started` becomes `phase_state:
+    in-progress` (its entry criteria: Phase 3's exit gate and 0.3 released); bump `generated` and
+    `commit`;
+  - `roadmap/index.md`: Phase 4 moves to "# Active phase" with `**phase_state: in-progress**`;
+    Phase 3 moves to "# Phases" after Phase 2 as `**phase_state: done** (0.3.0 on PyPI, <date>)`;
+  - log, under `## <date> (release 0.3.0)`:
+    `- **Update**: Phase 3 closed after biotapy 0.3.0 reached PyPI (tag v0.3.0, release workflow run <id>). [phase-3-stats](roadmap/phase-3-stats.md) is \`phase_state: done\` with every Task 3.15 step and exit-gate item ticked; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) is \`phase_state: in-progress\`; the [roadmap index](roadmap/index.md) lists Phase 4 as active.`
+  - gates (`uvx prek run --all-files`; `uv run --group test pytest -q -W error::UserWarning`, whose
+    `tests/test_knowledge_bundle.py` checks every concept's frontmatter and index entry); commit
+    `docs(knowledge): close Phase 3 after the 0.3.0 release` (with the attribution line); push,
+    PR, merge-commit on green.
+  - Phase 4 then starts at its own expansion (rules.md R1.2a): ask the user before expanding it.
+
+### Slice 3D decisions for the user
+
+Recommended answer first. Items 1-3 change what the outline or design note 10 said; 4-9 settle
+open questions; 10-13 are outward-facing or need fresh approval.
+
+1. **Method pages in `docs/methods/`** (an index and pages for LinDA, ANCOM-BC2, ALDEx2,
+   MaAsLin 3 and the consensus), in the "User guide" toctree, and **the DA guide restructured**:
+   its four method sections move, text kept, into the pages; it gains a "Choosing methods" table;
+   the generic bridge behaviour moves into "Methods that run in R". No `src/` change in the plan
+   (two approved docstring-prose commits followed): docstrings keep linking the guide. Alternative: Phase 2's convention, method text only in the guide (no
+   `docs/methods/`), which the outline departed from.
+2. **The tutorial uses the `benchmark` fixture's contrast exactly**: 9 human-associated samples
+   against the 17 others, which are 14 environmental samples and 3 mock communities (design note
+   10's "8 vs 18" was a miscount), `reference="other"`; the note says what "other" holds and that
+   the contrast is a demonstration. Its numbers then equal the goldens' and the `r` test's.
+   Alternative: drop the mock samples so "other" is purely environmental (new R runs, new
+   constants, and the tutorial no longer matches the goldens).
+3. **The R bridges in the tutorial: a fenced, non-executed code block plus static tables of the
+   counts the `r-bridge` job checks, kept in step by `FOUR_METHOD_*` constants shared by the `r`
+   test and a new default-run test** (`test_the_tutorial_quotes_the_four_method_counts`). The page
+   says the block is not run and why. Alternatives: recorded outputs (`.ipynb` with stored outputs
+   or a `skip-execution` tag; per-page execution metadata is forbidden by an existing test, and
+   stored outputs are unchecked); a CSV written by the `r-bridge` job and read by an executed cell
+   (a new artifact and CI change).
+4. **No workflow and no Read the Docs change**: Read the Docs keeps executing every notebook
+   itself with no pooch cache, as Phase 2 decided; the tutorial adds about 9 s and no download
+   (the phyloseq vignette already fetches GlobalPatterns in the same build).
+5. **Citations as plain text with a DOI link**, as the function guide does; no
+   `references.bib` entries or `{cite}` roles. Alternative: sphinxcontrib-bibtex citations
+   collected on the References page (a new convention across pages).
+6. **Coming from R:** the seven Phase 3 rows pinned by a test; "not in 0.2" becomes "not in 0.3"
+   with the page sentence, the test and the phyloseq vignette, whose "multiple testing and
+   differential abundance (biotapy 0.3)" bullet now says phyloseq points to DESeq2, which biotapy
+   does not wrap, and links the new tutorial. No `phyloseq_to_deseq2` row. Alternative: a
+   version-free "not yet in biotapy" label that never needs moving.
+7. **Benchmarks on synthetic data, not GlobalPatterns**: `pp.philr` at 1,000 x 50,000 (Phase 1's
+   table construction) and `da.linda`/`da.ancombc2` at 2,000 x 10,000, 30% non-zero, each timed
+   and peak-memory measured; ALDEx2 and MaAsLin 3 not benchmarked (R's time; asv has no R). The
+   outline's "pp.philr on GlobalPatterns" would put pooch downloads inside asv.
+8. **Approved 2026-10-07 as a fix, not a report: Task 3.13 rewords `da.ancombc2`'s docstring to "4.5x to 7.5x depending on table shape" in its own `docs(da)` commit. Original finding:** `da.ancombc2`'s docstring says peak memory is about seven dense
+   arrays; on the asv table the call adds 4.5x.** The performance page states both. Suggested:
+   leave the docstring (its figure is measured on other shapes) or reword it to "five to seven" in
+   a later `docs(da)` change.
+9. **Task 3.14 is small**: `modules/da.md` was rewritten for the bridges at Checkpoint C; 3.14
+   adds the tutorial and method pages to its Verification, the asv memory number, one gotcha (the
+   tutorial's quoted counts), `add-a-function` step 8 (a `da` method gets a method page) and four
+   verification bumps.
+10. **Release 0.3.0 text:** the CHANGELOG entries in Task 3.15 Step 4, written at release because
+    `## [Unreleased]` is empty again, with "Changed" lines for the 0.2.0 behaviours that changed
+    (counts must be non-negative; `pl.bar`/`pl.heatmap` refuse negative tables; "not in 0.3");
+    README: "biotapy 0.3", `pp.clr`/`pp.philr`, a Differential abundance line, `pl.consensus`, the
+    `r` extra with its install line and GPL note under Installation, and "Next, in 0.4" from Phase
+    4's description.
+11. **Approvals, as for 0.2.0:** the `release-0.3.0` push/PR/merge with the slice 3D review
+    (Checkpoint D); the tag, the tag push, the GitHub release (the PyPI upload) and the
+    `close-phase-3` push/PR/merge in one message after the release PR merges (Task 3.15 Step 10).
+    On close, Phase 3 `done` and Phase 4 `in-progress`.
+12. **Box ticking:** the plan commit ticks Checkpoint C (PR #23 merged, run `37479113322` green)
+    and exit-gate item 2 (PR #23's `network` `36 passed` and `r-bridge` `24 passed`); the 3.15
+    knowledge commit ticks items 1 and 3 and Checkpoint D with the `phase-3d` PR's run ids.
+13. **Checkpoint C's last box ("ask the user to review slice 3C") is ticked by approving this
+    plan**, recorded with the approval date. Say so if the 3C review is still open.
+
+### Slice 3D self-review
+
+1. **Spec coverage.**
+
+   | Brief or outline item | Where it lands |
+   |---|---|
+   | 3.10 method pages (model, units, R defaults and changes, references) and the DA guide (filter once, choose methods first, consensus table, plot, `r` extra and GPL note) | Task 3.10; design 1; decisions 1, 5 |
+   | 3.10b exit-gate notebook, executed by myst-nb in the docs job with the pooch cache | Task 3.10b; design 2; decisions 2-4 |
+   | The bridges in a docs build without R, no silent fallback | design 2; decision 3; review focus 1 |
+   | Read the Docs executes or reuses the docs job's output | design 2 (it executes itself, no cache, unchanged); decision 4 |
+   | 3.12 new rows from docstrings, pinned; "not in 0.3" (cut-a-release 2c) | Task 3.12; decision 6 |
+   | 3.13 asv for `pp.philr`, `da.linda`, `da.ancombc2`, baselines with the machine, no optimisation | Task 3.13; design 4; decisions 7-8 |
+   | Checkpoint D with 3.14 knowledge (mostly done at C) | Checkpoint D; Task 3.14; decision 9 |
+   | 3.15 version, CHANGELOG, README, release PR; tag, push, GitHub release, PyPI as ask-the-user steps | Task 3.15 Steps 4-5, 9, 10-13; decisions 10-11 |
+   | Exit-gate boxes, which commit ticks which | design 6; decision 12 |
+
+2. **Placeholder scan.** Every page, test, benchmark and diff block is rendered by `git show`
+   from the scratch commits that passed the gates, not retyped. Values left for run time, each
+   named where it is used: the implementer's model id and UTC time in `generated`, `HEAD`'s short
+   hash in `commit`, the dates in log headings, the CHANGELOG and the Checkpoint C record, Task
+   3.13's benchmark numbers, commit and load averages (Step 4's run replaces the prototype's), PR
+   numbers, the Test, docs-job and release workflow run ids, and `<scratchpad>`. The `<...>`
+   strings in the 3.15 knowledge diff are those run-time values.
+3. **Type consistency.** The tutorial calls each function with the signature its Interfaces line
+   gives; the constants `FOUR_METHOD_CALLS` (method name -> calls), `FOUR_METHOD_N_SIGNIFICANT`
+   (count -> genera) and `FOUR_METHOD_CONSENSUS` match the tutorial's table rows and sentence the
+   test builds; `synthetic_genera`, `N_PHILR_OBS` match `da.py`'s and `pp.py`'s imports; the label
+   `da-methods-in-r` is defined in the guide (3.10) before the tutorial uses it (3.10b).
+4. **Review focus.** Items 1, 3 and 4 name tests that exist in the blocks above or in the
+   repository (`test_the_tutorial_quotes_the_four_method_counts`,
+   `test_four_methods_on_the_exit_gate_data`, `test_results_with_different_contrasts_raise`,
+   `test_transforms_and_da_methods_map_to_their_r_functions`; checked by searching); items 2 and 5
+   name the review check and the build check that cover them.
+5. **Known residual risks and what was not verified.**
+   - CI was not run on the slice: the `docs` job's execution of the tutorial and the `r-bridge`
+     job's run of the edited `r` test happen first on the PR. Locally both passed (docs build;
+     `-m r` in the R image, `24 passed`).
+   - Read the Docs was not built; Checkpoint D checks the two pages after the merge.
+   - The method pages' R-default tables are read from `formals()` of the image's versions
+     (Bioconductor 3.22); a later Bioconductor release can change a default without any test
+     noticing. The pages name the versions.
+   - The benchmark numbers come from one run on one laptop under a load average of 2-5; they are a
+     record, not a gate.
+   - The tutorial's prose names data facts (636 genera, 36 untested, 9 against 17) that golden
+     tests pin; the live outputs carry every other number.
+   - Coverage was not re-measured: the slice changes no `src/` code, only docstring prose (the last measurement,
+     slice 3C's, stands).
 
 # Decisions for the user
 Each changes a contract, rule, dependency, CI or a roadmap signature, or is
@@ -7218,7 +9751,7 @@ a judgement call. Recommended answer first.
 15. **CI job `r-bridge`** (Linux, Python 3.13, R 4.5.3 / Bioconductor 3.22,
     `-m r`), added to `check.needs` with a `tests/test_ci.py` test.
     Alternative: no R in CI, bridge tests local only.
-16. **Exit-gate notebook:** GlobalPatterns genus, human vs environmental;
+16. **Exit-gate notebook (slice 3D decision 2):** GlobalPatterns genus, human-associated vs the other samples (environmental and mock communities);
     ANCOM-BC2 and LinDA live, the bridges as a non-executed block (no R in
     the docs builds); the four-method consensus runs in the `r-bridge` job.
 17. **Task changes:** new 3.0, 3.10b, 3.12, 3.13, 3.14, 3.15; 3.3 delivered

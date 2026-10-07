@@ -2,7 +2,8 @@
 
 Differential abundance (DA) asks which features are more abundant in one group of samples than in
 another. Every `bt.da` method takes the same arguments and returns the same table, so their answers
-can be put side by side.
+can be put side by side. The {doc}`tutorial </tutorials/differential_abundance>` runs them on
+GlobalPatterns.
 
 ## One question, one table
 
@@ -42,51 +43,30 @@ filter features: filter once, with `bt.pp.filter_features`, before running any m
 method tests the same features. Methods need raw counts in `X` and a read in every sample
 (`bt.pp.filter_samples(tdata, min_depth=1)` drops empty ones).
 
-## LinDA
+## Choosing methods
 
-`bt.da.linda` fits one linear model per feature to the log2 centred log-ratios of the counts (with
-0.5 added to every count when the table has a zero). Compositionality biases every coefficient by
-the same amount; LinDA estimates that bias as the mode of all features' coefficients and subtracts
-it, so most features end up near zero and the ones that changed stand out:
+biotapy has four methods. They model compositional counts differently, so they call different
+features, and no one of them is right on every dataset:
 
-```python
-tdata.obs["age"] = [30, 41, 52, 38, 45, 60]
-table = bt.da.linda(tdata, "group", covariates=["age"])
-table[table["qvalue"] < 0.05]
-```
+| Method | Model | Runs in | Covariates | Numeric `group` | `seed` |
+|---|---|---|---|---|---|
+| {doc}`bt.da.linda </methods/linda>` | least squares of log2 centred log-ratios, minus the mode of all coefficients | Python | yes | per standard deviation | no |
+| {doc}`bt.da.ancombc2 </methods/ancombc2>` | least squares of log counts corrected for each sample's sampling fraction | Python (scikit-bio) | yes | per unit | no |
+| {doc}`bt.da.aldex2 </methods/aldex2>` | Welch t-tests on Monte Carlo draws of centred log-ratios | R | no | no | yes |
+| {doc}`bt.da.maaslin3 </methods/maaslin3>` | least squares of log2 relative abundance where present, tested against the median | R | yes | per standard deviation | yes |
 
-It equals `MicrobiomeStat::linda(..., is.winsor = FALSE)` in R with fixed effects. Numeric columns
-are scaled to unit variance first, as LinDA does, so a numeric group's effect is per standard
-deviation. Not available: winsorisation (MicrobiomeStat's default), random effects such as
-`(1 | subject)`, and LinDA's own prevalence filters.
+Each method's page gives its model, the R defaults biotapy changes, and how closely biotapy
+matches the R package on real data. Two things to know before you choose:
 
-## ANCOM-BC2
+- ANCOM-BC2 and MaAsLin 3 leave zeros out, so a feature with no read in one group cannot be
+  fitted: its row is NaN. LinDA adds 0.5 to every count when the table has a zero, and ALDEx2
+  draws around every count, so both test it.
+- `reference` changes more than the sign in ANCOM-BC2 (its bias correction is fitted against the
+  reference level) and ALDEx2 (its effect's random resampling follows the label order), and
+  slightly in MaAsLin 3 (its p-values move by up to about 1.2e-3 with the same `seed`, the calls do not).
+  Choose it on the biology, the control or baseline level, before you look at any result.
 
-`bt.da.ancombc2` runs scikit-bio's ANCOM-BC2 (Lin and Peddada 2024): it estimates each sample's
-sampling fraction, corrects the log counts for it and the coefficients for their shared bias, and
-fits one linear model per feature. Zeros are treated as missing rather than given a pseudocount,
-so a feature with no read in one of the groups cannot be fitted: its row is NaN and it is left out
-of the Benjamini-Hochberg correction (R's `ANCOMBC::ancombc2` reports it with p = 1 and counts it).
-
-```python
-table = bt.da.ancombc2(tdata, "group")
-```
-
-ANCOM-BC2 reports natural logs; biotapy divides `effect` and `se` by ln 2, so they are log2 like
-every other method's; a numeric `group`'s effect is per unit, where `da.linda`'s is per standard
-deviation. The settings are R's `ancombc2(..., p_adj_method = "BH", prv_cut = 0,
-pseudo_sens = FALSE)`: biotapy does not run R's pseudocount sensitivity analysis (its
-`passed_ss` flag) or its 10% prevalence filter. On the GlobalPatterns genera that the golden tests
-use, biotapy's effects are within 0.012 log2 of R's and the significant genera are the same; the
-small difference comes from the bias estimate, whose iterations stop at R's cap of 100 before they
-have converged on that data, in R as in scikit-bio.
-
-Unlike `da.linda`, ANCOM-BC2 is not antisymmetric in `reference`: swapping it changes more than the
-sign of `effect`, because the bias-corrected E-M is fitted against the reference level, in R as
-here. On the GlobalPatterns genera (`host`) the calls at q < 0.05 go from 208 to 230, and `effect`
-plus its swap is about -0.38 log2, not 0; `da.consensus` with LinDA goes from 104 to 112 genera.
-Choose `reference` on the biology (the control or baseline level), not to change the results.
-
+(da-methods-in-r)=
 ## Methods that run in R
 
 ALDEx2 and MaAsLin 3 exist only in R, so biotapy calls them there through
@@ -102,56 +82,16 @@ rpy2 is GPL-2.0-or-later and the R packages have their own licences; biotapy its
 any of them. Without rpy2 or the R package, the call raises an `ImportError` that names what to
 install. Each call converts `X` to a dense table once, because rpy2 has no sparse converter.
 
-### ALDEx2
-
-`bt.da.aldex2` runs `ALDEx2::aldex` (Fernandes et al. 2014): Monte Carlo draws from each sample's
-Dirichlet posterior, their log2 centred log-ratios, and a Welch t-test per draw, whose p-values are
-averaged. `effect` is ALDEx2's `diff.btw`, the median log2 difference between the two groups:
+Both methods draw random numbers in R. `seed` seeds R for the call, and your R session's own
+random state is restored afterwards, so the same seed gives the same table. Each R warning raised
+during the call, such as ALDEx2's for fewer than 128 `mc_samples`, is re-emitted as a Python
+`UserWarning`; an R error is raised as a `RuntimeError`. Repeated `var_names` or `obs_names`
+raise: call `adata.var_names_make_unique()` first.
 
 ```python
 table = bt.da.aldex2(tdata, "group", seed=0)
+table = bt.da.maaslin3(tdata, "group", seed=0)
 ```
-
-ALDEx2 compares two groups without covariates, and each group needs two samples. It is random:
-`seed` seeds R for the call (your R session's own random state is restored afterwards), so the same seed gives the same table, and on the GlobalPatterns
-genera biotapy's numbers equal R's `set.seed(...); aldex(...)` to a relative 8.4e-13 (when `reference` is R's
-first sorted level, and R is seeded with the integer biotapy derives from `seed`). `qvalue` is the
-Benjamini-Hochberg correction of ALDEx2's expected p-value `we.ep`, as for every method; ALDEx2's own
-`we.eBH` averages the corrections of the draws instead and calls more features (19 against 11 on
-those genera).
-
-Swapping `reference` does more than flip the sign: ALDEx2 takes its Monte Carlo draws in label order,
-so the same `seed` gives different effects, and the two runs are not exact mirror images: the effects
-differ from exact antisymmetry by up to 0.25 log2 on `toy()` (where they are about 4 log2 wide) and up to
-0.65 log2 on the GlobalPatterns genera, 15 of 636 of which then do not change direction. The p-values and
-the calls are the same on both. Each R warning raised during the call, such as the one
-for fewer than 128 `mc_samples`, is re-emitted as a Python `UserWarning`; an R error is raised as a
-`RuntimeError`. Repeated `var_names` or `obs_names` raise: call `adata.var_names_make_unique()` first.
-
-### MaAsLin 3
-
-`bt.da.maaslin3` runs MaAsLin 3's abundance model (`maaslin3::maaslin3` with `evaluate_only =
-"abundance"`): counts become relative abundances, zeros are left out, and one linear model of the
-log2 abundance per feature is fitted on the samples where the feature is present. Each coefficient
-is tested against the median coefficient, MaAsLin 3's correction for
-compositionality (the median over the features without a fit error whose own p-value is below
-0.95, as MaAsLin 3 computes it); `effect` is the coefficient minus that median, so its sign says on which side
-of the median the feature moved (MaAsLin 3 reports the coefficient itself unless asked to subtract):
-
-```python
-table = bt.da.maaslin3(tdata, "group", covariates=["age"], seed=0)
-```
-
-Numeric columns are standardised, so a numeric group's effect is per standard deviation, as in
-`da.linda`. The test against the median simulates, so `seed` makes the p-values reproducible; on the
-GlobalPatterns genera biotapy's numbers equal R's to 1e-12. The prevalence model, whose effects
-are log-odds rather than fold changes, is not run. `qvalue` corrects the group's p-values only;
-MaAsLin 3's `qval_individual` corrects them together with every covariate's, which with one numeric
-covariate called 20 genera where biotapy calls 45. R warnings and errors surface as for ALDEx2.
-
-Swapping `reference` negates `effect` exactly, but the median test's simulation draws around the
-coefficients rather than their negatives, so the same `seed` moves `pvalue` by up to 1e-3 and
-`qvalue` by up to 2e-3 on those genera (the calls are the same); `seed` fixes the draws.
 
 ## Where methods agree
 
@@ -169,7 +109,8 @@ A feature is a consensus hit when at least `min_methods` methods call it and all
 the same sign. Methods that call it in opposite directions mark a `conflict`, which is never a
 consensus. A method that could not test a feature does not count against it: `n_tested` says how
 many methods tested each feature. The tables must come from different methods and compare the same
-`contrast`, so run every method with the same `group` and `reference`.
+`contrast`, so run every method with the same `group` and `reference`. The
+{doc}`consensus page </methods/consensus>` defines every column.
 
 Methods disagree a lot on real data, and the literature is split on what to do about it: Nearing
 et al. (2022) recommend a consensus of several methods, Pelto et al. (2025) one simple method. Either

@@ -7,4 +7,5 @@ getting_started
 quick_tour
 phyloseq_analysis
 function
+differential_abundance
 ```

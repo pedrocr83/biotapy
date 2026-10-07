@@ -90,8 +90,9 @@ def ancombc2(
     changed). Choose ``reference`` on the biology, not to change the results.
 
     scikit-bio needs a dense table, so ``X`` is densified once: 8 bytes x
-    samples x features. Peak memory is about seven such arrays (7.2x to 7.5x
-    measured on 400 x 1,000 and 200 x 2,000 tables).
+    samples x features. Peak memory is 4.5x to 7.5x such an array, depending on
+    the table's shape: 4.5x measured on a 2,000 x 10,000 table (30% non-zero),
+    7.2x to 7.5x on 400 x 1,000 and 200 x 2,000 tables.
 
     References
     ----------

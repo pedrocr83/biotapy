@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:11:24Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
+commit: a1b54be
 status: stable
 ---
 
@@ -142,6 +142,9 @@ uv run --group test pytest -m "golden or network" tests/da -q
 uv run --group test --extra r pytest -m r tests/da -q
 ```
 
+The docs build also runs `da.linda`, `da.ancombc2` and `da.consensus` in
+`docs/tutorials/differential_abundance.md`; each method's model, R settings
+and measured agreement with R are written up in `docs/methods/`.
 The second needs the pooch cache of GlobalPatterns (`BIOTAPY_DATA_DIR`); at
 the 64fe39d check it gave `4 passed`. The third needs R with ALDEx2 and
 maaslin3 installed (the `r-bridge` CI job, or the golden image in
@@ -198,14 +201,15 @@ per-module command exists: unknown.
   `tests/da/test_aldex2_golden.py`, `tests/da/test_maaslin3_golden.py`). A
   NumPy change to that stream, or to the bound, fails the goldens loudly:
   recompute the integer and regenerate, do not loosen the test.
-- **ALDEx2's reference swap is not exactly antisymmetric.** It draws Monte
-  Carlo samples in label order, so swapping `reference` with the same seed
+- **ALDEx2's reference swap is not exactly antisymmetric.** Its `diff.btw` resamples each
+  group's pooled draws in label order (the draws and `we.ep` do not follow the
+  labels), so swapping `reference` with the same seed
   moves effects by up to 0.65 log2 on GlobalPatterns' genera, where 15 of 636
   do not change direction; p-values and calls are the same (benchmark
   measurement of Checkpoint C). `_aldex2.py:aldex2` Notes.
-- **MaAsLin 3's p-value moves about 1e-3 on a reference swap.** `effect`
+- **MaAsLin 3's p-value moves about 1.2e-3 on a reference swap.** `effect`
   negates exactly, but the median test simulates around the coefficients, not
-  their negatives (`pvalue` up to 1e-3, `qvalue` up to 2e-3 on the same data,
+  their negatives (`pvalue` up to about 1.2e-3, `qvalue` up to about 3.3e-3 on the same data,
   calls unchanged). `_maaslin3.py:maaslin3` Notes.
 - **ALDEx2 breaks on a factor `conds` and sorts labels by locale**, so
   `_aldex2.py:_conditions` passes the strings `"0"`/`"1"`; `aldex.effect`
@@ -228,9 +232,16 @@ per-module command exists: unknown.
 - **LinDA densifies `X` and is native; the bridges densify too.**
   `_design.py:dense_counts` calls `toarray()` once (rpy2 has no sparse
   converter, so the bridges use it as well); the docstring gives the memory cost (about 5x the dense
-  table at peak; ANCOM-BC2 about 7x). rules.md R6.2 allows it: a native
+  table at peak; ANCOM-BC2 4.5x to 7.5x, depending on the table's shape). rules.md R6.2 allows it: a native
   method whose algorithm needs the full table may densify once (the user
   approved that wording after Checkpoint B, 2026-10-05).
+- **The tutorial quotes the four-method counts.** The docs build has no R, so
+  `docs/tutorials/differential_abundance.md` prints the counts the `r` test
+  `tests/da/test_consensus.py::test_four_methods_on_the_exit_gate_data`
+  measures; both read the constants `FOUR_METHOD_*` in that file, and
+  `test_the_tutorial_quotes_the_four_method_counts` fails until the tutorial
+  matches them. A change to any method's numbers on GlobalPatterns updates
+  the constants and the tutorial together.
 - Replicate rows within a group give `se = 0` in LinDA and p-values that are
   floating-point noise; R does the same.
 

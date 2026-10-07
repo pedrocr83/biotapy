@@ -15,16 +15,18 @@ kernelspec:
 
 This notebook redoes the sections of phyloseq's
 [analysis vignette](https://github.com/joey711/phyloseq/blob/master/vignettes/phyloseq-analysis.Rmd)
-that biotapy 0.2 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
+that biotapy 0.3 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
 Each section names the R chunk it follows. Everything runs in biotapy; nothing is read from R.
 
-**Not in 0.2**, so left out:
+**Not in 0.3**, so left out:
 
 - `plot_tree` (exploratory tree plots) and `plot_net` (sample networks);
 - correspondence analysis (`ordinate(..., "CCA")`) and DPCoA, with their scree, species and biplot plots;
 - the `ACE` richness estimator, and `betadiver` distances such as `distance(esophagus, "g")`;
 - `hclust` dendrograms: SciPy's `scipy.cluster.hierarchy.linkage(..., method="average")` does it;
-- multiple testing and differential abundance (biotapy 0.3).
+- the "Multiple Testing and Differential Abundance" section, which points to DESeq2
+  (`phyloseq_to_deseq2`): biotapy does not wrap DESeq2, and runs its own methods in the
+  {doc}`differential abundance tutorial <differential_abundance>`.
 
 ```{code-cell} ipython3
 import matplotlib.pyplot as plt
@@ -168,7 +170,7 @@ bt.pl.ordination(global_patterns, basis="nmds", color="SampleType");
 
 `distance(esophagus, "bray")`, `"wunifrac"` and `"jaccard"`. phyloseq's `"jaccard"` is vegan's
 quantitative Jaccard; biotapy's is presence/absence, phyloseq's
-`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.2.
+`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.3.
 
 ```{code-cell} ipython3
 esophagus = bt.datasets.esophagus()

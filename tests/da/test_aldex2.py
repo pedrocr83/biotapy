@@ -184,9 +184,19 @@ def test_reference_sets_the_sign_in_r():
     tdata = bt.datasets.toy()
     a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
     assert (b_first["contrast"] == "A vs B").all()
-    # Swapping the reference reorders ALDEx2's draws, so the effects flip sign but are not exactly opposite.
+    # Swapping the reference flips the sign, but diff.btw's resampling follows the labels, so effects are not exactly
+    # opposite; the p-values do not change.
     assert (a_first["direction"] == -b_first["direction"]).all()
     np.testing.assert_allclose(b_first["effect"], -a_first["effect"], atol=0.7)
+
+
+@pytest.mark.r
+def test_reference_swap_leaves_pvalues_and_calls_unchanged_in_r():
+    tdata = bt.datasets.toy()
+    a_first, b_first = bt.da.aldex2(tdata, "group", seed=0), bt.da.aldex2(tdata, "group", reference="B", seed=0)
+    # we.ep is symmetric in the two groups and the draws do not follow the labels, so the same seed gives the same bits.
+    pd.testing.assert_series_equal(b_first["pvalue"], a_first["pvalue"], check_exact=True)
+    pd.testing.assert_series_equal(b_first["qvalue"] < 0.05, a_first["qvalue"] < 0.05)
 
 
 @pytest.mark.r
