@@ -77,19 +77,22 @@ def aldex2(
     Calls ``ALDEx2::aldex(reads, conditions, mc.samples, test = "t", effect =
     TRUE, denom = "all")`` (Fernandes et al. 2014) through rpy2: Dirichlet Monte
     Carlo draws of each sample's proportions (0.5 added to every count), their
-    log2 centred log-ratios, and per draw a Welch t-test, whose two-sided
-    p-values are averaged into ``we.ep``. ``effect`` is ``diff.btw``, already
-    log2; ALDEx2's own ``effect`` column is a standardised size, not a fold
+    log2 centred log-ratios, and per draw a Welch t-test. ``we.ep`` doubles the
+    one-sided p-value of each draw in each direction (capped at 1), averages each
+    direction over the draws and keeps the smaller average. ``effect`` is
+    ``diff.btw``, already log2; ALDEx2's own ``effect`` column is a standardised size, not a fold
     change, and is not carried. ``qvalue`` is the Benjamini-Hochberg correction
     of ``we.ep``, as for every method; ALDEx2's ``we.eBH`` averages the
     corrected values of the draws instead and is not carried. ALDEx2 compares
     two groups without covariates (its ``glm`` test is not wrapped).
 
-    Swapping ``reference`` does more than flip the sign: ALDEx2 takes its Monte
-    Carlo draws in label order, so the same ``seed`` gives different effects, and
-    the two runs are not exact mirror images: they differ from exact
-    antisymmetry by up to 0.25 log2 on ``toy()`` (whose effects are about 4 log2
-    wide) and up to 0.65 log2 on the GlobalPatterns genera, 15 of 636 of which
+    Swapping ``reference`` does more than flip the sign. ALDEx2 draws the same
+    Monte Carlo instances, so ``we.ep`` and the calls do not change, but
+    ``diff.btw`` comes from a random resampling of each group's values done in
+    label order, so the same ``seed`` gives different effects, and the two runs
+    are not exact mirror images: they differ from exact antisymmetry by 0.1 to
+    0.3 log2 on ``toy()``, depending on the seed (its effects are about 4 log2
+    wide), and by up to 0.65 log2 on the GlobalPatterns genera, 15 of 636 of which
     then do not change direction. The p-values and the calls are the same. Each R
     warning raised during the call, such as the one for fewer than 128
     ``mc_samples``, is re-emitted as a ``UserWarning``, and an R error is raised
