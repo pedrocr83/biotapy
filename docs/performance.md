@@ -65,6 +65,38 @@ The hierarchy puts every function in two of 50 groups. Functional redundancy run
 - `functional_redundancy` compares every pair of taxa, so its time grows with the square of the
   taxa times the genes, and its memory with the square of the taxa.
 
+## Transforms and differential abundance
+
+Measured on commit `51e0475`, 2026-10-07, on the same laptop and environment, with
+`asv run --python=same --bench "^(da\.|pp\.Philr)"` (the two classes took about 55 s). The load
+average was 1.66, 1.30, 1.21 before the run and 4.64, 2.23, 1.54 after it. Release 0.3 sets no
+speed target either.
+
+PhILR runs on the synthetic table above built with 1,000 samples (50,000 features, 2% non-zero,
+the same balanced tree). The two differential abundance methods that run without R run on 2,000
+samples in two groups of 1,000 and 10,000 features, 30% non-zero counts from 1 to 99, the size of
+a large genus-level study. All of it comes from seed 0 (`benchmarks/benchmarks/_data.py`). ALDEx2
+and MaAsLin 3 are not benchmarked: their time is R's.
+
+| Benchmark | Result |
+|---|---|
+| `pp.philr`, 1,000 x 50,000 | 3.12 s |
+| `pp.philr`, peak memory | 2.14 GB |
+| `da.linda`, 2,000 x 10,000 | 425 ms |
+| `da.linda`, peak memory | 1.15 GB |
+| `da.ancombc2`, 2,000 x 10,000 | 3.62 s |
+| `da.ancombc2`, peak memory | 1.07 GB |
+
+- Each of the three densifies `X` once (rules.md R6.2): 400 MB for PhILR, 160 MB for the
+  differential abundance table. The peaks also hold the Python process (418 MB with PhILR's table
+  loaded, 345 MB with the differential abundance table).
+- Measured outside asv on the same tables, the call itself added 1.72 GB for `pp.philr` (4.3 times
+  the dense table, plus scikit-bio's sparse basis, as its docstring says), 822 MB for `da.linda`
+  (5.1 times, as its docstring says) and 726 MB for `da.ancombc2` (4.5 times; its docstring gives
+  4.5 times here and 7.2 to 7.5 times on the 400 x 1,000 and 200 x 2,000 tables it was first
+  measured on, so the range depends on the table's shape). Nothing is being optimised
+  (rules.md R10.1).
+
 ## Running the benchmarks
 
 ```bash
@@ -77,6 +109,6 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)"
 ```
 
 `--python=same` runs in the current environment, and `--set-commit-hash` keeps the results, in
-`.asv/results`. Add `--bench "^fn\."` to `asv run` and `asv show` to run or show only the function
-benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
+`.asv/results`. Add `--bench "^fn\."` (or `"^(da\.|pp\.Philr)"`) to `asv run` and `asv show` to run or
+show only the function (or transform and differential abundance) benchmarks. The whole suite took about 13 minutes on this run and needs about 3 GB of free memory.
 `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.

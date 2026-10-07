@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:00:47Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T13:40:00Z }
 commit: 29efd9c
 sources:
   - id: spec
@@ -604,7 +604,7 @@ columns onto it.
 - [x] 3.10 Method pages in `docs/methods/` and the DA guide
 - [x] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
 - [x] 3.12 Coming-from-R check
-- [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
+- [x] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [ ] Checkpoint D
 - [ ] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
 - [ ] 3.15 Release 0.3.0
@@ -7348,9 +7348,10 @@ No `phyloseq_to_deseq2` row is added to `r_idioms.toml` (not asked for; R1.4).
   `ancombc2`. ALDEx2 and MaAsLin 3 are not benchmarked: their time is R's, and asv has no R.
 - Two commits, as 2.14: the suite (gated), then the page with the run's numbers, the commit hash
   and the load averages.
-- **Reported, not fixed (R1.4):** `da.ancombc2`'s docstring says peak memory is "about seven"
-  dense arrays (measured on 400 x 1,000 and 200 x 2,000); on the asv table it is 4.5x. The page
-  states both; the docstring stays.
+- **Fixed, approved 2026-10-07 (decision 8):** `da.ancombc2`'s docstring said peak memory is
+  "about seven" dense arrays (measured on 400 x 1,000 and 200 x 2,000); on the asv table it is
+  4.5x. The docstring now says 4.5x to 7.5x depending on the table's shape, in its own `docs(da)`
+  commit; the page states both ends.
 
 #### 5. Knowledge (3.14) and the release (3.15)
 
@@ -8651,11 +8652,13 @@ rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html 
 
 **Files:**
 - Create: `benchmarks/benchmarks/da.py`.
+- Modify (the `docs(da)` commit): `src/biotapy/da/_ancombc.py` (docstring), `.knowledge/modules/da.md`.
 - Modify: `benchmarks/benchmarks/_data.py`, `benchmarks/benchmarks/pp.py`, `docs/performance.md`.
 
 **Not touched:** `Preprocessing`, `tl.py`, `fn.py`, `synthetic()`, `asv.conf.json`, the workflows
-(the `lint` job's `asv check` already imports every module), any `src/` file. No optimisation
-(R10.1), and no docstring change for the ANCOM-BC2 memory figure (design 4: reported).
+(the `lint` job's `asv check` already imports every module), any `src/` file but `da.ancombc2`'s
+docstring. No optimisation (R10.1). The ANCOM-BC2 memory figure is reworded in its own
+`docs(da)` commit (decision 8, approved 2026-10-07: a fix, not a report).
 
 **Interfaces:**
 - Consumes: `bt.pp.philr(tdata, *, pseudocount=0.5)`, `bt.da.linda`, `bt.da.ancombc2`;
@@ -8664,7 +8667,7 @@ rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html 
   `synthetic_genera() -> AnnData`; the asv classes `pp.Philr` and `da.DifferentialAbundance`; the
   "Transforms and differential abundance" table in `docs/performance.md`.
 
-- [ ] **Step 1: The suite.**
+- [x] **Step 1: The suite.**
 
 ```diff
 diff --git a/benchmarks/benchmarks/_data.py b/benchmarks/benchmarks/_data.py
@@ -8787,23 +8790,37 @@ class DifferentialAbundance:
   real tree. The DA table is 30% non-zero because zeros drive ANCOM-BC2's missing-value path; 2,000
   x 10,000 is a large genus-level study. `AnnData` with counts inferred from the values (no `uns`),
   as `synthetic_traits` builds its table.
-- [ ] **Step 2: Check it imports.**
+- [x] **Step 2: Check it imports.**
   `cd benchmarks && uv run --group dev asv check --python=same` -> `No problems found.`; then
   `uvx ruff check benchmarks` -> `All checks passed!` and `uvx ruff format --check benchmarks` ->
   `6 files already formatted`.
-- [ ] **Step 3: Gate and commit the suite.**
+- [x] **Step 3: Gate and commit the suite.**
 
 ```bash
 git add benchmarks/benchmarks/_data.py benchmarks/benchmarks/pp.py benchmarks/benchmarks/da.py
 git commit -m "perf: add asv benchmarks for PhILR, LinDA and ANCOM-BC2
 
-Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git status --short                                   # empty
 uvx prek run --all-files                             # all Passed
 uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected
 ```
 
-- [ ] **Step 4: Run the baseline** on that commit, with `git status --short` empty and other heavy
+- [x] **Step 3b: The docstring fix** (decision 8), its own commit after the baseline run, so the
+  baseline is measured on the suite commit. In `src/biotapy/da/_ancombc.py`, `da.ancombc2`'s Notes:
+
+```diff
+-    samples x features. Peak memory is about seven such arrays (7.2x to 7.5x
+-    measured on 400 x 1,000 and 200 x 2,000 tables).
++    samples x features. Peak memory is 4.5x to 7.5x such an array, depending on
++    the table's shape: 4.5x measured on a 2,000 x 10,000 table (30% non-zero),
++    7.2x to 7.5x on 400 x 1,000 and 200 x 2,000 tables.
+```
+
+  `.knowledge/modules/da.md` ("ANCOM-BC2 about 7x" becomes "4.5x to 7.5x, depending on the table's
+  shape"; `generated` and `commit` bumped) and a `.knowledge/log.md` line go in the same commit:
+  `docs(da): state ANCOM-BC2's measured peak-memory range`.
+- [x] **Step 4: Run the baseline** on that commit, with `git status --short` empty and other heavy
   work closed (the numbers are the record). asv's `branches: ["master"]` needs a local `master`
   branch (`git branch --list master` must print it):
 
@@ -8816,6 +8833,12 @@ uv run --group dev env HOME="$PWD/../.asv" asv show "$(git rev-parse HEAD)" --be
 cat /proc/loadavg
 ```
 
+  Done 2026-10-07 on `51e0475` (load average 1.66, 1.30, 1.21 before, 4.64, 2.23, 1.54 after;
+  55 s): `time_philr` 3.12 s, `peakmem_philr` 2.14 GB, `time_linda` 425 ms, `peakmem_linda` 1.15 GB,
+  `time_ancombc2` 3.62 s, `peakmem_ancombc2` 1.07 GB. The calls' own peaks on this run:
+  `pp.philr` 1.72 GB (4.31x its dense table), `da.linda` 822 MB (5.14x), `da.ancombc2` 726 MB
+  (4.54x). None is more than twice the prototype's.
+
   Expect six results, each `ok`, in about 60 s. The prototype's (`7b15403`, the laptop of
   Phases 1 and 2: 11th Gen Intel Core i7-11800H, 16 threads, 62 GB, Linux, Python 3.13):
   `time_philr` 3.04 s, `peakmem_philr` 2.14 GB, `time_linda` 469 ms, `peakmem_linda` 1.15 GB,
@@ -8825,7 +8848,7 @@ cat /proc/loadavg
   `/proc/self/statm` before the call and `resource.getrusage(...).ru_maxrss` after it, in a fresh
   process per function on the same tables: `pp.philr` 1.72 GB, `da.linda` 821 MB, `da.ancombc2`
   723 MB. Replace them with the run's values.
-- [ ] **Step 5: The performance page.** Add the section before "## Running the benchmarks",
+- [x] **Step 5: The performance page.** Add the section before "## Running the benchmarks",
   replacing the commit, date, load averages and every number with Step 4's run:
 
 ````diff
@@ -8839,9 +8862,9 @@ index bd48d26..df4e2a0 100644
 
 +## Transforms and differential abundance
 +
-+Measured on commit `7b15403`, 2026-10-07, on the same laptop and environment, with
-+`asv run --python=same --bench "^(da\.|pp\.Philr)"` (the two classes took about 60 s). The load
-+average was 2.21, 3.04, 2.75 before the run and 5.37, 4.03, 3.12 after it. Release 0.3 sets no
++Measured on commit `51e0475`, 2026-10-07, on the same laptop and environment, with
++`asv run --python=same --bench "^(da\.|pp\.Philr)"` (the two classes took about 55 s). The load
++average was 1.66, 1.30, 1.21 before the run and 4.64, 2.23, 1.54 after it. Release 0.3 sets no
 +speed target either.
 +
 +PhILR runs on the synthetic table above built with 1,000 samples (50,000 features, 2% non-zero,
@@ -8852,21 +8875,22 @@ index bd48d26..df4e2a0 100644
 +
 +| Benchmark | Result |
 +|---|---|
-+| `pp.philr`, 1,000 x 50,000 | 3.04 s |
++| `pp.philr`, 1,000 x 50,000 | 3.12 s |
 +| `pp.philr`, peak memory | 2.14 GB |
-+| `da.linda`, 2,000 x 10,000 | 469 ms |
++| `da.linda`, 2,000 x 10,000 | 425 ms |
 +| `da.linda`, peak memory | 1.15 GB |
-+| `da.ancombc2`, 2,000 x 10,000 | 3.92 s |
++| `da.ancombc2`, 2,000 x 10,000 | 3.62 s |
 +| `da.ancombc2`, peak memory | 1.07 GB |
 +
 +- Each of the three densifies `X` once (rules.md R6.2): 400 MB for PhILR, 160 MB for the
-+  differential abundance table. The peaks also hold the Python process (about 350 MB with the
-+  table loaded).
++  differential abundance table. The peaks also hold the Python process (418 MB with PhILR's table
++  loaded, 345 MB with the differential abundance table).
 +- Measured outside asv on the same tables, the call itself added 1.72 GB for `pp.philr` (4.3 times
-+  the dense table, plus scikit-bio's sparse basis, as its docstring says), 821 MB for `da.linda`
-+  (5.1 times, as its docstring says) and 723 MB for `da.ancombc2` (4.5 times, below the "about
-+  seven" its docstring measured on 400 x 1,000 and 200 x 2,000 tables). Nothing is being
-+  optimised (rules.md R10.1).
++  the dense table, plus scikit-bio's sparse basis, as its docstring says), 822 MB for `da.linda`
++  (5.1 times, as its docstring says) and 726 MB for `da.ancombc2` (4.5 times; its docstring gives
++  4.5 times here and 7.2 to 7.5 times on the 400 x 1,000 and 200 x 2,000 tables it was first
++  measured on, so the range depends on the table's shape). Nothing is being optimised
++  (rules.md R10.1).
 +
  ## Running the benchmarks
 
@@ -8882,17 +8906,17 @@ index bd48d26..df4e2a0 100644
  `uv run --group dev asv check --python=same` imports the suite without running it; CI runs it.
 ````
 
-- [ ] **Step 6: Bookkeeping.**
+- [x] **Step 6: Bookkeeping.**
   - The checklist line `- [ ] 3.13 asv benchmarks for \`pp.philr\`, \`da.linda\`, \`da.ancombc2\``
     becomes `- [x] ...`.
   - Log line: `- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.13 done: asv baselines for \`pp.philr\`, \`da.linda\` and \`da.ancombc2\` in docs/performance.md.`
-- [ ] **Step 7: Gate and commit the page.**
+- [x] **Step 7: Gate and commit the page.**
 
 ```bash
 git add docs/performance.md .knowledge/roadmap/phase-3-stats.md .knowledge/log.md
 git commit -m "docs: record the asv baselines for PhILR, LinDA and ANCOM-BC2
 
-Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git status --short                                   # empty
 uvx prek run --all-files                             # all Passed
 uv run --group test pytest -q -W error::UserWarning  # 1238 passed, 53 deselected
