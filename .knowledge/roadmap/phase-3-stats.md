@@ -601,7 +601,7 @@ columns onto it.
 - [x] 3.7 `da.maaslin3(adata, group, *, covariates=(), reference=None, seed=None) -> pd.DataFrame`
 - [x] 3.11 CI job `r-bridge` for `-m r` tests
 - [x] Checkpoint C (PR #23 merged; the user approved slice 3C on 2026-10-07)
-- [ ] 3.10 Method pages in `docs/methods/` and the DA guide
+- [x] 3.10 Method pages in `docs/methods/` and the DA guide
 - [ ] 3.10b `docs/tutorials/differential_abundance.md`, the exit-gate notebook
 - [ ] 3.12 Coming-from-R check
 - [ ] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`

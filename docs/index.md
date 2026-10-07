@@ -16,6 +16,7 @@ tutorials/index.md
 :caption: User guide
 
 guide/index.md
+methods/index.md
 coming_from_r.md
 ```
 

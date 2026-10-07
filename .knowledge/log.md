@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-07 (Phase 3, slice 3D)
+- **Update**: [phase-3-stats](roadmap/phase-3-stats.md) task 3.10 done: `docs/methods/` holds one page per `da` method and the consensus (model, units, the R defaults biotapy changes, agreement with R, reference); the DA guide keeps the workflow and links to them.
+
 ## 2026-10-07 (Phase 3, slice 3D plan)
 - **Update**: [phase-3-stats](roadmap/phase-3-stats.md) expands slice 3D (3.10 method pages and guide, 3.10b tutorial, 3.12 Coming-from-R, 3.13 benchmarks, Checkpoint D with 3.14 knowledge, 3.15 release 0.3.0) into full TDD steps, prototyped and gated per commit; ticks Checkpoint C (PR #23 merged, slice 3C approved) and exit-gate item 2 (PR #23's network and r-bridge jobs).
 
