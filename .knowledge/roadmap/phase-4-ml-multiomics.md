@@ -5,12 +5,12 @@ description: MuData modality conventions, mmvec wrapper, leak-free scikit-learn 
 tags: [roadmap, ml, multiomics]
 status: stable
 release: "0.4"
-phase_state: not-started
+phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-08T17:09:16Z }
+commit: bb393d4
 sources:
   - id: spec
     resource: ../../plan.md
