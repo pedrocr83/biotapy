@@ -5,12 +5,12 @@ description: CLR and PhILR transforms; ANCOM-BC2 and LinDA natively and ALDEx2 a
 tags: [roadmap, da, pp]
 status: stable
 release: "0.3"
-phase_state: in-progress
+phase_state: done
 effort: ~4 weeks part-time
 depends_on: [/roadmap/phase-2-function.md]
 paths: ["src/biotapy/da/**", "src/biotapy/pp/**", "src/biotapy/pl/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T15:41:00Z }
-commit: 73848df
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-08T17:09:16Z }
+commit: bb393d4
 sources:
   - id: spec
     resource: ../../plan.md
@@ -607,7 +607,7 @@ columns onto it.
 - [x] 3.13 asv benchmarks for `pp.philr`, `da.linda`, `da.ancombc2`
 - [x] Checkpoint D (PR #24 merged as 0e3a7f3; the user approved the slice review, the release-0.3.0 push/PR/merge and the PyPI publisher check on 2026-10-07)
 - [x] 3.14 Knowledge (the DA docs and benchmarks; da.md was updated for the bridges at Checkpoint C)
-- [ ] 3.15 Release 0.3.0 (Steps 1-8 done on `release-0.3.0`; Steps 9-13 open)
+- [x] 3.15 Release 0.3.0 (PR #25 merged as `bb393d4`; tag `v0.3.0`; release workflow run `37814170268`; on PyPI 2026-10-08)
 
 # Exit gate
 - [x] Consensus report on one benchmark dataset (GlobalPatterns genus,
@@ -9544,10 +9544,10 @@ index e8c8124..58cb3ad 100644
     staging `.knowledge/playbooks/cut-a-release.md`, `.knowledge/roadmap/phase-0-foundation.md`,
     `.knowledge/contracts/module-boundaries.md`, `.knowledge/contracts/tree-access.md`,
     `.knowledge/roadmap/phase-3-stats.md` and `.knowledge/log.md`; gate as Step 7.
-- [ ] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.3.0`, open the PR,
+- [x] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.3.0`, open the PR,
   wait for green CI (every job, `r-bridge` and `docs` included), merge with a merge commit (not a
   squash).
-- [ ] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI, and that cannot be
+- [x] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI, and that cannot be
   undone. Ask the user, in one message, for explicit approval to:
   1. tag the merged `master` commit `v0.3.0`;
   2. push only that tag;
@@ -9555,7 +9555,7 @@ index e8c8124..58cb3ad 100644
   4. afterwards, push `close-phase-3` (Step 13), open its PR and merge-commit it on green.
 
   Wait for a yes that names this release. An earlier approval does not count.
-- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+- [x] **Step 11: Tag and release**, only after Step 10's approval:
 
 ```bash
 git switch master && git pull --ff-only
@@ -9573,7 +9573,7 @@ gh run list --workflow release.yaml --limit 3 --json databaseId,headBranch,statu
     delete v0.3.0 --cleanup-tag`) and re-tag, each only with the user's approval (playbook, Common
     mistakes).
   - If it fails after the upload, report it: the version is spent, and the fix is 0.3.1.
-- [ ] **Step 12: Verify** (playbook Verification). Both print `0.3.0`:
+- [x] **Step 12: Verify** (playbook Verification). Both print `0.3.0`:
 
 ```bash
 curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
@@ -9583,7 +9583,7 @@ uv run --no-project --with biotapy==0.3.0 python -c "import biotapy as bt; print
   The second also prints `['aldex2', 'ancombc2', 'consensus', 'linda', 'maaslin3'] True`, and
   `curl -s https://pypi.org/pypi/biotapy/0.3.0/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['provides_extra'])"`
   prints `['r']`.
-- [ ] **Step 13: Close Phase 3** (approved in Step 10), as `close-phase-2` did:
+- [x] **Step 13: Close Phase 3** (approved in Step 10), as `close-phase-2` did:
   - `git switch master && git pull --ff-only && git switch -c close-phase-3`;
   - `roadmap/phase-3-stats.md`: `phase_state: in-progress` becomes `phase_state: done`; tick Task
     3.15 Steps 9-13 and the checklist's `3.15 Release 0.3.0`; bump `generated` and `commit`;
