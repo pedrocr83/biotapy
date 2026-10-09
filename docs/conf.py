@@ -111,6 +111,7 @@ intersphinx_mapping = {
     "networkx": ("https://networkx.org/documentation/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "mudata": ("https://mudata.scverse.org/stable/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and

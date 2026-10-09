@@ -16,5 +16,6 @@ filtering
 diversity
 ordination
 differential_abundance
+machine_learning
 plotting
 ```

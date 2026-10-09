@@ -109,6 +109,19 @@ Public functions are listed here as they ship, from Phase 1 onward.
     da.maaslin3
 ```
 
+## Machine learning
+
+```{eval-rst}
+.. module:: biotapy.ml
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    ml.CLR
+    ml.PrevalenceFilter
+```
+
 ## Plots
 
 ```{eval-rst}

@@ -5,8 +5,8 @@ description: io/pp return new objects and never mutate input; tl returns results
 tags: [api, conventions]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-27T19:50:20Z }
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:52:00Z }
-commit: 6969103
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:11:08Z }
+commit: 8b2751f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -29,6 +29,7 @@ behaviour. Confirmed by the user on 2026-09-26.
 | `tl` with `inplace=True` | `None` | writes to the slot named in [data-model-slots](/contracts/data-model-slots.md) |
 | `fn`, `da` | new object or result `pd.DataFrame` | never |
 | `pl` | `matplotlib.axes.Axes` | never |
+| `ml` estimators (`PrevalenceFilter`, `CLR`) | scikit-learn's protocol: `fit` stores what it learns on the estimator and returns it; `transform` returns a new array | never the data |
 
 Every `tl` function that returns per-sample or per-pair values supports both modes with
 identical semantics; `tl.permanova` and `tl.mmvec` are the exceptions (see Consequences).

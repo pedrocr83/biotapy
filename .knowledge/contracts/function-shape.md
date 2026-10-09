@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
-commit: a1b54be
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:11:08Z }
+commit: 8b2751f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -24,6 +24,10 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
      `da.consensus` takes a sequence of `da` result tables and `pl.consensus` the
      table `da.consensus` returns instead: they combine and draw results, not data.
    - Everything after the required arguments is keyword-only (`*`).
+   - `ml`'s scikit-learn transformers are classes (rules.md R3.6), not
+     functions: their options are constructor keyword arguments that `fit`
+     validates (scikit-learn's convention, which `check_estimator` tests),
+     and the class docstring carries the skeleton below.
    - No `**kwargs` pass-through, except a documented `plot_kwargs` in `pl`.
 2. **Return and mutation**: per [pure-by-default](/decisions/pure-by-default.md).
 3. **Randomness**: any stochastic function takes

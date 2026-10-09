@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:06:30Z }
-commit: 9663824
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:11:08Z }
+commit: 8b2751f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -480,7 +480,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.1 `io.to_mudata(modalities) -> MuData` and the multi-omics decision
 - [x] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
 - [x] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
-- [ ] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
+- [x] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
 - [ ] Checkpoint A
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
@@ -1804,7 +1804,7 @@ so they add no row).
 - Produces: `bt.ml.PrevalenceFilter(min_prevalence: float = 0.1)` with
   `prevalence_`; `bt.ml.CLR(pseudocount: float = 0.5)`.
 
-- [ ] **Step 1: Failing tests.** Create `tests/ml/test_transformers.py`:
+- [x] **Step 1: Failing tests.** Create `tests/ml/test_transformers.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -1970,10 +1970,10 @@ so they add no row).
   ```
   In `tests/test_docstrings.py` the module set becomes
   `{"da", "datasets", "fn", "io", "ml", "pl", "pp", "tl"}`.
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/ml -q` -> `1 error` during collection
   (`AttributeError: module 'biotapy' has no attribute 'ml'`).
-- [ ] **Step 3: Implement.** Create `src/biotapy/ml/_transformers.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/ml/_transformers.py`:
   ```python
   """scikit-learn transformers, so preprocessing is fitted inside each cross-validation fold."""
 
@@ -2129,12 +2129,12 @@ so they add no row).
 
   __version__ = version("biotapy")
   ```
-- [ ] **Step 4: Run, expect pass** -
+- [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/ml src/biotapy/ml tests/test_docstrings.py -q -W error::UserWarning`
   -> `172 passed, 2 skipped`; `tests/ml` also under
   `--hypothesis-seed=1`, `2`, `3` (`114 passed, 2 skipped` each);
   `uv run --group dev --group doc mypy` -> `Success`.
-- [ ] **Step 5: Docs.** Create `docs/guide/machine_learning.md`:
+- [x] **Step 5: Docs.** Create `docs/guide/machine_learning.md`:
   ````markdown
   # Machine learning
 
@@ -2251,7 +2251,7 @@ so they add no row).
    plotting
    ```
   ```
-- [ ] **Step 6: Knowledge.**
+- [x] **Step 6: Knowledge.**
   ```diff
   diff --git a/.knowledge/contracts/function-shape.md b/.knowledge/contracts/function-shape.md
   index 302816e..162ef54 100644
@@ -2285,7 +2285,7 @@ so they add no row).
   ```markdown
   - **Update**: [pure-by-default](decisions/pure-by-default.md) gains the `ml` estimators' row; [function-shape](contracts/function-shape.md) says `ml`'s transformers are classes whose options `fit` validates; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.3.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   git add src/biotapy/ml/__init__.py src/biotapy/ml/_transformers.py src/biotapy/__init__.py \
     tests/ml/test_transformers.py tests/test_docstrings.py docs/guide/machine_learning.md \
