@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:25:30Z }
-commit: ed14ac9
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:38:06Z }
+commit: 7a9c07a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -3857,11 +3857,14 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   passed`; `build succeeded`; `23 passed, 1490 deselected`.
 
 ### Checkpoint B - review slice 4B
-- [ ] Review the whole slice (superpowers:requesting-code-review) against
+- [x] Review the whole slice (superpowers:requesting-code-review) against
   every contract, pure-by-default, optional-heavy-dependencies, the Phase 4
   and slice 4B review focus; then a fix pass, one commit per finding, each
   with a test. Record the counts and the fix range here.
-- [ ] Run the slice's checks at the last commit and record them: the slice
+  Review: 0 Critical, 1 Important, 5 Minor (+5 counted). Fix pass
+  `d33d661..7a9c07a`, 7 commits. Scoped re-review: all 6 findings addressed,
+  no new findings.
+- [x] Run the slice's checks at the last commit and record them: the slice
   gate's five counts; `uv run --group test --extra torch coverage run -m
   pytest -m "torch or not torch" tests/ml/test_torch.py
   src/biotapy/ml/_torch.py` then `coverage report --include
@@ -3869,10 +3872,16 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   which this run does not exercise, and `fail_under = 90` would fail the
   total). `_torch.py` was 100% on the prototype and is 100% (54 statements)
   after the fix pass.
-- [ ] Knowledge: [ml](/modules/ml.md) and
+  At `7a9c07a`: `pytest -q -W error::UserWarning` 1437 passed, 2 skipped, 79
+  deselected; `-m "golden or network"` 36 passed; `--extra torch -m torch` 25
+  passed, 1493 deselected; coverage `_torch.py` 54 statements, 100%.
+- [x] Knowledge: [ml](/modules/ml.md) and
   [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)
   already carry 4B (4.5, 4.B1); re-check them against the fix pass and
   bump only what changed, with log lines.
+  Done at `7a9c07a`: [ml](/modules/ml.md) gains the bool index and the sdist
+  `conftest.py`; [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)
+  the `ml-extras` timeout; the nine stale concepts re-checked (see the log).
 - [ ] Push the branch and open the PR only after the user approves that push
   (R13.3). The PR body carries the R9.2 reason: "Extra `torch` (`torch>=2.9`,
   BSD-3-Clause, approved 2026-10-09): `ml.to_torch` subclasses

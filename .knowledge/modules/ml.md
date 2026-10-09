@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:18:17Z }
-commit: be62117
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
+commit: 7a9c07a
 ---
 
 # Responsibility
@@ -58,7 +58,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 - `to_torch` densifies one row when its item is read, never the table, and
   holds `X` (or the layer) instead of copying it, so the AnnData must not be
   modified while the dataset is used; every item is a new tensor (label
-  included), so editing it leaves the AnnData unchanged. A non-integer index
+  included), so editing it leaves the AnnData unchanged. A non-integer or bool index
   raises `TypeError`. Labels are converted once, at construction: category, string or bool -> int64 codes in category order, numeric
   -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
 - `to_torch` validates its arguments before it imports torch, so its error
@@ -84,7 +84,8 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
 errors). `uv run --group test --extra torch pytest -m torch` runs the
-`to_torch` tests and its docstring example, as CI's `ml-extras` job does. The pseudocount
+`to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
+`.github/workflows/test.yaml`). The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
 
 # Gotchas
@@ -120,7 +121,9 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
   cross-reference, which `nitpicky` fails. `_torch.py:_dataset`.
 - The docstring example needs torch: the root `conftest.py` gives the
   doctests of `biotapy.ml._torch` the marker `torch`, so the default run
-  deselects them and `-m torch` runs them. `conftest.py:pytest_collection_modifyitems`.
+  deselects them and `-m torch` runs them. The sdist ships the root `conftest.py` (`pyproject.toml`
+  `build.targets.sdist.include`), because the sdist's tests need that hook; the
+  wheel does not. `conftest.py:pytest_collection_modifyitems`.
 - Without the extra, `import biotapy` never imports torch. With torch
   installed, scikit-bio 0.7.4 imports it at module level
   (`skbio.util._testing`, reached through `_core._tree`), so `'torch' in
