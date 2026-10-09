@@ -94,6 +94,12 @@ def test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does():
     assert uv["index"] == [{"name": "pytorch-cpu", "url": "https://download.pytorch.org/whl/cpu", "explicit": True}]
 
 
+def test_the_mgm_extra_is_torch_and_transformers_with_torch_from_the_cpu_index():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["project"]["optional-dependencies"]["mgm"] == ["torch>=2.9", "transformers>=5"]
+    assert pyproject["tool"]["uv"]["sources"] == {"torch": {"index": "pytorch-cpu"}}
+
+
 def test_coverage_below_90_percent_fails_the_test_job():
     coverage = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["coverage"]
     assert coverage["report"]["fail_under"] == 90

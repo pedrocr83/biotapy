@@ -1,11 +1,11 @@
 ---
 type: Decision
 title: Heavy dependencies are optional extras
-description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
+description: torch, transformers, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
-commit: 7a9c07a
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:08:33Z }
+commit: 82c6e6d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -70,12 +70,26 @@ torch or an R installation into every install is unacceptable.[^spec]
   Windows, `2.14.1` on macOS arm64 (no wheel exists for Intel macOS); the
   Linux wheel is 196 MB, against PyPI's 555 MB plus CUDA packages. The index
   is uv configuration only: the wheel's metadata says `torch>=2.9; extra ==
-  'torch'`, and pip users get PyPI's torch.
+  'torch'`, and pip users get PyPI's torch. Phase 4 task 4.C1 added the extra
+  `mgm` (`torch>=2.9`, `transformers>=5`, approved 2026-10-09) for MGM, the
+  reference model of `ml.embed`: a GPT-2 that transformers (Apache-2.0) runs
+  on torch, whose weights are downloaded at run time and never bundled.
+  transformers brings huggingface-hub, tokenizers, safetensors, regex, tqdm
+  and typer with their own dependencies; 16 packages are new to `uv.lock`
+  (211 against 195) and no version moves. They take about 97 MB installed
+  beside torch's 742 MB (Python 3.14, Linux). Every binary among them ships
+  abi3 or per-version wheels for CPython 3.12-3.14 on Linux, macOS and
+  Windows; torch still comes from the CPU index under uv. 5.0.0 is the first
+  transformers 5 release (2026-01-26); MGM's plugin was run on 5.0.0 with
+  torch 2.9.0 and on 5.19.0 with torch 2.14.1. `microformer-mgm` itself is
+  not a dependency: it pins numpy 1.24, pandas 2.0, torch 2.0 and
+  transformers 4.33.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |
   |---|---|---|
   | `numba` | numba (>=0.67, supports up to Python 3.14) | perf track, only on benchmark evidence; also unlocks scikit-bio's `engine="numba"` |
+  | `mgm` | torch (>=2.9), transformers (>=5) | Phase 4 `ml.embed`'s MGM plugin |
   | `r` | rpy2 (3.6.8) | Phase 3 `da` bridges |
   | `torch` | torch (>=2.9; under uv, CPU wheels from PyTorch's index) | Phase 4 `ml.to_torch` |
   | `plotnine` | plotnine | only if a `pl` function needs it |

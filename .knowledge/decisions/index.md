@@ -6,7 +6,7 @@
 * [Multi-omics data is one MuData with fixed modality names](multiomics-as-mudata.md) - Several data types over the same samples are one MuData whose modalities are named taxa, function, function_by_taxon, metabolites and host; io.to_mudata keeps only the samples every modality has; a TreeData modality loses its tree in h5mu.
 * [Pure by default, one inplace convention for tl](pure-by-default.md) - io/pp return new objects and never mutate input; tl returns results, and inplace=True writes them to the documented slot; pl returns Axes.
 * [Python first, compiled code last](python-first-compiled-last.md) - Pure Python/NumPy by default; delegate to compiled libraries; Numba then Rust only for a benchmarked hotspot; never new C/C++.
-* [Heavy dependencies are optional extras](optional-heavy-dependencies.md) - torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily.
+* [Heavy dependencies are optional extras](optional-heavy-dependencies.md) - torch, transformers, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily.
 * [Knowledge in OKF, user docs in Sphinx](docs-okf-and-sphinx.md) - Contributor and agent knowledge is an OKF v0.2 bundle in .knowledge/; user docs are a Sphinx site in docs/.
 * [What "methods agree" means in da.consensus](da-consensus-agreement.md) - A feature is a consensus hit when at least min_methods methods call it at q < alpha and every calling method gives it the same sign; untested is not "not significant", opposite calls are a conflict, and the user picks the methods.
 * [R bridge before native ports](r-bridge-before-ports.md) - R-only DA methods ship first through an optional rpy2 bridge; native ports only for the most used.
