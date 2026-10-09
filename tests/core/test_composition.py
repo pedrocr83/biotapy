@@ -34,3 +34,14 @@ def test_check_pseudocount_refuses(value, error):
 def test_messages_name_the_caller():
     with pytest.raises(ValueError, match="ml.CLR needs finite, non-negative values in X"):
         pseudocounted(np.array([[-1.0, 2.0]]), 0.5, func="ml.CLR")
+
+
+def test_pseudocount_above_the_smallest_value_warns_naming_it():
+    values = np.array([[0.0, 0.2], [0.8, 0.5]])
+    with pytest.warns(UserWarning, match=r"pseudocount=0\.5 is larger than the smallest non-zero value in X \(0\.2\)"):
+        pseudocounted(values, 0.5, func="ml.CLR")
+
+
+def test_zero_pseudocount_with_a_zero_in_x_raises():
+    with pytest.raises(ValueError, match="X holds zeros, whose logarithm is undefined; pass pseudocount > 0 to ml.CLR"):
+        pseudocounted(np.array([[0.0, 2.0]]), 0, func="ml.CLR")
