@@ -6255,8 +6255,13 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   - At `31aa11d`: `pytest -q -W error::UserWarning` 1488 passed, 2 skipped,
     92 deselected; `-m "golden or network"` 36 passed; `--extra torch -m torch`
     25 passed; `--extra mgm -m mgm` 13 passed; coverage 100% on `_download.py`
-    (4 statements), `_embed.py` (54) and `_mgm.py` (87). The Hypothesis seeds
-    1-3 and the six parity mutations are not recorded by this step.
+    (4 statements), `_embed.py` (54) and `_mgm.py` (87). `tests/ml/test_embed.py`
+    with `--hypothesis-seed` 1, 2 and 3: 37 passed each, at `55c5f2e`.
+    Mutations (Checkpoint C review and re-review): all 6 on `_embed.py`
+    fail a test; on `_mgm.py`, last-token pooling, dropped `<bos>`/`<eos>`,
+    five token-order changes, a wrong denominator, dropout left on,
+    genus ids off by one, no per-genus summing, and keeping `<eos>` at the
+    512 cut each fail parity (the last only at the warm 1e-5 check).
 - [x] Knowledge: [ml](/modules/ml.md), [core](/modules/core.md),
   [embedding-plugins](/decisions/embedding-plugins.md),
   [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md),
