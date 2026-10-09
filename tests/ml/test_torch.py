@@ -132,6 +132,21 @@ def test_editing_a_returned_label_does_not_change_the_next_fetch(torch):
 
 
 @pytest.mark.torch
+@pytest.mark.parametrize("sparse", [True, False])
+def test_a_slice_index_raises_and_integer_indices_work(torch, sparse):
+    tdata = bt.datasets.toy()
+    adata = AnnData(X=tdata.X if sparse else tdata.X.toarray())
+    dataset = bt.ml.to_torch(adata)
+    with pytest.raises(TypeError, match="slice"):
+        dataset[1:3]
+    expected = tdata.X.toarray().astype(np.float32)
+    np.testing.assert_array_equal(dataset[np.int64(2)].numpy(), expected[2])
+    np.testing.assert_array_equal(dataset[-1].numpy(), expected[-1])
+    with pytest.raises(IndexError):
+        dataset[6]
+
+
+@pytest.mark.torch
 def test_references_x_so_a_later_change_shows(torch):
     tdata = bt.datasets.toy()
     dataset = bt.ml.to_torch(tdata)
