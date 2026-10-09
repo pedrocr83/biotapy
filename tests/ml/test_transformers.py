@@ -101,6 +101,14 @@ def test_prevalence_filter_wrong_type_raises(value):
         bt.ml.PrevalenceFilter(min_prevalence=value).fit(_toy_x())
 
 
+def test_prevalence_filter_keeps_its_input():
+    X = sp.csr_matrix((np.array([0.0, 2.0, 3.0, 1.0]), np.array([0, 1, 1, 2]), np.array([0, 2, 4])), shape=(2, 3))
+    before = (X.data.copy(), X.indices.copy(), X.indptr.copy())
+    bt.ml.PrevalenceFilter(min_prevalence=0.5).fit_transform(X)
+    for kept, original in zip((X.data, X.indices, X.indptr), before, strict=True):
+        np.testing.assert_array_equal(kept, original)
+
+
 def test_clr_equals_pp_clr():
     tdata = bt.datasets.toy()
     out = bt.ml.CLR().fit_transform(tdata.X)
