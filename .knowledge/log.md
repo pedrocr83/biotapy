@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4 plan)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) carries the user-approved Phase 4 plan: resolved design notes, global constraints, dependencies, review focus, slices 4A-4D, slice 4A in full TDD steps (4.1 io.to_mudata, 4.2 tl.mmvec, 4.A0 pseudocount helper to `_core`, 4.3 ml.PrevalenceFilter and ml.CLR, Checkpoint A) and later slices as outlines, decisions and self-review; new description, paths and sources, copied into the [roadmap index](roadmap/index.md).
+
 ## 2026-10-08 (release 0.3.0)
 - **Update**: Phase 3 closed after biotapy 0.3.0 reached PyPI (tag v0.3.0, release workflow run 37814170268). [phase-3-stats](roadmap/phase-3-stats.md) is `phase_state: done` with every Task 3.15 step and exit-gate item ticked; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) is `phase_state: in-progress`; the [roadmap index](roadmap/index.md) lists Phase 4 as active.
 
