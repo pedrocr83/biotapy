@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:39:11Z }
-commit: f98e043
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:39:41Z }
+commit: bb7b70a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -484,7 +484,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
 - [x] Checkpoint A
 - [x] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
-- [ ] 4.F2 `pp.filter_features` names a wrongly typed threshold
+- [x] 4.F2 `pp.filter_features` names a wrongly typed threshold
 - [ ] 4.F3 `refactor(core)`: one finite, non-negative check
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
@@ -2547,7 +2547,7 @@ document it, and report it upstream.
 Same rule as `ml.PrevalenceFilter` (R3.5): a bool or a non-real
 `min_prevalence` or `min_total` raises `TypeError` naming the argument.
 
-- [ ] **Step 1: RED.**
+- [x] **Step 1: RED.**
   ```python
   @pytest.mark.parametrize("value", [True, "0.5", [0.5]])
   @pytest.mark.parametrize("argument", ["min_prevalence", "min_total"])
@@ -2557,11 +2557,11 @@ Same rule as `ml.PrevalenceFilter` (R3.5): a bool or a non-real
   ```
   Expected: 6 failed (`True` passes silently; the others raise an unnamed
   `TypeError` or numpy error).
-- [ ] **Step 2: GREEN.** Before the range checks, for each non-None
+- [x] **Step 2: GREEN.** Before the range checks, for each non-None
   threshold: `if isinstance(value, bool) or not isinstance(value, int | float | np.integer | np.floating): raise TypeError(f"{name} must be a real number, got {value!r}")`,
   written once as a loop over the two names (R5 limits). Same wording as
   `ml.PrevalenceFilter`. Expected: tests/pp passes.
-- [ ] **Step 3: commit** `fix(pp): name min_prevalence or min_total when its type is wrong`.
+- [x] **Step 3: commit** `fix(pp): name min_prevalence or min_total when its type is wrong`.
 
 ### Task 4.F3: one finite, non-negative check in `_core`
 

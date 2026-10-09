@@ -183,3 +183,10 @@ def test_filter_samples_keeps_exactly_the_deep_samples(make_adata, dense, depth)
             bt.pp.filter_samples(make_adata(dense), depth)
         return
     assert list(bt.pp.filter_samples(make_adata(dense), depth).obs_names) == [f"s{i}" for i in np.flatnonzero(deep)]
+
+
+@pytest.mark.parametrize("value", [True, "0.5", [0.5]])
+@pytest.mark.parametrize("argument", ["min_prevalence", "min_total"])
+def test_wrongly_typed_threshold_raises_naming_it(argument, value):
+    with pytest.raises(TypeError, match=f"{argument} must be a real number"):
+        bt.pp.filter_features(bt.datasets.toy(), **{argument: value})
