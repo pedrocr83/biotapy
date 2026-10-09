@@ -82,6 +82,9 @@ def ancombc2(
     converged by then, and the estimate depends on the cap: on GlobalPatterns'
     genera, human hosts against the rest, R moves every effect by about -0.28
     log2 with 1,000 iterations, and calls 220 genera instead of 208.
+    With two samples in the reference level, scikit-bio 0.7.4 can fail to
+    estimate the bias (about 1 in 600 random small tables) where R returns
+    results; biotapy raises naming scikit-bio rather than guess.
 
     Swapping ``reference`` changes more than the sign of ``effect``: the
     bias-corrected E-M is fitted against the reference level, as in R. On

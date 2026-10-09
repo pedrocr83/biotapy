@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:37:48Z }
-commit: cdc3b07
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:39:11Z }
+commit: f98e043
 sources:
   - id: spec
     resource: ../../plan.md
@@ -483,7 +483,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
 - [x] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
 - [x] Checkpoint A
-- [ ] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
+- [x] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
 - [ ] 4.F2 `pp.filter_features` names a wrongly typed threshold
 - [ ] 4.F3 `refactor(core)`: one finite, non-negative check
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
@@ -2479,7 +2479,7 @@ document it, and report it upstream.
 **Files:** modify `tests/da/test_ancombc.py`, `tests/da/test_schema.py`,
 `src/biotapy/da/_ancombc.py` (Notes only).
 
-- [ ] **Step 1: regression test (pins current behaviour).** Append to
+- [x] **Step 1: regression test (pins current behaviour).** Append to
   `tests/da/test_ancombc.py`:
   ```python
   # Two reference samples whose centred log abundances of f5 nearly agree (variance 3.3e-6): scikit-bio 0.7.4's bias
@@ -2510,7 +2510,7 @@ document it, and report it upstream.
   `uv run --group test pytest -q tests/da/test_ancombc.py -k underflow -W error::UserWarning`.
   Expected: `1 passed` (it pins existing, documented behaviour; R11.1's RED is
   Step 2).
-- [ ] **Step 2: RED.** In `tests/da/test_schema.py`, import `example` and
+- [x] **Step 2: RED.** In `tests/da/test_schema.py`, import `example` and
   `reject` from hypothesis and add, under the property test's `@given`:
   ```python
   @example(counts=np.array(EM_UNDERFLOW), split=2)
@@ -2518,7 +2518,7 @@ document it, and report it upstream.
   with `EM_UNDERFLOW` copied as a module constant (tests do not import each
   other). Run `uv run --group test pytest -q tests/da/test_schema.py -k direction -W error::UserWarning`.
   Expected: `1 failed, 2 passed` (ancombc2 fails on the example).
-- [ ] **Step 3: GREEN.** Replace `out = method(adata, "g")` in that test with:
+- [x] **Step 3: GREEN.** Replace `out = method(adata, "g")` in that test with:
   ```python
   try:
       out = method(adata, "g")
@@ -2532,12 +2532,12 @@ document it, and report it upstream.
   one method and one upstream message, the excluded input is asserted by the
   Step 1 test, and it extends the test's existing restriction to fittable
   designs (`unique=True` excludes exact zero variance).
-- [ ] **Step 4: Notes.** In `da.ancombc2`'s docstring Notes, after the E-M
+- [x] **Step 4: Notes.** In `da.ancombc2`'s docstring Notes, after the E-M
   sentence, add: "With two samples in the reference level, scikit-bio 0.7.4 can
   fail to estimate the bias (about 1 in 600 random small tables) where R
   returns results; biotapy raises naming scikit-bio rather than guess." Docs
   build with `-W`.
-- [ ] **Step 5: commit** `test(da): pin scikit-bio's ancombc2 bias E-M underflow and keep the schema property on fittable designs`.
+- [x] **Step 5: commit** `test(da): pin scikit-bio's ancombc2 bias E-M underflow and keep the schema property on fittable designs`.
 - [ ] **Upstream (needs separate approval, R13.3):** an issue on
   scikit-bio/scikit-bio; its draft text is in the 4.F PR description.
 

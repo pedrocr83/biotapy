@@ -3,6 +3,7 @@
 ## 2026-10-09 (Phase 4, fixes 4.F)
 - **Verification**: `human:pedrocr83` approved slice 4A and confirmed [multiomics-as-mudata](decisions/multiomics-as-mudata.md); now `stable`.
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks Checkpoint A (PR #27, merge `cdc3b07`) and adds the user-approved fixes 4.F1-4.F3 in full TDD steps: scikit-bio's `ancombc2` bias E-M underflow on a two-sample reference level, `pp.filter_features`' threshold types, one finite, non-negative check in `_core`.
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F1: `da.ancombc2` on a two-sample reference level can fail inside scikit-bio's bias E-M (0/0 where R sets the responsibility to 0); the failure is pinned by a test, the schema property test rejects that one error, and the docstring Notes say so.
 
 ## 2026-10-09 (Phase 4, slice 4A)
 - **Creation**: [ml](modules/ml.md): the `ml` module concept - `PrevalenceFilter` and `CLR`, their fitted-state, keyword-only-options and parity invariants, and the gotchas (`parametrize_with_checks` under `-W error::UserWarning`, the `_set_output` warning frame, the targeted `no-untyped-call` ignore); listed in [modules index](modules/index.md) and the [bundle index](index.md).
