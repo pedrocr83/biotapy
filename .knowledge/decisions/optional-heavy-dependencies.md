@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-06T14:12:00Z }
-commit: 64fe39d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:28:21Z }
+commit: 4e44efc
 sources:
   - id: spec
     resource: ../../plan.md
@@ -58,14 +58,26 @@ torch or an R installation into every install is unacceptable.[^spec]
   Ubuntu; without them rpy2 silently falls back to an ABI mode that cannot
   load R, so the `r-bridge` CI job sets `RPY2_CFFI_MODE=API` to fail the build
   instead, `.github/workflows/test.yaml`). biotapy imports it only through
-  `import_optional` in `da/_r.py` and never bundles it.
+  `import_optional` in `da/_r.py` and never bundles it. Phase 4 task 4.B0
+  added the extra `torch` (`torch>=2.9`, approved 2026-10-09) for
+  `ml.to_torch`: 2.9.0 is torch's first release with CPython 3.14 wheels.
+  torch (BSD-3-Clause) brings filelock, fsspec, jinja2, networkx, setuptools,
+  sympy (with mpmath) and typing-extensions; of these, fsspec, mpmath,
+  setuptools and sympy are new to `uv.lock`, and no other version moves. uv
+  installs it from PyTorch's CPU index (`[tool.uv]` in `pyproject.toml`:
+  index `pytorch-cpu`, `https://download.pytorch.org/whl/cpu`, `explicit =
+  true`, so no other package resolves there): `2.14.1+cpu` on Linux and
+  Windows, `2.14.1` on macOS arm64 (no wheel exists for Intel macOS); the
+  Linux wheel is 196 MB, against PyPI's 555 MB plus CUDA packages. The index
+  is uv configuration only: the wheel's metadata says `torch>=2.9; extra ==
+  'torch'`, and pip users get PyPI's torch.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |
   |---|---|---|
   | `numba` | numba (>=0.67, supports up to Python 3.14) | perf track, only on benchmark evidence; also unlocks scikit-bio's `engine="numba"` |
   | `r` | rpy2 (3.6.8) | Phase 3 `da` bridges |
-  | `torch` | torch | Phase 4 `ml` loaders |
+  | `torch` | torch (>=2.9; under uv, CPU wheels from PyTorch's index) | Phase 4 `ml.to_torch` |
   | `plotnine` | plotnine | only if a `pl` function needs it |
 
 - **`unifrac` (Striped UniFrac) is not an extra.** On 2026-09-26 PyPI had only
@@ -89,5 +101,8 @@ torch or an R installation into every install is unacceptable.[^spec]
 - CI imports every module with no extras installed (`import-without-extras`),
   so a lazy import leaking to module level fails fast. A job with all extras
   comes with the first extra.
+- `uv.lock` is not committed, so every CI job that runs `uv run` resolves
+  afresh, and reads torch's versions from download.pytorch.org even when it
+  installs no torch (measured: `uv lock` 0.10 s -> 0.37 s with a warm cache).
 
 [^spec]: Python Microbiome Toolkit development report, section Module layout

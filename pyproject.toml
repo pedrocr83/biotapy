@@ -46,6 +46,8 @@ dependencies = [
 ]
 # The ALDEx2 and MaAsLin 3 bridges (decisions/optional-heavy-dependencies); R and the R packages are the user's install.
 optional-dependencies.r = [ "rpy2>=3.6.8" ]
+# ml.to_torch (decisions/optional-heavy-dependencies); 2.9.0 is torch's first release with CPython 3.14 wheels.
+optional-dependencies.torch = [ "torch>=2.9" ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://biotapy.readthedocs.io/"
 urls.Homepage = "https://github.com/pedrocr83/biotapy"
@@ -123,6 +125,12 @@ envs.hatch-test.overrides.matrix.deps.env-vars = [
   { value = "allow", key = "UV_PRERELEASE", if = [ "pre" ] },
 ]
 envs.hatch-test.dependency-groups = [ "dev", "test" ]
+
+[tool.uv]
+# CI and contributors get torch's CPU wheels (196 MB on Linux), not PyPI's Linux wheel (555 MB plus CUDA packages).
+# explicit = true: only torch, named in sources, comes from this index; the published metadata is unchanged.
+sources.torch = { index = "pytorch-cpu" }
+index = [ { name = "pytorch-cpu", url = "https://download.pytorch.org/whl/cpu", explicit = true } ]
 
 [tool.ruff]
 line-length = 120

@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4, slice 4B)
+- **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `torch` (`torch>=2.9`), what it brings, the CPU index uv installs it from and why, the extras table row, and that every CI `uv run` now reads torch's index; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B0.
+
 ## 2026-10-09 (Phase 4, slice 4B plan)
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4B into full TDD steps (4.B0 the extra `torch` and its CPU index, 4.5 `ml.to_torch`, 4.B1 CI job `ml-extras`, Checkpoint B), approved by the user with decisions 21-26; design note 7's two [UNVERIFIED] points are measured; the dependencies table, risks, self-review and header follow; fixes 4.F1-4.F3 merged in PR #28.
 

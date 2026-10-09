@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T09:26:56Z }
-commit: ef82843
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:28:21Z }
+commit: 4e44efc
 sources:
   - id: spec
     resource: ../../plan.md
@@ -486,7 +486,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
 - [x] 4.F2 `pp.filter_features` names a wrongly typed threshold
 - [x] 4.F3 `refactor(core)`: one finite, non-negative check
-- [ ] 4.B0 `build`: the extra `torch = ["torch>=2.9"]`, installed by uv from PyTorch's CPU index
+- [x] 4.B0 `build`: the extra `torch = ["torch>=2.9"]`, installed by uv from PyTorch's CPU index
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the marker `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
@@ -2836,7 +2836,7 @@ installing no extra).
 - Produces: `pip install 'biotapy[torch]'`; `uv run --extra torch` installs
   torch from `https://download.pytorch.org/whl/cpu`.
 
-- [ ] **Step 1: Failing test.** In `tests/test_ci.py`, after
+- [x] **Step 1: Failing test.** In `tests/test_ci.py`, after
   `test_r_bridge_job_blocks_merges`:
   ```python
   def test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does():
@@ -2846,10 +2846,10 @@ installing no extra).
       assert uv["sources"] == {"torch": {"index": "pytorch-cpu"}}
       assert uv["index"] == [{"name": "pytorch-cpu", "url": "https://download.pytorch.org/whl/cpu", "explicit": True}]
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/test_ci.py -q` -> `1 failed, 16 passed`
   (`KeyError: 'torch'`).
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   ```diff
   diff --git a/pyproject.toml b/pyproject.toml
   --- a/pyproject.toml
@@ -2877,7 +2877,7 @@ installing no extra).
    line-length = 120
    src = [ "src" ]
   ```
-- [ ] **Step 4: Run, expect pass, and record the lock** -
+- [x] **Step 4: Run, expect pass, and record the lock** -
   `uv run --group test pytest tests/test_ci.py -q` -> `17 passed`.
   `uv lock` -> `Resolved 195 packages` (189 at `cdc3b07`; the new entries
   are fsspec, mpmath, setuptools, sympy and torch twice, and no other
@@ -2886,7 +2886,7 @@ installing no extra).
   version is the newest on the day, record it. `uv build --wheel`, then
   `unzip -p dist/*.whl '*/METADATA' | grep torch` -> `Provides-Extra:
   torch`, `Requires-Dist: torch>=2.9; extra == 'torch'`; delete `dist/`.
-- [ ] **Step 5: Knowledge.** In
+- [x] **Step 5: Knowledge.** In
   `.knowledge/decisions/optional-heavy-dependencies.md` (`generated` is
   `claude-code/<model>` at the commit time; `commit:` the parent's short
   sha):
@@ -2934,7 +2934,7 @@ installing no extra).
   ## <date> (Phase 4, slice 4B)
   - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `torch` (`torch>=2.9`), what it brings, the CPU index uv installs it from and why, the extras table row, and that every CI `uv run` now reads torch's index; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B0.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add pyproject.toml tests/test_ci.py .knowledge/decisions/optional-heavy-dependencies.md \
     .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
