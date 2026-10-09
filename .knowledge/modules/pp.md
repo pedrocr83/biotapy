@@ -5,7 +5,7 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:47:53Z }
 commit: 1c5d1ae
 status: stable
 ---
@@ -149,3 +149,6 @@ does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
 - `filter_features` keeps a feature when `present / n_obs >= min_prevalence`;
   phyloseq's `sum(x > 0) >= p * length(x)` can drop it at an exact boundary
   through floating point (7 of 25 samples at `p = 0.28`).
+- `filter_features` rejects a bool or non-real `min_prevalence` or
+  `min_total` with a `TypeError` naming it (`True` would otherwise pass as
+  1), the same rule as `ml.PrevalenceFilter`. `_filter.py:filter_features`.

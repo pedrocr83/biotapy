@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, fixes 4.F)
+- **Update**: [da](modules/da.md) gotcha: scikit-bio's `ancombc2` bias E-M underflow on a two-sample reference level (R fits it) and how it is pinned; [pp](modules/pp.md) gotcha: `filter_features` rejects a wrongly typed threshold.
 - **Verification**: `human:pedrocr83` approved slice 4A and confirmed [multiomics-as-mudata](decisions/multiomics-as-mudata.md); now `stable`.
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks Checkpoint A (PR #27, merge `cdc3b07`) and adds the user-approved fixes 4.F1-4.F3 in full TDD steps: scikit-bio's `ancombc2` bias E-M underflow on a two-sample reference level, `pp.filter_features`' threshold types, one finite, non-negative check in `_core`.
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F1: `da.ancombc2` on a two-sample reference level can fail inside scikit-bio's bias E-M (0/0 where R sets the responsibility to 0); the failure is pinned by a test, the schema property test rejects that one error, and the docstring Notes say so.
