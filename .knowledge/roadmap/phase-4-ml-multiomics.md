@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:19:13Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:41:13Z }
 commit: fd6a8be
 sources:
   - id: spec
@@ -4953,7 +4953,7 @@ sentence).
 
 
   def _checked(model: str, adata: AnnData, result: object) -> npt.NDArray[np.floating]:
-      """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``, else an error."""
+      """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``'s X, layers, obsm, varm, obsp, varp or top-level uns, else an error."""
       if type(result) is not np.ndarray:  # a masked array would hide NaN from the check below, a matrix is always 2-D
           msg = f"plugin {model!r} returned a {type(result).__name__}, not a NumPy array"
           raise TypeError(msg)
@@ -5129,7 +5129,8 @@ sentence).
     a masked array or a matrix (else `TypeError`), 2-D with one row per sample and at least one column, float,
     finite (else `ValueError`), each message naming the plugin
     (`ml/_embed.py:_checked`). A refused result is never stored, and one that
-    shares memory with the AnnData's arrays is copied. A plugin's own exception
+    shares memory with `X`, a layer, `obsm`, `varm`, `obsp`, `varp` or a
+    top-level `uns` array (nothing nested deeper) is copied. A plugin's own exception
     propagates with its type and a note naming the plugin. The model name is
     letters, digits, `_`, `-` or `.`, so `obsm["X_<model>"]` is a plain key.
   - **The plugin gets the caller's AnnData, not a copy**: a copy would double
@@ -5249,7 +5250,7 @@ sentence).
 
    # Invariants
 
-  @@ -63,6 +66,17 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
+  @@ -63,6 +66,18 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
      -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
    - `to_torch` validates its arguments before it imports torch, so its error
      tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
@@ -5260,14 +5261,15 @@ sentence).
   +- `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
   +  a masked array or a matrix), 2-D with one row per sample and at least one
   +  column, float and finite, or it raises naming the plugin, before anything
-  +  is written; a result that shares memory with any of the AnnData's arrays is
+  +  is written; a result that shares memory with `X`, a layer, an `obsm`, `varm`,
+  +  `obsp` or `varp` entry or a top-level `uns` array (not one nested deeper) is
   +  copied. A plugin's own exception keeps its type and gains a note naming the
   +  plugin. The model name must be letters, digits, `_`, `-` or `.`.
   +  `_embed.py:embed`, `_embed.py:_checked`.
    - Inherited scikit-learn methods (`transform`, `fit_transform`,
      `get_support`, `get_feature_names_out`, `set_output`) are named in each
      class's `Notes`, because the class template leaves inherited members off
-  @@ -83,7 +97,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
+  @@ -83,7 +98,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 
    `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
    `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
@@ -5276,7 +5278,7 @@ sentence).
    `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
    `.github/workflows/test.yaml`). The pseudocount
    warning's text is unit-tested in `tests/core/test_composition.py`.
-  @@ -130,6 +144,15 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
+  @@ -130,6 +145,15 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
      sys.modules` after `import biotapy` tells nothing there; the
      `import-without-extras` check is meaningful only on a torch-free
      environment, as in CI.
@@ -5365,7 +5367,8 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   one sample at a time as MGM's notebook does. The embedding is the mean of the last hidden layer over the sample's
   tokens (<bos>, its genera, <eos>), the "element-wise mean pooling" MGM's paper uses for the pretrained model
   (Methods 4.5). MGM drops a sample with no count in its vocabulary; such a sample is embedded here from the tokens
-  <bos> <eos>, as biotapy does.
+  <bos> <eos>, as biotapy does. "Blautia" appears twice (f5 and f16): summing the two moves its rank in s2 from 5 to 2,
+  so a reader that does not sum features of one genus fails the parity test.
   """
 
   import re
@@ -5392,13 +5395,8 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       gut = np.arange(1, len(GUT) + 1)
       counts[: len(GUT), 0] = gut * 10  # s1: twelve genera
       counts[: len(GUT), 1] = gut[::-1] * 7  # s2: the same, other counts, and the rest below
-      counts[12:17, 1] = [
-          3,
-          5,
-          40,
-          25,
-          40,
-      ]  # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again (49 + 40 moves it from rank 5 to 2)
+      # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again
+      counts[12:17, 1] = [3, 5, 40, 25, 40]
       counts[2, 2] = 9  # s3: one genus
       counts[14:16, 3] = [8, 2]  # s4: only a genus MGM lacks and no genus; s5: all zero
       counts[17:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
@@ -5680,7 +5678,9 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
 
       monkeypatch.setitem(_mgm._SHA256_OF, "phylogeny.csv", "0" * 64)
       genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
-      with pytest.raises(ValueError, match=r"phylogeny\.csv does not match its SHA-256 after extracting it again"):
+      with pytest.raises(
+          ValueError, match=r"after extracting it again; delete .*microformer_mgm-0\.5\.8-py3-none-any\.whl\.unzip\n"
+      ):
           bt.ml.embed(genera, "mgm")
   ```
   In `tests/test_ci.py`, before `test_ml_extras_job_has_a_timeout`:
@@ -5807,7 +5807,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
               files[name].unlink()
           files, damaged = fetch()
       if damaged:
-          msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {cache.abspath}"
+          msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {Path(cache.abspath) / (_WHEEL + '.unzip')}"
           raise ValueError(msg)
       return files
 
@@ -6130,11 +6130,12 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
 
    # Invariants
 
-  @@ -73,10 +76,39 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+  @@ -73,11 +76,40 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
    - `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
      a masked array or a matrix), 2-D with one row per sample and at least one
      column, float and finite, or it raises naming the plugin, before anything
-     is written; a result that shares memory with any of the AnnData's arrays is
+     is written; a result that shares memory with `X`, a layer, an `obsm`, `varm`,
+     `obsp` or `varp` entry or a top-level `uns` array (not one nested deeper) is
      copied. A plugin's own exception keeps its type and gains a note naming the
      plugin. The model name must be letters, digits, `_`, `-` or `.`.
      `_embed.py:embed`, `_embed.py:_checked`.
@@ -6170,7 +6171,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    - Inherited scikit-learn methods (`transform`, `fit_transform`,
      `get_support`, `get_feature_names_out`, `set_output`) are named in each
      class's `Notes`, because the class template leaves inherited members off
-  @@ -89,6 +121,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+  @@ -90,6 +122,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
      `OneToOneFeatureMixin`, `validate_data`. scikit-bio: `clr`.
    - torch (extra `torch`), only through `import_optional` inside `to_torch`
      ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
@@ -6179,7 +6180,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    - `ml` imports no sibling top-layer module (`pl`, `da`) and not `pp`; the
      link to `pp` is through `_core` only
      ([module-boundaries](/contracts/module-boundaries.md)).
-  @@ -99,7 +133,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+  @@ -100,7 +134,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
    `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
    errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
    `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
@@ -6190,7 +6191,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    warning's text is unit-tested in `tests/core/test_composition.py`.
 
    # Gotchas
-  @@ -153,6 +189,19 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
+  @@ -154,6 +190,19 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
    - `embed`'s docstring example runs MGM, so the root `conftest.py` gives
      `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
      `torch`. `conftest.py:_EXTRA_DOCTESTS`.

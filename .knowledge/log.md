@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4C)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) syncs slice 4C's blocks with the follow-up round (the shared-array wording in `ml.md` and embedding-plugins, `_mgm.py`'s folder message and its test, the export script's docstring and comment).
 - **Update**: [ml](modules/ml.md) and [embedding-plugins](decisions/embedding-plugins.md) say which arrays `embed` checks for shared memory (X, layers, obsm, varm, obsp, varp, top-level uns).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) syncs slice 4C's blocks (test_embed, `_embed.py`, MGM's `_mgm.py`, test_mgm, the reference script and table, embedding-plugins, the guide and `ml.md` hunks) with the branch after the Checkpoint C fix pass, and updates the stated test, deselected and statement counts.
 - **Update**: Checkpoint C fix pass, text: [ml](modules/ml.md) says a plugin returns a plain `ndarray` (shared memory is copied), its errors carry a note naming it, the model name rule, and that tied genera may sort differently from MGM's numpy 1.24; [embedding-plugins](decisions/embedding-plugins.md) records the same and why the plugin gets the caller's AnnData; [data-model-slots](contracts/data-model-slots.md) now tracks `src/biotapy/ml/**`.
