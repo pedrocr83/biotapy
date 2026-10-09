@@ -125,6 +125,13 @@ def test_the_dataset_survives_pickling_and_spawned_workers(torch):
 
 
 @pytest.mark.torch
+def test_editing_a_returned_label_does_not_change_the_next_fetch(torch):
+    dataset = bt.ml.to_torch(bt.datasets.toy(), label_key="group")
+    dataset[0][1].add_(3)
+    assert int(dataset[0][1]) == 0
+
+
+@pytest.mark.torch
 def test_references_x_so_a_later_change_shows(torch):
     tdata = bt.datasets.toy()
     dataset = bt.ml.to_torch(tdata)

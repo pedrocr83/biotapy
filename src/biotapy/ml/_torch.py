@@ -95,7 +95,7 @@ def _dataset(table: Table, labels: npt.NDArray[np.int64] | npt.NDArray[np.float3
             # One row at a time, so the full table is never dense (rules.md R6.2).
             row = table[index].toarray()[0] if isinstance(table, sp.csr_matrix) else table[index]
             features = torch.from_numpy(np.array(row, dtype=np.float32))
-            return features if targets is None else (features, targets[index])
+            return features if targets is None else (features, targets[index].clone())
 
         def __reduce__(self) -> tuple[Any, tuple[Table, Any]]:
             # A class defined in a function cannot be pickled, which spawn and forkserver workers need.
