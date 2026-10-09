@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:53:25Z }
-commit: 01ff790
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:18:23Z }
+commit: be62117
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2661,8 +2661,11 @@ their own that blocks merges.
     environment, the default run gives the same `1420 passed, 2 skipped, 77
     deselected` as without it; `mypy --strict`
     passes with and without torch (`Success: no issues found in 65 source
-    files`); the `import-without-extras` command imports every module with
-    `'torch' in sys.modules` False.
+    files`). Without the extra, `import biotapy` never imports torch: the
+    `import-without-extras` command imports every module with `'torch' in
+    sys.modules` False. With torch installed, scikit-bio 0.7.4 imports it
+    (`skbio.util._testing` at module level), so the check means something only
+    in a torch-free environment.
   - CI's `test` job, replayed through hatch at the 4.B1 commit (on `cdc3b07`)
     (`hatch run hatch-test.py3.13-stable:run-cov -n auto`): `1422 passed, 2
     skipped`, coverage total 99%; hatch installed no torch.

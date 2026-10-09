@@ -100,6 +100,8 @@ dataset = bt.ml.to_torch(tdata[:, keep], label_key="group")
 train_set, test_set = Subset(dataset, train), Subset(dataset, test)
 ```
 
+torch publishes no wheel for Intel macOS, so the extra does not install there.
+
 On Linux, pip installs PyPI's torch, which brings CUDA libraries. For a
 CPU-only torch, install it from PyTorch's CPU index first:
 

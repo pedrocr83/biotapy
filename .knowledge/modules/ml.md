@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:16:24Z }
-commit: d33d661
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:18:17Z }
+commit: be62117
 ---
 
 # Responsibility
@@ -31,9 +31,10 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 
 # Invariants
 
-- They take arrays, sparse matrices and DataFrames, not AnnData: inside a
-  `Pipeline` the splitter hands over `X`, not an AnnData. This is why `ml`
-  is the one place classes are allowed
+- The transformers take arrays, sparse matrices and DataFrames, not AnnData:
+  inside a `Pipeline` the splitter hands over `X`, not an AnnData (`to_torch`
+  is the exception: it takes an AnnData, for its `obs` labels and layers).
+  This is why `ml` is the one place classes are allowed
   ([function-shape](/contracts/function-shape.md), rules.md R3.6).
 - Constructor options are keyword-only and stored unchanged; `fit` validates
   them (scikit-learn's convention), not `__init__`.
@@ -120,6 +121,12 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
 - The docstring example needs torch: the root `conftest.py` gives the
   doctests of `biotapy.ml._torch` the marker `torch`, so the default run
   deselects them and `-m torch` runs them. `conftest.py:pytest_collection_modifyitems`.
+- Without the extra, `import biotapy` never imports torch. With torch
+  installed, scikit-bio 0.7.4 imports it at module level
+  (`skbio.util._testing`, reached through `_core._tree`), so `'torch' in
+  sys.modules` after `import biotapy` tells nothing there; the
+  `import-without-extras` check is meaningful only on a torch-free
+  environment, as in CI.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.

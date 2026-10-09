@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4B)
+- **Update**: [ml](modules/ml.md) says what loads torch (scikit-bio, when installed, not biotapy) and that `to_torch` takes an AnnData; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) corrects the same claim (Checkpoint B fix M5).
 - **Update**: [ml](modules/ml.md) says `to_torch`'s label codes are per dataset, so one dataset is built and split with `torch.utils.data.Subset` (Checkpoint B fix I1).
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): each extra has its CI job (`r-bridge`, `ml-extras`); [ml](modules/ml.md)'s Verification names the `ml-extras` job; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B1.
 - **Update**: fix round 1 for `ml.to_torch`: [ml](modules/ml.md) says the dataset is built by `_dataset` and pickles through `__reduce__` (so `DataLoader` workers work under spawn), labels are own tensors, a non-integer index raises, and the AnnData must not be modified while the dataset is used; [pure-by-default](decisions/pure-by-default.md) and [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) follow; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) mirrors Task 4.5's blocks.
