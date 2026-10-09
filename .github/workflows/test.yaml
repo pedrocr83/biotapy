@@ -212,6 +212,27 @@ jobs:
           RPY2_CFFI_MODE: API
         run: uv run --group test --extra r pytest -m r
 
+  # Runs the tests that need PyTorch (marker torch, extra torch), which every other job deselects; uv installs torch's
+  # CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml, decisions/optional-heavy-dependencies).
+  ml-extras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: blob:none
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.13"
+      # Syncs the environment, so the install shows apart from the tests in the job log.
+      - name: Log the torch version
+        run: uv run --group test --extra torch python -c "import torch; print('torch', torch.__version__)"
+      - name: Run the PyTorch tests
+        run: uv run --group test --extra torch pytest -m torch
+
   # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
   # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network
   # job's pooch cache.
@@ -269,6 +290,7 @@ jobs:
       - import-without-extras
       - network
       - r-bridge
+      - ml-extras
       - docs
     runs-on: ubuntu-latest
     steps:

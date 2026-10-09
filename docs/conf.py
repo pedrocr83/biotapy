@@ -112,6 +112,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "mudata": ("https://mudata.scverse.org/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and

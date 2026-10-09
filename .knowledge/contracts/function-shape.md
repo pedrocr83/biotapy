@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:37:49Z }
+commit: 7a9c07a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -27,7 +27,9 @@ Every public function in `io`, `datasets`, `pp`, `tl`, `fn`, `da`, `ml`, `pl`:
    - `ml`'s scikit-learn transformers are classes (rules.md R3.6), not
      functions: their options are keyword-only constructor arguments that `fit`
      validates (scikit-learn's convention, which `check_estimator` tests),
-     and the class docstring carries the skeleton below.
+     and the class docstring carries the skeleton below. `ml.to_torch` is a
+     function: its `Dataset` subclass is the one class, built inside
+     `ml/_torch.py:_dataset` (rules.md R3.6).
    - No `**kwargs` pass-through, except a documented `plot_kwargs` in `pl`.
 2. **Return and mutation**: per [pure-by-default](/decisions/pure-by-default.md).
 3. **Randomness**: any stochastic function takes

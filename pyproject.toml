@@ -46,6 +46,8 @@ dependencies = [
 ]
 # The ALDEx2 and MaAsLin 3 bridges (decisions/optional-heavy-dependencies); R and the R packages are the user's install.
 optional-dependencies.r = [ "rpy2>=3.6.8" ]
+# ml.to_torch (decisions/optional-heavy-dependencies); 2.9.0 is torch's first release with CPython 3.14 wheels.
+optional-dependencies.torch = [ "torch>=2.9" ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://biotapy.readthedocs.io/"
 urls.Homepage = "https://github.com/pedrocr83/biotapy"
@@ -91,6 +93,7 @@ doc = [
 # the repository itself (CI config, knowledge bundle, staleness script): they read those files.
 build.targets.sdist.include = [
   "/CHANGELOG.md",
+  "/conftest.py",
   "/docs",
   "/src/biotapy",
   "/tests",
@@ -123,6 +126,12 @@ envs.hatch-test.overrides.matrix.deps.env-vars = [
   { value = "allow", key = "UV_PRERELEASE", if = [ "pre" ] },
 ]
 envs.hatch-test.dependency-groups = [ "dev", "test" ]
+
+[tool.uv]
+# CI and contributors get torch's CPU wheels (196 MB on Linux), not PyPI's Linux wheel (555 MB plus CUDA packages).
+# explicit = true: only torch, named in sources, comes from this index; the published metadata is unchanged.
+sources.torch = { index = "pytorch-cpu" }
+index = [ { name = "pytorch-cpu", url = "https://download.pytorch.org/whl/cpu", explicit = true } ]
 
 [tool.ruff]
 line-length = 120
@@ -213,19 +222,24 @@ overrides = [
   { module = "sklearn.*", follow_untyped_imports = true, implicit_reexport = true },
   # threadpoolctl 3.7.0 is a single module, which cannot carry a py.typed marker; same treatment.
   { module = "threadpoolctl", follow_untyped_imports = true },
+  # torch is the extra `torch`: absent where prek runs mypy, present where a contributor synced the extra. Not
+  # following it makes its names Any in both, so mypy gives one answer, and skips analysing 700 MB of torch.
+  { module = "torch", ignore_missing_imports = true, follow_imports = "skip" },
+  { module = "torch.*", ignore_missing_imports = true, follow_imports = "skip" },
 ]
 
 [tool.pytest]
 addopts = [
-  "--import-mode=importlib", # allow using test files with same name
+  "--import-mode=importlib",             # allow using test files with same name
   "--doctest-modules",
   "-m",
-  "not network and not r",
+  "not network and not r and not torch",
 ]
 markers = [
   "golden: compares against R or HUMAnN golden files (contracts/r-golden-parity)",
   "network: downloads data; runs only in the dedicated CI job",
   "r: needs R and rpy2 (extra `r`)",
+  "torch: needs PyTorch (extra `torch`); runs only in the ml-extras CI job",
 ]
 strict = true
 testpaths = [ "tests", "src/biotapy" ]

@@ -1,8 +1,9 @@
 """Fixtures shared by `tests/` and the `src/biotapy` doctests (both testpaths in pyproject.toml).
 
 Only conftest.py here is common to both trees; one under `src/biotapy/` would ship in the
-wheel (rules.md R4), and this file is left out of both the wheel (hatchling packages only
-`src/biotapy`) and the sdist (its explicit `build.targets.sdist.include` list, pyproject.toml).
+wheel (rules.md R4), and this file is left out of the wheel (hatchling packages only
+`src/biotapy`) and shipped in the sdist (`build.targets.sdist.include`, pyproject.toml), whose
+tests need its marker hook for the `to_torch` doctest.
 """
 
 from collections.abc import Iterator
@@ -23,3 +24,11 @@ def _close_figures() -> Iterator[None]:
     import matplotlib.pyplot as plt
 
     plt.close("all")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Give the doctests of a module that needs the extra `torch` its marker, before `-m` deselects."""
+    for item in items:
+        if isinstance(item, pytest.DoctestItem) and item.name.startswith("biotapy.ml._torch."):
+            item.add_marker(pytest.mark.torch)

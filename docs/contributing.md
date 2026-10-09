@@ -49,7 +49,7 @@ uv run --group test pytest
 ```
 
 Network and golden tests are excluded by default (`[tool.pytest]` in
-`pyproject.toml` sets `-m "not network and not r"`). Run them explicitly:
+`pyproject.toml` sets `-m "not network and not r and not torch"`). Run them explicitly:
 
 ```bash
 uv run --group test pytest -m "network or golden"
@@ -79,6 +79,18 @@ BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
 
 CI runs them in the `r-bridge` job, with R 4.5.3 and the Bioconductor 3.22 packages the golden image
 pins.
+
+### PyTorch tests
+
+Tests that need PyTorch (`bt.ml.to_torch`, and its docstring example) carry the marker `torch` and are
+excluded from the runs above. The `torch` extra installs torch's CPU wheel from PyTorch's index
+(`[tool.uv]` in `pyproject.toml`):
+
+```bash
+uv run --group test --extra torch pytest -m torch
+```
+
+CI runs them in the `ml-extras` job, on Linux with Python 3.13.
 
 ### Regenerating the R golden files
 
