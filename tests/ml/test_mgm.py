@@ -1,0 +1,130 @@
+import sys
+from importlib.metadata import entry_points
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+import scipy.sparse as sp
+from anndata import AnnData
+from sklearn.neighbors import NearestNeighbors
+
+import biotapy as bt
+
+DATA = Path(__file__).parents[1] / "data" / "mgm"
+# torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
+# embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
+ATOL = 1e-3
+
+
+def _reference_table():
+    """tests/data/mgm/counts.csv as an AnnData: 7 samples x 616 features, var["genus"] (one missing)."""
+    counts = pd.read_csv(DATA / "counts.csv", index_col=0)
+    return AnnData(
+        X=sp.csr_matrix(counts.drop(columns="genus").T.to_numpy()),
+        obs=pd.DataFrame(index=counts.columns[1:]),
+        var=counts[["genus"]],
+    )
+
+
+def test_mgm_is_registered_as_a_plugin():
+    points = [point for point in entry_points(group="biotapy.embeddings") if point.name == "mgm"]
+    assert [point.value for point in points] == ["biotapy.ml._mgm:embed"]
+
+
+def test_without_a_genus_column_raises(make_adata):
+    with pytest.raises(KeyError, match=r"mgm reads var\['genus'\], which this table does not have"):
+        bt.ml.embed(make_adata(np.array([[1, 2]])), "mgm")
+
+
+def test_negative_values_raise(make_adata):
+    adata = make_adata(np.array([[1.0, -2.0]]))
+    adata.var["genus"] = ["Bacteroides", "Prevotella"]
+    with pytest.raises(ValueError, match="mgm reads counts or relative abundances; adata.X holds negative"):
+        bt.ml.embed(adata, "mgm")
+
+
+def test_without_the_extra_names_it(monkeypatch):
+    # None in sys.modules makes the import fail whether or not the extra is installed.
+    monkeypatch.setitem(sys.modules, "torch", None)
+    monkeypatch.setitem(sys.modules, "transformers", None)
+    with pytest.raises(ImportError, match=r"pip install 'biotapy\[mgm\]'"):
+        bt.ml.embed(bt.pp.tax_glom(bt.datasets.toy(), "genus"), "mgm")
+
+
+@pytest.mark.mgm
+def test_matches_mgm_s_own_embedding():
+    expected = pd.read_csv(DATA / "embeddings.csv", index_col=0)
+    with pytest.warns(UserWarning) as record:
+        result = bt.ml.embed(_reference_table(), "mgm")
+    assert [str(warning.message) for warning in record] == [
+        "mgm leaves out 2 of 616 features: 1 without a genus and 1 whose genus is not one of MGM's (Notagenus)",
+        "mgm embeds 2 sample(s) from <bos> <eos> alone, none of their genera being MGM's: s4, s5",
+    ]
+    assert result.shape == (7, 256) and result.dtype == np.float32
+    np.testing.assert_allclose(result, expected.to_numpy(), rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_features_of_one_genus_are_summed_so_tax_glom_changes_nothing():
+    tdata = bt.datasets.toy()  # f4 and f5 are both Bacteroides; f8 has no genus
+    with pytest.warns(UserWarning, match="1 without a genus"):
+        raw = bt.ml.embed(tdata, "mgm")
+    np.testing.assert_allclose(raw, bt.ml.embed(bt.pp.tax_glom(tdata, "genus"), "mgm"), rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_relative_abundances_embed_as_their_counts():
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    relative = genera.copy()
+    relative.X = sp.csr_matrix(bt.pp.relative(genera).layers["relative"])
+    np.testing.assert_allclose(bt.ml.embed(relative, "mgm"), bt.ml.embed(genera, "mgm"), rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_feature_order_does_not_matter():
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    shuffled = genera[:, ::-1].copy()
+    np.testing.assert_allclose(bt.ml.embed(shuffled, "mgm"), bt.ml.embed(genera, "mgm"), rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_an_all_zero_feature_changes_nothing():
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    padded = AnnData(
+        X=sp.hstack([genera.X, sp.csr_matrix((genera.n_obs, 1), dtype=genera.X.dtype)], format="csr"),
+        obs=genera.obs,
+        var=pd.DataFrame({"genus": [*genera.var["genus"], "Akkermansia"]}, index=[*genera.var_names, "zero"]),
+    )
+    np.testing.assert_allclose(bt.ml.embed(padded, "mgm"), bt.ml.embed(genera, "mgm"), rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_single_sample():
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    alone = bt.ml.embed(genera[[3]].copy(), "mgm")
+    np.testing.assert_allclose(alone, bt.ml.embed(genera, "mgm")[[3]], rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_keeps_the_input(assert_unchanged):
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    before = genera.copy()
+    bt.ml.embed(genera, "mgm")
+    assert_unchanged(before, genera)
+
+
+@pytest.mark.mgm
+def test_embeds_global_patterns_end_to_end():
+    # Phase 4 exit gate 2: one foundation model plugged in end to end (decisions 10, 17).
+    tdata = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
+    with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose"):
+        bt.ml.embed(tdata, "mgm", inplace=True)
+    embedding = tdata.obsm["X_mgm"]
+    assert embedding.shape == (26, 256) and embedding.dtype == np.float32 and np.isfinite(embedding).all()
+    with pytest.warns(UserWarning, match="mgm leaves out 96"):
+        np.testing.assert_allclose(bt.ml.embed(tdata, "mgm"), embedding, rtol=0, atol=ATOL)
+    # Every sample's nearest neighbour in the embedding comes from the same environment.
+    neighbour = NearestNeighbors(n_neighbors=2, metric="cosine").fit(embedding).kneighbors(embedding)[1][:, 1]
+    types = tdata.obs["SampleType"].to_numpy()
+    assert (types[neighbour] == types).all()

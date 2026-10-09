@@ -54,6 +54,8 @@ optional-dependencies.torch = [ "torch>=2.9" ]
 urls.Documentation = "https://biotapy.readthedocs.io/"
 urls.Homepage = "https://github.com/pedrocr83/biotapy"
 urls.Source = "https://github.com/pedrocr83/biotapy"
+# ml.embed's models (decisions/embedding-plugins); biotapy registers its own reference model as any plugin would.
+entry-points."biotapy.embeddings".mgm = "biotapy.ml._mgm:embed"
 
 [dependency-groups]
 dev = [
@@ -105,6 +107,7 @@ build.targets.sdist.exclude = [
   "/docs/generated",
   "/docs/jupyter_execute",
   "/tests/humann",
+  "/tests/mgm",
   "/tests/r",
   "/tests/test_ci.py",
   "/tests/test_knowledge_bundle.py",
@@ -189,11 +192,13 @@ lint.pylint.max-statements = 30
 files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
 # biom-format and scikit-learn ship no type annotations at all, nor do scikit-bio's
-# subsample_counts, tree_basis and ancombc2, threadpoolctl's threadpool_limits and mudata's MuData.update; exempt only
-# calls into them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+# subsample_counts, tree_basis and ancombc2, threadpoolctl's threadpool_limits, mudata's MuData.update and pooch's
+# Unzip; exempt only calls into them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py
+# matches by callee fullname).
 untyped_calls_exclude = [
   "biom",
   "mudata",
+  "pooch.processors.Unzip",
   "skbio.stats._subsample",
   "skbio.stats.composition._ancombc.ancombc2",
   "skbio.stats.composition._base.tree_basis",

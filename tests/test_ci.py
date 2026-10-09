@@ -78,6 +78,14 @@ def test_the_sdist_ships_the_root_conftest_that_marks_the_torch_doctests():
     assert "/conftest.py" in sdist["include"]
 
 
+def test_ml_extras_job_runs_the_mgm_marker_with_a_pooch_cache():
+    steps = WORKFLOW["jobs"]["ml-extras"]["steps"]
+    run = [step for step in steps if step.get("run", "").strip() == "uv run --group test --extra mgm pytest -m mgm"]
+    assert run and run[0]["env"]["BIOTAPY_DATA_DIR"] == "${{ github.workspace }}/.pooch"
+    cache = next(step for step in steps if step.get("uses", "").startswith("actions/cache@"))["with"]
+    assert cache["path"] == "${{ github.workspace }}/.pooch" and "src/biotapy/ml/_mgm.py" in cache["key"]
+
+
 def test_ml_extras_job_has_a_timeout():
     assert WORKFLOW["jobs"]["ml-extras"]["timeout-minutes"] == 30
 

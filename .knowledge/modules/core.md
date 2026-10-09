@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:03:53Z }
-commit: c55853d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
+commit: 3e15368
 status: stable
 ---
 
@@ -138,8 +138,8 @@ none of them back.
   `np.random.Generator` without touching global RNG state.
 - `_download.py:make_pooch` - the `pooch.Pooch` every run-time download goes
   through: `BIOTAPY_DATA_DIR` if set, else `pooch.os_cache("biotapy")`.
-  Used by `datasets/_remote.py` (phyloseq, ENZYME and HMP2 files); every
-  later download goes through it too, so all of them land in one cache that
+  Used by `datasets/_remote.py` (phyloseq, ENZYME and HMP2 files) and
+  `ml/_mgm.py` (MGM's weights), so every download lands in one cache that
   CI and tests point elsewhere with one variable. Building the pooch
   downloads and creates nothing; `fetch` does.
 

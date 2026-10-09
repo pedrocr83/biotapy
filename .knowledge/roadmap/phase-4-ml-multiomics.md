@@ -503,7 +503,7 @@ The cache refactor and the extra land before the features that need them.
 - [x] 4.C0 `refactor(core)`: one download cache, `_core.make_pooch`
 - [x] 4.C1 `build`: the extra `mgm = ["torch>=2.9", "transformers>=5"]`
 - [x] 4.4 `ml.embed(adata, model, *, inplace=False)` and the entry-point group `biotapy.embeddings`
-- [ ] 4.4b MGM reference plugin, its reference embeddings and the marker `mgm`
+- [x] 4.4b MGM reference plugin, its reference embeddings and the marker `mgm`
 - [ ] Checkpoint C
 - [ ] 4.6 Leak-free cross-validation notebook (exit gate 1)
 - [ ] 4.6b End-to-end embedding page (exit gate 2's docs)

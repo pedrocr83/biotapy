@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, transformers, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:08:33Z }
-commit: 82c6e6d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
+commit: 3e15368
 sources:
   - id: spec
     resource: ../../plan.md
@@ -121,7 +121,8 @@ torch or an R installation into every install is unacceptable.[^spec]
 - CI imports every module with no extras installed (`import-without-extras`),
   so a lazy import leaking to module level fails fast. Each extra has a job
   that installs it and runs its marker, deselected everywhere else: `r-bridge`
-  (`r`) and `ml-extras` (`torch`, Linux, Python 3.13, 30-minute timeout), both in `check.needs`.
+  (`r`) and `ml-extras` (`torch`, then `mgm` with a pooch cache of its own for MGM's weights and
+  GlobalPatterns; Linux, Python 3.13, 30-minute timeout), both in `check.needs`.
 - `uv.lock` is not committed, so every CI job that runs `uv run` resolves
   afresh, and reads torch's versions from download.pytorch.org even when it
   installs no torch (measured: `uv lock` 0.10 s -> 0.37 s with a warm cache).

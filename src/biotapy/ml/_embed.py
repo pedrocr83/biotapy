@@ -55,6 +55,35 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     biotapy finds it when ``embed`` is called, so installing the package is
     enough. It checks the array before returning or storing it.
 
+    ``"mgm"`` is MGM, the Microbial General Model (MIT licence), a GPT-2
+    pretrained on genus profiles from MGnify. It needs the extra ``mgm``
+    (``pip install 'biotapy[mgm]'``) and, at the first call, downloads the
+    pretrained model (33 MB, microformer-mgm 0.5.8's wheel from PyPI, checked
+    against its SHA-256) into biotapy's data cache: ``BIOTAPY_DATA_DIR`` if
+    set, else pooch's per-user cache. Each feature's ``var["genus"]`` is read
+    as MGM reads ``g__<genus>``: the name up to its first character other than
+    a letter, digit or underscore (``Escherichia-Shigella`` is
+    ``Escherichia``). Features whose genus is missing or outside MGM's 9,665
+    genera are left out, with one warning that counts them, and features of
+    the same genus are summed, so ``pp.tax_glom(tdata, "genus")`` first
+    changes nothing. Then, as MGM's own preprocessing does, each sample becomes
+    relative abundances, its genera are sorted by abundance standardised with
+    MGM's per-genus mean and standard deviation, and the sentence ``<bos>``,
+    genera, ``<eos>`` is cut to 512 tokens. A sample without a single known
+    genus is embedded from ``<bos> <eos>``, with a warning naming it. The
+    embedding is the mean of the model's last hidden layer over the sample's
+    tokens (256 float32 values), the mean pooling MGM's authors use for the
+    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6. The
+    model runs on the CPU, one sample at a time: batches were slower there and
+    needed up to 1.5 GB more memory. Cite Zhang et al. (2026) when you publish
+    results that use it.
+
+    References
+    ----------
+    Zhang H, Zhang Y, Kang Z, Xiong J, Yang R, Ning K (2026) MGM as a
+    large-scale pretrained foundation model for microbiome analyses in diverse
+    contexts. Adv Sci 13:e13333.
+
     Examples
     --------
     >>> import biotapy as bt

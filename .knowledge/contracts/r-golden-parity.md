@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:37:49Z }
-commit: 7a9c07a
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
+commit: 3e15368
 sources:
   - id: spec
     resource: ../../plan.md
@@ -32,6 +32,13 @@ sources:
    database, so there is no container. Output:
    `tests/golden/humann/<name>.csv.gz` (samples as rows, row ids without
    their `": name"`) and `tests/golden/humann/VERSIONS.txt`.
+1c. MGM's reference embeddings (`ml.embed(..., "mgm")`) are produced by
+   `tests/mgm/export_reference.py` with MGM's own package, run with
+   `uv run --no-project --python 3.11 --with microformer-mgm==0.5.8 --with
+   torch==2.0.1+cpu` (and PyTorch's CPU index), never in CI: MGM pins numpy
+   1.24 and torch 2.0, so it cannot share biotapy's environment. Output:
+   `tests/data/mgm/counts.csv` and `embeddings.csv`, compared at `atol=1e-3`
+   (`tests/ml/test_mgm.py`, marker `mgm`, which gives the reason).
 2. Output: `tests/golden/<dataset>/<function>.csv.gz`, samples as rows
    (see [samples-as-rows](/decisions/samples-as-rows.md)), plus
    `tests/golden/VERSIONS.txt` listing R and package versions. Golden files
@@ -65,7 +72,8 @@ sources:
    stay synthetic, except small files copied under a permissive licence
    with a `NOTICE.txt` beside them (`tests/data/humann`: HUMAnN's MIT test
    data; `tests/data/metaphlan`: a MetaPhlAn 4.0.6 profile from HUMAnN's MIT
-   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0). PICRUSt2
+   test data; `tests/data/enzyme`: an ENZYME excerpt, CC BY 4.0;
+   `tests/data/mgm`: MGM's embeddings of a synthetic genus table, MIT). PICRUSt2
    (GPL-3) fixtures are always synthetic, written from its documented
    column headers.
 7. `pl` functions have an R equivalent but no golden test. They draw numbers

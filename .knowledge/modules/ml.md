@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:13:30Z }
-commit: 5b73a1b
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
+commit: 3e15368
 ---
 
 # Responsibility
@@ -31,6 +31,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
   entry-point group `biotapy.embeddings` (`_embed.py:GROUP`), calls it with
   the AnnData and returns its samples x dimensions array, or writes
   `obsm["X_<model>"]` with `inplace=True`.
+- `_mgm.py:embed` - MGM, the reference plugin, registered by biotapy's own
+  `pyproject.toml` as `mgm` (extra `mgm`): genus tokens from `var["genus"]`,
+  MGM's pretrained GPT-2, the mean of the last hidden layer per sample.
 
 # Invariants
 
@@ -73,6 +76,34 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
 - `embed` trusts no plugin: the result must be a NumPy array, 2-D with one
   row per sample and at least one column, float and finite, or it raises
   naming the plugin, before anything is written. `_embed.py:embed`.
+- MGM's tokens are MGM's own (`mgm/src/MicroCorpus.py`, 0.5.8): a genus is
+  read with MGM's regex `g__[A-Za-z0-9_]+` on `"g__" + genus`; features of
+  one token are summed (`_core.sum_by`); relative abundance is taken over
+  MGM's genera only, as MGM drops the others before dividing; a genus is kept
+  when its standardised value `(rel - mean) / std` exceeds that of zero
+  abundance, and the kept ones are sorted by it with pandas' own
+  `sort_values(ascending=False)` on the vocabulary-ordered series, so ties
+  fall as in MGM; `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
+  lost past 510 genera). Vocabulary ids are the position in `phylogeny.csv`
+  plus 4 (`<pad>`, `<mask>`, `<bos>`, `<eos>`); the pickled tokenizer is
+  never loaded. `_mgm.py:_sentences`.
+- Where MGM would drop a sample (no count in its vocabulary), the plugin
+  embeds `<bos> <eos>` and warns naming it, because `ml.embed` needs one row
+  per sample. Left-out features get one warning counting them.
+  `_mgm.py:_sentences`.
+- MGM checks `var["genus"]` and `X` (finite, non-negative) before it imports
+  torch or transformers or downloads anything, so those errors are tested in
+  every CI job. `_mgm.py:embed`.
+- The weights come from microformer-mgm 0.5.8's wheel on files.pythonhosted.org
+  (SHA-256 pinned), fetched through `_core.make_pooch` and unzipped by
+  `pooch.Unzip` to `<cache>/microformer_mgm-0.5.8-py3-none-any.whl.unzip/`;
+  `torch.load(..., weights_only=True)` reads the GPT2LMHeadModel checkpoint
+  and its `transformer.` keys load into `transformers.GPT2Model` strictly
+  (`lm_head.weight` dropped). `_mgm.py:embed`.
+- One sample at a time, unpadded, under `torch.inference_mode()`, model in
+  `eval()` (dropout off): measured on 520 GlobalPatterns-like profiles, batch
+  1 took 8.8 s, batches of 8 and 64 took 17.0 s and 18.5 s and needed 196 MB
+  and 1.6 GB more (8 threads). `_mgm.py:embed`.
 - Inherited scikit-learn methods (`transform`, `fit_transform`,
   `get_support`, `get_feature_names_out`, `set_output`) are named in each
   class's `Notes`, because the class template leaves inherited members off
@@ -85,6 +116,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
   `OneToOneFeatureMixin`, `validate_data`. scikit-bio: `clr`.
 - torch (extra `torch`), only through `import_optional` inside `to_torch`
   ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
+- torch and transformers (extra `mgm`), only through `import_optional` inside
+  `_mgm.py:embed`; pooch (`Unzip`) and `_core.make_pooch` for its weights.
 - `ml` imports no sibling top-layer module (`pl`, `da`) and not `pp`; the
   link to `pp` is through `_core` only
   ([module-boundaries](/contracts/module-boundaries.md)).
@@ -95,7 +128,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
 errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
 `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
-`.github/workflows/test.yaml`). The pseudocount
+`.github/workflows/test.yaml`). `BIOTAPY_DATA_DIR=.pooch uv run --group test --extra mgm pytest -m mgm`
+runs MGM against its own embeddings (`tests/data/mgm`), the end-to-end GlobalPatterns test (exit gate 2)
+and `embed`'s docstring example, as the job's last step does. The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
 
 # Gotchas
@@ -149,6 +184,19 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
 - `embed`'s docstring example runs MGM, so the root `conftest.py` gives
   `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
   `torch`. `conftest.py:_EXTRA_DOCTESTS`.
+- MGM's tests compare at `atol=1e-3`: torch 2.13 and 2.14 sometimes compute
+  their first `tanh` in a process less precisely on a CPU running more than
+  four threads (measured: 9e-5 on `tanh(-5)`, never with 4 threads or fewer,
+  never after a first call), which moves that call's embedding by up to
+  1.6e-4; otherwise biotapy and MGM 0.5.8 agree to 1.7e-6. The mutations the
+  parity test was checked against (wrong denominator, ascending sort,
+  last-token pooling, dropout on, `z > 0`, vocabulary order) each fail it.
+  `tests/ml/test_mgm.py:ATOL`.
+- `microformer-mgm` cannot be installed beside biotapy (its pins), so the
+  reference embeddings are written by `tests/mgm/export_reference.py` in a
+  Python 3.11 environment of its own (`uv run --no-project --python 3.11 --with
+  microformer-mgm==0.5.8 ...`); the script imports MGM inside its functions,
+  because pytest's `--doctest-modules` imports every file under `tests/`.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.
