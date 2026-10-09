@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T09:26:56Z }
+commit: ef82843
 sources:
   - id: spec
     resource: ../../plan.md
@@ -28,8 +28,8 @@ sources:
 ---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans. Slice 4A has full TDD steps;
-> slices 4B-4D are outlines, expanded (superpowers:writing-plans) and approved
+> (recommended) or superpowers:executing-plans. Slices 4A and 4B have full
+> TDD steps; slices 4C-4D are outlines, expanded (superpowers:writing-plans) and approved
 > when reached (rules.md R1.2a).
 
 **Goal:** 0.4 makes biotapy ML-ready and multi-omics: several data types over
@@ -323,20 +323,19 @@ a roadmap signature and are repeated under "Decisions for the user".
    - `label_key` names an `obs` column: categories become int64 codes in
      category order, numbers float32; a missing value raises. Without it,
      items are bare tensors.
+   - The return annotation is the bare `Dataset` (slice 4B design).
    - torch must not be imported at module level, and the
      `import-without-extras` CI job imports every module, so the `Dataset`
      subclass is defined inside the function after
-     `import_optional("torch", extra="torch")` [UNVERIFIED: mypy treats the
-     base as `Any` when torch is absent from the type-check environment and
-     reports `disallow_subclassing_any`; 4B measures this before choosing a
-     targeted ignore or a plain map-style class, which `DataLoader` also
-     accepts].
+     `import_optional("torch", extra="torch")` [V: mypy does not follow torch
+     (`follow_imports = "skip"`), so one `# type: ignore[misc]` holds with and
+     without torch; slice 4B design].
    - The extra is `torch = ["torch>=2.9"]`: 2.9.0 is the first release with
      CPython 3.14 wheels [V]. CI installs CPU wheels through a uv index
      (`[[tool.uv.index]] pytorch-cpu`, `explicit = true`, with
      `[tool.uv.sources] torch`), so the job does not pull CUDA
-     [UNVERIFIED: uv's lock across platforms with that source; macOS wheels
-     on the CPU index]. A new marker `torch` is excluded from the default
+     [V: `uv lock` resolves `2.14.1+cpu` for Linux and Windows and `2.14.1`
+     for macOS arm64, py3.12-3.14; Intel macOS has no wheel; slice 4B design]. A new marker `torch` is excluded from the default
      run like `r`, and a CI job `ml-extras` (Linux, Python 3.13) runs
      `-m torch` and joins `check.needs`.
 
@@ -432,9 +431,10 @@ a roadmap signature and are repeated under "Decisions for the user".
 | Task | Group | Package | Reason |
 |---|---|---|---|
 | 4.3 | docs config only | intersphinx entry for scikit-learn; `docs/_templates/autosummary/class.rst` | link `Pipeline`; keep inherited scikit-learn docstrings out of `nitpicky` |
-| 4.5 | extra `torch` | `torch>=2.9` (BSD-3-Clause and bundled licences) | `ml.to_torch`; the roadmap's planned extra |
-| 4.5 | uv config | index `https://download.pytorch.org/whl/cpu` for torch (`explicit = true`) | CI and contributors get a 192 MB CPU wheel, not 555 MB plus CUDA 13 packages |
-| 4.5 | CI | job `ml-extras` (Linux, Python 3.13, `-m torch`), in `check.needs` | run what the default jobs skip |
+| 4.B0 | extra `torch` | `torch>=2.9` (BSD-3-Clause and bundled licences) | `ml.to_torch`; the roadmap's planned extra |
+| 4.B0 | uv config | index `https://download.pytorch.org/whl/cpu` for torch (`explicit = true`) | CI and contributors get a 192 MB CPU wheel, not 555 MB plus CUDA 13 packages |
+| 4.B1 | CI | job `ml-extras` (Linux, Python 3.13, `-m torch`), in `check.needs` | run what the default jobs skip |
+| 4.5 | docs and type-check config only | intersphinx entry for PyTorch; mypy override `follow_imports = "skip"` for torch; root `conftest.py` doctest-marker hook | link `Dataset`; one mypy answer with or without torch; run the example only where torch is |
 | 4.4 | extra `mgm` | `torch>=2.9`, `transformers>=5` (Apache-2.0) | the MGM reference plugin |
 | 4.4 | data, run time | MGM 0.5.8 weights from files.pythonhosted.org via pooch (MIT, 33 MB download) | never bundled (R6.6) |
 | - | none | `microformer-mgm`, `huggingface_hub`, TensorFlow, biocore `mmvec` | not imported (design notes 3, 8) |
@@ -469,7 +469,7 @@ without an error. Each line names the test that pins it.
 | Slice | Delivers | Tasks | Ends with |
 |---|---|---|---|
 | **4A - No new dependency** | multi-omics MuData, mmvec, leak-free transformers | 4.1 `io.to_mudata` · 4.2 `tl.mmvec` · 4.A0 `refactor(core)` pseudocount step · 4.3 `ml.PrevalenceFilter`, `ml.CLR` | Checkpoint A |
-| **4B - torch** | the extra `torch`, `ml.to_torch`, CPU wheels in CI | 4.5 `ml.to_torch` (+ extra, uv index, marker) · 4.B1 CI job `ml-extras` | Checkpoint B |
+| **4B - torch** | the extra `torch`, `ml.to_torch`, CPU wheels in CI | 4.B0 `build` extra `torch` and its CPU index · 4.5 `ml.to_torch` (+ marker, mypy override) · 4.B1 CI job `ml-extras` | Checkpoint B |
 | **4C - Embeddings** | the plugin interface and MGM | 4.4 `ml.embed` and the entry-point group · 4.4b MGM plugin (+ extra `mgm`, weights via pooch, parity fixture) | Checkpoint C |
 | **4D - Docs and release** | the guide pages, the two exit-gate pages, 0.4 | 4.6 leak-free CV notebook · 4.6b embedding page · 4.D1 Coming-from-R check · 4.7 knowledge · 4.D2 release 0.4.0 | exit gate |
 
@@ -486,7 +486,8 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
 - [x] 4.F2 `pp.filter_features` names a wrongly typed threshold
 - [x] 4.F3 `refactor(core)`: one finite, non-negative check
-- [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
+- [ ] 4.B0 `build`: the extra `torch = ["torch>=2.9"]`, installed by uv from PyTorch's CPU index
+- [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the marker `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
 - [ ] 4.4 `ml.embed(adata, model, *, batch_size=64, inplace=False)` and the entry-point group `biotapy.embeddings`
@@ -517,9 +518,12 @@ lands before the `feat(ml)` that needs it.
   works (yanking does not delete files), but a deletion would break the
   plugin, so the registry entry names the version.
 - **torch install size and platform wheels** -> CPU index in CI; users install
-  what suits their hardware; the docs say so.
-- **mypy without torch** -> design note 7's unverified point; measured
-  first in 4B.
+  what suits their hardware; the docs say so. torch has no Intel macOS wheel,
+  and 2.14's macOS wheel needs macOS 14 (`uv pip compile` for an older macOS
+  target falls back to 2.11.0); every `uv run` CI job reads
+  download.pytorch.org while locking.
+- **mypy without torch** -> resolved in 4B: torch is not followed, so the
+  result does not depend on the environment.
 - **mmvec convergence is silent**: scikit-bio's L-BFGS prints its status
   only with `verbose=True` and `MMvecResult` has no flag [V] -> `Notes`
   points to `res.convergence` through scikit-bio; reconsider a warning if a
@@ -2597,58 +2601,1155 @@ matrix test file).
   Commit `refactor(core): share the finite, non-negative check`.
 
 ### Gates and merge
+Done: PR #28, Test run 37881255064 green (21 jobs); merged as `ef82843`.
 Commit, `git status --short` empty, then: prek; `pytest -q -W error::UserWarning`
 (1412 + 1 + 6 + 5 passed, 2 skipped, 54 deselected); `-m "golden or network"` 36;
 docs `-W`; `knowledge_stale.sh` 0 stale. Push `fix-4f`, PR, merge commit on
 green (decision 20 covers Phase 4 branches).
 
 ---
-## Slice 4B - torch (outline; expand with superpowers:writing-plans when reached)
 
-**Goal:** `pip install 'biotapy[torch]'` gives `bt.ml.to_torch`, a PyTorch
-dataset over a table whose rows stay sparse until they are fetched, and CI
-runs the torch tests on CPU wheels.
+## Slice 4B - torch
 
-**Tasks.**
-- **4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> Dataset`**
-  (`ml/_torch.py`, `tests/ml/test_torch.py` marked `torch`).
-  - Start of task: ask for the extra `torch = ["torch>=2.9"]`, the uv index
-    and the marker (decisions 10-12). Then `uv lock` and record the lock diff
-    size.
-  - Design as in design note 7: rows densified one at a time to float32;
-    `label_key` -> int64 category codes (categorical or string column) or
-    float32 (numeric); missing labels raise naming the column; `layer` reads
-    `adata.layers[layer]` (CSR or dense; `layers["clr"]` is dense and is
-    taken as is); `X`/the layer is referenced, not copied, and `Notes` says
-    that editing `adata` later changes what the dataset returns.
-  - First measurement, before the tests are written: run `mypy --strict`
-    with the `Dataset` subclass defined inside the function and torch absent
-    from the type-check environment. If it reports
-    `disallow_subclassing_any`, choose between one
-    `# type: ignore[misc]` with a comment and a plain map-style class (no
-    torch base), and record the choice under "Slice 4B decisions".
-  - Tests: batch shapes and dtypes through `DataLoader(batch_size=4)`; rows
-    equal `X.toarray()` rows; labels in category order; NaN label raises;
-    `layer` read; purity (`adata` unchanged; the full table never densified,
-    checked by a CSR `X` of 2,000 x 50,000 at 0.1% density whose dense form
-    would be 800 MB); without torch, `ImportError` naming
-    `biotapy[torch]` (monkeypatched `import_optional`).
-  - Docs: the ML guide gains "PyTorch"; API entry.
-- **4.B1 CI job `ml-extras`**: Linux, Python 3.13, `uv run --group test
-  --extra torch pytest -m torch`, pooch cache like `network`, added to
-  `check.needs`; `tests/test_ci.py` gains the job's tests (runs `-m
-  torch`, blocks merges, installs from the CPU index). `addopts` excludes
-  `torch` like `r`. The job's runtime and the installed size go into the
-  slice record.
+**Goal:** with `pip install 'biotapy[torch]'`, a user turns a table into a
+PyTorch dataset whose rows stay sparse until they are read
+(`bt.ml.to_torch`), and CI runs the PyTorch tests on CPU wheels in a job of
+their own that blocks merges.
 
-**Open questions, each with a proposed answer.**
-- uv index scope: per-package source for torch only, `explicit = true`, so
-  no other package resolves from the PyTorch index. [UNVERIFIED: `uv lock`
-  across Linux, macOS and Windows markers with that source.]
-- Does `torch` belong in the `import-without-extras` job's install? No: that
-  job exists to prove biotapy imports without it.
+### Slice 4B design
+- **Where the code goes.**
+
+  | File | Holds |
+  |---|---|
+  | `pyproject.toml` | the extra `torch`, `[tool.uv]` index and source (4.B0); the mypy override, the marker `torch`, `addopts` (4.5) |
+  | `ml/_torch.py` | `to_torch`, `_table`, `_labels` (4.5) |
+  | `conftest.py` (root) | the hook that gives `biotapy.ml._torch`'s doctests the marker `torch` (4.5) |
+  | `tests/ml/test_torch.py` | 18 tests marked `torch`, 6 that need no torch (4.5) |
+  | `.github/workflows/test.yaml` | the job `ml-extras`, in `check.needs` (4.B1) |
+  | `docs/guide/machine_learning.md`, `docs/contributing.md` | "PyTorch" guide section; "PyTorch tests" (4.5, 4.B1) |
+
+  `uv.lock` is git-ignored (`/uv.lock`, "resolve fresh in CI"), so no task
+  commits it.
+- **How slice 4B was checked.** Every file below was written into a scratch
+  clone at `cdc3b07` (master after slice 4A) on branch `phase-4b` and
+  committed one task at a time, after a stand-in `docs(roadmap)` commit that
+  only adds the 4.B0 checklist line; the branch was then rebased onto
+  `ef82843` (master after the 4.F fixes, which touch none of these files)
+  and every commit gated again. The counts below are the rebased ones
+  (`79c6b44` stand-in, `fada00b`, `875110f`, `5350e0e`). The gates ran on each committed tree
+  (`git status --short` empty) with `.venv` holding no torch, as in CI's
+  default jobs; the `-m torch` run used a second environment with the extra
+  (`torch 2.14.1+cpu`, Python 3.13.2). Every run exported `BIOTAPY_DATA_DIR`
+  to a scratch pooch cache; `~/.cache/biotapy` was absent after each.
+
+  | Task state | `uvx prek run --all-files` | `uv run --group test pytest -q -W error::UserWarning` | `pytest -q -m "golden or network"` | `sphinx-build -W` | `--extra torch pytest -q -m torch -W error::UserWarning` |
+  |---|---|---|---|---|---|
+  | base `ef82843` | passed (14 hooks) | 1424 passed, 2 skipped, 54 deselected | 36 passed | build succeeded | - |
+  | 4.B0 `build` (`fada00b`) | passed | 1425 passed, 2 skipped, 54 deselected | 36 passed | build succeeded | 0 selected, 1481 deselected (no marker yet) |
+  | 4.5 `feat(ml)` (`875110f`) | passed | 1432 passed, 2 skipped, 73 deselected | 36 passed | build succeeded | 19 passed, 1488 deselected |
+  | 4.B1 `ci` (`5350e0e`) | passed | 1434 passed, 2 skipped, 73 deselected | 36 passed | build succeeded | 19 passed, 1490 deselected |
+
+  - The default run on `ef82843` and after also ends in "2 warnings" or "3
+    warnings": scikit-bio's `RuntimeWarning: invalid value encountered in
+    divide` from 4.F1's `ancombc2` tests (the count follows Hypothesis's
+    draws), not from 4B. On `cdc3b07` the same commits gave 1413, 1420 and
+    1422 passed with the same skips and deselections.
+  - The 19 deselected by default in 4.5 are the 18 `torch` tests and
+    `to_torch`'s doctest; the 7 new passes are the 6 tests that need no
+    torch and `test_docstring_has_the_contract_sections[bt.ml.to_torch]`.
+  - At the 4.5 commit (on `cdc3b07`), with torch installed in the
+    environment, the default run gives the same `1420 passed, 2 skipped, 73
+    deselected` as without it; `mypy --strict`
+    passes with and without torch (`Success: no issues found in 65 source
+    files`); the `import-without-extras` command imports every module with
+    `'torch' in sys.modules` False.
+  - CI's `test` job, replayed through hatch at the 4.B1 commit (on `cdc3b07`)
+    (`hatch run hatch-test.py3.13-stable:run-cov -n auto`): `1422 passed, 2
+    skipped`, coverage total 99%; hatch installed no torch.
+  - Coverage of `ml/_torch.py`: 100% (45 statements) with the extra
+    (`coverage run -m pytest -m "torch or not torch" tests/ml/test_torch.py
+    src/biotapy/ml/_torch.py`, 25 passed); 71% without it (the class and
+    the import are not reached).
+  - Hypothesis seeds 1, 2 and 3: `18 passed, 6 deselected` each.
+  - Mutation check: densifying the whole table in `to_torch` fails
+    `test_a_large_sparse_table_is_never_dense` (`assert peak < 50_000_000`)
+    and `test_references_x_so_a_later_change_shows`.
+  - The `ml-extras` job replayed locally with a cold uv cache and a new
+    environment (Python 3.13): the sync step 19.4 s, the test step 14.8 s
+    (pytest 6.2 s), environment 1.6 GB (torch 727 MB).
+- **Resolved: mypy and the in-function `Dataset` subclass** (design note 7's
+  [UNVERIFIED]). prek's mypy hook runs `uv run --group dev --group doc mypy`,
+  an inexact sync of `.venv`: CI's `lint` job has no torch, while a
+  contributor who ran `--extra torch` keeps it. Measured with mypy 2.4.0:
+
+  | Code | torch absent | torch 2.14.1+cpu present |
+  |---|---|---|
+  | `torch = import_optional(...)`; `class _Rows(torch.utils.data.Dataset)` | `Name "torch.utils.data.Dataset" is not defined [name-defined]` | same |
+  | no override; `TYPE_CHECKING` import of `Dataset` | `Cannot find implementation or library stub for module named "torch" [import-not-found]` | `Missing type arguments for generic type "Dataset" [type-arg]` |
+  | `ignore_missing_imports` only; typed `Dataset["Tensor"]` | passes only with `# type: ignore[misc, unused-ignore]` and `[no-any-return, unused-ignore]`: the two environments need different ignores | same ignores; mypy analyses torch (20.4 s against 9.6 s on the same cache state) |
+  | **chosen:** `torch: Any = import_optional("torch", extra="torch")`, `class AnnDataDataset(torch.utils.data.Dataset):  # type: ignore[misc]`, override `{ module = "torch" / "torch.*", ignore_missing_imports = true, follow_imports = "skip" }` | `Success` (cold 29 s) | `Success` (cold 25 s: torch is not analysed) |
+
+  `follow_imports = "skip"` makes every torch name `Any` in both
+  environments, so one `# type: ignore[misc]` (subclassing `Any`) is used in
+  both and `warn_unused_ignores` never fires. R4.6 holds: torch is reached
+  only through `import_optional` inside `to_torch`. R3.6 holds: one level of
+  inheritance from `torch.utils.data.Dataset`, checked by
+  `test_is_a_torch_dataset_with_one_item_per_sample`.
+- **Resolved: the return annotation.** sphinx-autodoc-typehints 3.13.9,
+  without torch in the docs environment, renders `-> "Dataset[Tensor]"` (and
+  a union of them, and `"torch.utils.data.Dataset[torch.Tensor]"`) as the
+  broken reference `torch.utils.data.Dataset.torch.Tensor`, which
+  `nitpicky` fails. The bare `-> "Dataset"` with `if TYPE_CHECKING: from
+  torch.utils.data import Dataset` renders as `Dataset` linked to
+  `https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Dataset`
+  through a new intersphinx entry (PyTorch's inventory has
+  `torch.utils.data.Dataset`, `DataLoader` and `torch.Tensor`). With
+  `follow_imports = "skip"` the bare name raises no `type-arg`.
+- **Resolved: `uv lock` across platforms** (design note 7's [UNVERIFIED]).
+  With `[tool.uv] sources.torch = { index = "pytorch-cpu" }` and the index
+  `explicit = true`, `uv lock` (uv 0.6.13, and 0.12.24 gives the same
+  versions) resolves 195 packages instead of 189: it adds fsspec 2026.9.0,
+  mpmath 1.3.0, setuptools 84.0.0, sympy 1.14.0 and two torch entries, and
+  moves no other version (lock diff +139/-9 lines). torch forks by platform:
+  `2.14.1+cpu` (wheels for Linux x86_64, aarch64, s390x and Windows amd64,
+  arm64; cp312, cp313, cp314, cp314t) and `2.14.1` for macOS (only
+  `macosx_14_0_arm64`). `uv pip compile --extra torch --python-platform`:
+  Windows py3.12 and py3.14 -> `torch==2.14.1+cpu`; Linux aarch64 ->
+  `2.14.1+cpu`; macOS arm64 with `MACOSX_DEPLOYMENT_TARGET=14.0` ->
+  `2.14.1` (an older macOS target resolves `2.11.0`); Intel macOS -> no
+  solution (torch publishes no Intel macOS wheel). `uv sync --dry-run
+  --extra torch` on Linux py3.12 and py3.14 -> `+ torch==2.14.1+cpu`.
+  - **What a git-ignored `uv.lock` means for CI.** Every job that calls
+    `uv run` (`lint`'s mypy, import-linter and asv steps,
+    `import-without-extras`, `network`, `r-bridge`, `ml-extras`) locks
+    afresh, so it now reads torch's versions from download.pytorch.org even
+    when it installs no torch: `uv lock` takes 0.37 s instead of 0.10 s with
+    a warm cache, 1.24 s instead of 1.20 s cold. CI therefore always gets
+    the newest torch >= 2.9 (2.14.1 today), and an outage of
+    download.pytorch.org fails those jobs at lock time. The hatch jobs
+    (`test` matrix, `docs`, Read the Docs) do not read `[tool.uv]` for
+    torch: `hatch env create hatch-test.py3.13-stable` took 5.7 s and
+    installed no torch. The published wheel is unchanged apart from the
+    extra: `uv build` writes `Provides-Extra: torch` and `Requires-Dist:
+    torch>=2.9; extra == 'torch'`, and no index URL.
+- **Resolved: how the default jobs skip the torch tests.** `addopts` becomes
+  `-m "not network and not r and not torch"`, so every job but `ml-extras`
+  deselects them; `ml-extras` passes `-m torch`, which overrides it, as the
+  `network` and `r-bridge` jobs already do. No `pytest.importorskip`: it
+  would show as skips in the default counts and turn a broken torch install
+  in `ml-extras` into a green job. `tests/ml/test_torch.py` imports torch
+  only inside a fixture, so collecting it works without torch and its 6
+  tests that need no torch run in every job. `to_torch`'s doctest gets the
+  marker from a root `conftest.py` hook (pytest 9.1.1 exports
+  `pytest.DoctestItem`; the item is named `biotapy.ml._torch.to_torch`), so
+  the example runs in `ml-extras` and is deselected elsewhere.
+  `-W error::UserWarning`: `python -W error -c "import torch; import
+  torch.utils.data"` prints nothing, and the 19 torch items pass under it.
+- **Resolved: `to_torch`'s signature and items.** `to_torch(adata:
+  AnnData, *, label_key: str | None = None, layer: str | None = None) ->
+  "Dataset"` (R3.1; AnnData is the widest type, R3.2). Item `i` is a 1-D
+  float32 tensor of sample `i`'s features, or `(features, label)` with
+  `label_key`: a category, string or bool column -> int64 codes in
+  `pd.Categorical(...).categories` order; a numeric column -> float32. The
+  default `collate_fn` stacks them into `(batch, features)` float32 and
+  `(batch,)` labels. A CSR table is referenced (`as_csr` does not copy a
+  `csr_matrix`); another sparse format is converted to CSR once; a dense
+  array (such as `layers["clr"]`) is referenced. `__getitem__` densifies one
+  row with `table[i].toarray()[0]` and copies it with `np.array(...,
+  dtype=float32)`, so an item never shares memory with the AnnData.
+  Arguments are validated before torch is imported, so those errors are
+  tested without the extra.
+- **Facts the tasks rely on** (measured on the prototype; re-check each,
+  R2.2):
+  - `bt.datasets.toy()` is a 6 x 8 TreeData, `X` a CSR int64 matrix, `obs`
+    one categorical column `group` (`A, A, A, B, B, B`); `bt.pp.clr` writes a
+    dense `layers["clr"]`, `bt.pp.relative` a CSR `layers["relative"]`.
+  - anndata 0.13.4 lists `X` as `layers[None]`, so `list(adata.layers)` is
+    `[None]` on `toy()`; the missing-layer message therefore lists nothing.
+  - `AnnData(obs=pd.DataFrame(index=["s1", "s2"]))` has `X is None`.
+    Assigning a DataFrame to `layers` stores an ndarray, so no test can put a
+    DataFrame there.
+  - A view (`tdata[[0, 2, 4]]`) has a `SparseCSRMatrixView` `X`, a
+    `csr_matrix` subclass, and works unchanged.
+  - The first batch of 64 over a 2,000 x 50,000 CSR at 0.1% density peaks
+    at 13.2 MB under `tracemalloc`; the dense table would be 800 MB.
+  - `monkeypatch.setitem(sys.modules, "torch", None)` makes `import torch`
+    raise `ImportError` whether or not torch is installed.
+
+### Slice 4B global constraints (in addition to the Phase 4 list)
+- The user approved the extra, the index and the CI job on 2026-10-09
+  (decisions 10-12); 4.B0 does not ask again.
+- Two environments, one `.venv`. `uv sync --all-groups` is an exact sync:
+  it removes torch (0.6 s), giving CI's default-job environment. `uv run
+  --group test --extra torch ...` adds it back from the uv cache (2.7 s
+  warm). Run the default gates after `uv sync --all-groups`, the torch
+  commands last.
+- Gate before every commit, in this order (new files staged first):
+  ```bash
+  export BIOTAPY_DATA_DIR=<scratch pooch cache>
+  uv sync --all-groups
+  uvx prek run --all-files
+  uv run --group test pytest -q -W error::UserWarning
+  uv run --group test pytest -q -m "golden or network"
+  rm -rf docs/_build docs/generated && uv run --group doc sphinx-build -W -b html docs docs/_build/html
+  uv run --group test --extra torch pytest -q -m torch -W error::UserWarning
+  ```
+- Tests reach the function through `bt.ml.to_torch`; no test imports
+  `biotapy.ml._torch`.
+- No test file imports torch at module level (it would break collection in
+  every job without the extra).
+
+### Slice 4B review focus
+1. **The whole table densified by accident** (a `.toarray()` on `X`).
+   Expected: one row at a time. Test: 4.5
+   `test_a_large_sparse_table_is_never_dense` (mutation-checked).
+2. **A missing label turned into a code.** `pd.Categorical` codes a missing
+   value as -1, which a loss function would take as a class index or reject
+   far from the cause. Expected: `ValueError` naming the column. Test: 4.5
+   `test_missing_label_raises`.
+3. **Labels coded in an order the user did not expect.** Expected: the
+   categorical's own order, sorted values for a string or bool column.
+   Tests: 4.5 `test_labels_follow_the_category_order`,
+   `test_string_and_bool_labels_become_sorted_codes`.
+4. **A batch that writes back into the AnnData.** Expected: every item is a
+   new tensor. Tests: 4.5 `test_keeps_the_input`,
+   `test_an_item_does_not_share_memory_with_a_dense_float32_layer`.
+5. **An integer class column read as a regression target.** Expected, and
+   documented: a numeric column gives float32; class ids go in as a
+   category. Test: 4.5 `test_numeric_labels_become_float32`. And the torch
+   tests not running at all: `ml-extras` blocks merges (4.B1
+   `test_ml_extras_job_blocks_merges`) and nothing uses `importorskip`.
 
 ---
+
+### Task 4.B0: the extra `torch` and its CPU index (`build`)
+
+**Files:** modify `pyproject.toml`, `tests/test_ci.py`,
+`.knowledge/decisions/optional-heavy-dependencies.md`,
+`.knowledge/roadmap/phase-4-ml-multiomics.md`, `.knowledge/log.md`.
+**Not touched:** `uv.lock` (git-ignored); the hatch environments (they
+install no extra); `README.md` and `CHANGELOG.md` (4.D2 writes the release
+notes and the install lines); the `import-without-extras` job (it must keep
+installing no extra).
+**Interfaces:**
+- Consumes: nothing new.
+- Produces: `pip install 'biotapy[torch]'`; `uv run --extra torch` installs
+  torch from `https://download.pytorch.org/whl/cpu`.
+
+- [ ] **Step 1: Failing test.** In `tests/test_ci.py`, after
+  `test_r_bridge_job_blocks_merges`:
+  ```python
+  def test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does():
+      pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+      assert pyproject["project"]["optional-dependencies"]["torch"] == ["torch>=2.9"]
+      uv = pyproject["tool"]["uv"]
+      assert uv["sources"] == {"torch": {"index": "pytorch-cpu"}}
+      assert uv["index"] == [{"name": "pytorch-cpu", "url": "https://download.pytorch.org/whl/cpu", "explicit": True}]
+  ```
+- [ ] **Step 2: Run, expect failure** -
+  `uv run --group test pytest tests/test_ci.py -q` -> `1 failed, 16 passed`
+  (`KeyError: 'torch'`).
+- [ ] **Step 3: Implement.**
+  ```diff
+  diff --git a/pyproject.toml b/pyproject.toml
+  --- a/pyproject.toml
+  +++ b/pyproject.toml
+  @@ -46,6 +46,8 @@ dependencies = [
+   ]
+   # The ALDEx2 and MaAsLin 3 bridges (decisions/optional-heavy-dependencies); R and the R packages are the user's install.
+   optional-dependencies.r = [ "rpy2>=3.6.8" ]
+  +# ml.to_torch (decisions/optional-heavy-dependencies); 2.9.0 is torch's first release with CPython 3.14 wheels.
+  +optional-dependencies.torch = [ "torch>=2.9" ]
+   # https://docs.pypi.org/project_metadata/#project-urls
+   urls.Documentation = "https://biotapy.readthedocs.io/"
+   urls.Homepage = "https://github.com/pedrocr83/biotapy"
+  @@ -124,6 +126,12 @@ envs.hatch-test.overrides.matrix.deps.env-vars = [
+   ]
+   envs.hatch-test.dependency-groups = [ "dev", "test" ]
+
+  +[tool.uv]
+  +# CI and contributors get torch's CPU wheels (196 MB on Linux), not PyPI's Linux wheel (555 MB plus CUDA packages).
+  +# explicit = true: only torch, named in sources, comes from this index; the published metadata is unchanged.
+  +sources.torch = { index = "pytorch-cpu" }
+  +index = [ { name = "pytorch-cpu", url = "https://download.pytorch.org/whl/cpu", explicit = true } ]
+  +
+   [tool.ruff]
+   line-length = 120
+   src = [ "src" ]
+  ```
+- [ ] **Step 4: Run, expect pass, and record the lock** -
+  `uv run --group test pytest tests/test_ci.py -q` -> `17 passed`.
+  `uv lock` -> `Resolved 195 packages` (189 at `cdc3b07`; the new entries
+  are fsspec, mpmath, setuptools, sympy and torch twice, and no other
+  version moves). `grep -A1 '^name = "torch"' uv.lock` -> `version =
+  "2.14.1"` (macOS) and `version = "2.14.1+cpu"` (Linux, Windows); the torch
+  version is the newest on the day, record it. `uv build --wheel`, then
+  `unzip -p dist/*.whl '*/METADATA' | grep torch` -> `Provides-Extra:
+  torch`, `Requires-Dist: torch>=2.9; extra == 'torch'`; delete `dist/`.
+- [ ] **Step 5: Knowledge.** In
+  `.knowledge/decisions/optional-heavy-dependencies.md` (`generated` is
+  `claude-code/<model>` at the commit time; `commit:` the parent's short
+  sha):
+  ```diff
+  @@ -58,14 +58,26 @@ torch or an R installation into every install is unacceptable.[^spec]
+     Ubuntu; without them rpy2 silently falls back to an ABI mode that cannot
+     load R, so the `r-bridge` CI job sets `RPY2_CFFI_MODE=API` to fail the build
+     instead, `.github/workflows/test.yaml`). biotapy imports it only through
+  -  `import_optional` in `da/_r.py` and never bundles it.
+  +  `import_optional` in `da/_r.py` and never bundles it. Phase 4 task 4.B0
+  +  added the extra `torch` (`torch>=2.9`, approved 2026-10-09) for
+  +  `ml.to_torch`: 2.9.0 is torch's first release with CPython 3.14 wheels.
+  +  torch (BSD-3-Clause) brings filelock, fsspec, jinja2, networkx, setuptools,
+  +  sympy (with mpmath) and typing-extensions; of these, fsspec, mpmath,
+  +  setuptools and sympy are new to `uv.lock`, and no other version moves. uv
+  +  installs it from PyTorch's CPU index (`[tool.uv]` in `pyproject.toml`:
+  +  index `pytorch-cpu`, `https://download.pytorch.org/whl/cpu`, `explicit =
+  +  true`, so no other package resolves there): `2.14.1+cpu` on Linux and
+  +  Windows, `2.14.1` on macOS arm64 (no wheel exists for Intel macOS); the
+  +  Linux wheel is 196 MB, against PyPI's 555 MB plus CUDA packages. The index
+  +  is uv configuration only: the wheel's metadata says `torch>=2.9; extra ==
+  +  'torch'`, and pip users get PyPI's torch.
+   - Extras (names fixed now so docs never change), each added in the phase that first uses it:
+
+     | Extra | Pulls | First used |
+     |---|---|---|
+     | `numba` | numba (>=0.67, supports up to Python 3.14) | perf track, only on benchmark evidence; also unlocks scikit-bio's `engine="numba"` |
+     | `r` | rpy2 (3.6.8) | Phase 3 `da` bridges |
+  -  | `torch` | torch | Phase 4 `ml` loaders |
+  +  | `torch` | torch (>=2.9; under uv, CPU wheels from PyTorch's index) | Phase 4 `ml.to_torch` |
+     | `plotnine` | plotnine | only if a `pl` function needs it |
+
+  @@ -89,5 +101,8 @@ torch or an R installation into every install is unacceptable.[^spec]
+   - CI imports every module with no extras installed (`import-without-extras`),
+     so a lazy import leaking to module level fails fast. A job with all extras
+     comes with the first extra.
+  +- `uv.lock` is not committed, so every CI job that runs `uv run` resolves
+  +  afresh, and reads torch's versions from download.pytorch.org even when it
+  +  installs no torch (measured: `uv lock` 0.10 s -> 0.37 s with a warm cache).
+  ```
+  Use the versions and sizes Step 4 recorded if they differ. Tick 4.B0 in
+  this concept. In `.knowledge/log.md`, below the title and above the
+  newest section:
+  ```markdown
+  ## <date> (Phase 4, slice 4B)
+  - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `torch` (`torch>=2.9`), what it brings, the CPU index uv installs it from and why, the extras table row, and that every CI `uv run` now reads torch's index; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B0.
+  ```
+- [ ] **Step 6: Gate and commit**
+  ```bash
+  git add pyproject.toml tests/test_ci.py .knowledge/decisions/optional-heavy-dependencies.md \
+    .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
+  # the slice gate (Slice 4B global constraints) without its last command: the marker torch does not exist yet,
+  # so `-m torch` selects nothing and pytest exits 5
+  git commit -m "build: add the torch extra, installed by uv from PyTorch's CPU index
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+  Expected: prek passed; `1425 passed, 2 skipped, 54 deselected`; `36
+  passed`; `build succeeded`.
+
+### Task 4.5: `ml.to_torch`
+
+**Files:** create `src/biotapy/ml/_torch.py`, `tests/ml/test_torch.py`;
+modify `src/biotapy/ml/__init__.py`, `conftest.py`, `pyproject.toml`,
+`docs/guide/machine_learning.md`, `docs/api.md`, `docs/conf.py`,
+`docs/contributing.md`, `.knowledge/modules/ml.md`,
+`.knowledge/modules/index.md`, `.knowledge/decisions/pure-by-default.md`,
+`.knowledge/decisions/optional-heavy-dependencies.md`,
+`.knowledge/roadmap/phase-4-ml-multiomics.md`, `.knowledge/log.md`.
+**Not touched:** `_core/_optional.py` (`import_optional` already names the
+extra; `tests/core/test_optional.py` already uses `extra="torch"`);
+`ml/_transformers.py`; `tests/conftest.py` (the doctest hook must also see
+`src/biotapy`, which only the root `conftest.py` does);
+`docs/extensions/coming_from_r.py` (`R equivalent: none` adds no row);
+`.github/workflows/test.yaml` (4.B1).
+**Interfaces:**
+- Consumes: `_core.as_csr`, `_core.import_optional`; the extra `torch`
+  (4.B0); fixtures `assert_unchanged`, `make_adata` (`tests/conftest.py`).
+- Produces: `bt.ml.to_torch(adata: AnnData, *, label_key: str | None =
+  None, layer: str | None = None) -> torch.utils.data.Dataset`; the pytest
+  marker `torch`, deselected by default; `-m torch` runs the 18 tests and the
+  doctest.
+
+- [ ] **Step 1: Failing tests.** Register the marker and deselect it by
+  default:
+  ```diff
+  diff --git a/pyproject.toml b/pyproject.toml
+  @@ -228,12 +228,13 @@
+   [tool.pytest]
+   addopts = [
+  -  "--import-mode=importlib", # allow using test files with same name
+  +  "--import-mode=importlib",             # allow using test files with same name
+     "--doctest-modules",
+     "-m",
+  -  "not network and not r",
+  +  "not network and not r and not torch",
+   ]
+   markers = [
+     "golden: compares against R or HUMAnN golden files (contracts/r-golden-parity)",
+     "network: downloads data; runs only in the dedicated CI job",
+     "r: needs R and rpy2 (extra `r`)",
+  +  "torch: needs PyTorch (extra `torch`); runs only in the ml-extras CI job",
+   ]
+  ```
+  (The `--import-mode` line is pyproject-fmt's realignment, which prek
+  applies when `addopts` changes.) Create `tests/ml/test_torch.py`:
+  ```python
+  import sys
+  import tracemalloc
+
+  import numpy as np
+  import pandas as pd
+  import pytest
+  import scipy.sparse as sp
+  from anndata import AnnData
+  from hypothesis import given
+  from hypothesis import strategies as st
+  from hypothesis.extra.numpy import arrays
+
+  import biotapy as bt
+
+
+  @pytest.fixture
+  def torch():
+      # Imported here, not at module level: without the extra, collecting this file must still work so the
+      # tests below that need no torch run in every job.
+      import torch
+
+      return torch
+
+
+  def _stacked(dataset, torch):
+      return torch.stack([dataset[i] for i in range(len(dataset))]).numpy()
+
+
+  @pytest.mark.torch
+  def test_batches_hold_float32_rows_and_int64_labels(torch):
+      loader = torch.utils.data.DataLoader(bt.ml.to_torch(bt.datasets.toy(), label_key="group"), batch_size=4)
+      features, labels = next(iter(loader))
+      assert features.shape == (4, 8) and features.dtype == torch.float32
+      assert labels.shape == (4,) and labels.dtype == torch.int64
+      assert [len(batch[0]) for batch in loader] == [4, 2]
+
+
+  @pytest.mark.torch
+  def test_is_a_torch_dataset_with_one_item_per_sample(torch):
+      dataset = bt.ml.to_torch(bt.datasets.toy())
+      assert isinstance(dataset, torch.utils.data.Dataset) and len(dataset) == 6
+
+
+  @pytest.mark.torch
+  def test_items_are_the_rows_of_x(torch):
+      tdata = bt.datasets.toy()
+      np.testing.assert_array_equal(_stacked(bt.ml.to_torch(tdata), torch), tdata.X.toarray().astype(np.float32))
+
+
+  @pytest.mark.torch
+  def test_labels_follow_the_category_order(torch):
+      tdata = bt.datasets.toy()
+      tdata.obs["group"] = tdata.obs["group"].cat.reorder_categories(["B", "A"])
+      dataset = bt.ml.to_torch(tdata, label_key="group")
+      assert [int(dataset[i][1]) for i in range(6)] == [1, 1, 1, 0, 0, 0]
+
+
+  @pytest.mark.torch
+  @pytest.mark.parametrize(
+      ("values", "codes"), [(["b", "a", "c", "a", "b", "c"], [1, 0, 2, 0, 1, 2]), ([True, False] * 3, [1, 0] * 3)]
+  )
+  def test_string_and_bool_labels_become_sorted_codes(torch, values, codes):
+      tdata = bt.datasets.toy()
+      tdata.obs["label"] = values
+      dataset = bt.ml.to_torch(tdata, label_key="label")
+      assert [int(dataset[i][1]) for i in range(6)] == codes and dataset[0][1].dtype == torch.int64
+
+
+  @pytest.mark.torch
+  def test_numeric_labels_become_float32(torch):
+      tdata = bt.datasets.toy()
+      tdata.obs["age"] = [30, 41, 25, 60, 52, 47]
+      dataset = bt.ml.to_torch(tdata, label_key="age")
+      assert dataset[1][1].dtype == torch.float32 and float(dataset[1][1]) == 41.0
+
+
+  @pytest.mark.torch
+  @pytest.mark.parametrize(("make", "layer"), [(bt.pp.clr, "clr"), (bt.pp.relative, "relative")])
+  def test_layer_is_read_instead_of_x(torch, make, layer):
+      adata = make(bt.datasets.toy())
+      expected = sp.csr_matrix(adata.layers[layer]).toarray().astype(np.float32)
+      np.testing.assert_array_equal(_stacked(bt.ml.to_torch(adata, layer=layer), torch), expected)
+
+
+  @pytest.mark.torch
+  def test_a_view_of_some_samples_gives_those_samples(torch):
+      tdata = bt.datasets.toy()
+      dataset = bt.ml.to_torch(tdata[[0, 2, 4]], label_key="group")
+      rows = torch.stack([dataset[i][0] for i in range(3)]).numpy()
+      np.testing.assert_array_equal(rows, tdata.X[[0, 2, 4]].toarray())
+      assert [int(dataset[i][1]) for i in range(3)] == [0, 0, 1]
+
+
+  @pytest.mark.torch
+  def test_keeps_the_input(torch, assert_unchanged):
+      tdata = bt.datasets.toy()
+      before = tdata.copy()
+      dataset = bt.ml.to_torch(tdata, label_key="group")
+      for features, _ in torch.utils.data.DataLoader(dataset, batch_size=4):
+          features += 1
+      dataset[0][0][:] = 99
+      assert_unchanged(before, tdata)
+
+
+  @pytest.mark.torch
+  def test_an_item_does_not_share_memory_with_a_dense_float32_layer(torch):
+      adata = bt.pp.clr(bt.datasets.toy())
+      adata.layers["clr"] = adata.layers["clr"].astype(np.float32)
+      before = adata.layers["clr"].copy()
+      bt.ml.to_torch(adata, layer="clr")[0][:] = 99
+      np.testing.assert_array_equal(adata.layers["clr"], before)
+
+
+  @pytest.mark.torch
+  def test_references_x_so_a_later_change_shows(torch):
+      tdata = bt.datasets.toy()
+      dataset = bt.ml.to_torch(tdata)
+      tdata.X.data[:] = 0
+      assert float(dataset[0].sum()) == 0.0
+
+
+  @pytest.mark.torch
+  def test_a_large_sparse_table_is_never_dense(torch):
+      # 2,000 x 50,000 at 0.1% density: 100,000 stored values; dense it would be 800 MB as float64.
+      adata = AnnData(X=sp.random(2_000, 50_000, density=0.001, format="csr", random_state=0))
+      tracemalloc.start()
+      try:
+          dataset = bt.ml.to_torch(adata)
+          batch = next(iter(torch.utils.data.DataLoader(dataset, batch_size=64)))
+          peak = tracemalloc.get_traced_memory()[1]
+      finally:
+          tracemalloc.stop()
+      assert batch.shape == (64, 50_000)
+      assert peak < 50_000_000
+
+
+  @pytest.mark.torch
+  def test_all_zero_sample_and_feature_are_zeros(torch, make_adata):
+      adata = make_adata(np.array([[0, 0, 0], [3, 0, 1]]))
+      rows = _stacked(bt.ml.to_torch(adata), torch)
+      np.testing.assert_array_equal(rows, [[0, 0, 0], [3, 0, 1]])
+
+
+  @pytest.mark.torch
+  def test_single_sample(torch, make_adata):
+      dataset = bt.ml.to_torch(make_adata(np.array([[2, 0, 5]])))
+      batch = next(iter(torch.utils.data.DataLoader(dataset, batch_size=4)))
+      assert len(dataset) == 1 and batch.tolist() == [[2.0, 0.0, 5.0]]
+
+
+  @pytest.mark.torch
+  def test_other_sparse_formats_are_read_as_csr(torch, make_adata):
+      adata = make_adata(np.array([[1, 0], [0, 4]]))
+      adata.X = sp.csc_matrix(adata.X)
+      np.testing.assert_array_equal(_stacked(bt.ml.to_torch(adata), torch), [[1, 0], [0, 4]])
+
+
+  @pytest.mark.torch
+  @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 1000)))
+  def test_items_stack_back_to_the_table(dense):
+      # Hypothesis rejects function-scoped fixtures, so this test imports torch itself.
+      import torch
+
+      rows = torch.stack(list(bt.ml.to_torch(AnnData(X=sp.csr_matrix(dense))))).numpy()
+      np.testing.assert_array_equal(rows, dense.astype(np.float32))
+
+
+  def test_missing_label_column_raises():
+      with pytest.raises(KeyError, match="label_key='diet' is not a column of obs"):
+          bt.ml.to_torch(bt.datasets.toy(), label_key="diet")
+
+
+  def test_missing_label_raises():
+      tdata = bt.datasets.toy()
+      tdata.obs.loc["s2", "group"] = np.nan
+      with pytest.raises(ValueError, match=r"label_key='group' has 1 missing value\(s\)"):
+          bt.ml.to_torch(tdata, label_key="group")
+
+
+  def test_missing_layer_raises():
+      with pytest.raises(KeyError, match=r"layer='clr' is not in adata.layers"):
+          bt.ml.to_torch(bt.datasets.toy(), layer="clr")
+
+
+  def test_a_table_that_is_not_an_array_raises():
+      adata = AnnData(obs=pd.DataFrame(index=["s1", "s2"]))
+      with pytest.raises(TypeError, match="adata.X is a NoneType; to_torch reads a NumPy array or a SciPy sparse matrix"):
+          bt.ml.to_torch(adata)
+
+
+  def test_options_are_keyword_only():
+      with pytest.raises(TypeError):
+          bt.ml.to_torch(bt.datasets.toy(), "group")
+
+
+  def test_without_torch_names_the_extra(monkeypatch):
+      # None in sys.modules makes `import torch` fail whether or not the extra is installed.
+      monkeypatch.setitem(sys.modules, "torch", None)
+      with pytest.raises(ImportError, match=r"pip install 'biotapy\[torch\]'"):
+          bt.ml.to_torch(bt.datasets.toy())
+  ```
+  R11.2 coverage: happy path (batches, rows, labels, layers); edge cases
+  (all-zero sample and feature, single sample; a NaN taxonomy rank does not
+  apply, `to_torch` reads no taxonomy); purity (`test_keeps_the_input`, the
+  shared-memory test); a Hypothesis property (items stack back to the
+  table); no golden test (no R equivalent). The missing-torch test puts
+  `None` in `sys.modules` instead of monkeypatching `import_optional`, so
+  it reaches only the public API (R4.9) and holds with torch installed.
+- [ ] **Step 2: Run, expect failure** - `uv sync --all-groups && uv run
+  --group test pytest tests/ml/test_torch.py -q` -> `6 failed, 18
+  deselected`; `uv run --group test --extra torch pytest
+  tests/ml/test_torch.py -q -m torch` -> `18 failed, 6 deselected`; every
+  failure is `AttributeError: module 'biotapy.ml' has no attribute
+  'to_torch'`.
+- [ ] **Step 3: Implement.** Create `src/biotapy/ml/_torch.py`:
+  ```python
+  """A samples x features table as a PyTorch dataset (extra ``torch``, decisions/optional-heavy-dependencies)."""
+
+  from typing import TYPE_CHECKING, Any, cast
+
+  import numpy as np
+  import numpy.typing as npt
+  import pandas as pd
+  import scipy.sparse as sp
+  from anndata import AnnData
+
+  from biotapy._core import as_csr, import_optional
+
+  if TYPE_CHECKING:
+      from torch import Tensor
+      from torch.utils.data import Dataset
+
+  # What a dataset item is read from: CSR referenced as is, or a dense array.
+  Table = sp.csr_matrix | npt.NDArray[Any]
+
+
+  def to_torch(adata: AnnData, *, label_key: str | None = None, layer: str | None = None) -> "Dataset":
+      """A PyTorch dataset over the samples, one row of features per item.
+
+      Parameters
+      ----------
+      adata
+          Samples x features.
+      label_key
+          An ``obs`` column to pair with each row. A category, string or bool
+          column becomes int64 codes in category order (sorted values for a
+          string column), for a classifier; a numeric column becomes float32,
+          for a regression. By default an item is the row alone.
+      layer
+          Read ``layers[layer]``, such as ``"clr"`` from :func:`biotapy.pp.clr`,
+          instead of ``X``.
+
+      Returns
+      -------
+      Dataset
+          A map-style :class:`torch.utils.data.Dataset` of ``adata.n_obs`` items
+          in ``obs`` order. Item ``i`` is sample ``i``'s features as a 1-D
+          float32 tensor, or with ``label_key`` the pair ``(features, label)``.
+
+      Raises
+      ------
+      ImportError
+          torch is not installed: ``pip install 'biotapy[torch]'``.
+      KeyError
+          ``label_key`` is not a column of ``obs``, or ``layer`` is not a layer.
+      ValueError
+          The ``label_key`` column has a missing value.
+      TypeError
+          The table is neither a NumPy array nor a SciPy sparse matrix.
+
+      Notes
+      -----
+      R equivalent: none
+      Guide: :doc:`/guide/machine_learning`
+
+      A row is densified when its item is read, so a sparse table is never dense
+      in full: an item costs 4 bytes x features, and a
+      :class:`torch.utils.data.DataLoader` stacks items into batches, shuffling
+      them if asked. The dataset references ``X`` (or the layer) instead of
+      copying it, so changing ``adata`` afterwards changes what it returns; a
+      sparse table in another format than CSR is converted to CSR once. Each
+      item is a new tensor, so editing it leaves ``adata`` unchanged. Label codes
+      follow ``pd.Categorical(adata.obs[label_key]).categories``.
+
+      Examples
+      --------
+      >>> import biotapy as bt
+      >>> from torch.utils.data import DataLoader
+      >>> dataset = bt.ml.to_torch(bt.datasets.toy(), label_key="group")
+      >>> features, labels = next(iter(DataLoader(dataset, batch_size=4)))
+      >>> features.shape, features.dtype, labels.tolist()
+      (torch.Size([4, 8]), torch.float32, [0, 0, 0, 1])
+      """
+      table = _table(adata, layer)
+      labels = None if label_key is None else _labels(adata, label_key)
+      # torch is the extra `torch`, so the Dataset subclass is defined only once it imports (rules.md R4.6, R3.6);
+      # mypy treats torch as Any (pyproject.toml), so the subclassing needs the ignore with or without torch installed.
+      torch: Any = import_optional("torch", extra="torch")
+      targets = None if labels is None else torch.from_numpy(labels)
+
+      class AnnDataDataset(torch.utils.data.Dataset):  # type: ignore[misc]
+          def __len__(self) -> int:
+              return int(table.shape[0])
+
+          def __getitem__(self, index: int) -> "Tensor | tuple[Tensor, Tensor]":
+              # One row at a time, so the full table is never dense (rules.md R6.2).
+              row = table[index].toarray()[0] if isinstance(table, sp.csr_matrix) else table[index]
+              features = torch.from_numpy(np.array(row, dtype=np.float32))
+              return features if targets is None else (features, targets[index])
+
+      return AnnDataDataset()
+
+
+  def _table(adata: AnnData, layer: str | None) -> Table:
+      """``X`` or ``layers[layer]``, referenced: CSR or dense as is, any other sparse format as CSR."""
+      if layer is not None and layer not in adata.layers:
+          msg = f"layer={layer!r} is not in adata.layers"
+          raise KeyError(msg)
+      values = adata.X if layer is None else adata.layers[layer]
+      if isinstance(values, np.ndarray):
+          return values
+      if sp.issparse(values):
+          return as_csr(values)
+      name = "adata.X" if layer is None else f"layers[{layer!r}]"
+      msg = f"{name} is a {type(values).__name__}; to_torch reads a NumPy array or a SciPy sparse matrix"
+      raise TypeError(msg)
+
+
+  def _labels(adata: AnnData, label_key: str) -> npt.NDArray[np.int64] | npt.NDArray[np.float32]:
+      """``obs[label_key]`` as int64 codes in category order, or float32 for a numeric column."""
+      if label_key not in adata.obs.columns:
+          msg = f"label_key={label_key!r} is not a column of obs"
+          raise KeyError(msg)
+      # anndata types obs columns as Series | DataArray (its lazy variant); the data model guarantees a Series.
+      values = cast("pd.Series", adata.obs[label_key])
+      missing = int(values.isna().sum())
+      if missing:
+          msg = f"label_key={label_key!r} has {missing} missing value(s); drop those samples or fill them first"
+          raise ValueError(msg)
+      if pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values):
+          return values.to_numpy(dtype=np.float32, copy=True)
+      return pd.Categorical(values).codes.astype(np.int64)
+  ```
+  `_table` and `_labels` are single-use helpers (R4.4): `to_torch` with
+  their branches inline exceeds R5's 8 branches; no library call reads an
+  AnnData slot or codes a label column this way (R2.1: `pd.Categorical` is
+  the call `_labels` wraps). `src/biotapy/ml/__init__.py`:
+  ```python
+  from ._torch import to_torch
+  from ._transformers import CLR, PrevalenceFilter
+
+  __all__ = ["CLR", "PrevalenceFilter", "to_torch"]
+  ```
+  Append to the root `conftest.py`:
+  ```python
+
+
+  @pytest.hookimpl(tryfirst=True)
+  def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+      """Give the doctests of a module that needs the extra `torch` its marker, before `-m` deselects."""
+      for item in items:
+          if isinstance(item, pytest.DoctestItem) and item.name.startswith("biotapy.ml._torch."):
+              item.add_marker(pytest.mark.torch)
+  ```
+  and the mypy override:
+  ```diff
+  @@ -221,6 +221,10 @@ overrides = [
+     { module = "sklearn.*", follow_untyped_imports = true, implicit_reexport = true },
+     # threadpoolctl 3.7.0 is a single module, which cannot carry a py.typed marker; same treatment.
+     { module = "threadpoolctl", follow_untyped_imports = true },
+  +  # torch is the extra `torch`: absent where prek runs mypy, present where a contributor synced the extra. Not
+  +  # following it makes its names Any in both, so mypy gives one answer, and skips analysing 700 MB of torch.
+  +  { module = "torch", ignore_missing_imports = true, follow_imports = "skip" },
+  +  { module = "torch.*", ignore_missing_imports = true, follow_imports = "skip" },
+   ]
+  ```
+- [ ] **Step 4: Run, expect pass** - `uv sync --all-groups && uv run --group
+  test pytest tests/ml/test_torch.py src/biotapy/ml -q -W
+  error::UserWarning` -> `8 passed, 19 deselected` (the 6 tests that need
+  no torch and the two transformer doctests); `uv run --group dev --group
+  doc mypy` -> `Success: no issues found in 65 source files`; `uv run
+  --no-dev python -c "import importlib, pkgutil, sys, biotapy;
+  [importlib.import_module(m.name) for m in
+  pkgutil.walk_packages(biotapy.__path__, 'biotapy.')]; print('torch' in
+  sys.modules)"` -> `False`. Then `uv run --group test --extra torch pytest
+  tests/ml/test_torch.py src/biotapy/ml -q -W error::UserWarning -m torch`
+  -> `19 passed, 8 deselected`; `tests/ml/test_torch.py -m torch` also
+  under `--hypothesis-seed=1`, `2`, `3` (`18 passed, 6 deselected` each);
+  `uv run --group dev --group doc --extra torch mypy` -> `Success: no
+  issues found in 65 source files`.
+- [ ] **Step 5: Docs.**
+  ````diff
+  diff --git a/docs/guide/machine_learning.md b/docs/guide/machine_learning.md
+  @@ -2,7 +2,8 @@
+
+   `bt.ml` holds scikit-learn transformers, so microbiome preprocessing can sit
+   inside a [Pipeline](https://scikit-learn.org/stable/modules/compose.html) and
+  -be fitted on the training samples of each cross-validation fold only.
+  +be fitted on the training samples of each cross-validation fold only, and
+  +turns a table into a PyTorch dataset.
+
+   ## Which steps leak
+
+  @@ -53,3 +54,51 @@ scikit-learn already has it: `Normalizer(norm="l1")` divides each sample by
+   its total, keeps a sparse matrix sparse and leaves an all-zero sample at zero,
+   as `bt.pp.relative` does. Before `CLR` it changes nothing but the scale the
+   pseudocount is on.
+  +
+  +## PyTorch
+  +
+  +`bt.ml.to_torch` turns a table into a PyTorch
+  +[dataset](https://docs.pytorch.org/docs/stable/data.html) with one item per
+  +sample, for a `DataLoader` to batch and shuffle. It needs the extra `torch`:
+  +
+  +```bash
+  +pip install 'biotapy[torch]'
+  +```
+  +
+  +```python
+  +import biotapy as bt
+  +from torch.utils.data import DataLoader
+  +
+  +tdata = bt.pp.clr(bt.datasets.toy())
+  +dataset = bt.ml.to_torch(tdata, label_key="group", layer="clr")
+  +for features, labels in DataLoader(dataset, batch_size=32, shuffle=True):
+  +    ...  # features: float32, samples x features; labels: int64 codes
+  +```
+  +
+  +An item is a sample's features as a float32 tensor, or with `label_key` the
+  +pair `(features, label)`. A category, string or bool column gives int64 codes
+  +in category order, for a classifier; a numeric column gives float32, for a
+  +regression. A missing label raises: drop those samples first.
+  +
+  +Rows are densified one at a time, as they are read, so a sparse table is never
+  +dense in full. The dataset reads `X` (or the layer) without copying it, so a
+  +change to the table afterwards shows in the dataset.
+  +
+  +`to_torch` neither splits nor fits anything. Split the samples first and build
+  +one dataset per split. A step that learns from the samples, like the
+  +prevalence filter, is fitted on the training samples only and applied to both
+  +splits:
+  +
+  +```python
+  +keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
+  +train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
+  +test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
+  +```
+  +
+  +On Linux, pip installs PyPI's torch, which brings CUDA libraries. For a
+  +CPU-only torch, install it from PyTorch's CPU index first:
+  +
+  +```bash
+  +pip install torch --index-url https://download.pytorch.org/whl/cpu
+  +pip install 'biotapy[torch]'
+  +```
+  diff --git a/docs/api.md b/docs/api.md
+  @@ -120,6 +120,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
+
+       ml.CLR
+       ml.PrevalenceFilter
+  +    ml.to_torch
+   ```
+
+   ## Plots
+  diff --git a/docs/conf.py b/docs/conf.py
+  @@ -112,6 +112,7 @@ intersphinx_mapping = {
+       "matplotlib": ("https://matplotlib.org/stable/", None),
+       "mudata": ("https://mudata.scverse.org/stable/", None),
+       "sklearn": ("https://scikit-learn.org/stable/", None),
+  +    "torch": ("https://docs.pytorch.org/docs/stable/", None),
+   }
+
+   # List of patterns, relative to source directory, that match files and
+  diff --git a/docs/contributing.md b/docs/contributing.md
+  @@ -49,7 +49,7 @@ uv run --group test pytest
+   ```
+
+   Network and golden tests are excluded by default (`[tool.pytest]` in
+  -`pyproject.toml` sets `-m "not network and not r"`). Run them explicitly:
+  +`pyproject.toml` sets `-m "not network and not r and not torch"`). Run them explicitly:
+
+   ```bash
+   uv run --group test pytest -m "network or golden"
+  @@ -80,6 +80,16 @@ BIOTAPY_DATA_DIR=.pooch uv run --group test --extra r pytest -m r
+   CI runs them in the `r-bridge` job, with R 4.5.3 and the Bioconductor 3.22 packages the golden image
+   pins.
+
+  +### PyTorch tests
+  +
+  +Tests that need PyTorch (`bt.ml.to_torch`, and its docstring example) carry the marker `torch` and are
+  +excluded from the runs above. The `torch` extra installs torch's CPU wheel from PyTorch's index
+  +(`[tool.uv]` in `pyproject.toml`):
+  +
+  +```bash
+  +uv run --group test --extra torch pytest -m torch
+  +```
+  +
+   ### Regenerating the R golden files
+  ````
+  The two guide snippets were run with the extra (the split one with
+  `train, test = [0, 1, 3, 4], [2, 5]` and `min_prevalence=0.9`); the API
+  page shows `Return type: Dataset` linked to PyTorch's `Dataset`.
+- [ ] **Step 6: Knowledge.** (`generated` and `commit:` as in 4.B0.)
+  ```diff
+  diff --git a/.knowledge/modules/ml.md b/.knowledge/modules/ml.md
+  @@ -1,21 +1,21 @@
+   ---
+   type: Module
+   title: ml
+  -description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold; they take arrays, sparse matrices and DataFrames, never AnnData.
+  +description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; and to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch.
+   resource: /src/biotapy/ml/
+   paths: ["src/biotapy/ml/**"]
+  -tags: [ml, scikit-learn]
+  +tags: [ml, scikit-learn, torch]
+   status: stable
+  -generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+  -commit: 9883786
+  +generated: { by: claude-code/<model>, at: <UTC commit time> }
+  +commit: <parent short sha>
+   ---
+
+   # Responsibility
+
+   Owns `bt.ml.*`, the top layer's machine-learning entry points. Today that is
+  -two scikit-learn transformers (`_transformers.py`); `ml.to_torch` (slice 4B)
+  -and `ml.embed` (slice 4C) are planned in
+  -[phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md) and do not exist
+  +two scikit-learn transformers (`_transformers.py`) and `to_torch`
+  +(`_torch.py`, extra `torch`); `ml.embed` (slice 4C) is planned in
+  +[phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md) and does not exist
+   yet. Owns no reader and no table-level transform: `pp.filter_features` and
+   `pp.clr` stay `pp`'s, the transformers are their fold-safe forms.
+  @@ -26,6 +26,8 @@
+   - `_transformers.py:CLR` - the centred log-ratio of each sample; stateless,
+     so `fit` only validates.
+  +- `_torch.py:to_torch` - a map-style `torch.utils.data.Dataset` over `X` or a
+  +  layer, one float32 row per item, paired with an `obs` label when asked.
+  @@ -52,6 +54,13 @@
+   - CSR stays sparse: `PrevalenceFilter` reads `indices` and `data` of the CSR
+     and its output stays sparse; `CLR` accepts sparse input and densifies once
+     inside `pseudocounted` (rules.md R6.2).
+  +- `to_torch` densifies one row when its item is read, never the table, and
+  +  references `X` (or the layer) instead of copying it; every item is a new
+  +  tensor, so editing it leaves the AnnData unchanged. Labels are converted
+  +  once: category, string or bool -> int64 codes in category order, numeric
+  +  -> float32; a missing label raises. `_torch.py:to_torch`, `_torch.py:_labels`.
+  +- `to_torch` validates its arguments before it imports torch, so its error
+  +  tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
+  @@ -62,6 +71,8 @@
+   - scikit-learn: `BaseEstimator`, `SelectorMixin`, `TransformerMixin`,
+     `OneToOneFeatureMixin`, `validate_data`. scikit-bio: `clr`.
+  +- torch (extra `torch`), only through `import_optional` inside `to_torch`
+  +  ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
+  @@ -69,7 +80,9 @@
+   `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
+  -`pp` parity tests, a `Pipeline` cross-validation test). The pseudocount
+  +`pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
+  +errors). `uv run --group test --extra torch pytest -m torch` runs the
+  +`to_torch` tests and its docstring example. The pseudocount
+   warning's text is unit-tested in `tests/core/test_composition.py`.
+  @@ -91,3 +104,17 @@
+     class exists. Both transformers have no R equivalent (`R equivalent: none`)
+     and so no golden test; parity is against `pp`.
+  +- `to_torch`'s `Dataset` subclass is defined inside the function, after
+  +  `import_optional`: a module-level class would import torch with biotapy.
+  +  mypy does not follow torch (`follow_imports = "skip"` in `pyproject.toml`),
+  +  so it is `Any` with or without the extra installed and the class line
+  +  carries `# type: ignore[misc]` (subclassing `Any`) in both. The return
+  +  annotation is the bare `"Dataset"`: sphinx-autodoc-typehints renders a
+  +  subscripted `Dataset[Tensor]` from a `TYPE_CHECKING` import as a broken
+  +  cross-reference, which `nitpicky` fails. `_torch.py:to_torch`.
+  +- The docstring example needs torch: the root `conftest.py` gives the
+  +  doctests of `biotapy.ml._torch` the marker `torch`, so the default run
+  +  deselects them and `-m torch` runs them. `conftest.py:pytest_collection_modifyitems`.
+  +- anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
+  +  `None` even when no layer was added; `to_torch`'s missing-layer error does
+  +  not list the layers. `_torch.py:_table`.
+  diff --git a/.knowledge/decisions/pure-by-default.md b/.knowledge/decisions/pure-by-default.md
+  @@ -30,6 +30,7 @@
+   | `ml` estimators (`PrevalenceFilter`, `CLR`) | scikit-learn's protocol: `fit` stores what it learns on the estimator and returns it; `transform` returns a new array | never the data |
+  +| `ml.to_torch` | a new `torch.utils.data.Dataset` that references `X` (or the layer) without copying it; each item a new tensor | never |
+  diff --git a/.knowledge/decisions/optional-heavy-dependencies.md b/.knowledge/decisions/optional-heavy-dependencies.md
+  @@ -89,6 +89,12 @@
+   - Optional modules are imported inside the function through
+     `biotapy._core.import_optional(name, extra)`, which raises `ImportError`
+     naming the extra to install.
+  +- A class that must inherit from an extra's base (rules.md R3.6), such as
+  +  `ml.to_torch`'s torch `Dataset`, is defined inside the function after
+  +  `import_optional` (`ml/_torch.py:to_torch`). mypy does not follow the
+  +  extra (`follow_imports = "skip"`, `ignore_missing_imports` in
+  +  `pyproject.toml`), so the type check gives the same answer whether or not
+  +  the extra is installed.
+  ```
+  Copy the new `ml` description into `.knowledge/modules/index.md`'s `ml`
+  line (lowercase `scikit-learn`, as now). Tick 4.5 here; log line, first
+  in the slice 4B section:
+  ```markdown
+  - **Update**: [ml](modules/ml.md) gains `to_torch` (entry point, per-row densify, references `X`, labels, validation before the torch import, the class-inside-the-function and mypy gotcha, the doctest marker, anndata's `layers[None]`), with the description copied into the [modules index](modules/index.md); [pure-by-default](decisions/pure-by-default.md) gains the `ml.to_torch` row; [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) says how a class inherits from an extra's base; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.5.
+  ```
+- [ ] **Step 7: Gate and commit**
+  ```bash
+  git add src/biotapy/ml/_torch.py src/biotapy/ml/__init__.py tests/ml/test_torch.py conftest.py pyproject.toml \
+    docs/guide/machine_learning.md docs/api.md docs/conf.py docs/contributing.md \
+    .knowledge/modules/ml.md .knowledge/modules/index.md .knowledge/decisions/pure-by-default.md \
+    .knowledge/decisions/optional-heavy-dependencies.md .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
+  # the slice gate (Slice 4B global constraints)
+  git commit -m "feat(ml): add to_torch, a PyTorch dataset that densifies one row at a time
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+  Expected: prek passed; `1432 passed, 2 skipped, 73 deselected`; `36
+  passed`; `build succeeded`; `19 passed, 1488 deselected`.
+
+### Task 4.B1: CI job `ml-extras`
+
+**Files:** modify `.github/workflows/test.yaml`, `tests/test_ci.py`,
+`docs/contributing.md`, `.knowledge/decisions/optional-heavy-dependencies.md`,
+`.knowledge/modules/ml.md`, `.knowledge/roadmap/phase-4-ml-multiomics.md`,
+`.knowledge/log.md`.
+**Not touched:** the `import-without-extras` job (it proves biotapy imports
+without torch, so it installs no extra); the hatch `test` matrix and the
+`docs` job (no torch, decision 17); a pooch cache in `ml-extras` (no torch
+test downloads anything; 4.4b adds it with the MGM `network` test).
+**Interfaces:**
+- Consumes: the marker `torch` and `-m torch` (4.5); the extra (4.B0).
+- Produces: the job `ml-extras`, required through `check.needs`.
+
+- [ ] **Step 1: Failing tests.** In `tests/test_ci.py`, before
+  `test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does`:
+  ```python
+  def test_ml_extras_job_runs_the_torch_marker_on_python_3_13():
+      job = WORKFLOW["jobs"]["ml-extras"]
+      setup = next(step for step in job["steps"] if step.get("uses", "").startswith("astral-sh/setup-uv@"))
+      assert job["runs-on"] == "ubuntu-latest" and setup["with"]["python-version"] == "3.13"
+      runs = [step.get("run", "").strip() for step in job["steps"]]
+      assert "uv run --group test --extra torch pytest -m torch" in runs
+
+
+  def test_ml_extras_job_blocks_merges():
+      assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
+  ```
+- [ ] **Step 2: Run, expect failure** -
+  `uv run --group test pytest tests/test_ci.py -q` -> `2 failed, 17 passed`
+  (`KeyError: 'ml-extras'`; `AssertionError` on `check.needs`).
+- [ ] **Step 3: Implement.**
+  ````diff
+  diff --git a/.github/workflows/test.yaml b/.github/workflows/test.yaml
+  @@ -212,6 +212,26 @@ jobs:
+             RPY2_CFFI_MODE: API
+           run: uv run --group test --extra r pytest -m r
+
+  +  # Runs the tests that need PyTorch (marker torch, extra torch), which every other job deselects; uv installs torch's
+  +  # CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml, decisions/optional-heavy-dependencies).
+  +  ml-extras:
+  +    runs-on: ubuntu-latest
+  +    steps:
+  +      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  +        with:
+  +          filter: blob:none
+  +          fetch-depth: 0
+  +          persist-credentials: false
+  +      - name: Install uv
+  +        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+  +        with:
+  +          python-version: "3.13"
+  +      # Syncs the environment, so the install shows apart from the tests in the job log.
+  +      - name: Log the torch version
+  +        run: uv run --group test --extra torch python -c "import torch; print('torch', torch.__version__)"
+  +      - name: Run the PyTorch tests
+  +        run: uv run --group test --extra torch pytest -m torch
+  +
+     # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
+     # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network
+     # job's pooch cache.
+  @@ -269,6 +289,7 @@ jobs:
+         - import-without-extras
+         - network
+         - r-bridge
+  +      - ml-extras
+         - docs
+       runs-on: ubuntu-latest
+       steps:
+  diff --git a/docs/contributing.md b/docs/contributing.md
+  @@ -90,6 +90,8 @@ excluded from the runs above. The `torch` extra installs torch's CPU wheel from
+   uv run --group test --extra torch pytest -m torch
+   ```
+
+  +CI runs them in the `ml-extras` job, on Linux with Python 3.13.
+  +
+   ### Regenerating the R golden files
+  ````
+- [ ] **Step 4: Run, expect pass** -
+  `uv run --group test pytest tests/test_ci.py -q` -> `19 passed`. Replay the
+  job: `uv sync --all-groups` (no torch, as on a new runner), then its two
+  commands -> `torch 2.14.1+cpu` (or the newest version on the day) and
+  `19 passed, 1490 deselected`.
+- [ ] **Step 5: Knowledge.** (`generated` and `commit:` as in 4.B0.)
+  ```diff
+  diff --git a/.knowledge/decisions/optional-heavy-dependencies.md b/.knowledge/decisions/optional-heavy-dependencies.md
+  @@ -101,8 +101,8 @@
+   - CI imports every module with no extras installed (`import-without-extras`),
+  -  so a lazy import leaking to module level fails fast. A job with all extras
+  -  comes with the first extra.
+  +  so a lazy import leaking to module level fails fast. Each extra has a job
+  +  that installs it and runs its marker, deselected everywhere else: `r-bridge`
+  +  (`r`) and `ml-extras` (`torch`, Linux, Python 3.13), both in `check.needs`.
+  diff --git a/.knowledge/modules/ml.md b/.knowledge/modules/ml.md
+  @@ -80,9 +80,9 @@
+  -`to_torch` tests and its docstring example. The pseudocount
+  +`to_torch` tests and its docstring example, as CI's `ml-extras` job does. The pseudocount
+   warning's text is unit-tested in `tests/core/test_composition.py`.
+  ```
+  Tick 4.B1 here; log line, first in the slice 4B section:
+  ```markdown
+  - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): each extra has its CI job (`r-bridge`, `ml-extras`); [ml](modules/ml.md)'s Verification names the `ml-extras` job; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B1.
+  ```
+- [ ] **Step 6: Gate and commit**
+  ```bash
+  git add .github/workflows/test.yaml tests/test_ci.py docs/contributing.md \
+    .knowledge/decisions/optional-heavy-dependencies.md .knowledge/modules/ml.md \
+    .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
+  # the slice gate (Slice 4B global constraints); zizmor checks the new job
+  git commit -m "ci: run the PyTorch tests in an ml-extras job
+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+  ```
+  Expected: prek passed; `1434 passed, 2 skipped, 73 deselected`; `36
+  passed`; `build succeeded`; `19 passed, 1490 deselected`.
+
+### Checkpoint B - review slice 4B
+- [ ] Review the whole slice (superpowers:requesting-code-review) against
+  every contract, pure-by-default, optional-heavy-dependencies, the Phase 4
+  and slice 4B review focus; then a fix pass, one commit per finding, each
+  with a test. Record the counts and the fix range here.
+- [ ] Run the slice's checks at the last commit and record them: the slice
+  gate's five counts; `uv run --group test --extra torch coverage run -m
+  pytest -m "torch or not torch" tests/ml/test_torch.py
+  src/biotapy/ml/_torch.py` then `coverage report --include
+  "src/biotapy/ml/*"` (`_torch.py` 100% on the prototype).
+- [ ] Knowledge: [ml](/modules/ml.md) and
+  [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)
+  already carry 4B (4.5, 4.B1); re-check them against the fix pass and
+  bump only what changed, with log lines.
+- [ ] Push the branch and open the PR only after the user approves that push
+  (R13.3). The PR body carries the R9.2 reason: "Extra `torch` (`torch>=2.9`,
+  BSD-3-Clause, approved 2026-10-09): `ml.to_torch` subclasses
+  `torch.utils.data.Dataset`; an extra, never core (R9.3). uv installs the CPU
+  wheel from `https://download.pytorch.org/whl/cpu` (`explicit = true`, torch
+  only); the published metadata is unchanged." CI green, including
+  `ml-extras`; record its runtime and the torch version it installed here
+  (the prototype's local replay: sync 19.4 s cold, tests 14.8 s, 1.6 GB).
+- [ ] Ask the user to review slice 4B before slice 4C is expanded.
+
+---
+
 ## Slice 4C - Embeddings (outline)
 
 **Goal:** `bt.ml.embed(tdata, "mgm")` returns one MGM embedding per sample
@@ -2835,6 +3936,34 @@ a judgement call. Recommended answer first.
 20. **Branch pushes:** approve push, PR and merge on green for the Phase 4
     slice branches (R13.3); no standing approval covers Phase 4.
 
+**Slice 4B (approved by the user on 2026-10-09):**
+
+
+21. **mypy does not follow torch** (`follow_imports = "skip"` and
+   `ignore_missing_imports` for `torch`, `torch.*`), and the in-function
+   `Dataset` subclass carries one `# type: ignore[misc]`. torch's names are
+   `Any` to mypy with or without the extra, so the gate gives one answer and
+   cold mypy skips 700 MB of torch. Alternative: follow torch when installed,
+   which needs `unused-ignore` codes on lines whose error depends on the
+   environment.
+22. **Return annotation: the bare `"Dataset"`** (no `[Tensor]` parameter), plus
+   an intersphinx entry for PyTorch's docs: the subscripted form renders as a
+   broken reference that `nitpicky` fails in the torch-free docs build.
+23. **The docstring example runs only in `ml-extras`**: a hook in the root
+   `conftest.py` marks `biotapy.ml._torch`'s doctests `torch`. Alternative:
+   `# doctest: +SKIP`, as the R bridges do, so the example never runs.
+24. **A separate `build` commit (task 4.B0)** for the extra and the index,
+   before `feat(ml)`, so the dependency change can be reviewed and reverted on
+   its own. Alternative: fold it into 4.5, as the outline had it.
+25. **No pooch cache in `ml-extras` until 4.4b**: no 4B test downloads
+   anything (R2.3). Alternative: add it now, as the outline said.
+26. **Accept that every `uv run` CI job contacts download.pytorch.org while
+   locking** (`uv.lock` is not committed; +0.27 s warm), and that CI always
+   takes the newest torch >= 2.9. Alternative: keep the index out of
+   `pyproject.toml` and install torch in `ml-extras` alone with `uv pip install
+   --index-url` (decision 11's alternative), or commit `uv.lock` (reverses the
+   "resolve fresh" choice in `.gitignore`).
+
 # Self-review
 Run against the brief, the roadmap outline and the writing-plans checklist.
 
@@ -2868,6 +3997,9 @@ Run against the brief, the roadmap outline and the writing-plans checklist.
 2. **Placeholder scan.** Every slice 4A step carries the full file or the
    exact diff, rendered from the scratch clone's commits that passed every
    gate (`1ef640e`, `0c1c5f0`, `64fb759`, `c9536aa` on branch `phase-4a`).
+   Slice 4B carries full steps, rendered from the scratch clone's commits
+   `fada00b`, `875110f`, `5350e0e` on branch `phase-4b` (rebased onto
+   `ef82843`).
    The only open values are the log section's `<date>` and each concept's
    `generated.at`, filled at commit time. Outline slices give a proposed
    answer to each open question and mark what is [UNVERIFIED].
@@ -2887,9 +4019,7 @@ Run against the brief, the roadmap outline and the writing-plans checklist.
    - The gate counts were measured on Python 3.13 only; the CI matrix adds
      3.12, 3.14 and pre-release dependencies. scikit-learn's estimator
      checks are the likeliest to differ under pre-releases.
-   - [UNVERIFIED]: mypy on a torch `Dataset` subclass without torch
-     installed; uv's lock with a per-package torch index on every platform;
-     MGM's sample pooling and a 3.11 parity fixture; transformers' wheels on
+   - [UNVERIFIED]: MGM's sample pooling and a 3.11 parity fixture; transformers' wheels on
      3.14; `batch_size` memory for MGM.
    - Upstream: the weights live in a PyPI wheel the MGM authors control;
      MGM2 may supersede MGM before 0.4 ships.

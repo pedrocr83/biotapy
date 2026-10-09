@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4, slice 4B plan)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4B into full TDD steps (4.B0 the extra `torch` and its CPU index, 4.5 `ml.to_torch`, 4.B1 CI job `ml-extras`, Checkpoint B), approved by the user with decisions 21-26; design note 7's two [UNVERIFIED] points are measured; the dependencies table, risks, self-review and header follow; fixes 4.F1-4.F3 merged in PR #28.
+
 ## 2026-10-09 (Phase 4, fixes 4.F)
 - **Update**: [da](modules/da.md) gotcha: scikit-bio's `ancombc2` bias E-M underflow on a two-sample reference level (R fits it) and how it is pinned; [pp](modules/pp.md) gotcha: `filter_features` rejects a wrongly typed threshold.
 - **Verification**: `human:pedrocr83` approved slice 4A and confirmed [multiomics-as-mudata](decisions/multiomics-as-mudata.md); now `stable`.
