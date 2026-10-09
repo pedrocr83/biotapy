@@ -5,8 +5,8 @@ description: Function hierarchies, aggregation along them, HUMAnN-style renormal
 resource: /src/biotapy/fn/
 paths: ["src/biotapy/fn/**"]
 tags: [fn, function, humann]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T09:34:05Z }
-commit: f5236e8
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 status: stable
 ---
 

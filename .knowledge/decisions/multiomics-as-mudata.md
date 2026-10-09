@@ -5,8 +5,8 @@ description: Several data types over the same samples are one MuData whose modal
 tags: [io, mudata, multiomics]
 status: stable
 paths: ["src/biotapy/io/_mudata.py", "src/biotapy/tl/_mmvec.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:37:48Z }
-commit: cdc3b07
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 sources:
   - id: spec
     resource: ../../plan.md
