@@ -59,7 +59,7 @@ def test_returns_copies_and_keeps_the_input(assert_unchanged):
     tdata = bt.datasets.toy()
     metabolites = _metabolites(["s1", "s2"])
     before = tdata.copy()
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r"dropped: taxa 4 of 6$"):
         mdata = bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
     assert_unchanged(before, tdata)
     assert not mdata["taxa"].is_view and mdata["taxa"] is not tdata
