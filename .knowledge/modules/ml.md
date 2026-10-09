@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:34:26Z }
-commit: 0a34a3a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:45:50Z }
+commit: cc9a4d9
 ---
 
 # Responsibility
@@ -55,9 +55,10 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   and its output stays sparse; `CLR` accepts sparse input and densifies once
   inside `pseudocounted` (rules.md R6.2).
 - `to_torch` densifies one row when its item is read, never the table, and
-  references `X` (or the layer) instead of copying it; every item is a new
-  tensor, so editing it leaves the AnnData unchanged. Labels are converted
-  once: category, string or bool -> int64 codes in category order, numeric
+  holds `X` (or the layer) instead of copying it, so the AnnData must not be
+  modified while the dataset is used; every item is a new tensor (label
+  included), so editing it leaves the AnnData unchanged. A non-integer index
+  raises `TypeError`. Labels are converted once, at construction: category, string or bool -> int64 codes in category order, numeric
   -> float32; a missing label raises. `_torch.py:to_torch`, `_torch.py:_labels`.
 - `to_torch` validates its arguments before it imports torch, so its error
   tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
@@ -104,14 +105,18 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
   splitting lets the test samples pick the features; that is the reason the
   class exists. Both transformers have no R equivalent (`R equivalent: none`)
   and so no golden test; parity is against `pp`.
-- `to_torch`'s `Dataset` subclass is defined inside the function, after
-  `import_optional`: a module-level class would import torch with biotapy.
+- `to_torch`'s `Dataset` subclass is defined inside the module-level
+  `_dataset(table, labels)`, after `import_optional`: a module-level class
+  would import torch with biotapy. A class defined in a function cannot be
+  pickled, so it defines `__reduce__` returning `(_dataset, (table, labels))`;
+  that is what lets `DataLoader(num_workers>0)` work under spawn and
+  forkserver (macOS, Windows, Linux on Python 3.14).
   mypy does not follow torch (`follow_imports = "skip"` in `pyproject.toml`),
   so it is `Any` with or without the extra installed and the class line
   carries `# type: ignore[misc]` (subclassing `Any`) in both. The return
   annotation is the bare `"Dataset"`: sphinx-autodoc-typehints renders a
   subscripted `Dataset[Tensor]` from a `TYPE_CHECKING` import as a broken
-  cross-reference, which `nitpicky` fails. `_torch.py:to_torch`.
+  cross-reference, which `nitpicky` fails. `_torch.py:_dataset`.
 - The docstring example needs torch: the root `conftest.py` gives the
   doctests of `biotapy.ml._torch` the marker `torch`, so the default run
   deselects them and `-m torch` runs them. `conftest.py:pytest_collection_modifyitems`.

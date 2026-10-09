@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:34:26Z }
-commit: 0a34a3a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:45:50Z }
+commit: cc9a4d9
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2967,7 +2967,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   (4.B0); fixtures `assert_unchanged`, `make_adata` (`tests/conftest.py`).
 - Produces: `bt.ml.to_torch(adata: AnnData, *, label_key: str | None =
   None, layer: str | None = None) -> torch.utils.data.Dataset`; the pytest
-  marker `torch`, deselected by default; `-m torch` runs the 18 tests and the
+  marker `torch`, deselected by default; `-m torch` runs the 22 tests and the
   doctest.
 
 - [x] **Step 1: Failing tests.** Register the marker and deselect it by
@@ -2994,6 +2994,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   (The `--import-mode` line is pyproject-fmt's realignment, which prek
   applies when `addopts` changes.) Create `tests/ml/test_torch.py`:
   ```python
+  import pickle
   import sys
   import tracemalloc
 
@@ -3108,6 +3109,40 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
 
   @pytest.mark.torch
+  def test_the_dataset_survives_pickling_and_spawned_workers(torch):
+      # spawn and forkserver (macOS, Windows, Linux on Python 3.14) pickle the dataset to send it to each worker.
+      dataset = bt.ml.to_torch(bt.datasets.toy(), label_key="group")
+      clone = pickle.loads(pickle.dumps(dataset))
+      assert len(clone) == 6 and torch.equal(clone[4][0], dataset[4][0]) and int(clone[4][1]) == int(dataset[4][1])
+      workers = torch.utils.data.DataLoader(dataset, batch_size=2, num_workers=2, multiprocessing_context="spawn")
+      alone = torch.utils.data.DataLoader(dataset, batch_size=2)
+      for (rows, labels), (expected_rows, expected_labels) in zip(workers, alone, strict=True):
+          assert torch.equal(rows, expected_rows) and torch.equal(labels, expected_labels)
+
+
+  @pytest.mark.torch
+  def test_editing_a_returned_label_does_not_change_the_next_fetch(torch):
+      dataset = bt.ml.to_torch(bt.datasets.toy(), label_key="group")
+      dataset[0][1].add_(3)
+      assert int(dataset[0][1]) == 0
+
+
+  @pytest.mark.torch
+  @pytest.mark.parametrize("sparse", [True, False])
+  def test_a_slice_index_raises_and_integer_indices_work(torch, sparse):
+      tdata = bt.datasets.toy()
+      adata = AnnData(X=tdata.X if sparse else tdata.X.toarray())
+      dataset = bt.ml.to_torch(adata)
+      with pytest.raises(TypeError, match="slice"):
+          dataset[1:3]
+      expected = tdata.X.toarray().astype(np.float32)
+      np.testing.assert_array_equal(dataset[np.int64(2)].numpy(), expected[2])
+      np.testing.assert_array_equal(dataset[-1].numpy(), expected[-1])
+      with pytest.raises(IndexError):
+          dataset[6]
+
+
+  @pytest.mark.torch
   def test_references_x_so_a_later_change_shows(torch):
       tdata = bt.datasets.toy()
       dataset = bt.ml.to_torch(tdata)
@@ -3203,15 +3238,16 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   `None` in `sys.modules` instead of monkeypatching `import_optional`, so
   it reaches only the public API (R4.9) and holds with torch installed.
 - [x] **Step 2: Run, expect failure** - `uv sync --all-groups && uv run
-  --group test pytest tests/ml/test_torch.py -q` -> `6 failed, 18
+  --group test pytest tests/ml/test_torch.py -q` -> `6 failed, 22
   deselected`; `uv run --group test --extra torch pytest
-  tests/ml/test_torch.py -q -m torch` -> `18 failed, 6 deselected`; every
+  tests/ml/test_torch.py -q -m torch` -> `22 failed, 6 deselected`; every
   failure is `AttributeError: module 'biotapy.ml' has no attribute
   'to_torch'`.
 - [x] **Step 3: Implement.** Create `src/biotapy/ml/_torch.py`:
   ```python
   """A samples x features table as a PyTorch dataset (extra ``torch``, decisions/optional-heavy-dependencies)."""
 
+  import operator
   from typing import TYPE_CHECKING, Any, cast
 
   import numpy as np
@@ -3272,11 +3308,12 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
       A row is densified when its item is read, so a sparse table is never dense
       in full: an item costs 4 bytes x features, and a
       :class:`torch.utils.data.DataLoader` stacks items into batches, shuffling
-      them if asked. The dataset references ``X`` (or the layer) instead of
-      copying it, so changing ``adata`` afterwards changes what it returns; a
-      sparse table in another format than CSR is converted to CSR once. Each
-      item is a new tensor, so editing it leaves ``adata`` unchanged. Label codes
-      follow ``pd.Categorical(adata.obs[label_key]).categories``.
+      them if asked. The dataset holds the table it was given instead of
+      copying it (a sparse table in another format than CSR is converted to CSR
+      once), and reads the labels once, at construction. Do not modify ``adata``
+      while using the dataset. Each item is a new tensor, so editing it leaves
+      ``adata`` unchanged. Label codes follow
+      ``pd.Categorical(adata.obs[label_key]).categories``.
 
       Examples
       --------
@@ -3289,6 +3326,11 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
       """
       table = _table(adata, layer)
       labels = None if label_key is None else _labels(adata, label_key)
+      return _dataset(table, labels)
+
+
+  def _dataset(table: Table, labels: npt.NDArray[np.int64] | npt.NDArray[np.float32] | None) -> "Dataset":
+      """The dataset over a table and its labels; module-level so the dataset pickles for DataLoader workers."""
       # torch is the extra `torch`, so the Dataset subclass is defined only once it imports (rules.md R4.6, R3.6);
       # mypy treats torch as Any (pyproject.toml), so the subclassing needs the ignore with or without torch installed.
       torch: Any = import_optional("torch", extra="torch")
@@ -3300,9 +3342,14 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
           def __getitem__(self, index: int) -> "Tensor | tuple[Tensor, Tensor]":
               # One row at a time, so the full table is never dense (rules.md R6.2).
-              row = table[index].toarray()[0] if isinstance(table, sp.csr_matrix) else table[index]
+              position = operator.index(index)  # a slice would silently give one CSR row but several dense rows
+              row = table[position].toarray()[0] if isinstance(table, sp.csr_matrix) else table[position]
               features = torch.from_numpy(np.array(row, dtype=np.float32))
-              return features if targets is None else (features, targets[index])
+              return features if targets is None else (features, targets[position].clone())
+
+          def __reduce__(self) -> tuple[Any, tuple[Table, Any]]:
+              # A class defined in a function cannot be pickled, which spawn and forkserver workers need.
+              return (_dataset, (table, labels))
 
       return AnnDataDataset()
 
@@ -3372,7 +3419,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   ```
 - [x] **Step 4: Run, expect pass** - `uv sync --all-groups && uv run --group
   test pytest tests/ml/test_torch.py src/biotapy/ml -q -W
-  error::UserWarning` -> `8 passed, 19 deselected` (the 6 tests that need
+  error::UserWarning` -> `8 passed, 23 deselected` (the 6 tests that need
   no torch and the two transformer doctests); `uv run --group dev --group
   doc mypy` -> `Success: no issues found in 65 source files`; `uv run
   --no-dev python -c "import importlib, pkgutil, sys, biotapy;
@@ -3380,8 +3427,8 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   pkgutil.walk_packages(biotapy.__path__, 'biotapy.')]; print('torch' in
   sys.modules)"` -> `False`. Then `uv run --group test --extra torch pytest
   tests/ml/test_torch.py src/biotapy/ml -q -W error::UserWarning -m torch`
-  -> `19 passed, 8 deselected`; `tests/ml/test_torch.py -m torch` also
-  under `--hypothesis-seed=1`, `2`, `3` (`18 passed, 6 deselected` each);
+  -> `23 passed, 8 deselected`; `tests/ml/test_torch.py -m torch` also
+  under `--hypothesis-seed=1`, `2`, `3` (`22 passed, 6 deselected` each);
   `uv run --group dev --group doc --extra torch mypy` -> `Success: no
   issues found in 65 source files`.
 - [x] **Step 5: Docs.**
@@ -3419,7 +3466,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   +tdata = bt.pp.clr(bt.datasets.toy())
   +dataset = bt.ml.to_torch(tdata, label_key="group", layer="clr")
   +for features, labels in DataLoader(dataset, batch_size=32, shuffle=True):
-  +    ...  # features: float32, samples x features; labels: int64 codes
+  +    ...  # features: float32, batch x features; labels: int64 codes
   +```
   +
   +An item is a sample's features as a float32 tensor, or with `label_key` the
@@ -3428,8 +3475,8 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   +regression. A missing label raises: drop those samples first.
   +
   +Rows are densified one at a time, as they are read, so a sparse table is never
-  +dense in full. The dataset reads `X` (or the layer) without copying it, so a
-  +change to the table afterwards shows in the dataset.
+  +dense in full. The dataset holds the table without copying it and reads the
+  +labels once, so do not modify the AnnData while you use the dataset.
   +
   +`to_torch` neither splits nor fits anything. Split the samples first and build
   +one dataset per split. A step that learns from the samples, like the
@@ -3437,6 +3484,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   +splits:
   +
   +```python
+  +train, test = [0, 1, 3, 4], [2, 5]
   +keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
   +train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
   +test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
@@ -3605,8 +3653,8 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1432 passed, 2 skipped, 73 deselected`; `36
-  passed`; `build succeeded`; `19 passed, 1488 deselected`.
+  Expected: prek passed; `1432 passed, 2 skipped, 77 deselected`; `36
+  passed`; `build succeeded`; `23 passed, 1492 deselected`.
 
 ### Task 4.B1: CI job `ml-extras`
 
