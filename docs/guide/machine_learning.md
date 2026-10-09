@@ -72,7 +72,7 @@ from torch.utils.data import DataLoader
 tdata = bt.pp.clr(bt.datasets.toy())
 dataset = bt.ml.to_torch(tdata, label_key="group", layer="clr")
 for features, labels in DataLoader(dataset, batch_size=32, shuffle=True):
-    ...  # features: float32, samples x features; labels: int64 codes
+    ...  # features: float32, batch x features; labels: int64 codes
 ```
 
 An item is a sample's features as a float32 tensor, or with `label_key` the
@@ -81,8 +81,8 @@ in category order, for a classifier; a numeric column gives float32, for a
 regression. A missing label raises: drop those samples first.
 
 Rows are densified one at a time, as they are read, so a sparse table is never
-dense in full. The dataset reads `X` (or the layer) without copying it, so a
-change to the table afterwards shows in the dataset.
+dense in full. The dataset holds the table without copying it and reads the
+labels once, so do not modify the AnnData while you use the dataset.
 
 `to_torch` neither splits nor fits anything. Split the samples first and build
 one dataset per split. A step that learns from the samples, like the
@@ -90,6 +90,7 @@ prevalence filter, is fitted on the training samples only and applied to both
 splits:
 
 ```python
+train, test = [0, 1, 3, 4], [2, 5]
 keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
 train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
 test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
