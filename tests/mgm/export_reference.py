@@ -13,7 +13,8 @@ genus. MGM's own code builds the tokens (`MicroCorpus`) and runs the model (`GPT
 one sample at a time as MGM's notebook does. The embedding is the mean of the last hidden layer over the sample's
 tokens (<bos>, its genera, <eos>), the "element-wise mean pooling" MGM's paper uses for the pretrained model
 (Methods 4.5). MGM drops a sample with no count in its vocabulary; such a sample is embedded here from the tokens
-<bos> <eos>, as biotapy does.
+<bos> <eos>, as biotapy does. "Blautia" appears twice (f5 and f16): summing the two moves its rank in s2 from 5 to 2,
+so a reader that does not sum features of one genus fails the parity test.
 """
 
 import re
@@ -40,13 +41,8 @@ def table() -> pd.DataFrame:
     gut = np.arange(1, len(GUT) + 1)
     counts[: len(GUT), 0] = gut * 10  # s1: twelve genera
     counts[: len(GUT), 1] = gut[::-1] * 7  # s2: the same, other counts, and the rest below
-    counts[12:17, 1] = [
-        3,
-        5,
-        40,
-        25,
-        40,
-    ]  # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again (49 + 40 moves it from rank 5 to 2)
+    # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again
+    counts[12:17, 1] = [3, 5, 40, 25, 40]
     counts[2, 2] = 9  # s3: one genus
     counts[14:16, 3] = [8, 2]  # s4: only a genus MGM lacks and no genus; s5: all zero
     counts[17:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
