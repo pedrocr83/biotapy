@@ -15,6 +15,9 @@ DATA = Path(__file__).parents[1] / "data" / "mgm"
 # torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
 # embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
 ATOL = 1e-3
+# Only a process's first call is affected by that race, so a later call matches MGM's own output to 1e-5 (measured 1.7e-6);
+# a changed last token (an <eos> kept at the cut) moves a row by 7.7e-4, which 1e-3 hides.
+WARM_ATOL = 1e-5
 
 
 def _reference_table():
@@ -63,6 +66,9 @@ def test_matches_mgm_s_own_embedding():
     ]
     assert result.shape == (7, 256) and result.dtype == np.float32
     np.testing.assert_allclose(result, expected.to_numpy(), rtol=0, atol=ATOL)
+    with pytest.warns(UserWarning):
+        warm = bt.ml.embed(_reference_table(), "mgm")
+    np.testing.assert_allclose(warm, expected.to_numpy(), rtol=0, atol=WARM_ATOL)
 
 
 @pytest.mark.mgm
