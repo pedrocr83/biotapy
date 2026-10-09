@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:03:23Z }
-commit: 6969103
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:06:30Z }
+commit: 9663824
 sources:
   - id: spec
     resource: ../../plan.md
@@ -479,7 +479,7 @@ lands before the `feat(ml)` that needs it.
 # Tasks (checklist)
 - [x] 4.1 `io.to_mudata(modalities) -> MuData` and the multi-omics decision
 - [x] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
-- [ ] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
+- [x] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
 - [ ] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
 - [ ] Checkpoint A
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
@@ -1483,7 +1483,7 @@ and `pp.philr`'s signatures, docstrings and messages.
   columns: npt.NDArray[np.intp] | None = None) -> npt.NDArray[np.float64]`
   (takes `X`, where Phase 3's took the AnnData).
 
-- [ ] **Step 1: Failing tests.** Create `tests/core/test_composition.py`:
+- [x] **Step 1: Failing tests.** Create `tests/core/test_composition.py`:
   ```python
   import numpy as np
   import pytest
@@ -1522,11 +1522,11 @@ and `pp.philr`'s signatures, docstrings and messages.
       with pytest.raises(ValueError, match="ml.CLR needs finite, non-negative values in X"):
           pseudocounted(np.array([[-1.0, 2.0]]), 0.5, func="ml.CLR")
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/core/test_composition.py -q` ->
   `1 error` (`ImportError: cannot import name 'check_pseudocount' from
   'biotapy._core'`).
-- [ ] **Step 3: Implement.** Create `src/biotapy/_core/_composition.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/_core/_composition.py`:
   ```python
   """The pseudocount step shared by pp's log-ratio transforms and ml's CLR."""
 
@@ -1689,10 +1689,10 @@ and `pp.philr`'s signatures, docstrings and messages.
   -        raise ValueError(msg)
   -    return values
   ```
-- [ ] **Step 4: Run, expect pass** -
+- [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/core/test_composition.py tests/pp -q -W error::UserWarning`
   -> `115 passed, 8 deselected`.
-- [ ] **Step 5: Knowledge.**
+- [x] **Step 5: Knowledge.**
   ```diff
   diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
   index c71c00c..d5d22b8 100644
@@ -1768,7 +1768,7 @@ and `pp.philr`'s signatures, docstrings and messages.
   ```markdown
   - **Update**: [core](modules/core.md) owns `_composition.py:pseudocounted` and `check_pseudocount`, moved from `pp/_transform.py` for `ml.CLR`; [pp](modules/pp.md) points to it.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add src/biotapy/_core/_composition.py src/biotapy/_core/__init__.py src/biotapy/pp/_transform.py \
     src/biotapy/pp/_philr.py tests/core/test_composition.py .knowledge/modules/core.md \

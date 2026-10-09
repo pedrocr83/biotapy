@@ -5,14 +5,15 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:06:30Z }
+commit: 9663824
 status: stable
 ---
 
 # Responsibility
 
-Owns: sparse matrix kernels (`_matrix.py`), the canonical taxonomic rank order
+Owns: sparse matrix kernels (`_matrix.py`), the pseudocount check shared by
+log-ratio transforms (`_composition.py`), the canonical taxonomic rank order
 and lineage/rank-column parsing (`_taxonomy.py`), the `x_kind`/provenance/
 `feature_subset`/`replace_features` slot rules (`_slots.py`), function-table
 construction and the HUMAnN special-row constants (`_function.py`), TreeData construction and the only
@@ -41,6 +42,12 @@ none of them back.
   full toward each (many-to-many); the pairs are a set, a repeated pair counts
   once; used by `fn.func_glom`. Where `sum_by` assigns each feature one group,
   this does not.
+- `_composition.py:pseudocounted` - validates `pseudocount`
+  (`_composition.py:check_pseudocount`), rejects negative or non-finite `X`,
+  warns when the pseudocount exceeds the smallest non-zero value, and returns
+  `X + pseudocount` as one dense float64 array; `columns=` reorders features
+  while still sparse. Used by `pp.clr`, `pp.philr` and `ml.CLR` (which also
+  calls `check_pseudocount` in `fit`); moved from `pp/_transform.py` in Phase 4.
 - `_taxonomy.py:split_ranks` - split `var`'s taxonomy columns at a target
   rank, raising `KeyError` naming the rank when it is absent.
 - `_taxonomy.py:normalize_ranks` - canonicalize rank column names (aliases,

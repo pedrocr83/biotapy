@@ -1,11 +1,10 @@
 """Per-sample transforms: add one layer, keep everything else."""
 
 import numpy as np
-import numpy.typing as npt
 from anndata import AnnData
 from skbio.stats.composition import clr as skbio_clr
 
-from biotapy._core import add_provenance, as_csr, divide_rows, warn_user
+from biotapy._core import add_provenance, as_csr, divide_rows, pseudocounted
 
 
 def relative(adata: AnnData) -> AnnData:
@@ -104,40 +103,8 @@ def clr(adata: AnnData, *, pseudocount: float = 0.5) -> AnnData:
     >>> round(float(out.layers["clr"][0, 0]), 3)
     1.048
     """
-    values = pseudocounted(adata, pseudocount, func="pp.clr")
+    values = pseudocounted(adata.X, pseudocount, func="pp.clr")
     out = adata.copy()
     out.layers["clr"] = skbio_clr(values)
     add_provenance(out, "pp.clr", pseudocount=pseudocount)
     return out
-
-
-def pseudocounted(
-    adata: AnnData, pseudocount: float, *, func: str, columns: npt.NDArray[np.intp] | None = None
-) -> npt.NDArray[np.float64]:
-    """``X`` (its ``columns``, in that order, if given) as a dense float64 array plus ``pseudocount``, checked > 0."""
-    if isinstance(pseudocount, bool) or not isinstance(pseudocount, int | float | np.integer | np.floating):
-        msg = f"pseudocount must be a real number, got {pseudocount!r}"
-        raise TypeError(msg)
-    if not np.isfinite(pseudocount) or pseudocount < 0:
-        msg = f"pseudocount must be a finite number >= 0, got {pseudocount!r}"
-        raise ValueError(msg)
-    X = as_csr(adata.X).astype(np.float64)
-    if columns is not None:
-        # Reordered while sparse, so the dense copy below is the only one.
-        X = X[:, columns]
-    if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
-        msg = f"{func} needs finite, non-negative values in X"
-        raise ValueError(msg)
-    positive = X.data[X.data > 0]
-    if positive.size and pseudocount > positive.min():
-        warn_user(
-            f"pseudocount={pseudocount} is larger than the smallest non-zero value in X ({positive.min():.3g}), "
-            "so it swamps the rarest features; for relative abundances pass a pseudocount on their scale"
-        )
-    # scikit-bio's log-ratio functions need dense input (rules.md R6.2): one dense copy of X.
-    values = X.toarray()
-    values += pseudocount
-    if np.any(values <= 0):
-        msg = f"X holds zeros, whose logarithm is undefined; pass pseudocount > 0 to {func}"
-        raise ValueError(msg)
-    return values
