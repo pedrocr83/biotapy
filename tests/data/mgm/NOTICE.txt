@@ -1,7 +1,8 @@
-counts.csv is synthetic, written for biotapy (BSD-3-Clause): 7 samples x 616
-features. 613 of their genus names come from MGM's vocabulary
+counts.csv is synthetic, written for biotapy (BSD-3-Clause): 7 samples x 617
+features. 614 of their genus names come from MGM's vocabulary
 (mgm/resources/phylogeny.csv); "Escherichia-Shigella" reads as MGM's
-Escherichia, "Notagenus" is not in it, and one feature has no genus.
+Escherichia, "Notagenus" is not in it, one feature has no genus, and "Blautia"
+is the genus of two features.
 
 embeddings.csv holds MGM's own embedding of each sample of counts.csv (7 x 256
 float32 values), computed by tests/mgm/export_reference.py with

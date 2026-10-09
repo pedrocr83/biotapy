@@ -3,6 +3,7 @@
 microformer-mgm pins numpy 1.24, pandas 2.0, torch 2.0 and transformers 4.33, so it cannot be installed
 beside biotapy. Run from the repository root, never in CI:
 
+    HF_HOME=<scratch directory> \
     uv run --no-project --python 3.11 --with microformer-mgm==0.5.8 --with torch==2.0.1+cpu \
         --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match \
         python tests/mgm/export_reference.py
@@ -34,15 +35,21 @@ def table() -> pd.DataFrame:
     vocabulary = pd.read_csv(find_pkg_resource("resources/phylogeny.csv"), index_col=0).index
     plain = [name[3:] for name in vocabulary if re.fullmatch(r"g__[A-Za-z0-9_]+", name) and name[3:] not in GUT]
     many = plain[::16][:600]
-    genera = [*GUT, "Escherichia", "Escherichia-Shigella", "Notagenus", None, *many]
+    genera = [*GUT, "Escherichia", "Escherichia-Shigella", "Notagenus", None, "Blautia", *many]
     counts = np.zeros((len(genera), 7), dtype=np.int64)
     gut = np.arange(1, len(GUT) + 1)
     counts[: len(GUT), 0] = gut * 10  # s1: twelve genera
     counts[: len(GUT), 1] = gut[::-1] * 7  # s2: the same, other counts, and the rest below
-    counts[12:16, 1] = [3, 5, 40, 25]  # Escherichia twice (one token), a genus MGM lacks, no genus
+    counts[12:17, 1] = [
+        3,
+        5,
+        40,
+        25,
+        40,
+    ]  # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again (49 + 40 moves it from rank 5 to 2)
     counts[2, 2] = 9  # s3: one genus
     counts[14:16, 3] = [8, 2]  # s4: only a genus MGM lacks and no genus; s5: all zero
-    counts[16:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
+    counts[17:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
     counts[[0, 3, 20, 400], 6] = [500, 1, 1, 30]  # s7: few genera, two of them once
     frame = pd.DataFrame(counts, columns=[f"s{i}" for i in range(1, 8)], index=[f"f{i}" for i in range(len(genera))])
     frame.insert(0, "genus", genera)

@@ -21,7 +21,7 @@ WARM_ATOL = 1e-5
 
 
 def _reference_table():
-    """tests/data/mgm/counts.csv as an AnnData: 7 samples x 616 features, var["genus"] (one missing)."""
+    """tests/data/mgm/counts.csv as an AnnData: 7 samples x 617 features, var["genus"] (one missing)."""
     counts = pd.read_csv(DATA / "counts.csv", index_col=0)
     return AnnData(
         X=sp.csr_matrix(counts.drop(columns="genus").T.to_numpy()),
@@ -61,7 +61,7 @@ def test_matches_mgm_s_own_embedding():
     with pytest.warns(UserWarning) as record:
         result = bt.ml.embed(_reference_table(), "mgm")
     assert [str(warning.message) for warning in record] == [
-        "mgm leaves out 2 of 616 features: 1 without a genus and 1 whose genus is not one of MGM's (Notagenus)",
+        "mgm leaves out 2 of 617 features: 1 without a genus and 1 whose genus is not one of MGM's (Notagenus)",
         "mgm embeds 2 sample(s) from <bos> <eos> alone, none of their genera being MGM's: s4, s5",
     ]
     assert result.shape == (7, 256) and result.dtype == np.float32
