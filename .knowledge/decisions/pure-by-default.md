@@ -5,7 +5,7 @@ description: io/pp return new objects and never mutate input; tl returns results
 tags: [api, conventions]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-27T19:50:20Z }
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:40:00Z }
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T10:38:29Z }
 commit: 7a9c07a
 sources:
   - id: spec
