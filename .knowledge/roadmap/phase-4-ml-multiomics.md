@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:37:48Z }
+commit: cdc3b07
 sources:
   - id: spec
     resource: ../../plan.md
@@ -482,7 +482,10 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
 - [x] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
 - [x] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
-- [ ] Checkpoint A
+- [x] Checkpoint A
+- [ ] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
+- [ ] 4.F2 `pp.filter_features` names a wrongly typed threshold
+- [ ] 4.F3 `refactor(core)`: one finite, non-negative check
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
@@ -2436,11 +2439,168 @@ so they add no row).
   - **Update `.knowledge/modules/tl.md`**: `mmvec` (entry point, the
     pre-checks, dense inputs, no `inplace`).
   - Log lines for each.
-- [ ] Push the branch and open the PR only after the user approves that push
+- [x] Push the branch and open the PR only after the user approves that push
   (R13.3). CI green, including docs and the network job.
-- [ ] Ask the user to review slice 4A, and to confirm
+  - PR #27, Test run 37872650983 green (21 jobs, including docs, network and
+    r-bridge); merged as `cdc3b07`.
+- [x] Ask the user to review slice 4A, and to confirm
   [multiomics-as-mudata](/decisions/multiomics-as-mudata.md) (it stays
   `draft` until then), before slice 4B is expanded.
+  - Approved 2026-10-09; the decision is `stable`.
+
+## Fixes found in slice 4A (4.F1-4.F3)
+
+Found during slice 4A's reviews; approved by the user on 2026-10-09 as one
+small PR (branch `fix-4f`) before slice 4B. Each is one commit with its test.
+
+### Task 4.F1: `da.ancombc2` on a two-sample reference group (scikit-bio defect)
+
+**Root cause** (traced 2026-10-09 in scikit-bio and in R): when the reference group
+has two samples whose centred log abundances of one feature nearly agree, the
+intercept's `var_hat` is tiny (3.3e-6 on the pinned table). Nelder-Mead pushes
+`kappa1`/`kappa2` to their bound 0 and all three Gaussian densities underflow,
+so scikit-bio 0.7.4's `_estimate_bias_em` computes `resp /= resp.sum(0)` as
+0/0 = NaN; `pi` turns NaN and `np.quantile` raises "Quantiles must be in the
+range [0, 1]". R's `.bias_em` sets those responsibilities to 0
+(`r0i[is.na(r0i)] = 0`), a line scikit-bio never ported; R fits the table
+(log2 B vs A: f0 2.002, f1 0.744, f2 0.088, f3 -1.315, f4 -0.218, f5 -0.325,
+f6 -0.605), and scikit-bio with R's line matches R to 6 decimals on all 16
+failing tables found by sweep (one to 0.011, both runs at the E-M cap).
+Unfixed on scikit-bio `main`; no upstream issue. Rate: 0.16% of 6 x 7 tables
+with a 2-sample reference group, 0 with 3 or more; the property test fails in
+about 1.2% of runs, then every run once Hypothesis has saved the example.
+
+biotapy already reports it clearly (`ValueError: da.ancombc2: scikit-bio could
+not fit the model: ...`, R7.4). A biotapy-side fix would mean monkeypatching
+scikit-bio's private function or reimplementing the E-M, so the fix is: pin the
+behaviour, restrict the property test to fittable designs for this one defect,
+document it, and report it upstream.
+
+**Files:** modify `tests/da/test_ancombc.py`, `tests/da/test_schema.py`,
+`src/biotapy/da/_ancombc.py` (Notes only).
+
+- [ ] **Step 1: regression test (pins current behaviour).** Append to
+  `tests/da/test_ancombc.py`:
+  ```python
+  # Two reference samples whose centred log abundances of f5 nearly agree (variance 3.3e-6): scikit-bio 0.7.4's bias
+  # E-M divides 0 by 0 where R's .bias_em sets the responsibility to 0. R fits this table (B vs A, log2): f0 2.002,
+  # f1 0.744, f2 0.088, f3 -1.315, f4 -0.218, f5 -0.325, f6 -0.605. When scikit-bio fixes it, this test fails:
+  # turn it into a check against those values.
+  EM_UNDERFLOW = [
+      [11, 39, 115, 65, 122, 90, 12],
+      [81, 41, 194, 22, 174, 192, 186],
+      [86, 68, 125, 1, 103, 14, 42],
+      [21, 24, 43, 20, 38, 80, 6],
+      [134, 61, 155, 8, 84, 169, 31],
+      [71, 17, 64, 28, 63, 0, 10],
+  ]
+
+
+  def test_two_reference_samples_that_underflow_scikit_bio_raise_naming_it():
+      counts = np.array(EM_UNDERFLOW)
+      adata = ad.AnnData(
+          X=sp.csr_matrix(counts),
+          obs=pd.DataFrame({"g": ["a"] * 2 + ["b"] * 4}, index=[f"s{i}" for i in range(6)]),
+          var=pd.DataFrame(index=[f"f{i}" for i in range(7)]),
+      )
+      with pytest.raises(ValueError, match=r"da\.ancombc2: scikit-bio could not fit the model: Quantiles must be in"):
+          bt.da.ancombc2(adata, "g")
+  ```
+  (Use the file's existing imports; add only the missing ones.) Run:
+  `uv run --group test pytest -q tests/da/test_ancombc.py -k underflow -W error::UserWarning`.
+  Expected: `1 passed` (it pins existing, documented behaviour; R11.1's RED is
+  Step 2).
+- [ ] **Step 2: RED.** In `tests/da/test_schema.py`, import `example` and
+  `reject` from hypothesis and add, under the property test's `@given`:
+  ```python
+  @example(counts=np.array(EM_UNDERFLOW), split=2)
+  ```
+  with `EM_UNDERFLOW` copied as a module constant (tests do not import each
+  other). Run `uv run --group test pytest -q tests/da/test_schema.py -k direction -W error::UserWarning`.
+  Expected: `1 failed, 2 passed` (ancombc2 fails on the example).
+- [ ] **Step 3: GREEN.** Replace `out = method(adata, "g")` in that test with:
+  ```python
+  try:
+      out = method(adata, "g")
+  except ValueError as err:
+      # Only scikit-bio's bias E-M underflow, pinned in test_ancombc.py; any other error still fails.
+      if method is bt.da.ancombc2 and "Quantiles must be in the range [0, 1]" in str(err):
+          reject()
+      raise
+  ```
+  Expected: `3 passed`. This weakens no assertion (R11.5): the rejection covers
+  one method and one upstream message, the excluded input is asserted by the
+  Step 1 test, and it extends the test's existing restriction to fittable
+  designs (`unique=True` excludes exact zero variance).
+- [ ] **Step 4: Notes.** In `da.ancombc2`'s docstring Notes, after the E-M
+  sentence, add: "With two samples in the reference level, scikit-bio 0.7.4 can
+  fail to estimate the bias (about 1 in 600 random small tables) where R
+  returns results; biotapy raises naming scikit-bio rather than guess." Docs
+  build with `-W`.
+- [ ] **Step 5: commit** `test(da): pin scikit-bio's ancombc2 bias E-M underflow and keep the schema property on fittable designs`.
+- [ ] **Upstream (needs separate approval, R13.3):** an issue on
+  scikit-bio/scikit-bio; its draft text is in the 4.F PR description.
+
+### Task 4.F2: `pp.filter_features` names a wrongly typed threshold
+
+**Files:** `src/biotapy/pp/_filter.py`, `tests/pp/test_filter.py`.
+Same rule as `ml.PrevalenceFilter` (R3.5): a bool or a non-real
+`min_prevalence` or `min_total` raises `TypeError` naming the argument.
+
+- [ ] **Step 1: RED.**
+  ```python
+  @pytest.mark.parametrize("value", [True, "0.5", [0.5]])
+  @pytest.mark.parametrize("argument", ["min_prevalence", "min_total"])
+  def test_wrongly_typed_threshold_raises_naming_it(argument, value):
+      with pytest.raises(TypeError, match=f"{argument} must be a real number"):
+          bt.pp.filter_features(bt.datasets.toy(), **{argument: value})
+  ```
+  Expected: 6 failed (`True` passes silently; the others raise an unnamed
+  `TypeError` or numpy error).
+- [ ] **Step 2: GREEN.** Before the range checks, for each non-None
+  threshold: `if isinstance(value, bool) or not isinstance(value, int | float | np.integer | np.floating): raise TypeError(f"{name} must be a real number, got {value!r}")`,
+  written once as a loop over the two names (R5 limits). Same wording as
+  `ml.PrevalenceFilter`. Expected: tests/pp passes.
+- [ ] **Step 3: commit** `fix(pp): name min_prevalence or min_total when its type is wrong`.
+
+### Task 4.F3: one finite, non-negative check in `_core`
+
+The predicate `np.isfinite(X.data).all() and not (X.data < 0).any()` is
+written in `_core/_composition.py`, `tl/_mmvec.py` and `fn/_redundancy.py`
+(R4.3). Move it to `_core/_matrix.py` as a predicate, so each caller keeps its
+own message (no user-visible change).
+
+**Files:** `src/biotapy/_core/_matrix.py`, `src/biotapy/_core/__init__.py`,
+the three callers, `tests/core/test_matrix.py` (or the existing `_core`
+matrix test file).
+
+- [ ] **Step 1: RED.**
+  ```python
+  @pytest.mark.parametrize(
+      ("data", "expected"),
+      [([0.0, 1.5], True), ([], True), ([1.0, -0.1], False), ([1.0, np.nan], False), ([np.inf], False)],
+  )
+  def test_finite_non_negative(data, expected):
+      X = sp.csr_matrix((np.array(data, dtype=float), (np.zeros(len(data), int), np.arange(len(data)))), shape=(1, max(len(data), 1)))
+      assert finite_non_negative(X) is expected
+  ```
+  Expected: ImportError.
+- [ ] **Step 2: GREEN.**
+  ```python
+  def finite_non_negative(X: sp.csr_matrix) -> bool:
+      """True when every stored value of ``X`` is finite and >= 0."""
+      return bool(np.isfinite(X.data).all() and not (X.data < 0).any())
+  ```
+  Export it from `_core/__init__.py`; replace the three inline predicates.
+  `tests/pp`, `tests/tl`, `tests/fn`, `tests/core`, `tests/ml` pass unedited.
+- [ ] **Step 3:** update `modules/core.md` (entry point) and log line.
+  Commit `refactor(core): share the finite, non-negative check`.
+
+### Gates and merge
+Commit, `git status --short` empty, then: prek; `pytest -q -W error::UserWarning`
+(1412 + 1 + 6 + 5 passed, 2 skipped, 54 deselected); `-m "golden or network"` 36;
+docs `-W`; `knowledge_stale.sh` 0 stale. Push `fix-4f`, PR, merge commit on
+green (decision 20 covers Phase 4 branches).
 
 ---
 ## Slice 4B - torch (outline; expand with superpowers:writing-plans when reached)
