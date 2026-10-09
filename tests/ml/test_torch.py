@@ -57,6 +57,18 @@ def test_labels_follow_the_category_order(torch):
 
 
 @pytest.mark.torch
+def test_a_subset_of_one_dataset_keeps_the_codes_that_per_split_datasets_shift(torch):
+    tdata = bt.datasets.toy()
+    test = [3, 5]  # both group B: the split lacks class A
+    whole = bt.ml.to_torch(tdata, label_key="group")
+    subset = torch.utils.data.Subset(whole, test)
+    assert [int(subset[i][1]) for i in range(2)] == [1, 1]
+    # anndata drops the unused category on subsetting, so a dataset built per split recodes B as 0.
+    per_split = bt.ml.to_torch(tdata[test], label_key="group")
+    assert [int(per_split[i][1]) for i in range(2)] == [0, 0]
+
+
+@pytest.mark.torch
 @pytest.mark.parametrize(
     ("values", "codes"), [(["b", "a", "c", "a", "b", "c"], [1, 0, 2, 0, 1, 2]), ([True, False] * 3, [1, 0] * 3)]
 )

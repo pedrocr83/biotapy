@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:53:25Z }
-commit: 01ff790
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:16:24Z }
+commit: d33d661
 ---
 
 # Responsibility
@@ -59,7 +59,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   modified while the dataset is used; every item is a new tensor (label
   included), so editing it leaves the AnnData unchanged. A non-integer index
   raises `TypeError`. Labels are converted once, at construction: category, string or bool -> int64 codes in category order, numeric
-  -> float32; a missing label raises. `_torch.py:to_torch`, `_torch.py:_labels`.
+  -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
 - `to_torch` validates its arguments before it imports torch, so its error
   tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
 - Inherited scikit-learn methods (`transform`, `fit_transform`,

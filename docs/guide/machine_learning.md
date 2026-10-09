@@ -84,16 +84,20 @@ Rows are densified one at a time, as they are read, so a sparse table is never
 dense in full. The dataset holds the table without copying it and reads the
 labels once, so do not modify the AnnData while you use the dataset.
 
-`to_torch` neither splits nor fits anything. Split the samples first and build
-one dataset per split. A step that learns from the samples, like the
-prevalence filter, is fitted on the training samples only and applied to both
-splits:
+`to_torch` neither splits nor fits anything. Build one dataset over the whole
+table and split it with `torch.utils.data.Subset`: label codes are per
+dataset, and anndata drops a category a subset lacks, so a dataset built per
+split recodes the classes when a split misses one. A step that learns from the
+samples, like the prevalence filter, is fitted on the training samples only and
+applied to both splits:
 
 ```python
+from torch.utils.data import Subset
+
 train, test = [0, 1, 3, 4], [2, 5]
 keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
-train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
-test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
+dataset = bt.ml.to_torch(tdata[:, keep], label_key="group")
+train_set, test_set = Subset(dataset, train), Subset(dataset, test)
 ```
 
 On Linux, pip installs PyPI's torch, which brings CUDA libraries. For a

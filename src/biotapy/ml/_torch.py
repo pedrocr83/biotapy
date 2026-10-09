@@ -66,7 +66,10 @@ def to_torch(adata: AnnData, *, label_key: str | None = None, layer: str | None 
     once), and reads the labels once, at construction. Do not modify ``adata``
     while using the dataset. Each item is a new tensor, so editing it leaves
     ``adata`` unchanged. Label codes follow
-    ``pd.Categorical(adata.obs[label_key]).categories``.
+    ``pd.Categorical(adata.obs[label_key]).categories``. Label codes are per
+    dataset: build one dataset and split it with
+    :class:`torch.utils.data.Subset`, or splits that lack a class get
+    different codes.
 
     Examples
     --------
