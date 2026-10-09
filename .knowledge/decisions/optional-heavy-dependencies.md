@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:28:21Z }
-commit: 4e44efc
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:34:26Z }
+commit: 0a34a3a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -89,6 +89,12 @@ torch or an R installation into every install is unacceptable.[^spec]
 - Optional modules are imported inside the function through
   `biotapy._core.import_optional(name, extra)`, which raises `ImportError`
   naming the extra to install.
+- A class that must inherit from an extra's base (rules.md R3.6), such as
+  `ml.to_torch`'s torch `Dataset`, is defined inside the function after
+  `import_optional` (`ml/_torch.py:to_torch`). mypy does not follow the
+  extra (`follow_imports = "skip"`, `ignore_missing_imports` in
+  `pyproject.toml`), so the type check gives the same answer whether or not
+  the extra is installed.
 - Adding any dependency (core or extra) requires the user's approval and a
   written reason in the PR.
 

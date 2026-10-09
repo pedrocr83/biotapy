@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:28:21Z }
-commit: 4e44efc
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:34:26Z }
+commit: 0a34a3a
 sources:
   - id: spec
     resource: ../../plan.md
@@ -487,7 +487,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.F2 `pp.filter_features` names a wrongly typed threshold
 - [x] 4.F3 `refactor(core)`: one finite, non-negative check
 - [x] 4.B0 `build`: the extra `torch = ["torch>=2.9"]`, installed by uv from PyTorch's CPU index
-- [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the marker `torch`
+- [x] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the marker `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
 - [ ] 4.4 `ml.embed(adata, model, *, batch_size=64, inplace=False)` and the entry-point group `biotapy.embeddings`
@@ -2970,7 +2970,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   marker `torch`, deselected by default; `-m torch` runs the 18 tests and the
   doctest.
 
-- [ ] **Step 1: Failing tests.** Register the marker and deselect it by
+- [x] **Step 1: Failing tests.** Register the marker and deselect it by
   default:
   ```diff
   diff --git a/pyproject.toml b/pyproject.toml
@@ -3202,13 +3202,13 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   table); no golden test (no R equivalent). The missing-torch test puts
   `None` in `sys.modules` instead of monkeypatching `import_optional`, so
   it reaches only the public API (R4.9) and holds with torch installed.
-- [ ] **Step 2: Run, expect failure** - `uv sync --all-groups && uv run
+- [x] **Step 2: Run, expect failure** - `uv sync --all-groups && uv run
   --group test pytest tests/ml/test_torch.py -q` -> `6 failed, 18
   deselected`; `uv run --group test --extra torch pytest
   tests/ml/test_torch.py -q -m torch` -> `18 failed, 6 deselected`; every
   failure is `AttributeError: module 'biotapy.ml' has no attribute
   'to_torch'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/ml/_torch.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/ml/_torch.py`:
   ```python
   """A samples x features table as a PyTorch dataset (extra ``torch``, decisions/optional-heavy-dependencies)."""
 
@@ -3370,7 +3370,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   +  { module = "torch.*", ignore_missing_imports = true, follow_imports = "skip" },
    ]
   ```
-- [ ] **Step 4: Run, expect pass** - `uv sync --all-groups && uv run --group
+- [x] **Step 4: Run, expect pass** - `uv sync --all-groups && uv run --group
   test pytest tests/ml/test_torch.py src/biotapy/ml -q -W
   error::UserWarning` -> `8 passed, 19 deselected` (the 6 tests that need
   no torch and the two transformer doctests); `uv run --group dev --group
@@ -3384,7 +3384,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   under `--hypothesis-seed=1`, `2`, `3` (`18 passed, 6 deselected` each);
   `uv run --group dev --group doc --extra torch mypy` -> `Success: no
   issues found in 65 source files`.
-- [ ] **Step 5: Docs.**
+- [x] **Step 5: Docs.**
   ````diff
   diff --git a/docs/guide/machine_learning.md b/docs/guide/machine_learning.md
   @@ -2,7 +2,8 @@
@@ -3496,7 +3496,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   The two guide snippets were run with the extra (the split one with
   `train, test = [0, 1, 3, 4], [2, 5]` and `min_prevalence=0.9`); the API
   page shows `Return type: Dataset` linked to PyTorch's `Dataset`.
-- [ ] **Step 6: Knowledge.** (`generated` and `commit:` as in 4.B0.)
+- [x] **Step 6: Knowledge.** (`generated` and `commit:` as in 4.B0.)
   ```diff
   diff --git a/.knowledge/modules/ml.md b/.knowledge/modules/ml.md
   @@ -1,21 +1,21 @@
@@ -3594,7 +3594,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   ```markdown
   - **Update**: [ml](modules/ml.md) gains `to_torch` (entry point, per-row densify, references `X`, labels, validation before the torch import, the class-inside-the-function and mypy gotcha, the doctest marker, anndata's `layers[None]`), with the description copied into the [modules index](modules/index.md); [pure-by-default](decisions/pure-by-default.md) gains the `ml.to_torch` row; [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) says how a class inherits from an extra's base; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.5.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   git add src/biotapy/ml/_torch.py src/biotapy/ml/__init__.py tests/ml/test_torch.py conftest.py pyproject.toml \
     docs/guide/machine_learning.md docs/api.md docs/conf.py docs/contributing.md \

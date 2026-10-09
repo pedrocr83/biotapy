@@ -2,7 +2,8 @@
 
 `bt.ml` holds scikit-learn transformers, so microbiome preprocessing can sit
 inside a [Pipeline](https://scikit-learn.org/stable/modules/compose.html) and
-be fitted on the training samples of each cross-validation fold only.
+be fitted on the training samples of each cross-validation fold only, and
+turns a table into a PyTorch dataset.
 
 ## Which steps leak
 
@@ -53,3 +54,51 @@ scikit-learn already has it: `Normalizer(norm="l1")` divides each sample by
 its total, keeps a sparse matrix sparse and leaves an all-zero sample at zero,
 as `bt.pp.relative` does. Before `CLR` it changes nothing but the scale the
 pseudocount is on.
+
+## PyTorch
+
+`bt.ml.to_torch` turns a table into a PyTorch
+[dataset](https://docs.pytorch.org/docs/stable/data.html) with one item per
+sample, for a `DataLoader` to batch and shuffle. It needs the extra `torch`:
+
+```bash
+pip install 'biotapy[torch]'
+```
+
+```python
+import biotapy as bt
+from torch.utils.data import DataLoader
+
+tdata = bt.pp.clr(bt.datasets.toy())
+dataset = bt.ml.to_torch(tdata, label_key="group", layer="clr")
+for features, labels in DataLoader(dataset, batch_size=32, shuffle=True):
+    ...  # features: float32, samples x features; labels: int64 codes
+```
+
+An item is a sample's features as a float32 tensor, or with `label_key` the
+pair `(features, label)`. A category, string or bool column gives int64 codes
+in category order, for a classifier; a numeric column gives float32, for a
+regression. A missing label raises: drop those samples first.
+
+Rows are densified one at a time, as they are read, so a sparse table is never
+dense in full. The dataset reads `X` (or the layer) without copying it, so a
+change to the table afterwards shows in the dataset.
+
+`to_torch` neither splits nor fits anything. Split the samples first and build
+one dataset per split. A step that learns from the samples, like the
+prevalence filter, is fitted on the training samples only and applied to both
+splits:
+
+```python
+keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
+train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
+test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
+```
+
+On Linux, pip installs PyPI's torch, which brings CUDA libraries. For a
+CPU-only torch, install it from PyTorch's CPU index first:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install 'biotapy[torch]'
+```

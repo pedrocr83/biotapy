@@ -23,3 +23,11 @@ def _close_figures() -> Iterator[None]:
     import matplotlib.pyplot as plt
 
     plt.close("all")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Give the doctests of a module that needs the extra `torch` its marker, before `-m` deselects."""
+    for item in items:
+        if isinstance(item, pytest.DoctestItem) and item.name.startswith("biotapy.ml._torch."):
+            item.add_marker(pytest.mark.torch)

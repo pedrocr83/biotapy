@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4B)
+- **Update**: [ml](modules/ml.md) gains `to_torch` (entry point, per-row densify, references `X`, labels, validation before the torch import, the class-inside-the-function and mypy gotcha, the doctest marker, anndata's `layers[None]`), with the description copied into the [modules index](modules/index.md); [pure-by-default](decisions/pure-by-default.md) gains the `ml.to_torch` row; [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) says how a class inherits from an extra's base; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.5.
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `torch` (`torch>=2.9`), what it brings, the CPU index uv installs it from and why, the extras table row, and that every CI `uv run` now reads torch's index; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B0.
 
 ## 2026-10-09 (Phase 4, slice 4B plan)
