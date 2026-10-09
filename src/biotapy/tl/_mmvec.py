@@ -4,6 +4,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from anndata import AnnData
 from mudata import MuData
 from skbio.stats.ordination import mmvec as skbio_mmvec
 
@@ -78,23 +79,28 @@ def mmvec(
     (8, 2)
     """
     rng = as_generator(seed)
-    x_table = _table(mdata, microbes, argument="microbes")
-    y_table = _table(mdata, metabolites, argument="metabolites")
-    if not x_table.index.equals(y_table.index):
+    x_mod = _modality(mdata, microbes, argument="microbes")
+    y_mod = _modality(mdata, metabolites, argument="metabolites")
+    if not x_mod.obs_names.equals(y_mod.obs_names):
         msg = (
             f"microbes={microbes!r} and metabolites={metabolites!r} hold different samples or a different order; "
             "align them with bt.io.to_mudata"
         )
         raise ValueError(msg)
+    x_table = _table(x_mod, microbes, argument="microbes")
+    y_table = _table(y_mod, metabolites, argument="metabolites")
     return cast("pd.DataFrame", skbio_mmvec(x_table, y_table, seed=rng, output_format="pandas").ranks)
 
 
-def _table(mdata: MuData, key: str, *, argument: str) -> pd.DataFrame:
-    """Modality ``key`` as a dense samples x features DataFrame, checked as mmvec needs it."""
+def _modality(mdata: MuData, key: str, *, argument: str) -> AnnData:
     if key not in mdata.mod:
         msg = f"{argument}={key!r} is not a modality; found {list(mdata.mod)}"
         raise KeyError(msg)
-    mod = mdata.mod[key]
+    return cast("AnnData", mdata.mod[key])
+
+
+def _table(mod: AnnData, key: str, *, argument: str) -> pd.DataFrame:
+    """Modality ``key`` as a dense samples x features DataFrame, checked as mmvec needs it."""
     X = as_csr(mod.X).astype(np.float64)
     if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
         msg = f"tl.mmvec needs finite, non-negative values in {argument}={key!r}"
