@@ -65,13 +65,14 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
             raise ValueError(msg)
         matrix = as_csr(X)
         present = np.bincount(matrix.indices[matrix.data != 0], minlength=matrix.shape[1])
-        self.prevalence_ = present / matrix.shape[0]
-        if not self._get_support_mask().any():
+        prevalence = present / matrix.shape[0]
+        if not (prevalence >= self.min_prevalence).any():
             msg = (
                 f"no feature is non-zero in at least {self.min_prevalence:.0%} of the "
                 f"{matrix.shape[0]} samples; lower min_prevalence"
             )
             raise ValueError(msg)
+        self.prevalence_ = prevalence
         return self
 
     def _get_support_mask(self) -> npt.NDArray[np.bool_]:

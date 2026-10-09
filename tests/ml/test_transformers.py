@@ -82,6 +82,14 @@ def test_prevalence_filter_with_nothing_kept_raises():
         bt.ml.PrevalenceFilter(min_prevalence=0.6).fit(np.array([[1, 0], [0, 0]]))
 
 
+def test_prevalence_filter_stays_unfitted_when_nothing_is_kept():
+    selector = bt.ml.PrevalenceFilter(min_prevalence=0.6)
+    with pytest.raises(ValueError, match="no feature is non-zero"):
+        selector.fit(np.array([[1, 0], [0, 0]]))
+    # validate_data has already set n_features_in_, so check_is_fitted would pass; prevalence_ is the learned state.
+    assert not hasattr(selector, "prevalence_")
+
+
 def test_clr_equals_pp_clr():
     tdata = bt.datasets.toy()
     out = bt.ml.CLR().fit_transform(tdata.X)
