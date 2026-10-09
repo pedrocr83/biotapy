@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:38:49Z }
-commit: 3e15368
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
+commit: 31aa11d
 ---
 
 # Responsibility
@@ -79,7 +79,7 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
   is written; a result that shares memory with `X`, a layer, an `obsm`, `varm`,
   `obsp` or `varp` entry or a top-level `uns` array (not one nested deeper) is
   copied. A plugin's own exception keeps its type and gains a note naming the
-  plugin. The model name must be letters, digits, `_`, `-` or `.`.
+  plugin. The model name must match `[\w.-]+`, so that `obsm["X_<model>"]` is a plain key.
   `_embed.py:embed`, `_embed.py:_checked`.
 - MGM's tokens are MGM's own (`mgm/src/MicroCorpus.py`, 0.5.8): a genus is
   read with MGM's regex `g__[A-Za-z0-9_]+` on `"g__" + genus`; features of
@@ -102,7 +102,11 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
   every CI job. `_mgm.py:embed`.
 - The weights come from microformer-mgm 0.5.8's wheel on files.pythonhosted.org
   (SHA-256 pinned), fetched through `_core.make_pooch` and unzipped by
-  `pooch.Unzip` to `<cache>/microformer_mgm-0.5.8-py3-none-any.whl.unzip/`;
+  `pooch.Unzip` to `<cache>/microformer_mgm-0.5.8-py3-none-any.whl.unzip/`.
+  `Unzip` re-extracts only a missing member, so each extracted file is also
+  checked against its own SHA-256 (`_mgm.py:_SHA256_OF`); one that differs is
+  deleted and extracted again once (logged), and one that still differs raises
+  `ValueError` naming the `.unzip` folder to delete. `_mgm.py:_extracted_files`.
   `torch.load(..., weights_only=True)` reads the GPT2LMHeadModel checkpoint
   and its `transformer.` keys load into `transformers.GPT2Model` strictly
   (`lm_head.weight` dropped). `_mgm.py:embed`.
@@ -134,7 +138,7 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
 errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
 `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
-`.github/workflows/test.yaml`). `BIOTAPY_DATA_DIR=.pooch uv run --group test --extra mgm pytest -m mgm`
+`.github/workflows/test.yaml`). `BIOTAPY_DATA_DIR=.pooch uv run --group test --extra mgm pytest -m mgm` (`.pooch/` is git-ignored)
 runs MGM against its own embeddings (`tests/data/mgm`), the end-to-end GlobalPatterns test (exit gate 2)
 and `embed`'s docstring example, as the job's last step does. The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
@@ -190,19 +194,28 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
 - `embed`'s docstring example runs MGM, so the root `conftest.py` gives
   `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
   `torch`. `conftest.py:_EXTRA_DOCTESTS`.
-- MGM's tests compare at `atol=1e-3`: torch 2.13 and 2.14 sometimes compute
+- MGM's tests compare the first call of a process to MGM's own embeddings at
+  `atol=1e-3` and a later call at `WARM_ATOL=1e-5`: torch 2.13 and 2.14 sometimes compute
   their first `tanh` in a process less precisely on a CPU running more than
   four threads (measured: 9e-5 on `tanh(-5)`, never with 4 threads or fewer,
   never after a first call), which moves that call's embedding by up to
-  1.6e-4; otherwise biotapy and MGM 0.5.8 agree to 1.7e-6. The mutations the
+  1.6e-4; otherwise biotapy and MGM 0.5.8 agree to 1.7e-6. The warm bound
+  exists because 1e-3 hides a changed last token (7.7e-4); the first-call
+  bound stays loose and biotapy does not warm torch up (Phase 4 decision 33).
+  The mutations the
   parity test was checked against (wrong denominator, ascending sort,
   last-token pooling, dropout on, `z > 0`, vocabulary order) each fail it.
-  `tests/ml/test_mgm.py:ATOL`.
+  `tests/ml/test_mgm.py:ATOL`, `tests/ml/test_mgm.py:WARM_ATOL`.
 - `microformer-mgm` cannot be installed beside biotapy (its pins), so the
   reference embeddings are written by `tests/mgm/export_reference.py` in a
   Python 3.11 environment of its own (`uv run --no-project --python 3.11 --with
   microformer-mgm==0.5.8 ...`); the script imports MGM inside its functions,
   because pytest's `--doctest-modules` imports every file under `tests/`.
+  Set `HF_HOME` to a scratch directory in the command, else the old
+  transformers writes under `~/.cache`. The fixture repeats "Blautia" in two
+  features on purpose: summing them moves its rank in one sample, so a reader
+  that does not sum features of one genus fails the parity test.
+  `tests/mgm/export_reference.py:table`.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.

@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
-commit: 3e15368
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
+commit: 31aa11d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -35,10 +35,13 @@ sources:
 1c. MGM's reference embeddings (`ml.embed(..., "mgm")`) are produced by
    `tests/mgm/export_reference.py` with MGM's own package, run with
    `uv run --no-project --python 3.11 --with microformer-mgm==0.5.8 --with
-   torch==2.0.1+cpu` (and PyTorch's CPU index), never in CI: MGM pins numpy
-   1.24 and torch 2.0, so it cannot share biotapy's environment. Output:
-   `tests/data/mgm/counts.csv` and `embeddings.csv`, compared at `atol=1e-3`
-   (`tests/ml/test_mgm.py`, marker `mgm`, which gives the reason).
+   torch==2.0.1+cpu` (and PyTorch's CPU index), with `HF_HOME` set to a
+   scratch directory, never in CI: MGM pins numpy 1.24 and torch 2.0, so it
+   cannot share biotapy's environment. Output: `tests/data/mgm/counts.csv`
+   (one genus, Blautia, on two features, so that summing them matters) and
+   `embeddings.csv`. A process's first call is compared at `atol=1e-3`, a
+   later call at `atol=1e-5` (`tests/ml/test_mgm.py:ATOL`,
+   `tests/ml/test_mgm.py:WARM_ATOL`, marker `mgm`, which gives the reason).
 2. Output: `tests/golden/<dataset>/<function>.csv.gz`, samples as rows
    (see [samples-as-rows](/decisions/samples-as-rows.md)), plus
    `tests/golden/VERSIONS.txt` listing R and package versions. Golden files

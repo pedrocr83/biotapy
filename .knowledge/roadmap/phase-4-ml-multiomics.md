@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:41:13Z }
-commit: fd6a8be
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:45:53Z }
+commit: 31aa11d
 sources:
   - id: spec
     resource: ../../plan.md
@@ -4254,7 +4254,7 @@ network job's cache is rebuilt once, which is harmless).
   cache is `BIOTAPY_DATA_DIR` if set, else `pooch.os_cache("biotapy")`.
   4.4b's `ml/_mgm.py` calls it.
 
-- [ ] **Step 1: Failing test.** Create `tests/core/test_download.py` (a
+- [x] **Step 1: Failing test.** Create `tests/core/test_download.py` (a
   `_core` unit test, R4.9's exception):
   ```python
   from pathlib import Path
@@ -4278,10 +4278,10 @@ network job's cache is rebuilt once, which is harmless).
   ```
   The second test creates no directory: `pooch.create` makes the cache
   directory only when `fetch` runs (`pooch/utils.py:make_local_storage`).
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/core/test_download.py -q` -> `1 error` during collection: `E
   ImportError: cannot import name 'make_pooch' from 'biotapy._core'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/_core/_download.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/_core/_download.py`:
   ```python
   """The one download cache: every file biotapy fetches at run time goes through a pooch made here."""
 
@@ -4349,12 +4349,12 @@ network job's cache is rebuilt once, which is harmless).
   R2.1: pooch is the library; `make_pooch` only fixes biotapy's directory
   and variable in one place, which R4.3 requires once `ml` needs the cache
   too (4.4b).
-- [ ] **Step 4: Run, expect pass** - `uv run --group test pytest
+- [x] **Step 4: Run, expect pass** - `uv run --group test pytest
   tests/core/test_download.py tests/datasets -q` -> `32 passed, 6
   deselected` (the 6 are the `network` tests, which the gate's `-m "golden
   or network"` run covers: every dataset is read through `make_pooch`
   there, `36 passed`).
-- [ ] **Step 5: Knowledge.** (`generated` is `claude-code/<model>` at the
+- [x] **Step 5: Knowledge.** (`generated` is `claude-code/<model>` at the
   commit time; `commit:` the parent's short sha.)
   ```diff
   diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
@@ -4382,7 +4382,7 @@ network job's cache is rebuilt once, which is harmless).
   ## <date> (Phase 4, slice 4C)
   - **Update**: [core](modules/core.md) owns `_download.py:make_pooch`, the one download cache (`BIOTAPY_DATA_DIR` or pooch's per-user cache), moved out of `datasets/_remote.py` so `ml`'s MGM weights (4.4b) use the same cache; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.C0.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add src/biotapy/_core/_download.py src/biotapy/_core/__init__.py src/biotapy/datasets/_remote.py \
     tests/core/test_download.py .knowledge/modules/core.md .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -4411,7 +4411,7 @@ point (4.4b, with the module it names); `README.md` and `CHANGELOG.md`
   `uv run --extra mgm` installs torch from the CPU index and transformers
   from PyPI.
 
-- [ ] **Step 1: Failing test.** In `tests/test_ci.py`, before
+- [x] **Step 1: Failing test.** In `tests/test_ci.py`, before
   `test_coverage_below_90_percent_fails_the_test_job`:
   ```python
   def test_the_mgm_extra_is_torch_and_transformers_with_torch_from_the_cpu_index():
@@ -4419,9 +4419,9 @@ point (4.4b, with the module it names); `README.md` and `CHANGELOG.md`
       assert pyproject["project"]["optional-dependencies"]["mgm"] == ["torch>=2.9", "transformers>=5"]
       assert pyproject["tool"]["uv"]["sources"] == {"torch": {"index": "pytorch-cpu"}}
   ```
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/test_ci.py -q` -> `1 failed, 21 passed` (`KeyError: 'mgm'`).
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   ```diff
   diff --git a/pyproject.toml b/pyproject.toml
   @@ -44,6 +44,8 @@ dependencies = [
@@ -4434,7 +4434,7 @@ point (4.4b, with the module it names); `README.md` and `CHANGELOG.md`
    optional-dependencies.r = [ "rpy2>=3.6.8" ]
   ```
   (pyproject-fmt keeps the extras sorted, so `mgm` goes before `r`.)
-- [ ] **Step 4: Run, expect pass, and record the lock** - `uv run --group
+- [x] **Step 4: Run, expect pass, and record the lock** - `uv run --group
   test pytest tests/test_ci.py -q` -> `22 passed`. `uv lock` -> 211 packages
   (195 before; `grep -c '^name = ' uv.lock`); the 16 new ones are
   annotated-doc, anyio, h11, hf-xet, httpcore2, httpx2, httpx2-jsfetch,
@@ -4447,7 +4447,7 @@ point (4.4b, with the module it names); `README.md` and `CHANGELOG.md`
   `Requires-Dist: transformers>=5; extra == 'mgm'`, `Provides-Extra: r`,
   `Provides-Extra: torch`, `Requires-Dist: torch>=2.9; extra == 'torch'`;
   delete `dist/`.
-- [ ] **Step 5: Knowledge.** (`generated` and `commit:` as in 4.C0.)
+- [x] **Step 5: Knowledge.** (`generated` and `commit:` as in 4.C0.)
   ```diff
   diff --git a/.knowledge/decisions/optional-heavy-dependencies.md b/.knowledge/decisions/optional-heavy-dependencies.md
   @@ -1,7 +1,7 @@
@@ -4489,7 +4489,7 @@ point (4.4b, with the module it names); `README.md` and `CHANGELOG.md`
   ```markdown
   - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `mgm` (`torch>=2.9`, `transformers>=5`), what transformers brings, its size and wheels, the versions MGM was run on, why `microformer-mgm` is not a dependency, the extras table row, and transformers in the description, copied into the [decisions index](decisions/index.md); [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.C1.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add pyproject.toml tests/test_ci.py .knowledge/decisions/optional-heavy-dependencies.md \
     .knowledge/decisions/index.md .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -4530,7 +4530,7 @@ sentence).
   which the root `conftest.py` gives to `biotapy.ml._embed`'s doctests.
   4.4b registers `mgm`.
 
-- [ ] **Step 1: Failing tests.** Register the marker and deselect it by
+- [x] **Step 1: Failing tests.** Register the marker and deselect it by
   default, and give `ml.embed`'s doctest the marker (its example runs MGM,
   which 4.4b registers; decision 34):
   ```diff
@@ -4848,10 +4848,10 @@ sentence).
   (`_installer`), so discovery runs the code path an installed package
   takes and no test imports `ml/_embed.py` (R4.9); the module-scoped `echo`
   fixture exists because Hypothesis rejects function-scoped fixtures.
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest
   tests/ml/test_embed.py -q` -> `19 failed`; every failure is
   `AttributeError: module 'biotapy.ml' has no attribute 'embed'`.
-- [ ] **Step 3: Implement.** Create `src/biotapy/ml/_embed.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/ml/_embed.py`:
   ```python
   """Sample embeddings from models that plugins register in the entry-point group ``biotapy.embeddings``."""
 
@@ -5000,13 +5000,13 @@ sentence).
 
   __all__ = ["CLR", "PrevalenceFilter", "embed", "to_torch"]
   ```
-- [ ] **Step 4: Run, expect pass** - `uv run --group test pytest
+- [x] **Step 4: Run, expect pass** - `uv run --group test pytest
   tests/ml/test_embed.py src/biotapy/ml -q -W error::UserWarning` -> `39
   passed, 2 deselected` (the 37 tests and the two transformer doctests; the
   deselected are `to_torch`'s and `embed`'s doctests); `--hypothesis-seed=1`,
   `2`, `3` -> `37 passed` each; `uv run --group dev --group doc mypy` ->
   `Success: no issues found in 67 source files`.
-- [ ] **Step 5: Docs.**
+- [x] **Step 5: Docs.**
   ````diff
   diff --git a/docs/api.md b/docs/api.md
   @@ -120,6 +120,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
@@ -5085,7 +5085,7 @@ sentence).
   ````
   The guide's code blocks are plain Markdown, not executed: the `mgm` model
   arrives in 4.4b, whose end-to-end test runs this very call.
-- [ ] **Step 6: Knowledge.** Create
+- [x] **Step 6: Knowledge.** Create
   `.knowledge/decisions/embedding-plugins.md`:
   ```markdown
   ---
@@ -5301,7 +5301,7 @@ sentence).
   - **Creation**: [embedding-plugins](decisions/embedding-plugins.md) (`draft`): the entry-point group `biotapy.embeddings`, the callable `embed(adata)`, the output checks, `obsm["X_<model>"]`, weights never bundled; listed in the [decisions index](decisions/index.md).
   - **Update**: [ml](modules/ml.md) gains `embed` (entry point, discovery per call, the output checks, the fake-plugin distribution in tests, the doctest marker `mgm`), with the description copied into the [modules index](modules/index.md); [data-model-slots](contracts/data-model-slots.md): `X_<plugin>` becomes `X_<model>` and `ml.embed` joins the embedding-adding row; [pure-by-default](decisions/pure-by-default.md) gains the `ml.embed` rows; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.4.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   git add src/biotapy/ml/_embed.py src/biotapy/ml/__init__.py tests/ml/test_embed.py conftest.py pyproject.toml \
     docs/guide/machine_learning.md docs/api.md docs/contributing.md \
@@ -5349,7 +5349,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   `tests/data/mgm/` and the script that writes it; `ml-extras` runs
   `uv run --group test --extra mgm pytest -m mgm` with a pooch cache.
 
-- [ ] **Step 1: MGM's own embeddings.** Create
+- [x] **Step 1: MGM's own embeddings.** Create
   `tests/mgm/export_reference.py`:
   ```python
   """Write tests/data/mgm/: a small genus table and MGM 0.5.8's own embedding of each of its samples.
@@ -5500,7 +5500,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
   ```
-- [ ] **Step 2: Failing tests.** Create `tests/ml/test_mgm.py`:
+- [x] **Step 2: Failing tests.** Create `tests/ml/test_mgm.py`:
   ```python
   import sys
   from importlib.metadata import entry_points
@@ -5710,14 +5710,14 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   (feature order, scale, summing per genus); a parity test against MGM's own
   code instead of an R golden (no R equivalent). The four tests without the
   marker need neither the extra nor the download.
-- [ ] **Step 3: Run, expect failure** - `uv sync --all-groups && uv run
+- [x] **Step 3: Run, expect failure** - `uv sync --all-groups && uv run
   --group test pytest tests/ml/test_mgm.py tests/test_ci.py -q` -> `5
   failed, 22 passed, 12 deselected` (no entry point yet: the input tests get
   `KeyError: "model='mgm' is not an installed embedding plugin; installed:
   []"`; `test_ci` has no `-m mgm` step). `uv run --group test --extra mgm
   pytest tests/ml/test_mgm.py -q -m mgm` -> `12 failed, 4 deselected` (the
   same `KeyError`, or `DID NOT WARN` around it).
-- [ ] **Step 4: Implement.** Create `src/biotapy/ml/_mgm.py`:
+- [x] **Step 4: Implement.** Create `src/biotapy/ml/_mgm.py`:
   ```python
   """MGM, the reference embedding plugin: entry point ``mgm`` in ``biotapy.embeddings``, extra ``mgm``."""
 
@@ -5968,7 +5968,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   pyproject-fmt moves the `entry-points` line after `urls`, as shown. The
   `ml-extras` cache key hashes `_mgm.py` (its URL and hash) and `_remote.py`
   (GlobalPatterns' pin).
-- [ ] **Step 5: Run, expect pass** - `uv sync --all-groups && uv run --group
+- [x] **Step 5: Run, expect pass** - `uv sync --all-groups && uv run --group
   test pytest tests/ml/test_mgm.py tests/test_ci.py -q` -> `27 passed, 12
   deselected`; with `BIOTAPY_DATA_DIR` set, `uv run --group test --extra mgm
   pytest tests/ml/test_mgm.py src/biotapy/ml -q -m "mgm or not mgm" -W
@@ -5985,7 +5985,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   `kept.sort_index()`: `-m mgm -k "matches or global"` fails for each (the
   first fails only the parity test). `uv build --sdist` ships
   `tests/data/mgm/` and not `tests/mgm/`.
-- [ ] **Step 6: Docs.**
+- [x] **Step 6: Docs.**
   ````diff
   diff --git a/docs/contributing.md b/docs/contributing.md
   @@ -92,6 +92,22 @@ uv run --group test --extra torch pytest -m torch
@@ -6068,7 +6068,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   `test_embeds_global_patterns_end_to_end`, 520 GlobalPatterns profiles in
   8.8 s on 8 threads (about 60 a second), the 1.6e-4 first-call difference
   (design, "a torch first-call race").
-- [ ] **Step 7: Knowledge.** (`generated` and `commit:` as in 4.C0; the
+- [x] **Step 7: Knowledge.** (`generated` and `commit:` as in 4.C0; the
   frontmatter hunks are not shown.)
   ```diff
   diff --git a/.knowledge/contracts/r-golden-parity.md b/.knowledge/contracts/r-golden-parity.md
@@ -6216,7 +6216,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   ```markdown
   - **Update**: [ml](modules/ml.md) gains MGM (`_mgm.py`: MGM's own tokens, the `<bos> <eos>` sample, validation before the imports, the weights from the wheel, one sample at a time and why, the parity tolerance and the torch `tanh` race, the reference script's environment); [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): `ml-extras` runs `mgm` with its own pooch cache; [r-golden-parity](contracts/r-golden-parity.md) gains MGM's reference embeddings (item 1c, the `tests/data/mgm` exception); [core](modules/core.md): `make_pooch` serves `ml/_mgm.py` too; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.4b.
   ```
-- [ ] **Step 8: Gate and commit**
+- [x] **Step 8: Gate and commit**
   ```bash
   git add src/biotapy/ml/_mgm.py src/biotapy/ml/_embed.py pyproject.toml tests/ml/test_mgm.py \
     tests/data/mgm/counts.csv tests/data/mgm/embeddings.csv tests/data/mgm/NOTICE.txt tests/mgm/export_reference.py \
@@ -6233,12 +6233,17 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   deselected`; `13 passed, 1569 deselected`.
 
 ### Checkpoint C - review slice 4C
-- [ ] Review the whole slice (superpowers:requesting-code-review) against
+- [x] Review the whole slice (superpowers:requesting-code-review) against
   every contract, pure-by-default, optional-heavy-dependencies, the new
   embedding-plugins decision, the Phase 4 review focus (item 5) and the
   slice 4C review focus; then a fix pass, one commit per finding, each with
   a test. Record the counts and the fix range here.
-- [ ] Run the slice's checks at the last commit and record them: the slice
+  - Result: 0 Critical, 0 Important, 5 Minor (+1 counted); the controller
+    re-graded Minor 1 (a damaged extracted MGM file) to Important. Fix pass
+    `f9b3f50..c87fc13` (11 commits), then a follow-up round `c87fc13..31aa11d`
+    (4 commits). Scoped re-review: all 8 findings addressed; one new minor and
+    three nits fixed in the follow-up.
+- [x] Run the slice's checks at the last commit and record them: the slice
   gate's six counts; `uv run --group test --extra mgm coverage run -m pytest
   -m "mgm or not mgm" tests/ml/test_embed.py tests/ml/test_mgm.py
   tests/core/test_download.py src/biotapy/ml/_embed.py` then `coverage
@@ -6247,7 +6252,12 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   (exits 0; 100% each: `_embed.py` 54, `_mgm.py` 87 and `_download.py` 4 statements);
   `tests/ml/test_embed.py` under `--hypothesis-seed=1`, `2`, `3`; the six
   parity mutations of 4.4b Step 5, each failing.
-- [ ] Knowledge: [ml](/modules/ml.md), [core](/modules/core.md),
+  - At `31aa11d`: `pytest -q -W error::UserWarning` 1488 passed, 2 skipped,
+    92 deselected; `-m "golden or network"` 36 passed; `--extra torch -m torch`
+    25 passed; `--extra mgm -m mgm` 13 passed; coverage 100% on `_download.py`
+    (4 statements), `_embed.py` (54) and `_mgm.py` (87). The Hypothesis seeds
+    1-3 and the six parity mutations are not recorded by this step.
+- [x] Knowledge: [ml](/modules/ml.md), [core](/modules/core.md),
   [embedding-plugins](/decisions/embedding-plugins.md),
   [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md),
   [data-model-slots](/contracts/data-model-slots.md),
