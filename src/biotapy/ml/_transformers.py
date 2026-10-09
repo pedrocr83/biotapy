@@ -45,6 +45,9 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
     on the samples, so filtering before splitting lets the test samples choose
     the features: inside a :class:`~sklearn.pipeline.Pipeline` the filter is
     fitted on each training fold only. A sparse ``X`` stays sparse.
+    ``transform``, ``fit_transform``, ``get_support`` and
+    ``get_feature_names_out`` come from
+    :class:`~sklearn.feature_selection.SelectorMixin`.
 
     Examples
     --------
@@ -111,6 +114,9 @@ class CLR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     its own, so ``fit`` learns nothing (it only checks ``X``); the class exists
     so the transform can sit in a :class:`~sklearn.pipeline.Pipeline`. The
     output is a dense float64 array: 8 bytes x samples x features.
+    ``fit_transform``, ``get_feature_names_out`` and ``set_output`` come from
+    scikit-learn's :class:`~sklearn.base.TransformerMixin` and
+    :class:`~sklearn.base.OneToOneFeatureMixin`.
 
     Examples
     --------
