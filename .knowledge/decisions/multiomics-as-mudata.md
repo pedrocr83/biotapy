@@ -3,10 +3,10 @@ type: Decision
 title: Multi-omics data is one MuData with fixed modality names
 description: Several data types over the same samples are one MuData whose modalities are named taxa, function, function_by_taxon, metabolites and host; io.to_mudata keeps only the samples every modality has; a TreeData modality loses its tree in h5mu.
 tags: [io, mudata, multiomics]
-status: draft
+status: stable
 paths: ["src/biotapy/io/_mudata.py", "src/biotapy/tl/_mmvec.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 sources:
   - id: spec
     resource: ../../plan.md

@@ -1,10 +1,11 @@
 import numpy as np
+import pytest
 import scipy.sparse as sp
 from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 
-from biotapy._core import argmax_by, as_csr, divide_rows, sum_by, sum_pairs
+from biotapy._core import argmax_by, as_csr, divide_rows, finite_non_negative, sum_by, sum_pairs
 
 X = sp.csr_matrix(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64))
 
@@ -130,3 +131,15 @@ def test_divide_rows_does_not_change_its_input():
     X = sp.csr_matrix(np.array([[1.0, 3.0]]))
     divide_rows(X, np.array([4.0]))
     np.testing.assert_array_equal(X.toarray(), [[1.0, 3.0]])
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [([0.0, 1.5], True), ([], True), ([1.0, -0.1], False), ([1.0, np.nan], False), ([np.inf], False)],
+)
+def test_finite_non_negative(data, expected):
+    X = sp.csr_matrix(
+        (np.array(data, dtype=float), (np.zeros(len(data), int), np.arange(len(data)))),
+        shape=(1, max(len(data), 1)),
+    )
+    assert finite_non_negative(X) is expected

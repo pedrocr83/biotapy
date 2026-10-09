@@ -5,8 +5,8 @@ description: One task = one public function `verb(data, required, *, options) ->
 tags: [api, conventions, docs]
 status: stable
 paths: ["src/biotapy/**/*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 sources:
   - id: spec
     resource: ../../plan.md

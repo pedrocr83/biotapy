@@ -29,6 +29,8 @@ def filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_
 
     Raises
     ------
+    TypeError
+        A threshold is a bool or not a real number.
     ValueError
         Neither threshold is given, ``min_prevalence`` is outside 0 to 1, or no
         feature passes.
@@ -53,6 +55,12 @@ def filter_features(adata: AnnData, *, min_prevalence: float | None = None, min_
     if min_prevalence is None and min_total is None:
         msg = "pass min_prevalence=, min_total= or both"
         raise ValueError(msg)
+    for name, value in (("min_prevalence", min_prevalence), ("min_total", min_total)):
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int | float | np.integer | np.floating)
+        ):
+            msg = f"{name} must be a real number, got {value!r}"
+            raise TypeError(msg)
     X = as_csr(adata.X)
     keep = np.ones(adata.n_vars, dtype=bool)
     if min_prevalence is not None:

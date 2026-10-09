@@ -8,7 +8,7 @@ from anndata import AnnData
 from mudata import MuData
 from skbio.stats.ordination import mmvec as skbio_mmvec
 
-from biotapy._core import as_csr, as_generator
+from biotapy._core import as_csr, as_generator, finite_non_negative
 
 
 def mmvec(
@@ -104,7 +104,7 @@ def _modality(mdata: MuData, key: str, *, argument: str) -> AnnData:
 def _table(mod: AnnData, key: str, *, argument: str) -> pd.DataFrame:
     """Modality ``key`` as a dense samples x features DataFrame, checked as mmvec needs it."""
     X = as_csr(mod.X).astype(np.float64)
-    if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
+    if not finite_non_negative(X):
         msg = f"tl.mmvec needs finite, non-negative values in {argument}={key!r}"
         raise ValueError(msg)
     for axis, names, what in ((0, mod.var_names, "features"), (1, mod.obs_names, "samples")):

@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
-commit: a1b54be
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:47:53Z }
+commit: 1c5d1ae
 status: stable
 ---
 
@@ -244,6 +244,15 @@ per-module command exists: unknown.
   the constants and the tutorial together.
 - Replicate rows within a group give `se = 0` in LinDA and p-values that are
   floating-point noise; R does the same.
+- **A two-sample reference level can fail in scikit-bio where R fits.**
+  scikit-bio 0.7.4's bias E-M divides 0 by 0 when a feature's variance is
+  tiny, then raises "Quantiles must be in the range [0, 1]"; R's `.bias_em`
+  sets those responsibilities to 0 and returns results (about 1 in 600
+  random small tables; never with three or more reference samples).
+  `ancombc2` re-raises it naming scikit-bio, `tests/da/test_ancombc.py`
+  pins the table with R's values in a comment, and the schema property test
+  rejects only that message. When scikit-bio fixes it, that test fails: turn
+  it into a check against R's values. `_ancombc.py:ancombc2` Notes.
 
 # Rejected
 - Porting LinDA's paper-adaptive zero rule instead of the pseudocount path

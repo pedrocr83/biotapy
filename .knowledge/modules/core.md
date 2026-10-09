@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 status: stable
 ---
 
@@ -30,6 +30,9 @@ none of them back.
 
 - `_matrix.py:as_csr` - normalize any array-like or sparse input (including
   `AnnData.X`) to CSR, without copying one that already is.
+- `_matrix.py:finite_non_negative` - True when every stored value of a CSR
+  matrix is finite and >= 0; a predicate, so each caller keeps its own
+  message (`_composition.py:pseudocounted`, `tl.mmvec`, `fn.functional_redundancy`).
 - `_matrix.py:divide_rows` - a float64 copy of a CSR matrix with each stored
   value divided by its row's total (zero-total rows stay zero); used by
   `pp.relative`, `fn.renorm` (`_renorm.py:_rescaled`) and

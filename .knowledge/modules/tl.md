@@ -5,8 +5,8 @@ description: Diversity, ordination, PERMANOVA and mmvec over AnnData/TreeData/Mu
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
+commit: 1c5d1ae
 status: stable
 ---
 

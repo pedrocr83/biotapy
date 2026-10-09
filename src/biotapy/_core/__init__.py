@@ -10,7 +10,7 @@ from ._function import (
     function_var,
     make_function_mudata,
 )
-from ._matrix import argmax_by, as_csr, divide_rows, sum_by, sum_pairs
+from ._matrix import argmax_by, as_csr, divide_rows, finite_non_negative, sum_by, sum_pairs
 from ._optional import import_optional
 from ._rng import as_generator
 from ._slots import (
@@ -57,6 +57,7 @@ __all__ = [
     "check_pseudocount",
     "divide_rows",
     "feature_subset",
+    "finite_non_negative",
     "function_var",
     "get_skbio_tree",
     "get_tree",
