@@ -6,7 +6,7 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:09:13Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:38:49Z }
 commit: 3e15368
 ---
 
@@ -76,7 +76,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
 - `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
   a masked array or a matrix), 2-D with one row per sample and at least one
   column, float and finite, or it raises naming the plugin, before anything
-  is written; a result that shares memory with any of the AnnData's arrays is
+  is written; a result that shares memory with `X`, a layer, an `obsm`, `varm`,
+  `obsp` or `varp` entry or a top-level `uns` array (not one nested deeper) is
   copied. A plugin's own exception keeps its type and gains a note naming the
   plugin. The model name must be letters, digits, `_`, `-` or `.`.
   `_embed.py:embed`, `_embed.py:_checked`.

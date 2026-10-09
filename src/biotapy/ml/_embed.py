@@ -128,7 +128,7 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
 
 
 def _checked(model: str, adata: AnnData, result: object) -> npt.NDArray[np.floating]:
-    """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``, else an error."""
+    """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``'s X, layers, obsm, varm, obsp, varp or top-level uns, else an error."""
     if type(result) is not np.ndarray:  # a masked array would hide NaN from the check below, a matrix is always 2-D
         msg = f"plugin {model!r} returned a {type(result).__name__}, not a NumPy array"
         raise TypeError(msg)

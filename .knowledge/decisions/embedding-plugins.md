@@ -5,7 +5,7 @@ description: ml.embed(adata, model) loads the callable a package registers under
 tags: [ml, plugins, api]
 status: draft
 paths: ["src/biotapy/ml/_embed.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:09:13Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:38:49Z }
 commit: 5b73a1b
 sources:
   - id: spec
@@ -39,7 +39,8 @@ has a registry for this: entry points, which a package declares in its
   a masked array or a matrix (else `TypeError`), 2-D with one row per sample and at least one column, float,
   finite (else `ValueError`), each message naming the plugin
   (`ml/_embed.py:_checked`). A refused result is never stored, and one that
-  shares memory with the AnnData's arrays is copied. A plugin's own exception
+  shares memory with `X`, a layer, `obsm`, `varm`, `obsp`, `varp` or a
+  top-level `uns` array (nothing nested deeper) is copied. A plugin's own exception
   propagates with its type and a note naming the plugin. The model name is
   letters, digits, `_`, `-` or `.`, so `obsm["X_<model>"]` is a plain key.
 - **The plugin gets the caller's AnnData, not a copy**: a copy would double
