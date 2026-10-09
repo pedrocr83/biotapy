@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4, slice 4C plan)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4C into full TDD steps (4.C0 `_core.make_pooch`, 4.C1 the extra `mgm`, 4.4 `ml.embed`, 4.4b MGM, Checkpoint C), approved by the user with decisions 27-35; design notes 8, 10 and 11 lose their [UNVERIFIED]; the dependencies table, review focus, exit gate, risks, slice 4D outline and self-review follow.
+
 ## 2026-10-09 (Phase 4, slice 4B)
 - **Update**: [ml](modules/ml.md) says a bool index raises `TypeError` as well, that the sdist ships the root `conftest.py` (the `to_torch` doctest marker), and that `ml-extras` has a 30-minute timeout; [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md) names the timeout; [function-shape](contracts/function-shape.md) says `ml.to_torch` is a function whose `Dataset` class is built inside `_dataset`; [cut-a-release](playbooks/cut-a-release.md) says the sdist must ship `conftest.py` and the wheel's `Provides-Extra` now includes `torch`.
 - **Verification**: re-checked against the slice's changes with no content change, `commit` and `generated` bumped only: [pure-by-default](decisions/pure-by-default.md) (its `to_torch` row already holds), [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [engine-parity](contracts/engine-parity.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [tree-access](contracts/tree-access.md), [add-a-function](playbooks/add-a-function.md).
