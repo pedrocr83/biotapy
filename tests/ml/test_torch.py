@@ -231,6 +231,15 @@ def test_missing_label_raises():
         bt.ml.to_torch(tdata, label_key="group")
 
 
+def test_missing_numeric_label_raises():
+    tdata = bt.datasets.toy()
+    tdata.obs["age"] = [30.0, np.nan, 25.0, 60.0, 52.0, 47.0]
+    with pytest.raises(
+        ValueError, match=r"label_key='age' has 1 missing value\(s\); drop those samples or fill them first"
+    ):
+        bt.ml.to_torch(tdata, label_key="age")
+
+
 def test_missing_layer_raises():
     with pytest.raises(KeyError, match=r"layer='clr' is not in adata.layers"):
         bt.ml.to_torch(bt.datasets.toy(), layer="clr")
