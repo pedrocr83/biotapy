@@ -100,8 +100,10 @@ def _sentences(adata: AnnData, genus: "pd.Series[str]", phylogeny: pd.DataFrame)
     if missing.any() or unknown.any():
         msg = (
             f"mgm leaves out {int(missing.sum() + unknown.sum())} of {codes.size} features: {int(missing.sum())} "
-            f"without a genus and {int(unknown.sum())} whose genus is not one of MGM's ({_listed(genus[unknown])})"
+            f"without a genus and {int(unknown.sum())} whose genus is not one of MGM's"
         )
+        if unknown.any():
+            msg += f" ({_listed(genus[unknown])})"
         warn_user(msg)
     # Features of one genus are summed, and relative abundance is taken over MGM's genera only, as MGM does.
     grouped = sum_by(as_csr(adata.X), codes, len(phylogeny))

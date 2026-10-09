@@ -80,6 +80,15 @@ def test_features_of_one_genus_are_summed_so_tax_glom_changes_nothing():
 
 
 @pytest.mark.mgm
+def test_the_leave_out_warning_lists_unknown_genera_only_when_there_are_some():
+    with pytest.warns(UserWarning) as record:
+        bt.ml.embed(bt.datasets.toy(), "mgm")
+    assert [str(warning.message) for warning in record] == [
+        "mgm leaves out 1 of 8 features: 1 without a genus and 0 whose genus is not one of MGM's"
+    ]
+
+
+@pytest.mark.mgm
 def test_relative_abundances_embed_as_their_counts():
     genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
     relative = genera.copy()
