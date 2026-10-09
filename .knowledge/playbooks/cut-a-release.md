@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:37:49Z }
-commit: 7a9c07a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
+commit: 31aa11d
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/
@@ -39,7 +39,7 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it
    must pass with no errors. Check the wheel's `METADATA` too: `Version`, every
    runtime `Requires-Dist`, and a `Provides-Extra` line for each extra (0.3.0
-   added `r`, slice 4B `torch`). The sdist must ship the root `conftest.py`
+   added `r`, slice 4B `torch`, slice 4C `mgm`). The sdist must ship the root `conftest.py`
    (`pyproject.toml` `build.targets.sdist.include`): its tests need the marker hook.
 4. With explicit user approval for each (rules.md R13.3), tag the merged commit
    and push only the tag:

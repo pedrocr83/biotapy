@@ -44,6 +44,8 @@ dependencies = [
   "treedata>=0.3.1,<0.4",
   "xarray",
 ]
+# MGM, ml.embed's reference model (decisions/optional-heavy-dependencies): a GPT-2 that transformers runs on torch.
+optional-dependencies.mgm = [ "torch>=2.9", "transformers>=5" ]
 # The ALDEx2 and MaAsLin 3 bridges (decisions/optional-heavy-dependencies); R and the R packages are the user's install.
 optional-dependencies.r = [ "rpy2>=3.6.8" ]
 # ml.to_torch (decisions/optional-heavy-dependencies); 2.9.0 is torch's first release with CPython 3.14 wheels.
@@ -52,6 +54,8 @@ optional-dependencies.torch = [ "torch>=2.9" ]
 urls.Documentation = "https://biotapy.readthedocs.io/"
 urls.Homepage = "https://github.com/pedrocr83/biotapy"
 urls.Source = "https://github.com/pedrocr83/biotapy"
+# ml.embed's models (decisions/embedding-plugins); biotapy registers its own reference model as any plugin would.
+entry-points."biotapy.embeddings".mgm = "biotapy.ml._mgm:embed"
 
 [dependency-groups]
 dev = [
@@ -103,6 +107,7 @@ build.targets.sdist.exclude = [
   "/docs/generated",
   "/docs/jupyter_execute",
   "/tests/humann",
+  "/tests/mgm",
   "/tests/r",
   "/tests/test_ci.py",
   "/tests/test_knowledge_bundle.py",
@@ -187,11 +192,13 @@ lint.pylint.max-statements = 30
 files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
 # biom-format and scikit-learn ship no type annotations at all, nor do scikit-bio's
-# subsample_counts, tree_basis and ancombc2, threadpoolctl's threadpool_limits and mudata's MuData.update; exempt only
-# calls into them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py matches by callee fullname).
+# subsample_counts, tree_basis and ancombc2, threadpoolctl's threadpool_limits, mudata's MuData.update and pooch's
+# Unzip; exempt only calls into them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py
+# matches by callee fullname).
 untyped_calls_exclude = [
   "biom",
   "mudata",
+  "pooch.processors.Unzip",
   "skbio.stats._subsample",
   "skbio.stats.composition._ancombc.ancombc2",
   "skbio.stats.composition._base.tree_basis",
@@ -230,16 +237,17 @@ overrides = [
 
 [tool.pytest]
 addopts = [
-  "--import-mode=importlib",             # allow using test files with same name
+  "--import-mode=importlib",                         # allow using test files with same name
   "--doctest-modules",
   "-m",
-  "not network and not r and not torch",
+  "not network and not r and not torch and not mgm",
 ]
 markers = [
   "golden: compares against R or HUMAnN golden files (contracts/r-golden-parity)",
   "network: downloads data; runs only in the dedicated CI job",
   "r: needs R and rpy2 (extra `r`)",
   "torch: needs PyTorch (extra `torch`); runs only in the ml-extras CI job",
+  "mgm: needs the extra `mgm` and downloads MGM's weights; runs only in the ml-extras CI job",
 ]
 strict = true
 testpaths = [ "tests", "src/biotapy" ]

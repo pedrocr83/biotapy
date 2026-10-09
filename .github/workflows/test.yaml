@@ -212,8 +212,10 @@ jobs:
           RPY2_CFFI_MODE: API
         run: uv run --group test --extra r pytest -m r
 
-  # Runs the tests that need PyTorch (marker torch, extra torch), which every other job deselects; uv installs torch's
-  # CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml, decisions/optional-heavy-dependencies).
+  # Runs the tests that need PyTorch (marker torch, extra torch) and MGM (marker mgm, extra mgm), which every other job
+  # deselects; uv installs torch's CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml,
+  # decisions/optional-heavy-dependencies). The MGM tests download its weights and GlobalPatterns into a pooch cache
+  # of their own, keyed on both loaders.
   ml-extras:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -232,6 +234,17 @@ jobs:
         run: uv run --group test --extra torch python -c "import torch; print('torch', torch.__version__)"
       - name: Run the PyTorch tests
         run: uv run --group test --extra torch pytest -m torch
+      - name: Cache pooch downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.pooch
+          key: pooch-mgm-${{ hashFiles('src/biotapy/datasets/_remote.py', 'src/biotapy/ml/_mgm.py') }}
+      - name: Log the transformers version
+        run: uv run --group test --extra mgm python -c "import transformers; print('transformers', transformers.__version__)"
+      - name: Run the MGM tests
+        env:
+          BIOTAPY_DATA_DIR: ${{ github.workspace }}/.pooch
+        run: uv run --group test --extra mgm pytest -m mgm
 
   # Builds the docs as Read the Docs does, executing every notebook (Phase 1 exit gate): the
   # phyloseq vignette downloads GlobalPatterns, enterotype and esophagus through the network

@@ -2,8 +2,8 @@
 
 `bt.ml` holds scikit-learn transformers, so microbiome preprocessing can sit
 inside a [Pipeline](https://scikit-learn.org/stable/modules/compose.html) and
-be fitted on the training samples of each cross-validation fold only, and
-turns a table into a PyTorch dataset.
+be fitted on the training samples of each cross-validation fold only, turns
+a table into a PyTorch dataset, and embeds samples with pretrained models.
 
 ## Which steps leak
 
@@ -109,3 +109,86 @@ CPU-only torch, install it from PyTorch's CPU index first:
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install 'biotapy[torch]'
 ```
+
+## Embeddings
+
+`bt.ml.embed` runs a pretrained model over every sample and returns one
+vector per sample, in `obs` order, or with `inplace=True` stores it in
+`obsm["X_<model>"]`:
+
+```python
+import biotapy as bt
+
+genera = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
+bt.ml.embed(genera, "mgm", inplace=True)
+genera.obsm["X_mgm"].shape  # (26, 256)
+```
+
+### MGM
+
+`"mgm"` is MGM, the Microbial General Model of Zhang et al. (2026): a GPT-2
+with 8 layers and 256 dimensions, pretrained on genus profiles from MGnify,
+released under the MIT licence. biotapy ships it as a plugin behind the extra
+`mgm`, which installs torch and transformers:
+
+```bash
+pip install 'biotapy[mgm]'
+```
+
+The first call downloads the pretrained model once: 33 MB, the
+`microformer-mgm` 0.5.8 wheel from PyPI, checked against its SHA-256, into the
+cache `bt.datasets` uses (`BIOTAPY_DATA_DIR` if set, otherwise pooch's
+per-user cache directory). `microformer-mgm` itself is never installed.
+
+MGM reads genera. Each feature's `var["genus"]` is read as MGM reads a
+`g__<genus>` column: up to the first character that is not a letter, digit
+or underscore, so `Escherichia-Shigella` is MGM's `Escherichia`. Features of
+the same genus are summed, so a table at any level works, and
+`bt.pp.tax_glom(tdata, "genus")` first gives the same embedding. Features
+without a genus, or whose genus MGM never saw, are left out with one warning
+that counts them; on GlobalPatterns that is 96 of 996 genus-level features.
+Each sample then goes through MGM's own preprocessing: relative abundances
+over the genera MGM knows, standardised with MGM's per-genus mean and standard
+deviation, genera sorted by that value, and the sentence `<bos>`, genera,
+`<eos>` cut to 512 tokens. A sample with none of MGM's genera is embedded
+from `<bos> <eos>` alone, with a warning naming it.
+
+The embedding is the mean of the last hidden layer over the sample's tokens,
+the "element-wise mean pooling" MGM's paper uses for the pretrained model:
+256 float32 values per sample, within 2e-6 of MGM 0.5.8's own code. The model
+runs on the CPU, one sample at a time; on GlobalPatterns' genus profiles that
+is about 60 samples a second on 8 threads, with no memory beyond the model's.
+On a CPU running more than four threads, the first call in a session can
+differ from later ones by up to about 2e-4: torch 2.13 and 2.14 sometimes
+compute their first `tanh` less precisely.
+
+Cite MGM when you publish results that use it: Zhang H, Zhang Y, Kang Z,
+Xiong J, Yang R, Ning K (2026) MGM as a large-scale pretrained foundation
+model for microbiome analyses in diverse contexts. *Adv Sci* 13:e13333.
+
+### Filtering and leakage
+
+A model reads what it was trained on, so filter first: a later feature change
+(`bt.pp.filter_features`, `bt.pp.tax_glom`) drops `obsm`, and the embedding
+with it. MGM embeds each sample from that sample alone, so computing its
+embedding before a cross-validation split leaks nothing. A plugin that
+normalises across samples would leak; check how yours works.
+
+### Adding a model
+
+Models are plugins. A package provides a function that takes the AnnData and
+returns a samples x dimensions NumPy array, leaving the AnnData unchanged, and
+registers it under a name in the entry-point group `biotapy.embeddings` of its
+`pyproject.toml`:
+
+```toml
+[project.entry-points."biotapy.embeddings"]
+mymodel = "mypackage.embedding:embed"
+```
+
+Once the package is installed, `bt.ml.embed(adata, "mymodel")` finds it;
+nothing is registered by hand. biotapy checks what the plugin returns - a
+finite float array with one row per sample - and raises an error naming the
+plugin otherwise. An unknown name raises `KeyError` listing the installed
+models, and a name that two installed packages register raises instead of
+picking one.

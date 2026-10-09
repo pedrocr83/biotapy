@@ -120,6 +120,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     ml.CLR
     ml.PrevalenceFilter
+    ml.embed
     ml.to_torch
 ```
 

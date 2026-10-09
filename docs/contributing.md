@@ -49,7 +49,7 @@ uv run --group test pytest
 ```
 
 Network and golden tests are excluded by default (`[tool.pytest]` in
-`pyproject.toml` sets `-m "not network and not r and not torch"`). Run them explicitly:
+`pyproject.toml` sets `-m "not network and not r and not torch and not mgm"`). Run them explicitly:
 
 ```bash
 uv run --group test pytest -m "network or golden"
@@ -91,6 +91,22 @@ uv run --group test --extra torch pytest -m torch
 ```
 
 CI runs them in the `ml-extras` job, on Linux with Python 3.13.
+
+### MGM tests
+
+Tests that run MGM (`bt.ml.embed(..., "mgm")`, and `ml.embed`'s docstring example) carry the marker `mgm`
+and are excluded by default too. They need the `mgm` extra and download MGM's weights (33 MB) and
+GlobalPatterns through the pooch cache:
+
+```bash
+BIOTAPY_DATA_DIR=.pooch uv run --group test --extra mgm pytest -m mgm
+```
+
+`tests/data/mgm/embeddings.csv` is MGM's own embedding of `tests/data/mgm/counts.csv`. MGM's package pins
+numpy 1.24 and torch 2.0, so it cannot share biotapy's environment; to regenerate the file, run
+`tests/mgm/export_reference.py` as its docstring says (Python 3.11, never in CI).
+
+CI runs them in the `ml-extras` job, after the PyTorch tests, with a pooch cache of its own.
 
 ### Regenerating the R golden files
 

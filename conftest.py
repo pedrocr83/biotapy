@@ -26,9 +26,15 @@ def _close_figures() -> Iterator[None]:
     plt.close("all")
 
 
+# Doctests that need an extra, by module: their examples run only where the marker's CI job installs it.
+_EXTRA_DOCTESTS = {"biotapy.ml._torch.": pytest.mark.torch, "biotapy.ml._embed.": pytest.mark.mgm}
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Give the doctests of a module that needs the extra `torch` its marker, before `-m` deselects."""
+    """Give the doctests of a module that needs an extra its marker, before `-m` deselects."""
     for item in items:
-        if isinstance(item, pytest.DoctestItem) and item.name.startswith("biotapy.ml._torch."):
-            item.add_marker(pytest.mark.torch)
+        if isinstance(item, pytest.DoctestItem):
+            for prefix, marker in _EXTRA_DOCTESTS.items():
+                if item.name.startswith(prefix):
+                    item.add_marker(marker)

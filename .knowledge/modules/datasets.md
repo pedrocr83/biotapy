@@ -5,8 +5,8 @@ description: In-memory and pooch-cached example data for docs, doctests and test
 resource: /src/biotapy/datasets/
 paths: ["src/biotapy/datasets/**"]
 tags: [datasets]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
+commit: 31aa11d
 status: stable
 ---
 
@@ -97,7 +97,8 @@ taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
   `enterotype.RData`/`esophagus.RData` and, from the ExPASy FTP site,
   `enzyme.dat`/`enzclass.txt`, and from the IBDMDB's Globus endpoint the three
   HMP2 files (`_remote.py:_URLS`); `BIOTAPY_DATA_DIR` overrides its
-  cache directory (`pooch.create(..., env="BIOTAPY_DATA_DIR")`).
+  cache directory (the pooch is built by `_core._download.py:make_pooch`,
+  [core](/modules/core.md), which `ml/_mgm.py` shares).
 
 # Verification
 

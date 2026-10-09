@@ -1,6 +1,7 @@
 """Private kernel shared by biotapy subpackages (contracts/module-boundaries)."""
 
 from ._composition import check_pseudocount, pseudocounted
+from ._download import make_pooch
 from ._function import (
     BY_TAXON_KEY,
     FUNCTION_KEY,
@@ -64,6 +65,7 @@ __all__ = [
     "import_optional",
     "infer_x_kind",
     "make_function_mudata",
+    "make_pooch",
     "make_treedata",
     "normalize_ranks",
     "pseudocounted",

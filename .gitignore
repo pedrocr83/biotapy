@@ -20,6 +20,7 @@ __pycache__/
 *.py[cod]
 .*cache/
 /.hypothesis/
+/.pooch/
 
 # Distribution / packaging
 /build/

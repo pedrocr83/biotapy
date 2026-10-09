@@ -1,22 +1,21 @@
 ---
 type: Module
 title: ml
-description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; and to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch.
+description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch; and embed, one embedding per sample from a model a plugin registers.
 resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
-tags: [ml, scikit-learn, torch]
+tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
-commit: 7a9c07a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
+commit: 31aa11d
 ---
 
 # Responsibility
 
 Owns `bt.ml.*`, the top layer's machine-learning entry points. Today that is
-two scikit-learn transformers (`_transformers.py`) and `to_torch`
-(`_torch.py`, extra `torch`); `ml.embed` (slice 4C) is planned in
-[phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md) and does not exist
-yet. Owns no reader and no table-level transform: `pp.filter_features` and
+two scikit-learn transformers (`_transformers.py`), `to_torch`
+(`_torch.py`, extra `torch`) and `embed` (`_embed.py`), which runs a model
+that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). Owns no reader and no table-level transform: `pp.filter_features` and
 `pp.clr` stay `pp`'s, the transformers are their fold-safe forms.
 
 # Entry points
@@ -28,6 +27,13 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   so `fit` only validates.
 - `_torch.py:to_torch` - a map-style `torch.utils.data.Dataset` over `X` or a
   layer, one float32 row per item, paired with an `obs` label when asked.
+- `_embed.py:embed` - loads the callable registered under `model` in the
+  entry-point group `biotapy.embeddings` (`_embed.py:GROUP`), calls it with
+  the AnnData and returns its samples x dimensions array, or writes
+  `obsm["X_<model>"]` with `inplace=True`.
+- `_mgm.py:embed` - MGM, the reference plugin, registered by biotapy's own
+  `pyproject.toml` as `mgm` (extra `mgm`): genus tokens from `var["genus"]`,
+  MGM's pretrained GPT-2, the mean of the last hidden layer per sample.
 
 # Invariants
 
@@ -63,6 +69,51 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
 - `to_torch` validates its arguments before it imports torch, so its error
   tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
+- `embed` reads the entry points on every call and loads only the one asked
+  for; a name no package registers raises `KeyError` listing those installed,
+  a name two packages register raises `ValueError` naming both.
+  `_embed.py:embed`.
+- `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
+  a masked array or a matrix), 2-D with one row per sample and at least one
+  column, float and finite, or it raises naming the plugin, before anything
+  is written; a result that shares memory with `X`, a layer, an `obsm`, `varm`,
+  `obsp` or `varp` entry or a top-level `uns` array (not one nested deeper) is
+  copied. A plugin's own exception keeps its type and gains a note naming the
+  plugin. The model name must match `[\w.-]+`, so that `obsm["X_<model>"]` is a plain key.
+  `_embed.py:embed`, `_embed.py:_checked`.
+- MGM's tokens are MGM's own (`mgm/src/MicroCorpus.py`, 0.5.8): a genus is
+  read with MGM's regex `g__[A-Za-z0-9_]+` on `"g__" + genus`; features of
+  one token are summed (`_core.sum_by`); relative abundance is taken over
+  MGM's genera only, as MGM drops the others before dividing; a genus is kept
+  when its standardised value `(rel - mean) / std` exceeds that of zero
+  abundance, and the kept ones are sorted by it with pandas' own
+  `sort_values(ascending=False)` on the vocabulary-ordered series (the order
+  of tied genera follows numpy's quicksort, which can differ from MGM's numpy
+  1.24 environment; GlobalPatterns and enterotype have no such tie); `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
+  lost past 510 genera). Vocabulary ids are the position in `phylogeny.csv`
+  plus 4 (`<pad>`, `<mask>`, `<bos>`, `<eos>`); the pickled tokenizer is
+  never loaded. `_mgm.py:_sentences`.
+- Where MGM would drop a sample (no count in its vocabulary), the plugin
+  embeds `<bos> <eos>` and warns naming it, because `ml.embed` needs one row
+  per sample. Left-out features get one warning counting them.
+  `_mgm.py:_sentences`.
+- MGM checks `var["genus"]` and `X` (finite, non-negative) before it imports
+  torch or transformers or downloads anything, so those errors are tested in
+  every CI job. `_mgm.py:embed`.
+- The weights come from microformer-mgm 0.5.8's wheel on files.pythonhosted.org
+  (SHA-256 pinned), fetched through `_core.make_pooch` and unzipped by
+  `pooch.Unzip` to `<cache>/microformer_mgm-0.5.8-py3-none-any.whl.unzip/`.
+  `Unzip` re-extracts only a missing member, so each extracted file is also
+  checked against its own SHA-256 (`_mgm.py:_SHA256_OF`); one that differs is
+  deleted and extracted again once (logged), and one that still differs raises
+  `ValueError` naming the `.unzip` folder to delete. `_mgm.py:_extracted_files`.
+  `torch.load(..., weights_only=True)` reads the GPT2LMHeadModel checkpoint
+  and its `transformer.` keys load into `transformers.GPT2Model` strictly
+  (`lm_head.weight` dropped). `_mgm.py:embed`.
+- One sample at a time, unpadded, under `torch.inference_mode()`, model in
+  `eval()` (dropout off): measured on 520 GlobalPatterns-like profiles, batch
+  1 took 8.8 s, batches of 8 and 64 took 17.0 s and 18.5 s and needed 196 MB
+  and 1.6 GB more (8 threads). `_mgm.py:embed`.
 - Inherited scikit-learn methods (`transform`, `fit_transform`,
   `get_support`, `get_feature_names_out`, `set_output`) are named in each
   class's `Notes`, because the class template leaves inherited members off
@@ -75,6 +126,8 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   `OneToOneFeatureMixin`, `validate_data`. scikit-bio: `clr`.
 - torch (extra `torch`), only through `import_optional` inside `to_torch`
   ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
+- torch and transformers (extra `mgm`), only through `import_optional` inside
+  `_mgm.py:embed`; pooch (`Unzip`) and `_core.make_pooch` for its weights.
 - `ml` imports no sibling top-layer module (`pl`, `da`) and not `pp`; the
   link to `pp` is through `_core` only
   ([module-boundaries](/contracts/module-boundaries.md)).
@@ -83,9 +136,11 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 
 `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
-errors). `uv run --group test --extra torch pytest -m torch` runs the
+errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
 `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
-`.github/workflows/test.yaml`). The pseudocount
+`.github/workflows/test.yaml`). `BIOTAPY_DATA_DIR=.pooch uv run --group test --extra mgm pytest -m mgm` (`.pooch/` is git-ignored)
+runs MGM against its own embeddings (`tests/data/mgm`), the end-to-end GlobalPatterns test (exit gate 2)
+and `embed`'s docstring example, as the job's last step does. The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
 
 # Gotchas
@@ -130,6 +185,37 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
   sys.modules` after `import biotapy` tells nothing there; the
   `import-without-extras` check is meaningful only on a torch-free
   environment, as in CI.
+- `embed`'s tests install fake plugins as a real distribution: a
+  `<name>-1.0.dist-info` with `METADATA` and `entry_points.txt` under
+  `tmp_path`, prepended to `sys.path`, and a module object in `sys.modules`
+  holding the callables. Discovery is then the same code path as for an
+  installed package, and no test imports `ml/_embed.py`.
+  `tests/ml/test_embed.py:_installer`.
+- `embed`'s docstring example runs MGM, so the root `conftest.py` gives
+  `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
+  `torch`. `conftest.py:_EXTRA_DOCTESTS`.
+- MGM's tests compare the first call of a process to MGM's own embeddings at
+  `atol=1e-3` and a later call at `WARM_ATOL=1e-5`: torch 2.13 and 2.14 sometimes compute
+  their first `tanh` in a process less precisely on a CPU running more than
+  four threads (measured: 9e-5 on `tanh(-5)`, never with 4 threads or fewer,
+  never after a first call), which moves that call's embedding by up to
+  1.6e-4; otherwise biotapy and MGM 0.5.8 agree to 1.7e-6. The warm bound
+  exists because 1e-3 hides a changed last token (7.7e-4); the first-call
+  bound stays loose and biotapy does not warm torch up (Phase 4 decision 33).
+  The mutations the
+  parity test was checked against (wrong denominator, ascending sort,
+  last-token pooling, dropout on, `z > 0`, vocabulary order) each fail it.
+  `tests/ml/test_mgm.py:ATOL`, `tests/ml/test_mgm.py:WARM_ATOL`.
+- `microformer-mgm` cannot be installed beside biotapy (its pins), so the
+  reference embeddings are written by `tests/mgm/export_reference.py` in a
+  Python 3.11 environment of its own (`uv run --no-project --python 3.11 --with
+  microformer-mgm==0.5.8 ...`); the script imports MGM inside its functions,
+  because pytest's `--doctest-modules` imports every file under `tests/`.
+  Set `HF_HOME` to a scratch directory in the command, else the old
+  transformers writes under `~/.cache`. The fixture repeats "Blautia" in two
+  features on purpose: summing them moves its rank in one sample, so a reader
+  that does not sum features of one genus fails the parity test.
+  `tests/mgm/export_reference.py:table`.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.
