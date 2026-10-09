@@ -78,6 +78,10 @@ def test_the_sdist_ships_the_root_conftest_that_marks_the_torch_doctests():
     assert "/conftest.py" in sdist["include"]
 
 
+def test_ml_extras_job_has_a_timeout():
+    assert WORKFLOW["jobs"]["ml-extras"]["timeout-minutes"] == 30
+
+
 def test_ml_extras_job_blocks_merges():
     assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
 

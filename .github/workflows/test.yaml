@@ -216,6 +216,7 @@ jobs:
   # CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml, decisions/optional-heavy-dependencies).
   ml-extras:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
