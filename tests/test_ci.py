@@ -63,6 +63,18 @@ def test_r_bridge_job_blocks_merges():
     assert "r-bridge" in WORKFLOW["jobs"]["check"]["needs"]
 
 
+def test_ml_extras_job_runs_the_torch_marker_on_python_3_13():
+    job = WORKFLOW["jobs"]["ml-extras"]
+    setup = next(step for step in job["steps"] if step.get("uses", "").startswith("astral-sh/setup-uv@"))
+    assert job["runs-on"] == "ubuntu-latest" and setup["with"]["python-version"] == "3.13"
+    runs = [step.get("run", "").strip() for step in job["steps"]]
+    assert "uv run --group test --extra torch pytest -m torch" in runs
+
+
+def test_ml_extras_job_blocks_merges():
+    assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
+
+
 def test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject["project"]["optional-dependencies"]["torch"] == ["torch>=2.9"]

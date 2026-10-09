@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:45:50Z }
-commit: cc9a4d9
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:53:25Z }
+commit: 01ff790
 ---
 
 # Responsibility
@@ -83,7 +83,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
 errors). `uv run --group test --extra torch pytest -m torch` runs the
-`to_torch` tests and its docstring example. The pseudocount
+`to_torch` tests and its docstring example, as CI's `ml-extras` job does. The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
 
 # Gotchas

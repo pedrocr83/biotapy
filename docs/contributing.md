@@ -90,6 +90,8 @@ excluded from the runs above. The `torch` extra installs torch's CPU wheel from 
 uv run --group test --extra torch pytest -m torch
 ```
 
+CI runs them in the `ml-extras` job, on Linux with Python 3.13.
+
 ### Regenerating the R golden files
 
 The golden CSVs under `tests/golden/` and the R-written fixtures under

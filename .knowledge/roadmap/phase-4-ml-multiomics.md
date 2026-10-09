@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:45:50Z }
-commit: cc9a4d9
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T09:53:25Z }
+commit: 01ff790
 sources:
   - id: spec
     resource: ../../plan.md
@@ -488,7 +488,7 @@ lands before the `feat(ml)` that needs it.
 - [x] 4.F3 `refactor(core)`: one finite, non-negative check
 - [x] 4.B0 `build`: the extra `torch = ["torch>=2.9"]`, installed by uv from PyTorch's CPU index
 - [x] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the marker `torch`
-- [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
+- [x] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
 - [ ] 4.4 `ml.embed(adata, model, *, batch_size=64, inplace=False)` and the entry-point group `biotapy.embeddings`
 - [ ] 4.4b MGM reference plugin and the extra `mgm`
@@ -2624,7 +2624,7 @@ their own that blocks merges.
   | `pyproject.toml` | the extra `torch`, `[tool.uv]` index and source (4.B0); the mypy override, the marker `torch`, `addopts` (4.5) |
   | `ml/_torch.py` | `to_torch`, `_table`, `_labels` (4.5) |
   | `conftest.py` (root) | the hook that gives `biotapy.ml._torch`'s doctests the marker `torch` (4.5) |
-  | `tests/ml/test_torch.py` | 18 tests marked `torch`, 6 that need no torch (4.5) |
+  | `tests/ml/test_torch.py` | 22 tests marked `torch`, 6 that need no torch (4.5) |
   | `.github/workflows/test.yaml` | the job `ml-extras`, in `check.needs` (4.B1) |
   | `docs/guide/machine_learning.md`, `docs/contributing.md` | "PyTorch" guide section; "PyTorch tests" (4.5, 4.B1) |
 
@@ -2646,19 +2646,19 @@ their own that blocks merges.
   |---|---|---|---|---|---|
   | base `ef82843` | passed (14 hooks) | 1424 passed, 2 skipped, 54 deselected | 36 passed | build succeeded | - |
   | 4.B0 `build` (`fada00b`) | passed | 1425 passed, 2 skipped, 54 deselected | 36 passed | build succeeded | 0 selected, 1481 deselected (no marker yet) |
-  | 4.5 `feat(ml)` (`875110f`) | passed | 1432 passed, 2 skipped, 73 deselected | 36 passed | build succeeded | 19 passed, 1488 deselected |
-  | 4.B1 `ci` (`5350e0e`) | passed | 1434 passed, 2 skipped, 73 deselected | 36 passed | build succeeded | 19 passed, 1490 deselected |
+  | 4.5 `feat(ml)` (`875110f`) | passed | 1432 passed, 2 skipped, 77 deselected | 36 passed | build succeeded | 23 passed, 1488 deselected |
+  | 4.B1 `ci` (`5350e0e`) | passed | 1434 passed, 2 skipped, 77 deselected | 36 passed | build succeeded | 23 passed, 1490 deselected |
 
   - The default run on `ef82843` and after also ends in "2 warnings" or "3
     warnings": scikit-bio's `RuntimeWarning: invalid value encountered in
     divide` from 4.F1's `ancombc2` tests (the count follows Hypothesis's
     draws), not from 4B. On `cdc3b07` the same commits gave 1413, 1420 and
     1422 passed with the same skips and deselections.
-  - The 19 deselected by default in 4.5 are the 18 `torch` tests and
+  - The 23 deselected by default in 4.5 are the 22 `torch` tests and
     `to_torch`'s doctest; the 7 new passes are the 6 tests that need no
     torch and `test_docstring_has_the_contract_sections[bt.ml.to_torch]`.
   - At the 4.5 commit (on `cdc3b07`), with torch installed in the
-    environment, the default run gives the same `1420 passed, 2 skipped, 73
+    environment, the default run gives the same `1420 passed, 2 skipped, 77
     deselected` as without it; `mypy --strict`
     passes with and without torch (`Success: no issues found in 65 source
     files`); the `import-without-extras` command imports every module with
@@ -2668,9 +2668,9 @@ their own that blocks merges.
     skipped`, coverage total 99%; hatch installed no torch.
   - Coverage of `ml/_torch.py`: 100% (45 statements) with the extra
     (`coverage run -m pytest -m "torch or not torch" tests/ml/test_torch.py
-    src/biotapy/ml/_torch.py`, 25 passed); 71% without it (the class and
+    src/biotapy/ml/_torch.py`, 29 passed); 71% without it (the class and
     the import are not reached).
-  - Hypothesis seeds 1, 2 and 3: `18 passed, 6 deselected` each.
+  - Hypothesis seeds 1, 2 and 3: `22 passed, 6 deselected` each.
   - Mutation check: densifying the whole table in `to_torch` fails
     `test_a_large_sparse_table_is_never_dense` (`assert peak < 50_000_000`)
     and `test_references_x_so_a_later_change_shows`.
@@ -2744,7 +2744,7 @@ their own that blocks merges.
   `pytest.DoctestItem`; the item is named `biotapy.ml._torch.to_torch`), so
   the example runs in `ml-extras` and is deselected elsewhere.
   `-W error::UserWarning`: `python -W error -c "import torch; import
-  torch.utils.data"` prints nothing, and the 19 torch items pass under it.
+  torch.utils.data"` prints nothing, and the 23 torch items pass under it.
 - **Resolved: `to_torch`'s signature and items.** `to_torch(adata:
   AnnData, *, label_key: str | None = None, layer: str | None = None) ->
   "Dataset"` (R3.1; AnnData is the widest type, R3.2). Item `i` is a 1-D
@@ -3670,7 +3670,7 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
 - Consumes: the marker `torch` and `-m torch` (4.5); the extra (4.B0).
 - Produces: the job `ml-extras`, required through `check.needs`.
 
-- [ ] **Step 1: Failing tests.** In `tests/test_ci.py`, before
+- [x] **Step 1: Failing tests.** In `tests/test_ci.py`, before
   `test_the_torch_extra_comes_from_the_cpu_index_and_nothing_else_does`:
   ```python
   def test_ml_extras_job_runs_the_torch_marker_on_python_3_13():
@@ -3684,10 +3684,10 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   def test_ml_extras_job_blocks_merges():
       assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/test_ci.py -q` -> `2 failed, 17 passed`
   (`KeyError: 'ml-extras'`; `AssertionError` on `check.needs`).
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   ````diff
   diff --git a/.github/workflows/test.yaml b/.github/workflows/test.yaml
   @@ -212,6 +212,26 @@ jobs:
@@ -3734,12 +3734,12 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   +
    ### Regenerating the R golden files
   ````
-- [ ] **Step 4: Run, expect pass** -
+- [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/test_ci.py -q` -> `19 passed`. Replay the
   job: `uv sync --all-groups` (no torch, as on a new runner), then its two
   commands -> `torch 2.14.1+cpu` (or the newest version on the day) and
-  `19 passed, 1490 deselected`.
-- [ ] **Step 5: Knowledge.** (`generated` and `commit:` as in 4.B0.)
+  `23 passed, 1490 deselected`.
+- [x] **Step 5: Knowledge.** (`generated` and `commit:` as in 4.B0.)
   ```diff
   diff --git a/.knowledge/decisions/optional-heavy-dependencies.md b/.knowledge/decisions/optional-heavy-dependencies.md
   @@ -101,8 +101,8 @@
@@ -3759,7 +3759,7 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   ```markdown
   - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): each extra has its CI job (`r-bridge`, `ml-extras`); [ml](modules/ml.md)'s Verification names the `ml-extras` job; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B1.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add .github/workflows/test.yaml tests/test_ci.py docs/contributing.md \
     .knowledge/decisions/optional-heavy-dependencies.md .knowledge/modules/ml.md \
@@ -3769,8 +3769,8 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1434 passed, 2 skipped, 73 deselected`; `36
-  passed`; `build succeeded`; `19 passed, 1490 deselected`.
+  Expected: prek passed; `1434 passed, 2 skipped, 77 deselected`; `36
+  passed`; `build succeeded`; `23 passed, 1490 deselected`.
 
 ### Checkpoint B - review slice 4B
 - [ ] Review the whole slice (superpowers:requesting-code-review) against
