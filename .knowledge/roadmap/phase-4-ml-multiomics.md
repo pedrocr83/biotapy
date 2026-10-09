@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:52:05Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:03:23Z }
 commit: 6969103
 sources:
   - id: spec
@@ -1275,7 +1275,9 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
       with the same tables.
 
       scikit-bio needs dense tables, so both ``X`` are densified once:
-      8 bytes x samples x features of each modality.
+      8 bytes x samples x features of each modality. The fit and the result also
+      hold dense microbes x metabolites arrays: 8 bytes x microbes x metabolites
+      each.
 
       References
       ----------
@@ -1438,8 +1440,10 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
   +
   +The two modalities must hold the same samples in the same order, which
   +`bt.io.to_mudata` guarantees. A feature or sample that is zero everywhere has
-  +nothing to learn from, so biotapy refuses it and names it; drop it with
-  +`bt.pp.filter_features(..., min_total=1)` first. The fit starts from random
+  +nothing to learn from, so biotapy refuses it and names it. Drop an all-zero
+  +feature with `bt.pp.filter_features(..., min_total=1)`; drop an all-zero sample
+  +with `bt.pp.filter_samples` on that modality, then rebuild the MuData with
+  +`bt.io.to_mudata`. The fit starts from random
   +values, so pass `seed` for the same ranks every time.
   +
    ## Saving

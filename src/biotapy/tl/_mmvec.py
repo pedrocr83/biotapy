@@ -60,7 +60,9 @@ def mmvec(
     with the same tables.
 
     scikit-bio needs dense tables, so both ``X`` are densified once:
-    8 bytes x samples x features of each modality.
+    8 bytes x samples x features of each modality. The fit and the result also
+    hold dense microbes x metabolites arrays: 8 bytes x microbes x metabolites
+    each.
 
     References
     ----------

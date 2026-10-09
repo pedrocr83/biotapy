@@ -59,8 +59,10 @@ not necessarily a negative one.
 
 The two modalities must hold the same samples in the same order, which
 `bt.io.to_mudata` guarantees. A feature or sample that is zero everywhere has
-nothing to learn from, so biotapy refuses it and names it; drop it with
-`bt.pp.filter_features(..., min_total=1)` first. The fit starts from random
+nothing to learn from, so biotapy refuses it and names it. Drop an all-zero
+feature with `bt.pp.filter_features(..., min_total=1)`; drop an all-zero sample
+with `bt.pp.filter_samples` on that modality, then rebuild the MuData with
+`bt.io.to_mudata`. The fit starts from random
 values, so pass `seed` for the same ranks every time.
 
 ## Saving
