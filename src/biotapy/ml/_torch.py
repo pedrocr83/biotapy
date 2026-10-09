@@ -61,11 +61,12 @@ def to_torch(adata: AnnData, *, label_key: str | None = None, layer: str | None 
     A row is densified when its item is read, so a sparse table is never dense
     in full: an item costs 4 bytes x features, and a
     :class:`torch.utils.data.DataLoader` stacks items into batches, shuffling
-    them if asked. The dataset references ``X`` (or the layer) instead of
-    copying it, so changing ``adata`` afterwards changes what it returns; a
-    sparse table in another format than CSR is converted to CSR once. Each
-    item is a new tensor, so editing it leaves ``adata`` unchanged. Label codes
-    follow ``pd.Categorical(adata.obs[label_key]).categories``.
+    them if asked. The dataset holds the table it was given instead of
+    copying it (a sparse table in another format than CSR is converted to CSR
+    once), and reads the labels once, at construction. Do not modify ``adata``
+    while using the dataset. Each item is a new tensor, so editing it leaves
+    ``adata`` unchanged. Label codes follow
+    ``pd.Categorical(adata.obs[label_key]).categories``.
 
     Examples
     --------
