@@ -81,6 +81,26 @@ def test_unknown_model_lists_the_installed_ones(install):
         bt.ml.embed(bt.datasets.toy(), "nope")
 
 
+@pytest.mark.parametrize("model", ["", "a/b", "with space", "x=y", "../up"])
+def test_a_model_name_that_is_not_an_obsm_key_raises(install, model):
+    install("fake", _ones)
+    with pytest.raises(ValueError, match=r"model=.* must be letters, digits, '_', '-' or '\.'"):
+        bt.ml.embed(bt.datasets.toy(), model)
+
+
+@pytest.mark.parametrize("model", ["fake", "My.Model_2", "mgm-v2"])
+def test_a_model_name_of_letters_digits_and_separators_is_accepted(install, model):
+    install(model, _ones)
+    assert bt.ml.embed(bt.datasets.toy(), model).shape == (6, 3)
+
+
+def test_a_package_registering_one_name_twice_is_named_once(install):
+    install("fake", _ones, distribution="only-package")
+    install("fake", _ones, distribution="only-package")
+    with pytest.raises(ValueError, match=r"several packages \(only-package\); uninstall all but one"):
+        bt.ml.embed(bt.datasets.toy(), "fake")
+
+
 def test_two_packages_registering_one_name_raise(install):
     install("fake", _ones, distribution="first-package")
     install("fake", _ones, distribution="second-package")

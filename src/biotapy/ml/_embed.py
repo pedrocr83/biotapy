@@ -1,5 +1,6 @@
 """Sample embeddings from models that plugins register in the entry-point group ``biotapy.embeddings``."""
 
+import re
 from collections.abc import Iterator
 from importlib.metadata import entry_points
 from typing import cast
@@ -23,7 +24,8 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
         relative abundances with ``var["genus"]``).
     model
         The name a plugin registers in the entry-point group
-        ``biotapy.embeddings``. biotapy registers ``"mgm"``.
+        ``biotapy.embeddings``: letters, digits, ``_``, ``-`` or ``.``, so that
+        ``obsm["X_<model>"]`` is a plain key. biotapy registers ``"mgm"``.
     inplace
         Write the embedding to ``obsm[f"X_{model}"]`` and return ``None``.
 
@@ -37,11 +39,11 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     KeyError
         No installed plugin registers ``model``; the message lists those that do.
     TypeError
-        The plugin returns something other than a NumPy array.
+        The plugin returns something other than a plain NumPy array.
     ValueError
-        Two installed packages register ``model``, or the plugin's array is not
-        2-D, float and finite with one row per sample. Errors about the result
-        name the plugin.
+        ``model`` has other characters, two installed packages register
+        ``model``, or the plugin's array is not 2-D, float and finite with one
+        row per sample. Errors about the result name the plugin.
 
     Notes
     -----
@@ -94,13 +96,16 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     >>> bt.ml.embed(genera, "mgm").shape
     (6, 256)
     """
+    if not re.fullmatch(r"[\w.-]+", model):
+        msg = f"model={model!r} must be letters, digits, '_', '-' or '.', so that obsm['X_<model>'] is a plain key"
+        raise ValueError(msg)
     found = [point for point in entry_points(group=GROUP) if point.name == model]
     if not found:
         installed = sorted({point.name for point in entry_points(group=GROUP)})
         msg = f"model={model!r} is not an installed embedding plugin; installed: {installed}"
         raise KeyError(msg)
     if len(found) > 1:
-        packages = sorted(point.dist.name if point.dist else point.value for point in found)
+        packages = sorted({point.dist.name if point.dist else point.value for point in found})
         msg = f"model={model!r} is registered by several packages ({', '.join(packages)}); uninstall all but one"
         raise ValueError(msg)
     # A plugin is not trusted: a wrong row count would pair embeddings with the wrong samples (decisions/embedding-plugins).
