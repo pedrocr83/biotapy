@@ -159,6 +159,13 @@ def test_a_slice_index_raises_and_integer_indices_work(torch, sparse):
 
 
 @pytest.mark.torch
+def test_a_bool_index_raises(torch):
+    dataset = bt.ml.to_torch(bt.datasets.toy())
+    with pytest.raises(TypeError, match="bool"):
+        dataset[True]
+
+
+@pytest.mark.torch
 def test_references_x_so_a_later_change_shows(torch):
     tdata = bt.datasets.toy()
     dataset = bt.ml.to_torch(tdata)

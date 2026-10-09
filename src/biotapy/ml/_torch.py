@@ -98,6 +98,9 @@ def _dataset(table: Table, labels: npt.NDArray[np.int64] | npt.NDArray[np.float3
 
         def __getitem__(self, index: int) -> "Tensor | tuple[Tensor, Tensor]":
             # One row at a time, so the full table is never dense (rules.md R6.2).
+            if isinstance(index, bool):
+                msg = "a bool is not an index; use an integer"
+                raise TypeError(msg)
             position = operator.index(index)  # a slice would silently give one CSR row but several dense rows
             row = table[position].toarray()[0] if isinstance(table, sp.csr_matrix) else table[position]
             features = torch.from_numpy(np.array(row, dtype=np.float32))
