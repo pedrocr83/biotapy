@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-07T12:54:50Z }
-commit: a1b54be
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 sources:
   - id: spec
     resource: ../../plan.md
@@ -119,6 +119,15 @@ and HUMAnN's.
 sample metadata in the global `obs`, pushed into every modality
 (`datasets/_hmp2.py:hmp2`). `fn` verbs take the modality they need;
 `fn.renorm` keeps any other modality (`fn/_renorm.py:renorm`).
+
+## Multi-omics
+Several data types over the same samples are one `MuData`
+([multiomics-as-mudata](/decisions/multiomics-as-mudata.md)). Modality names:
+`taxa`, `function` and `function_by_taxon` (a function table's two, side by
+side), `metabolites`, `host`. `io.to_mudata` builds it from a mapping of
+AnnData, keeping the samples every modality has, in the first modality's
+order, each modality a copy (`io/_mudata.py:to_mudata`). `write_h5mu` drops a
+TreeData modality's tree.
 
 ## Taxonomic profiles (MetaPhlAn)
 `io.read_metaphlan` keeps one feature per leaf clade: a row that no other

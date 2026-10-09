@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T15:43:25Z }
-commit: 6ade269
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 status: stable
 ---
 
@@ -27,11 +27,9 @@ does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
   overflows for a subnormal total); all-zero samples stay all-zero, which differs from phyloseq's
   `transform_sample_counts` (returns `NaN` there).
 - `_transform.py:clr` - centred log-ratio into `layers["clr"]`, through
-  scikit-bio's `clr` on `_transform.py:pseudocounted`.
-- `_transform.py:pseudocounted` - the check-and-densify step `clr` and `philr`
-  share: validates `pseudocount`, rejects negative or non-finite `X`, adds the
-  pseudocount to every value and returns one dense float64 array; `columns=`
-  reorders features while still sparse.
+  scikit-bio's `clr` on `_core._composition.py:pseudocounted`, the
+  check-and-densify step `clr`, `philr` and `ml.CLR` share
+  ([core](/modules/core.md)).
 - `_philr.py:philr` - PhILR balances into `obsm["X_philr"]`, through
   scikit-bio's `tree_basis` on the tree from `_core.get_skbio_tree`.
 - `_philr.py:_binary_tree` - copy of the tree without one-child nodes, children
@@ -84,7 +82,7 @@ does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
   `tests/pp/test_transform_golden.py` and `tests/pp/test_philr_golden.py`). A
   pseudocount of 0 raises when `X` holds a zero. A pseudocount above the
   smallest non-zero value of `X` gives one `UserWarning` through `warn_user`
-  (the default 0.5 meets relative abundances). `_transform.py:pseudocounted`
+  (the default 0.5 meets relative abundances). `_core._composition.py:pseudocounted`
 - `layers["clr"]` is dense float64, because CLR has no zeros; an all-zero
   sample gives an all-zero row. `_transform.py:clr`
 - `obsm["X_philr"]` is a samples x balances `DataFrame`, one column per
@@ -145,10 +143,9 @@ does NOT own any diversity/ordination computation ([tl](/modules/tl.md)).
   sparse basis, which holds one value per tip under each node (113 MB on
   GlobalPatterns' 26 x 19,216). Both state it in their `Notes`.
   `_transform.py:clr`, `_philr.py:philr`.
-- `pseudocounted` lives in `_transform.py` and `_philr.py` imports it from
-  there, which module-boundaries allows inside one subpackage. If slice 3B's
-  `da.linda` reuses it, it moves to `_core` (two or more subpackages,
-  [module-boundaries](/contracts/module-boundaries.md) rule 2).
+- `pseudocounted` lives in `_core/_composition.py` since Phase 4, when
+  `ml.CLR` became its second subpackage
+  ([module-boundaries](/contracts/module-boundaries.md) rule 2).
 - `filter_features` keeps a feature when `present / n_obs >= min_prevalence`;
   phyloseq's `sum(x > 0) >= p * length(x)` can drop it at an exact boundary
   through floating point (7 of 25 samples at `p = 0.28`).

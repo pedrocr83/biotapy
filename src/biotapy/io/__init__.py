@@ -2,6 +2,7 @@ from ._biom import read_biom, write_biom
 from ._dada2 import read_dada2
 from ._humann import read_humann
 from ._metaphlan import read_metaphlan
+from ._mudata import to_mudata
 from ._phyloseq import read_phyloseq
 from ._picrust2 import read_picrust2, read_picrust2_traits
 from ._qiime2 import read_qiime2
@@ -15,5 +16,6 @@ __all__ = [
     "read_picrust2",
     "read_picrust2_traits",
     "read_qiime2",
+    "to_mudata",
     "write_biom",
 ]

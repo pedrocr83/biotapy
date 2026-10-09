@@ -1,5 +1,6 @@
 """Private kernel shared by biotapy subpackages (contracts/module-boundaries)."""
 
+from ._composition import check_pseudocount, pseudocounted
 from ._function import (
     BY_TAXON_KEY,
     FUNCTION_KEY,
@@ -53,6 +54,7 @@ __all__ = [
     "argmax_by",
     "as_csr",
     "as_generator",
+    "check_pseudocount",
     "divide_rows",
     "feature_subset",
     "function_var",
@@ -63,6 +65,7 @@ __all__ = [
     "make_function_mudata",
     "make_treedata",
     "normalize_ranks",
+    "pseudocounted",
     "relabel_tips",
     "replace_features",
     "require_categorical",

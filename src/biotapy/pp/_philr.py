@@ -4,9 +4,7 @@ import pandas as pd
 from skbio import TreeNode
 from skbio.stats.composition import clr, tree_basis
 
-from biotapy._core import TreeData, add_provenance, get_skbio_tree
-
-from ._transform import pseudocounted
+from biotapy._core import TreeData, add_provenance, get_skbio_tree, pseudocounted
 
 
 def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
@@ -91,7 +89,7 @@ def philr(tdata: TreeData, *, pseudocount: float = 0.5) -> TreeData:
     if len(tips) != tdata.n_vars:
         msg = f"pp.philr needs every feature to be a tip of the tree; {tdata.n_vars - len(tips)} feature(s) are not"
         raise ValueError(msg)
-    values = pseudocounted(tdata, pseudocount, func="pp.philr", columns=tdata.var_names.get_indexer(tips))
+    values = pseudocounted(tdata.X, pseudocount, func="pp.philr", columns=tdata.var_names.get_indexer(tips))
     basis, nodes = tree_basis(tree)
     # tree_basis puts a node's first child in the denominator; philr::philr puts it in the numerator.
     balances = pd.DataFrame(-(clr(values) @ basis.T), index=tdata.obs_names, columns=nodes)

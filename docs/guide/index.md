@@ -11,9 +11,11 @@ datasets
 transforms
 aggregation
 function
+multiomics
 filtering
 diversity
 ordination
 differential_abundance
+machine_learning
 plotting
 ```

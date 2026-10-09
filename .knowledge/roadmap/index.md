@@ -1,6 +1,6 @@
 # Active phase
 
-* [Phase 4 - ML and multi-omics (0.4)](phase-4-ml-multiomics.md) - MuData conventions, mmvec, leak-free scikit-learn transformers, embedding plugins, PyTorch loader. **phase_state: in-progress**
+* [Phase 4 - ML and multi-omics (0.4)](phase-4-ml-multiomics.md) - io.to_mudata over shared samples, tl.mmvec through scikit-bio, leak-free scikit-learn transformers (PrevalenceFilter, CLR), a PyTorch Dataset behind the extra torch, an entry-point interface for embedding models with MGM as the reference plugin, a leak-free cross-validation notebook. **phase_state: in-progress**
 
 # Phases
 

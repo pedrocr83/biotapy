@@ -5,8 +5,8 @@ description: io/pp return new objects and never mutate input; tl returns results
 tags: [api, conventions]
 status: stable
 verified: { by: human:pedrocr83, at: 2026-09-27T19:50:20Z }
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-03T16:20:52Z }
-commit: 020efbb
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:11:08Z }
+commit: 8b2751f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -29,9 +29,10 @@ behaviour. Confirmed by the user on 2026-09-26.
 | `tl` with `inplace=True` | `None` | writes to the slot named in [data-model-slots](/contracts/data-model-slots.md) |
 | `fn`, `da` | new object or result `pd.DataFrame` | never |
 | `pl` | `matplotlib.axes.Axes` | never |
+| `ml` estimators (`PrevalenceFilter`, `CLR`) | scikit-learn's protocol: `fit` stores what it learns on the estimator and returns it; `transform` returns a new array | never the data |
 
 Every `tl` function that returns per-sample or per-pair values supports both modes with
-identical semantics; `tl.permanova` is the exception (see Consequences).
+identical semantics; `tl.permanova` and `tl.mmvec` are the exceptions (see Consequences).
 
 # Rejected
 - **scanpy default (`copy=False`, mutate)**: contradicts the spec's purity rule.
@@ -41,7 +42,9 @@ identical semantics; `tl.permanova` is the exception (see Consequences).
 # Consequences
 - Tests assert the input object is unchanged after every `pp`/`tl` call.
 - `tl.permanova` returns a test result, not per-sample or per-pair values, so
-  it has no slot and no `inplace`. No `tl` function takes `key_added` until a
+  it has no slot and no `inplace`. `tl.mmvec` returns a microbes x metabolites
+  table across two modalities, which no slot of one AnnData holds, so it has no
+  `inplace` either. No `tl` function takes `key_added` until a
   use case needs one (rules.md R2.3).
 
 [^spec]: Python Microbiome Toolkit development report, section Function-level implementation

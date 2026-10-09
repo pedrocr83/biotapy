@@ -19,6 +19,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     io.read_picrust2
     io.read_picrust2_traits
     io.read_qiime2
+    io.to_mudata
     io.write_biom
 ```
 
@@ -85,6 +86,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     tl.alpha
     tl.beta
+    tl.mmvec
     tl.nmds
     tl.pcoa
     tl.permanova
@@ -105,6 +107,19 @@ Public functions are listed here as they ship, from Phase 1 onward.
     da.consensus
     da.linda
     da.maaslin3
+```
+
+## Machine learning
+
+```{eval-rst}
+.. module:: biotapy.ml
+.. currentmodule:: biotapy
+
+.. autosummary::
+    :toctree: generated
+
+    ml.CLR
+    ml.PrevalenceFilter
 ```
 
 ## Plots
