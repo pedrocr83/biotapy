@@ -174,5 +174,7 @@ def test_a_file_that_stays_damaged_raises(monkeypatch):
 
     monkeypatch.setitem(_mgm._SHA256_OF, "phylogeny.csv", "0" * 64)
     genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
-    with pytest.raises(ValueError, match=r"phylogeny\.csv does not match its SHA-256 after extracting it again"):
+    with pytest.raises(
+        ValueError, match=r"after extracting it again; delete .*microformer_mgm-0\.5\.8-py3-none-any\.whl\.unzip\n"
+    ):
         bt.ml.embed(genera, "mgm")

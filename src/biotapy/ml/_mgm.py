@@ -86,7 +86,7 @@ def _extracted_files() -> dict[str, Path]:
             files[name].unlink()
         files, damaged = fetch()
     if damaged:
-        msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {cache.abspath}"
+        msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {Path(cache.abspath) / (_WHEEL + '.unzip')}"
         raise ValueError(msg)
     return files
 
