@@ -6,7 +6,7 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:19:42Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:09:13Z }
 commit: 3e15368
 ---
 
@@ -73,17 +73,22 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
   for; a name no package registers raises `KeyError` listing those installed,
   a name two packages register raises `ValueError` naming both.
   `_embed.py:embed`.
-- `embed` trusts no plugin: the result must be a NumPy array, 2-D with one
-  row per sample and at least one column, float and finite, or it raises
-  naming the plugin, before anything is written. `_embed.py:embed`.
+- `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
+  a masked array or a matrix), 2-D with one row per sample and at least one
+  column, float and finite, or it raises naming the plugin, before anything
+  is written; a result that shares memory with any of the AnnData's arrays is
+  copied. A plugin's own exception keeps its type and gains a note naming the
+  plugin. The model name must be letters, digits, `_`, `-` or `.`.
+  `_embed.py:embed`, `_embed.py:_checked`.
 - MGM's tokens are MGM's own (`mgm/src/MicroCorpus.py`, 0.5.8): a genus is
   read with MGM's regex `g__[A-Za-z0-9_]+` on `"g__" + genus`; features of
   one token are summed (`_core.sum_by`); relative abundance is taken over
   MGM's genera only, as MGM drops the others before dividing; a genus is kept
   when its standardised value `(rel - mean) / std` exceeds that of zero
   abundance, and the kept ones are sorted by it with pandas' own
-  `sort_values(ascending=False)` on the vocabulary-ordered series, so ties
-  fall as in MGM; `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
+  `sort_values(ascending=False)` on the vocabulary-ordered series (the order
+  of tied genera follows numpy's quicksort, which can differ from MGM's numpy
+  1.24 environment; GlobalPatterns and enterotype have no such tie); `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
   lost past 510 genera). Vocabulary ids are the position in `phylogeny.csv`
   plus 4 (`<pad>`, `<mask>`, `<bos>`, `<eos>`); the pickled tokenizer is
   never loaded. `_mgm.py:_sentences`.

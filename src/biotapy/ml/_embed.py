@@ -44,6 +44,11 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
         ``model`` has other characters, two installed packages register
         ``model``, or the plugin's array is not 2-D, float and finite with one
         row per sample. Errors about the result name the plugin.
+    Exception
+        What the plugin itself raises passes through with its type and a note
+        that names the plugin. ``"mgm"`` raises ``ImportError`` without the
+        extra, ``KeyError`` without ``var["genus"]`` and ``ValueError`` for
+        negative or non-finite ``X``.
 
     Notes
     -----
@@ -78,7 +83,8 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     genus is embedded from ``<bos> <eos>``, with a warning naming it. The
     embedding is the mean of the model's last hidden layer over the sample's
     tokens (256 float32 values), the mean pooling MGM's authors use for the
-    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6. The
+    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6 (up to about 2e-4 on the
+    first call of a process, on a CPU with more than four threads). The
     model runs on the CPU, one sample at a time: batches were slower there and
     needed up to 1.5 GB more memory. Cite Zhang et al. (2026) when you publish
     results that use it.

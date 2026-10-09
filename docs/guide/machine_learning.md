@@ -170,8 +170,9 @@ model for microbiome analyses in diverse contexts. *Adv Sci* 13:e13333.
 
 A model reads what it was trained on, so filter first: a later feature change
 (`bt.pp.filter_features`, `bt.pp.tax_glom`) drops `obsm`, and the embedding
-with it. An embedding is not fitted to your samples, so computing it before a
-cross-validation split leaks nothing.
+with it. MGM embeds each sample from that sample alone, so computing its
+embedding before a cross-validation split leaks nothing. A plugin that
+normalises across samples would leak; check how yours works.
 
 ### Adding a model
 

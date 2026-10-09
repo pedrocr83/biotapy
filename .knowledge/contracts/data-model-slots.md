@@ -4,8 +4,8 @@ title: Data-model slots
 description: Which AnnData/TreeData slot holds what, the exact result keys, the x_kind and provenance conventions, and which slots feature-changing operations drop.
 tags: [data-model, api]
 status: stable
-paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:13:30Z }
+paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**", "src/biotapy/ml/**"]
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:09:13Z }
 commit: 5b73a1b
 sources:
   - id: spec
