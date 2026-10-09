@@ -1,3 +1,4 @@
+import pickle
 import sys
 import tracemalloc
 
@@ -109,6 +110,18 @@ def test_an_item_does_not_share_memory_with_a_dense_float32_layer(torch):
     before = adata.layers["clr"].copy()
     bt.ml.to_torch(adata, layer="clr")[0][:] = 99
     np.testing.assert_array_equal(adata.layers["clr"], before)
+
+
+@pytest.mark.torch
+def test_the_dataset_survives_pickling_and_spawned_workers(torch):
+    # spawn and forkserver (macOS, Windows, Linux on Python 3.14) pickle the dataset to send it to each worker.
+    dataset = bt.ml.to_torch(bt.datasets.toy(), label_key="group")
+    clone = pickle.loads(pickle.dumps(dataset))
+    assert len(clone) == 6 and torch.equal(clone[4][0], dataset[4][0]) and int(clone[4][1]) == int(dataset[4][1])
+    workers = torch.utils.data.DataLoader(dataset, batch_size=2, num_workers=2, multiprocessing_context="spawn")
+    alone = torch.utils.data.DataLoader(dataset, batch_size=2)
+    for (rows, labels), (expected_rows, expected_labels) in zip(workers, alone, strict=True):
+        assert torch.equal(rows, expected_rows) and torch.equal(labels, expected_labels)
 
 
 @pytest.mark.torch

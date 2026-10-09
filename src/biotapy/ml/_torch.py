@@ -77,6 +77,11 @@ def to_torch(adata: AnnData, *, label_key: str | None = None, layer: str | None 
     """
     table = _table(adata, layer)
     labels = None if label_key is None else _labels(adata, label_key)
+    return _dataset(table, labels)
+
+
+def _dataset(table: Table, labels: npt.NDArray[np.int64] | npt.NDArray[np.float32] | None) -> "Dataset":
+    """The dataset over a table and its labels; module-level so the dataset pickles for DataLoader workers."""
     # torch is the extra `torch`, so the Dataset subclass is defined only once it imports (rules.md R4.6, R3.6);
     # mypy treats torch as Any (pyproject.toml), so the subclassing needs the ignore with or without torch installed.
     torch: Any = import_optional("torch", extra="torch")
@@ -91,6 +96,10 @@ def to_torch(adata: AnnData, *, label_key: str | None = None, layer: str | None 
             row = table[index].toarray()[0] if isinstance(table, sp.csr_matrix) else table[index]
             features = torch.from_numpy(np.array(row, dtype=np.float32))
             return features if targets is None else (features, targets[index])
+
+        def __reduce__(self) -> tuple[Any, tuple[Table, Any]]:
+            # A class defined in a function cannot be pickled, which spawn and forkserver workers need.
+            return (_dataset, (table, labels))
 
     return AnnDataDataset()
 
