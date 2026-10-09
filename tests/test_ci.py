@@ -71,6 +71,13 @@ def test_ml_extras_job_runs_the_torch_marker_on_python_3_13():
     assert "uv run --group test --extra torch pytest -m torch" in runs
 
 
+def test_the_sdist_ships_the_root_conftest_that_marks_the_torch_doctests():
+    sdist = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["hatch"]["build"]["targets"][
+        "sdist"
+    ]
+    assert "/conftest.py" in sdist["include"]
+
+
 def test_ml_extras_job_blocks_merges():
     assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
 

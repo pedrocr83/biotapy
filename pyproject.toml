@@ -93,6 +93,7 @@ doc = [
 # the repository itself (CI config, knowledge bundle, staleness script): they read those files.
 build.targets.sdist.include = [
   "/CHANGELOG.md",
+  "/conftest.py",
   "/docs",
   "/src/biotapy",
   "/tests",

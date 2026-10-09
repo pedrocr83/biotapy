@@ -1,8 +1,9 @@
 """Fixtures shared by `tests/` and the `src/biotapy` doctests (both testpaths in pyproject.toml).
 
 Only conftest.py here is common to both trees; one under `src/biotapy/` would ship in the
-wheel (rules.md R4), and this file is left out of both the wheel (hatchling packages only
-`src/biotapy`) and the sdist (its explicit `build.targets.sdist.include` list, pyproject.toml).
+wheel (rules.md R4), and this file is left out of the wheel (hatchling packages only
+`src/biotapy`) and shipped in the sdist (`build.targets.sdist.include`, pyproject.toml), whose
+tests need its marker hook for the `to_torch` doctest.
 """
 
 from collections.abc import Iterator
