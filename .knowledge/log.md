@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4, slice 4C)
+- **Update**: [core](modules/core.md) owns `_download.py:make_pooch`, the one download cache (`BIOTAPY_DATA_DIR` or pooch's per-user cache), moved out of `datasets/_remote.py` so `ml`'s MGM weights (4.4b) use the same cache; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.C0.
+
 ## 2026-10-09 (Phase 4, slice 4C plan)
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4C into full TDD steps (4.C0 `_core.make_pooch`, 4.C1 the extra `mgm`, 4.4 `ml.embed`, 4.4b MGM, Checkpoint C), approved by the user with decisions 27-35; design notes 8, 10 and 11 lose their [UNVERIFIED]; the dependencies table, review focus, exit gate, risks, slice 4D outline and self-review follow.
 

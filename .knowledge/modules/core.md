@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:03:53Z }
+commit: c55853d
 status: stable
 ---
 
@@ -19,7 +19,8 @@ and lineage/rank-column parsing (`_taxonomy.py`), the `x_kind`/provenance/
 construction and the HUMAnN special-row constants (`_function.py`), TreeData construction and the only
 import of `treedata`/`networkx` in the package (`_tree.py`), the single
 user-facing warning entry point (`_warnings.py`), lazy optional-dependency
-import (`_optional.py`), and the single RNG entry point (`_rng.py`).
+import (`_optional.py`), the single RNG entry point (`_rng.py`), and the one
+download cache (`_download.py`).
 
 Does NOT own any public verb (`bt.pp.*`, `bt.tl.*`, ...) - those live one
 layer up, per [module-boundaries](/contracts/module-boundaries.md). `_core`
@@ -135,6 +136,12 @@ none of them back.
   `ImportError` that names the extra to install.
 - `_rng.py:as_generator` - the single entry point that turns a seed into a
   `np.random.Generator` without touching global RNG state.
+- `_download.py:make_pooch` - the `pooch.Pooch` every run-time download goes
+  through: `BIOTAPY_DATA_DIR` if set, else `pooch.os_cache("biotapy")`.
+  Used by `datasets/_remote.py` (phyloseq, ENZYME and HMP2 files); every
+  later download goes through it too, so all of them land in one cache that
+  CI and tests point elsewhere with one variable. Building the pooch
+  downloads and creates nothing; `fetch` does.
 
 # Invariants
 

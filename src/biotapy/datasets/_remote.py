@@ -1,11 +1,10 @@
 """Datasets downloaded once and cached with pooch: phyloseq's examples, the ENZYME files and the HMP2 tables."""
 
 from functools import cache
-from typing import cast
 
 import pooch
 
-from biotapy._core import TreeData
+from biotapy._core import TreeData, make_pooch
 from biotapy.io import read_phyloseq
 
 # Pinned to one phyloseq commit so the SHA-256 hashes stay valid.
@@ -35,14 +34,7 @@ _URLS = {
 
 @cache
 def _pooch() -> pooch.Pooch:
-    # BIOTAPY_DATA_DIR overrides the per-user cache directory. pooch ships no py.typed
-    # marker, so mypy --strict infers Any for the untyped `create`; cast it back to Pooch.
-    return cast(
-        pooch.Pooch,
-        pooch.create(
-            path=pooch.os_cache("biotapy"), base_url=_BASE_URL, registry=_REGISTRY, urls=_URLS, env="BIOTAPY_DATA_DIR"
-        ),
-    )
+    return make_pooch(_BASE_URL, _REGISTRY, urls=_URLS)
 
 
 def _fetch(name: str) -> str:
