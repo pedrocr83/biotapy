@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:48:34Z }
-commit: d23cd79
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:52:05Z }
+commit: 6969103
 sources:
   - id: spec
     resource: ../../plan.md
@@ -478,7 +478,7 @@ lands before the `feat(ml)` that needs it.
 
 # Tasks (checklist)
 - [x] 4.1 `io.to_mudata(modalities) -> MuData` and the multi-omics decision
-- [ ] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
+- [x] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
 - [ ] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
 - [ ] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
 - [ ] Checkpoint A
@@ -1080,7 +1080,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
   metabolites: str = "metabolites", seed: int | np.random.Generator | None =
   None) -> pd.DataFrame` (microbes x metabolites, rows sum to 0).
 
-- [ ] **Step 1: Failing tests.** Create `tests/tl/test_mmvec.py`:
+- [x] **Step 1: Failing tests.** Create `tests/tl/test_mmvec.py`:
   ```python
   import numpy as np
   import pandas as pd
@@ -1209,10 +1209,10 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
       ranks = bt.tl.mmvec(bt.io.to_mudata({"taxa": taxa, "metabolites": metabolites}), seed=0)
       np.testing.assert_allclose(ranks.sum(axis=1), 0.0, atol=1e-9)
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/tl/test_mmvec.py -q` -> `13 failed`
   (`AttributeError: module 'biotapy.tl' has no attribute 'mmvec'`).
-- [ ] **Step 3: Implement.** Create `src/biotapy/tl/_mmvec.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/tl/_mmvec.py`:
   ```python
   """mmvec: which metabolites co-occur with which microbes, over samples of both."""
 
@@ -1335,11 +1335,11 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
 
   __all__ = ["alpha", "beta", "mmvec", "nmds", "pcoa", "permanova", "unifrac"]
   ```
-- [ ] **Step 4: Run, expect pass** -
+- [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/tl/test_mmvec.py src/biotapy/tl/_mmvec.py -q -W error::UserWarning`
   -> `14 passed`; the property test also under `--hypothesis-seed=1`, `2`,
   `3`.
-- [ ] **Step 5: Docs and knowledge.**
+- [x] **Step 5: Docs and knowledge.**
   ```diff
   diff --git a/.knowledge/decisions/multiomics-as-mudata.md b/.knowledge/decisions/multiomics-as-mudata.md
   index 23c6b1c..b88d084 100644
@@ -1450,7 +1450,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
   ```markdown
   - **Update**: [pure-by-default](decisions/pure-by-default.md): `tl.mmvec` returns a table and has no `inplace`, like `tl.permanova`; [multiomics-as-mudata](decisions/multiomics-as-mudata.md) names `tl.mmvec` as the first function that pairs modalities; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.2.
   ```
-- [ ] **Step 6: Gate and commit**
+- [x] **Step 6: Gate and commit**
   ```bash
   git add src/biotapy/tl/_mmvec.py src/biotapy/tl/__init__.py tests/tl/test_mmvec.py \
     docs/guide/multiomics.md docs/api.md .knowledge/decisions/pure-by-default.md \

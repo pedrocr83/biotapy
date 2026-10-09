@@ -4,9 +4,9 @@ title: Multi-omics data is one MuData with fixed modality names
 description: Several data types over the same samples are one MuData whose modalities are named taxa, function, function_by_taxon, metabolites and host; io.to_mudata keeps only the samples every modality has; a TreeData modality loses its tree in h5mu.
 tags: [io, mudata, multiomics]
 status: draft
-paths: ["src/biotapy/io/_mudata.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:48:34Z }
-commit: d23cd79
+paths: ["src/biotapy/io/_mudata.py", "src/biotapy/tl/_mmvec.py"]
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T00:52:00Z }
+commit: 6969103
 sources:
   - id: spec
     resource: ../../plan.md
@@ -27,8 +27,8 @@ modalities whose samples only partly overlap: its global `obs` is the union and
 - Modality names: `taxa` (a TreeData or AnnData of taxa), `function` and
   `function_by_taxon` side by side (a function table's two modalities,
   unchanged), `metabolites` and `host`. Functions that read a modality take
-  its name as a keyword defaulting to these. Other names are allowed;
-  nothing checks them.
+  its name as a keyword defaulting to these (`tl.mmvec(microbes="taxa",
+  metabolites="metabolites")`). Other names are allowed; nothing checks them.
 - `io.to_mudata(modalities)` takes a mapping of name -> AnnData, keeps the
   samples every modality has in the first modality's order, copies each
   modality and warns once naming how many samples each loses. A MuData value
@@ -52,7 +52,8 @@ modalities whose samples only partly overlap: its global `obs` is the union and
 
 # Consequences
 - Every function that pairs modalities checks that they hold the same samples
-  in the same order and names `io.to_mudata` as the fix.
+  in the same order and names `io.to_mudata` as the fix (`tl.mmvec`,
+  `tl/_mmvec.py`).
 - `datasets.hmp2` already follows the names (`function`,
   `function_by_taxon`, `taxa`).
 

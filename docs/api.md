@@ -86,6 +86,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     tl.alpha
     tl.beta
+    tl.mmvec
     tl.nmds
     tl.pcoa
     tl.permanova

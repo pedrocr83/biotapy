@@ -40,6 +40,29 @@ Each modality is a copy, so the tables you passed are unchanged.
 The global `mdata.obs` starts without columns; `mdata.pull_obs()` gathers
 the modalities' sample metadata into it.
 
+## Microbes and metabolites: mmvec
+
+`bt.tl.mmvec` fits mmvec (Morton et al. 2019) through scikit-bio: it learns,
+from samples with both tables, how likely each metabolite is given each
+microbe.
+
+```python
+ranks = bt.tl.mmvec(mdata, seed=0)  # microbes="taxa", metabolites="metabolites"
+ranks.loc["f6"].sort_values(ascending=False).head()  # metabolites most tied to f6
+```
+
+`ranks` has one row per microbe and one column per metabolite, holding the log
+probability of the metabolite given the microbe, centred so each row sums to
+0. Compare values within a row: a large value means the metabolite tends to be
+abundant in samples where that microbe is. A low value means no association,
+not necessarily a negative one.
+
+The two modalities must hold the same samples in the same order, which
+`bt.io.to_mudata` guarantees. A feature or sample that is zero everywhere has
+nothing to learn from, so biotapy refuses it and names it; drop it with
+`bt.pp.filter_features(..., min_total=1)` first. The fit starts from random
+values, so pass `seed` for the same ranks every time.
+
 ## Saving
 
 `mdata.write_h5mu("study.h5mu")` saves every modality, but a TreeData
