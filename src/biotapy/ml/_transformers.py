@@ -60,6 +60,11 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
     def fit(self, X: Table, y: object = None) -> Self:
         """Learn each feature's prevalence in ``X``, samples x features."""
         X = validate_data(self, X, accept_sparse="csr")
+        if isinstance(self.min_prevalence, bool) or not isinstance(
+            self.min_prevalence, int | float | np.integer | np.floating
+        ):
+            msg = f"min_prevalence must be a real number, got {self.min_prevalence!r}"
+            raise TypeError(msg)
         if not 0 <= self.min_prevalence <= 1:
             msg = f"min_prevalence must be between 0 and 1, got {self.min_prevalence}"
             raise ValueError(msg)

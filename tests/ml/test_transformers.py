@@ -95,6 +95,12 @@ def test_prevalence_filter_with_nothing_kept_prints_the_threshold_unrounded():
         bt.ml.PrevalenceFilter(min_prevalence=0.999).fit(np.array([[1, 0], [0, 1]]))
 
 
+@pytest.mark.parametrize("value", [True, "0.5", None])
+def test_prevalence_filter_wrong_type_raises(value):
+    with pytest.raises(TypeError, match="min_prevalence must be a real number"):
+        bt.ml.PrevalenceFilter(min_prevalence=value).fit(_toy_x())
+
+
 def test_clr_equals_pp_clr():
     tdata = bt.datasets.toy()
     out = bt.ml.CLR().fit_transform(tdata.X)
