@@ -128,3 +128,35 @@ def test_embeds_global_patterns_end_to_end():
     neighbour = NearestNeighbors(n_neighbors=2, metric="cosine").fit(embedding).kneighbors(embedding)[1][:, 1]
     types = tdata.obs["SampleType"].to_numpy()
     assert (types[neighbour] == types).all()
+
+
+def _cached_file(name):
+    """The file ``name`` that MGM's wheel was extracted to, in biotapy's data cache."""
+    from biotapy.ml import _mgm
+
+    cache = _mgm.make_pooch(_mgm._BASE_URL, {_mgm._WHEEL: _mgm._SHA256})
+    paths = cache.fetch(_mgm._WHEEL, processor=_mgm.pooch.Unzip(members=_mgm._MEMBERS))
+    return next(Path(path) for path in paths if Path(path).name == name)
+
+
+@pytest.mark.mgm
+@pytest.mark.parametrize("name", ["phylogeny.csv", "config.json"])
+def test_a_damaged_extracted_file_is_extracted_again(name):
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    expected = bt.ml.embed(genera, "mgm")
+    path = _cached_file(name)
+    original = path.read_bytes()
+    path.write_bytes(original[: len(original) // 2])
+    result = bt.ml.embed(genera, "mgm")
+    assert path.read_bytes() == original
+    np.testing.assert_allclose(result, expected, rtol=0, atol=ATOL)
+
+
+@pytest.mark.mgm
+def test_a_file_that_stays_damaged_raises(monkeypatch):
+    from biotapy.ml import _mgm
+
+    monkeypatch.setitem(_mgm._SHA256_OF, "phylogeny.csv", "0" * 64)
+    genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+    with pytest.raises(ValueError, match=r"phylogeny\.csv does not match its SHA-256 after extracting it again"):
+        bt.ml.embed(genera, "mgm")

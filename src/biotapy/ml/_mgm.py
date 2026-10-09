@@ -1,5 +1,7 @@
 """MGM, the reference embedding plugin: entry point ``mgm`` in ``biotapy.embeddings``, extra ``mgm``."""
 
+import hashlib
+import logging
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
@@ -23,6 +25,13 @@ _MEMBERS = [
     "mgm/resources/general_model/pytorch_model.bin",
     "mgm/resources/phylogeny.csv",
 ]
+# SHA-256 of each extracted file: Unzip re-extracts only a missing member, so a truncated one would stay.
+_SHA256_OF = {
+    "config.json": "88e4940036404ca90d2b1a79f38948efd419454484eb394196edeb9957fec499",
+    "pytorch_model.bin": "7a83b442dcb0cbe2a4248ea9922de58e15edfa3a1ad71d07519dc8594f4511b8",
+    "phylogeny.csv": "016b8264eed155b134ab55e387e8f21c7e46241bf987a83df49d6604c6b378db",
+}
+_LOG = logging.getLogger(__name__)
 # How MGM reads a genus from a column name (mgm/src/MicroCorpus.py, MicroCorpus._preprocess).
 _TOKEN = r"(g__[A-Za-z0-9_]+)"
 # MGM's vocabulary: <pad>, <mask>, <bos>, <eos>, then phylogeny.csv's genera in file order (mgm/resources/MicroTokenizer.pkl).
@@ -41,8 +50,7 @@ def embed(adata: AnnData) -> npt.NDArray[np.float32]:
         raise ValueError(msg)
     torch: Any = import_optional("torch", extra="mgm")
     transformers: Any = import_optional("transformers", extra="mgm")
-    paths = make_pooch(_BASE_URL, {_WHEEL: _SHA256}).fetch(_WHEEL, processor=pooch.Unzip(members=_MEMBERS))
-    files = {Path(path).name: Path(path) for path in paths}  # Unzip lists them in os.walk order
+    files = _extracted_files()
     # anndata types var columns as Series | DataArray (its lazy variant); the data model guarantees a Series.
     genus = cast("pd.Series[str]", adata.var["genus"])
     sentences = _sentences(adata, genus, pd.read_csv(files["phylogeny.csv"], index_col=0))
@@ -59,6 +67,28 @@ def embed(adata: AnnData) -> npt.NDArray[np.float32]:
         for row, sentence in enumerate(sentences):
             out[row] = model(input_ids=torch.from_numpy(sentence)[None]).last_hidden_state[0].mean(0).numpy()
     return out
+
+
+def _extracted_files() -> dict[str, Path]:
+    """MGM's three files from the cached wheel, extracted again once if one does not match its SHA-256."""
+    cache = make_pooch(_BASE_URL, {_WHEEL: _SHA256})
+
+    def fetch() -> tuple[dict[str, Path], list[str]]:
+        paths = cache.fetch(_WHEEL, processor=pooch.Unzip(members=_MEMBERS))
+        files = {Path(path).name: Path(path) for path in paths}  # Unzip lists them in os.walk order
+        digest = {name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in files.items()}
+        return files, [name for name, value in digest.items() if value != _SHA256_OF[name]]
+
+    files, damaged = fetch()
+    if damaged:
+        _LOG.warning("extracting %s again: it does not match its SHA-256", ", ".join(damaged))
+        for name in damaged:
+            files[name].unlink()
+        files, damaged = fetch()
+    if damaged:
+        msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {cache.abspath}"
+        raise ValueError(msg)
+    return files
 
 
 def _sentences(adata: AnnData, genus: "pd.Series[str]", phylogeny: pd.DataFrame) -> list[npt.NDArray[np.int64]]:
