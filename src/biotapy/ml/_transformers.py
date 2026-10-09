@@ -68,7 +68,7 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
         prevalence = present / matrix.shape[0]
         if not (prevalence >= self.min_prevalence).any():
             msg = (
-                f"no feature is non-zero in at least {self.min_prevalence:.0%} of the "
+                f"no feature is non-zero in at least min_prevalence={self.min_prevalence} of the "
                 f"{matrix.shape[0]} samples; lower min_prevalence"
             )
             raise ValueError(msg)

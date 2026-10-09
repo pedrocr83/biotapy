@@ -78,7 +78,7 @@ def test_prevalence_filter_out_of_range_raises(value):
 
 
 def test_prevalence_filter_with_nothing_kept_raises():
-    with pytest.raises(ValueError, match="no feature is non-zero in at least 60% of the 2 samples"):
+    with pytest.raises(ValueError, match=r"no feature is non-zero in at least min_prevalence=0\.6 of the 2 samples"):
         bt.ml.PrevalenceFilter(min_prevalence=0.6).fit(np.array([[1, 0], [0, 0]]))
 
 
@@ -88,6 +88,11 @@ def test_prevalence_filter_stays_unfitted_when_nothing_is_kept():
         selector.fit(np.array([[1, 0], [0, 0]]))
     # validate_data has already set n_features_in_, so check_is_fitted would pass; prevalence_ is the learned state.
     assert not hasattr(selector, "prevalence_")
+
+
+def test_prevalence_filter_with_nothing_kept_prints_the_threshold_unrounded():
+    with pytest.raises(ValueError, match=r"min_prevalence=0\.999 "):
+        bt.ml.PrevalenceFilter(min_prevalence=0.999).fit(np.array([[1, 0], [0, 1]]))
 
 
 def test_clr_equals_pp_clr():
