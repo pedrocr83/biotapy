@@ -86,7 +86,7 @@ def mmvec(
             "align them with bt.io.to_mudata"
         )
         raise ValueError(msg)
-    return cast("pd.DataFrame", skbio_mmvec(x_table, y_table, seed=rng).ranks)
+    return cast("pd.DataFrame", skbio_mmvec(x_table, y_table, seed=rng, output_format="pandas").ranks)
 
 
 def _table(mdata: MuData, key: str, *, argument: str) -> pd.DataFrame:

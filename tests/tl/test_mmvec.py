@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
+import skbio
 from anndata import AnnData
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -52,6 +53,17 @@ def test_modality_names_are_arguments():
     pd.testing.assert_frame_equal(
         bt.tl.mmvec(renamed, microbes="microbes", metabolites="compounds", seed=0), bt.tl.mmvec(mdata, seed=0)
     )
+
+
+def test_ranks_stay_a_labelled_dataframe_whatever_scikit_bio_outputs():
+    previous = skbio.get_config("table_output")
+    skbio.set_config("table_output", "numpy")
+    try:
+        ranks = bt.tl.mmvec(_toy_mudata(), seed=0)
+    finally:
+        skbio.set_config("table_output", previous)
+    assert isinstance(ranks, pd.DataFrame)
+    assert ranks.columns.tolist() == ["m_prev", "m_faec", "m_flat"]
 
 
 def test_keeps_the_input(assert_unchanged):
