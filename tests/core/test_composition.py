@@ -42,6 +42,11 @@ def test_pseudocount_above_the_smallest_value_warns_naming_it():
         pseudocounted(values, 0.5, func="ml.CLR")
 
 
+def test_pseudocount_warning_ends_with_the_calling_step():
+    with pytest.warns(UserWarning, match=r"on their scale \(ml\.CLR\)$"):
+        pseudocounted(np.array([[0.0, 0.2], [0.8, 0.5]]), 0.5, func="ml.CLR")
+
+
 def test_zero_pseudocount_with_a_zero_in_x_raises():
     with pytest.raises(ValueError, match="X holds zeros, whose logarithm is undefined; pass pseudocount > 0 to ml.CLR"):
         pseudocounted(np.array([[0.0, 2.0]]), 0, func="ml.CLR")

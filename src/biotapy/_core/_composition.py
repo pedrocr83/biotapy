@@ -36,7 +36,7 @@ def pseudocounted(
     if positive.size and pseudocount > positive.min():
         warn_user(
             f"pseudocount={pseudocount} is larger than the smallest non-zero value in X ({positive.min():.3g}), "
-            "so it swamps the rarest features; for relative abundances pass a pseudocount on their scale"
+            f"so it swamps the rarest features; for relative abundances pass a pseudocount on their scale ({func})"
         )
     # scikit-bio's log-ratio functions need dense input (rules.md R6.2): one dense copy of X.
     values = matrix.toarray()
