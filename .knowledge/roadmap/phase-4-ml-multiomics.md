@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:43:37Z }
-commit: eeaa817
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2400,15 +2400,25 @@ so they add no row).
   `1410 passed, 2 skipped, 54 deselected`; `36 passed`.
 
 ### Checkpoint A - review slice 4A
-- [ ] Review the whole slice (superpowers:requesting-code-review) against
+- [x] Review the whole slice (superpowers:requesting-code-review) against
   every contract, pure-by-default, the Phase 4 and slice 4A review focus;
   then a fix pass, one commit per finding, each with a test. Record the
   counts and the fix range here.
-- [ ] Run the slice's checks: `uv run --group test pytest -q -W error::UserWarning`
+  - Review: 0 Critical / 0 Important / 5 Minor (+3 nits). Fix pass
+    `6ea27aa..9883786` (6 commits). Scoped re-review: all 6 addressed, no new
+    findings.
+- [x] Run the slice's checks: `uv run --group test pytest -q -W error::UserWarning`
   and `uv run --group test pytest -q -m "golden or network"`; record both
   counts at the last commit; `coverage run -m pytest` then `coverage
   report` for the six slice files (100% each on the prototype).
-- [ ] Knowledge (codebase-map templates; R12.2-R12.4):
+  - At `9883786`: `pytest -q -W error::UserWarning` 1410 passed, 2 skipped, 54
+    deselected; `-m "golden or network"` 36 passed.
+  - `coverage run -m pytest tests/io/test_mudata.py tests/tl/test_mmvec.py
+    tests/core/test_composition.py tests/ml` (162 passed, 2 skipped), then
+    `coverage report` on `io/_mudata.py`, `tl/_mmvec.py`,
+    `_core/_composition.py`, `ml/_transformers.py`, `ml/__init__.py` and
+    `_core/__init__.py`: 100% each (161 statements, 0 missed).
+- [x] Knowledge (codebase-map templates; R12.2-R12.4):
   - **Create `.knowledge/modules/ml.md`** (`type: Module`, `paths:
     ["src/biotapy/ml/**"]`): Responsibility (scikit-learn transformers now;
     `to_torch` and `embed` from 4B/4C); Entry points

@@ -5,8 +5,8 @@ description: Pure transforms over AnnData/TreeData that scale abundances per sam
 resource: /src/biotapy/pp/
 paths: ["src/biotapy/pp/**"]
 tags: [pp]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:06:30Z }
-commit: 9663824
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 status: stable
 ---
 

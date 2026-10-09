@@ -5,8 +5,8 @@ description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 status: stable
 ---
 
@@ -20,7 +20,8 @@ a function table, a MuData):
 TreeData with no tree), `read_picrust2` (`_picrust2.py`, a MuData) and
 `read_picrust2_traits` (`_picrust2.py`, a DataFrame), plus two private helpers shared across
 readers: the checked join (`_join.py`) and the strict TSV reading of the three
-function-table readers (`_table.py`). Does
+function-table readers (`_table.py`). `to_mudata` (`_mudata.py`) reads no file:
+it combines tables already in memory into one MuData. Does
 NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 [datasets](/modules/datasets.md), Task 1.11): those call `read_phyloseq`.
 
@@ -56,6 +57,10 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   table to an ASVs x functions DataFrame. `_picrust2.py:_read` and
   `_picrust2.py:_check_first_cell` are their private header reading and
   wrong-table check.
+- `_mudata.py:to_mudata` - a mapping of modality name -> AnnData to one MuData
+  of the samples every modality has, in the first modality's order
+  ([multiomics-as-mudata](/decisions/multiomics-as-mudata.md)).
+  `_mudata.py:_check_modality` is its private per-entry check.
 - `_table.py:_leading_lines` / `_table.py:_header` / `_table.py:_read_table` /
   `_table.py:_numbers` - private; the one strict reading of the tab-separated
   tables, shared by the three readers above (the structure in `_read_table`,
@@ -160,6 +165,22 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   spelling `"NA"` are still normalized to NaN downstream by
   `_core.normalize_ranks`, not by `_read_table` itself.
 
+- `to_mudata` keeps the intersection of the modalities' sample ids
+  (`Index.intersection(sort=False)`, so the first modality's order), never
+  MuData's union. Dropped samples give one `UserWarning` naming how many each
+  modality loses; no shared sample, an empty mapping or a repeated sample id
+  raises `ValueError`. A non-string or empty name, or a non-AnnData value (a
+  MuData function table included, which must go in as `{**table.mod, ...}`),
+  raises `TypeError`. Each modality is `mod[shared].copy()`, so the result
+  shares nothing with the inputs (rules.md R6.5) and a TreeData stays a
+  TreeData. `_mudata.py:to_mudata`, `_mudata.py:_check_modality`.
+- `to_mudata` writes no `uns["biotapy"]["provenance"]` entry:
+  `_core.add_provenance` creates `uns["biotapy"]` with `x_kind="counts"` when
+  it is missing, which would mislabel a metabolite table. Modality names are
+  documented, not enforced. R equivalents: `MultiAssayExperiment::MultiAssayExperiment`
+  with `MultiAssayExperiment::intersectColumns`, named in the docstring.
+  `_mudata.py:to_mudata`; [phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md), design note 2.
+
 # Dependencies
 
 - [core](/modules/core.md): `make_function_mudata`, `XKind`, `make_treedata`, `infer_x_kind`, `split_lineage`,
@@ -174,10 +195,16 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 
 # Verification
 
-`uv run --group test pytest tests/io -q` plus `uvx prek run --all-files`.
+`uv run --group test pytest tests/io -q` (`tests/io/test_mudata.py` for `to_mudata`) plus `uvx prek run --all-files`.
 
 # Gotchas
 
+- `MuData.write_h5mu` drops a TreeData modality's `vart` and reads it back as
+  an AnnData; `to_mudata` adds no writer, the docstring says to also save the
+  tree with `TreeData.write_h5td`. A test fails the day mudata or treedata
+  keeps the tree. `mudata.to_mudata` exists with another meaning (it splits
+  one AnnData by a column): biotapy's is always `bt.io.to_mudata`.
+  [multiomics-as-mudata](/decisions/multiomics-as-mudata.md).
 - `read_humann` reads the whole table into one dense rows x samples
   `float64` array before converting to CSR (about 290 MB for HMP2's 22,113 x
   1,638 pathway table); `_humann.py:read_humann`. `read_metaphlan` and

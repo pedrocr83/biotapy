@@ -1,12 +1,12 @@
 ---
 type: Module
 title: tl (tools)
-description: Diversity, ordination and PERMANOVA over AnnData/TreeData - alpha, beta, UniFrac, PCoA, NMDS and PERMANOVA through scikit-bio and scikit-learn, returning results or writing the data-model-slots keys.
+description: Diversity, ordination, PERMANOVA and mmvec over AnnData/TreeData/MuData - alpha, beta, UniFrac, PCoA, NMDS and PERMANOVA through scikit-bio and scikit-learn, and microbe-metabolite co-occurrence between two modalities, returning results or writing the data-model-slots keys.
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 status: stable
 ---
 
@@ -33,6 +33,9 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   `obsp[distance]`.
 - `_permanova.py:permanova` - `skbio.stats.distance.permanova` of
   `obsp[distance]` against an `obs` column.
+- `_mmvec.py:mmvec` - `skbio.stats.ordination.mmvec` over two modalities of a
+  MuData (`microbes="taxa"`, `metabolites="metabolites"`); returns a microbes x
+  metabolites DataFrame of log conditional probabilities, rows centred to 0.
 - `_beta.py:stored_distances` - private, shared by `pcoa`, `nmds` and
   `permanova` (same subpackage, [module-boundaries](/contracts/module-boundaries.md)):
   reads `obsp[key]` as a `DistanceMatrix`, raising `KeyError` that names the
@@ -71,6 +74,19 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
   previous limit on exit). With one thread per core it took about 24 s on the
   toy table on a busy machine, against 0.01 s. `_permanova.py:permanova`,
   `tests/tl/test_permanova.py`.
+- `mmvec` checks everything before it densifies: both modality keys exist
+  (`KeyError` naming the argument), the two modalities have equal `obs_names`
+  in the same order (`ValueError` naming `bt.io.to_mudata`), then per modality
+  every value is finite and non-negative and no feature or sample is all zero
+  (`ValueError` naming the argument and the first ids).
+  `_mmvec.py:mmvec`, `_mmvec.py:_table`.
+- `mmvec` has no `inplace`: like `permanova` it returns a table of results, not
+  per-sample values, and writes no slot. It needs no counts (`require_counts`
+  is not called), only non-negative values.
+- `mmvec` takes a MuData, not an AnnData (rules.md R3.2), densifies both `X`
+  once (scikit-bio needs dense input, R6.2) and passes `output_format="pandas"`
+  explicitly, so scikit-bio's global `table_output` config cannot change the
+  result type. `_mmvec.py:mmvec`.
 - `faith_pd` runs on presence/absence (`(dense > 0)` as int64, per chunk),
   which is exact because Faith PD depends on presence only, so it runs on
   any abundance. `_alpha.py:alpha`
@@ -81,10 +97,11 @@ changed table (filter, rarefy, relative, tax_glom) is `pp`'s
 
 # Dependencies
 
-- [core](/modules/core.md): `as_csr`, `require_counts`, `get_skbio_tree`,
+- [core](/modules/core.md): `as_csr`, `as_generator` (`mmvec`'s seed), `require_counts`, `get_skbio_tree`,
   `as_generator`, `require_categorical`, `TreeData`.
 - scikit-bio: `alpha_diversity`, `beta_diversity`, `DistanceMatrix`, `pcoa`,
-  `permanova`.
+  `permanova`, `mmvec`.
+- mudata: the `MuData` type of `mmvec`'s input.
 - scikit-learn: `sklearn.manifold.MDS`, with an `int` seed drawn from
   `as_generator`, because its `random_state` rejects a `np.random.Generator`.
 - threadpoolctl: `threadpool_limits` around scikit-bio's `permanova`.
@@ -96,6 +113,12 @@ cache: `BIOTAPY_DATA_DIR=<cache> uv run --group test pytest -m golden tests/tl -
 
 # Gotchas
 
+- `mmvec` has no R golden (`R equivalent: none`); its tests check shape, row
+  centring, that a metabolite ranks highest for the microbe it follows, and
+  the checks above, not scikit-bio's learned values, which depend on the seed
+  (`tests/tl/test_mmvec.py`). The fit holds dense microbes x metabolites
+  arrays, 8 bytes each, on top of the dense inputs. An all-zero sample or
+  feature in either modality raises rather than being dropped.
 - All-zero samples give scikit-bio's values, with no custom mapping: two of
   them are NaN apart under Bray-Curtis and 0 apart under Jaccard and both
   UniFracs; `alpha` gives 0 for `observed_features`, `chao1` and `faith_pd`

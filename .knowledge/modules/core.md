@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:06:30Z }
-commit: 9663824
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
+commit: 9883786
 status: stable
 ---
 
@@ -44,7 +44,8 @@ none of them back.
   this does not.
 - `_composition.py:pseudocounted` - validates `pseudocount`
   (`_composition.py:check_pseudocount`), rejects negative or non-finite `X`,
-  warns when the pseudocount exceeds the smallest non-zero value, and returns
+  warns when the pseudocount exceeds the smallest non-zero value (the message ends
+  with the caller's `func=`, e.g. `(ml.CLR)`), and returns
   `X + pseudocount` as one dense float64 array; `columns=` reorders features
   while still sparse. Used by `pp.clr`, `pp.philr` and `ml.CLR` (which also
   calls `check_pseudocount` in `fit`); moved from `pp/_transform.py` in Phase 4.
