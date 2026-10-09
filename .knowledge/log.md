@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4A)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md): slice 4A's code blocks and test counts match the branch after the Checkpoint A fixes; the CLR warning is described as ending in `(ml.CLR)`.
 - **Update**: [pure-by-default](decisions/pure-by-default.md) gains the `ml` estimators' row; [function-shape](contracts/function-shape.md) says `ml`'s transformers are classes whose options `fit` validates; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.3.
 - **Update**: [core](modules/core.md) owns `_composition.py:pseudocounted` and `check_pseudocount`, moved from `pp/_transform.py` for `ml.CLR`; [pp](modules/pp.md) points to it.
 - **Update**: [pure-by-default](decisions/pure-by-default.md): `tl.mmvec` returns a table and has no `inplace`, like `tl.permanova`; [multiomics-as-mudata](decisions/multiomics-as-mudata.md) names `tl.mmvec` as the first function that pairs modalities; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.2.

@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:11:08Z }
-commit: 8b2751f
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:43:37Z }
+commit: eeaa817
 sources:
   - id: spec
     resource: ../../plan.md
@@ -83,9 +83,9 @@ in a separate worktree checked out at that commit:
 |---|---|---|---|---|
 | base `872c16d` | passed | 1238 passed, 54 deselected | 36 passed | build succeeded |
 | 4.1 `feat(io)` | passed | 1256 passed, 54 deselected | 36 passed | build succeeded |
-| 4.2 `feat(tl)` | passed | 1271 passed, 54 deselected | 36 passed | build succeeded |
-| 4.A0 `refactor(core)` | passed | 1279 passed, 54 deselected | 36 passed | build succeeded |
-| 4.3 `feat(ml)` | passed | 1397 passed, 2 skipped, 54 deselected | 36 passed | build succeeded |
+| 4.2 `feat(tl)` | passed | 1272 passed, 54 deselected | 36 passed | build succeeded |
+| 4.A0 `refactor(core)` | passed | 1282 passed, 54 deselected | 36 passed | build succeeded |
+| 4.3 `feat(ml)` | passed | 1410 passed, 2 skipped, 54 deselected | 36 passed | build succeeded |
 
 - prek covers ruff check and format, `mypy --strict`, import-linter,
   pyproject-fmt, biome and zizmor (14 hooks). Every run exported
@@ -264,7 +264,8 @@ a roadmap signature and are repeated under "Decisions for the user".
    - `CLR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator)`: stateless;
      `fit` checks `X` (`check_non_negative`) and the pseudocount; `transform`
      returns `skbio.stats.composition.clr` of the `_core` pseudocount step,
-     equal to `pp.clr` (tested to 1e-12) with the same warning.
+     equal to `pp.clr` (tested to 1e-12) with `pp.clr`'s pseudocount warning,
+     ending in `(ml.CLR)`.
    - `RelativeAbundance` is `sklearn.preprocessing.Normalizer(norm="l1")`
      for non-negative data (each row divided by its sum, sparse kept, an
      all-zero row left at zero, as `pp.relative`). A biotapy class would
@@ -454,7 +455,7 @@ without an error. Each line names the test that pins it.
    `test_every_modality_holds_the_same_samples`; 4.2
    `test_unaligned_samples_raise`.
 3. **The pseudocount on the wrong scale inside a pipeline.** Expected: the
-   same warning as `pp.clr`. Test: 4.3
+   `pp.clr`'s warning, ending in `(ml.CLR)`. Test: 4.3
    `test_clr_pseudocount_above_the_smallest_value_warns`.
 4. **A tree lost on save.** Expected: documented, and pinned so an upstream
    change is noticed. Test: 4.1 `test_h5mu_drops_a_treedata_modality_tree`.
@@ -672,7 +673,7 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
       tdata = bt.datasets.toy()
       metabolites = _metabolites(["s1", "s2"])
       before = tdata.copy()
-      with pytest.warns(UserWarning):
+      with pytest.warns(UserWarning, match=r"dropped: taxa 4 of 6$"):
           mdata = bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
       assert_unchanged(before, tdata)
       assert not mdata["taxa"].is_view and mdata["taxa"] is not tdata
@@ -729,7 +730,11 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
           with pytest.raises(ValueError, match="share no sample"):
               bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
           return
-      with pytest.warns(UserWarning) if len(shared) < max(6, len(samples)) else nullcontext():
+      with (
+          pytest.warns(UserWarning, match="samples missing from another modality are dropped: ")
+          if len(shared) < max(6, len(samples))
+          else nullcontext()
+      ):
           mdata = bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
       assert mdata.obs_names.tolist() == shared
       assert mdata["metabolites"].obs_names.tolist() == shared
@@ -784,7 +789,7 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
 
       Notes
       -----
-      R equivalent: ``MultiAssayExperiment::MultiAssayExperiment``
+      R equivalent: ``MultiAssayExperiment::MultiAssayExperiment``, ``MultiAssayExperiment::intersectColumns``
       Guide: :doc:`/guide/multiomics`
 
       A function table from ``bt.io.read_humann`` or ``bt.io.read_picrust2`` is
@@ -1086,6 +1091,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
   import pandas as pd
   import pytest
   import scipy.sparse as sp
+  import skbio
   from anndata import AnnData
   from hypothesis import given, settings
   from hypothesis import strategies as st
@@ -1136,6 +1142,17 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
       pd.testing.assert_frame_equal(
           bt.tl.mmvec(renamed, microbes="microbes", metabolites="compounds", seed=0), bt.tl.mmvec(mdata, seed=0)
       )
+
+
+  def test_ranks_stay_a_labelled_dataframe_whatever_scikit_bio_outputs():
+      previous = skbio.get_config("table_output")
+      skbio.set_config("table_output", "numpy")
+      try:
+          ranks = bt.tl.mmvec(_toy_mudata(), seed=0)
+      finally:
+          skbio.set_config("table_output", previous)
+      assert isinstance(ranks, pd.DataFrame)
+      assert ranks.columns.tolist() == ["m_prev", "m_faec", "m_flat"]
 
 
   def test_keeps_the_input(assert_unchanged):
@@ -1210,7 +1227,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
       np.testing.assert_allclose(ranks.sum(axis=1), 0.0, atol=1e-9)
   ```
 - [x] **Step 2: Run, expect failure** -
-  `uv run --group test pytest tests/tl/test_mmvec.py -q` -> `13 failed`
+  `uv run --group test pytest tests/tl/test_mmvec.py -q` -> `14 failed`
   (`AttributeError: module 'biotapy.tl' has no attribute 'mmvec'`).
 - [x] **Step 3: Implement.** Create `src/biotapy/tl/_mmvec.py`:
   ```python
@@ -1220,6 +1237,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
 
   import numpy as np
   import pandas as pd
+  from anndata import AnnData
   from mudata import MuData
   from skbio.stats.ordination import mmvec as skbio_mmvec
 
@@ -1296,23 +1314,28 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
       (8, 2)
       """
       rng = as_generator(seed)
-      x_table = _table(mdata, microbes, argument="microbes")
-      y_table = _table(mdata, metabolites, argument="metabolites")
-      if not x_table.index.equals(y_table.index):
+      x_mod = _modality(mdata, microbes, argument="microbes")
+      y_mod = _modality(mdata, metabolites, argument="metabolites")
+      if not x_mod.obs_names.equals(y_mod.obs_names):
           msg = (
               f"microbes={microbes!r} and metabolites={metabolites!r} hold different samples or a different order; "
               "align them with bt.io.to_mudata"
           )
           raise ValueError(msg)
-      return cast("pd.DataFrame", skbio_mmvec(x_table, y_table, seed=rng).ranks)
+      x_table = _table(x_mod, microbes, argument="microbes")
+      y_table = _table(y_mod, metabolites, argument="metabolites")
+      return cast("pd.DataFrame", skbio_mmvec(x_table, y_table, seed=rng, output_format="pandas").ranks)
 
 
-  def _table(mdata: MuData, key: str, *, argument: str) -> pd.DataFrame:
-      """Modality ``key`` as a dense samples x features DataFrame, checked as mmvec needs it."""
+  def _modality(mdata: MuData, key: str, *, argument: str) -> AnnData:
       if key not in mdata.mod:
           msg = f"{argument}={key!r} is not a modality; found {list(mdata.mod)}"
           raise KeyError(msg)
-      mod = mdata.mod[key]
+      return cast("AnnData", mdata.mod[key])
+
+
+  def _table(mod: AnnData, key: str, *, argument: str) -> pd.DataFrame:
+      """Modality ``key`` as a dense samples x features DataFrame, checked as mmvec needs it."""
       X = as_csr(mod.X).astype(np.float64)
       if not np.all(np.isfinite(X.data)) or np.any(X.data < 0):
           msg = f"tl.mmvec needs finite, non-negative values in {argument}={key!r}"
@@ -1339,7 +1362,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
   ```
 - [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/tl/test_mmvec.py src/biotapy/tl/_mmvec.py -q -W error::UserWarning`
-  -> `14 passed`; the property test also under `--hypothesis-seed=1`, `2`,
+  -> `15 passed`; the property test also under `--hypothesis-seed=1`, `2`,
   `3`.
 - [x] **Step 5: Docs and knowledge.**
   ```diff
@@ -1466,7 +1489,7 @@ and writes no `obsm`); scikit-bio's other `MMvecResult` fields.
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `build succeeded`; `1271 passed, 54 deselected`.
+  Expected: prek passed; `build succeeded`; `1272 passed, 54 deselected`.
 
 ### Task 4.A0: the pseudocount step moves to `_core` (`refactor(core)`)
 
@@ -1521,6 +1544,22 @@ and `pp.philr`'s signatures, docstrings and messages.
   def test_messages_name_the_caller():
       with pytest.raises(ValueError, match="ml.CLR needs finite, non-negative values in X"):
           pseudocounted(np.array([[-1.0, 2.0]]), 0.5, func="ml.CLR")
+
+
+  def test_pseudocount_above_the_smallest_value_warns_naming_it():
+      values = np.array([[0.0, 0.2], [0.8, 0.5]])
+      with pytest.warns(UserWarning, match=r"pseudocount=0\.5 is larger than the smallest non-zero value in X \(0\.2\)"):
+          pseudocounted(values, 0.5, func="ml.CLR")
+
+
+  def test_pseudocount_warning_ends_with_the_calling_step():
+      with pytest.warns(UserWarning, match=r"on their scale \(ml\.CLR\)$"):
+          pseudocounted(np.array([[0.0, 0.2], [0.8, 0.5]]), 0.5, func="ml.CLR")
+
+
+  def test_zero_pseudocount_with_a_zero_in_x_raises():
+      with pytest.raises(ValueError, match="X holds zeros, whose logarithm is undefined; pass pseudocount > 0 to ml.CLR"):
+          pseudocounted(np.array([[0.0, 2.0]]), 0, func="ml.CLR")
   ```
 - [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/core/test_composition.py -q` ->
@@ -1566,7 +1605,7 @@ and `pp.philr`'s signatures, docstrings and messages.
       if positive.size and pseudocount > positive.min():
           warn_user(
               f"pseudocount={pseudocount} is larger than the smallest non-zero value in X ({positive.min():.3g}), "
-              "so it swamps the rarest features; for relative abundances pass a pseudocount on their scale"
+              f"so it swamps the rarest features; for relative abundances pass a pseudocount on their scale ({func})"
           )
       # scikit-bio's log-ratio functions need dense input (rules.md R6.2): one dense copy of X.
       values = matrix.toarray()
@@ -1691,7 +1730,7 @@ and `pp.philr`'s signatures, docstrings and messages.
   ```
 - [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/core/test_composition.py tests/pp -q -W error::UserWarning`
-  -> `115 passed, 8 deselected`.
+  -> `118 passed, 8 deselected`.
 - [x] **Step 5: Knowledge.**
   ```diff
   diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
@@ -1779,7 +1818,7 @@ and `pp.philr`'s signatures, docstrings and messages.
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1279 passed, 54 deselected`.
+  Expected: prek passed; `1282 passed, 54 deselected`.
 
 ### Task 4.3: `ml.PrevalenceFilter` and `ml.CLR`
 
@@ -1801,8 +1840,8 @@ so they add no row).
   scikit-learn's `BaseEstimator`, `SelectorMixin`, `OneToOneFeatureMixin`,
   `TransformerMixin`, `Tags`, `validate_data`, `check_is_fitted`,
   `check_non_negative`; `skbio.stats.composition.clr`.
-- Produces: `bt.ml.PrevalenceFilter(min_prevalence: float = 0.1)` with
-  `prevalence_`; `bt.ml.CLR(pseudocount: float = 0.5)`.
+- Produces: `bt.ml.PrevalenceFilter(*, min_prevalence: float = 0.1)` with
+  `prevalence_`; `bt.ml.CLR(*, pseudocount: float = 0.5)`.
 
 - [x] **Step 1: Failing tests.** Create `tests/ml/test_transformers.py`:
   ```python
@@ -1813,6 +1852,7 @@ so they add no row).
   from hypothesis import given
   from hypothesis import strategies as st
   from hypothesis.extra.numpy import arrays
+  from sklearn.exceptions import NotFittedError
   from sklearn.linear_model import LogisticRegression
   from sklearn.model_selection import StratifiedKFold, cross_validate
   from sklearn.pipeline import make_pipeline
@@ -1886,8 +1926,44 @@ so they add no row).
 
 
   def test_prevalence_filter_with_nothing_kept_raises():
-      with pytest.raises(ValueError, match="no feature is non-zero in at least 60% of the 2 samples"):
+      with pytest.raises(ValueError, match=r"no feature is non-zero in at least min_prevalence=0\.6 of the 2 samples"):
           bt.ml.PrevalenceFilter(min_prevalence=0.6).fit(np.array([[1, 0], [0, 0]]))
+
+
+  def test_prevalence_filter_stays_unfitted_after_a_failed_first_fit():
+      selector = bt.ml.PrevalenceFilter(min_prevalence=2.0)
+      with pytest.raises(ValueError, match="min_prevalence must be between 0 and 1"):
+          selector.fit(np.array([[1, 0], [1, 1]]))
+      with pytest.raises(NotFittedError):
+          selector.transform(np.array([[3, 4]]))
+
+
+  def test_prevalence_filter_stays_unfitted_after_a_failed_refit():
+      selector = bt.ml.PrevalenceFilter(min_prevalence=0.5).fit(np.array([[1, 0], [1, 1]]))
+      selector.set_params(min_prevalence=0.9)
+      with pytest.raises(ValueError, match="no feature is non-zero"):
+          selector.fit(np.array([[1, 0], [0, 1]]))
+      with pytest.raises(NotFittedError):
+          selector.transform(np.array([[3, 4]]))
+
+
+  def test_prevalence_filter_with_nothing_kept_prints_the_threshold_unrounded():
+      with pytest.raises(ValueError, match=r"min_prevalence=0\.999 "):
+          bt.ml.PrevalenceFilter(min_prevalence=0.999).fit(np.array([[1, 0], [0, 1]]))
+
+
+  @pytest.mark.parametrize("value", [True, "0.5", None])
+  def test_prevalence_filter_wrong_type_raises(value):
+      with pytest.raises(TypeError, match="min_prevalence must be a real number"):
+          bt.ml.PrevalenceFilter(min_prevalence=value).fit(_toy_x())
+
+
+  def test_prevalence_filter_keeps_its_input():
+      X = sp.csr_matrix((np.array([0.0, 2.0, 3.0, 1.0]), np.array([0, 1, 1, 2]), np.array([0, 2, 4])), shape=(2, 3))
+      before = (X.data.copy(), X.indices.copy(), X.indptr.copy())
+      bt.ml.PrevalenceFilter(min_prevalence=0.5).fit_transform(X)
+      for kept, original in zip((X.data, X.indices, X.indptr), before, strict=True):
+          np.testing.assert_array_equal(kept, original)
 
 
   def test_clr_equals_pp_clr():
@@ -1967,6 +2043,12 @@ so they add no row).
   @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 1000)))
   def test_clr_rows_sum_to_zero(X):
       np.testing.assert_allclose(bt.ml.CLR().fit_transform(X).sum(axis=1), 0.0, atol=1e-9)
+
+
+  @pytest.mark.parametrize(("estimator", "value"), [(bt.ml.PrevalenceFilter, 0.8), (bt.ml.CLR, 1)])
+  def test_transformer_options_are_keyword_only(estimator, value):
+      with pytest.raises(TypeError):
+          estimator(value)
   ```
   In `tests/test_docstrings.py` the module set becomes
   `{"da", "datasets", "fn", "io", "ml", "pl", "pp", "tl"}`.
@@ -2022,6 +2104,9 @@ so they add no row).
       on the samples, so filtering before splitting lets the test samples choose
       the features: inside a :class:`~sklearn.pipeline.Pipeline` the filter is
       fitted on each training fold only. A sparse ``X`` stays sparse.
+      ``transform``, ``fit_transform``, ``get_support`` and
+      ``get_feature_names_out`` come from
+      :class:`~sklearn.feature_selection.SelectorMixin`.
 
       Examples
       --------
@@ -2031,28 +2116,36 @@ so they add no row).
       (6, 2)
       """
 
-      def __init__(self, min_prevalence: float = 0.1) -> None:
+      def __init__(self, *, min_prevalence: float = 0.1) -> None:
           self.min_prevalence = min_prevalence
 
       def fit(self, X: Table, y: object = None) -> Self:
           """Learn each feature's prevalence in ``X``, samples x features."""
+          # validate_data sets n_features_in_ before the checks below can raise, so prevalence_ alone marks a fit.
+          self.__dict__.pop("prevalence_", None)
           X = validate_data(self, X, accept_sparse="csr")
+          if isinstance(self.min_prevalence, bool) or not isinstance(
+              self.min_prevalence, int | float | np.integer | np.floating
+          ):
+              msg = f"min_prevalence must be a real number, got {self.min_prevalence!r}"
+              raise TypeError(msg)
           if not 0 <= self.min_prevalence <= 1:
               msg = f"min_prevalence must be between 0 and 1, got {self.min_prevalence}"
               raise ValueError(msg)
           matrix = as_csr(X)
           present = np.bincount(matrix.indices[matrix.data != 0], minlength=matrix.shape[1])
-          self.prevalence_ = present / matrix.shape[0]
-          if not self._get_support_mask().any():
+          prevalence = present / matrix.shape[0]
+          if not (prevalence >= self.min_prevalence).any():
               msg = (
-                  f"no feature is non-zero in at least {self.min_prevalence:.0%} of the "
+                  f"no feature is non-zero in at least min_prevalence={self.min_prevalence} of the "
                   f"{matrix.shape[0]} samples; lower min_prevalence"
               )
               raise ValueError(msg)
+          self.prevalence_ = prevalence
           return self
 
       def _get_support_mask(self) -> npt.NDArray[np.bool_]:
-          check_is_fitted(self)
+          check_is_fitted(self, "prevalence_")
           # Divide rather than multiply, as pp.filter_features does: 7 / 25 >= 0.28 holds, 7 >= 0.28 * 25 does not.
           return np.asarray(self.prevalence_ >= self.min_prevalence)
 
@@ -2080,6 +2173,9 @@ so they add no row).
       its own, so ``fit`` learns nothing (it only checks ``X``); the class exists
       so the transform can sit in a :class:`~sklearn.pipeline.Pipeline`. The
       output is a dense float64 array: 8 bytes x samples x features.
+      ``fit_transform``, ``get_feature_names_out`` and ``set_output`` come from
+      scikit-learn's :class:`~sklearn.base.TransformerMixin` and
+      :class:`~sklearn.base.OneToOneFeatureMixin`.
 
       Examples
       --------
@@ -2089,7 +2185,7 @@ so they add no row).
       0.0
       """
 
-      def __init__(self, pseudocount: float = 0.5) -> None:
+      def __init__(self, *, pseudocount: float = 0.5) -> None:
           self.pseudocount = pseudocount
 
       def fit(self, X: Table, y: object = None) -> Self:
@@ -2131,8 +2227,8 @@ so they add no row).
   ```
 - [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/ml src/biotapy/ml tests/test_docstrings.py -q -W error::UserWarning`
-  -> `172 passed, 2 skipped`; `tests/ml` also under
-  `--hypothesis-seed=1`, `2`, `3` (`114 passed, 2 skipped` each);
+  -> `181 passed, 2 skipped`; `tests/ml` also under
+  `--hypothesis-seed=1`, `2`, `3` (`123 passed, 2 skipped` each);
   `uv run --group dev --group doc mypy` -> `Success`.
 - [x] **Step 5: Docs.** Create `docs/guide/machine_learning.md`:
   ````markdown
@@ -2301,7 +2397,7 @@ so they add no row).
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
   Expected: prek passed; `build succeeded`;
-  `1397 passed, 2 skipped, 54 deselected`; `36 passed`.
+  `1410 passed, 2 skipped, 54 deselected`; `36 passed`.
 
 ### Checkpoint A - review slice 4A
 - [ ] Review the whole slice (superpowers:requesting-code-review) against
@@ -2609,8 +2705,8 @@ Run against the brief, the roadmap outline and the writing-plans checklist.
    Mapping[str, AnnData]) -> MuData`; `mmvec(mdata, *, microbes="taxa",
    metabolites="metabolites", seed=None) -> pd.DataFrame`;
    `check_pseudocount(pseudocount: object) -> None`; `pseudocounted(X,
-   pseudocount, *, func, columns=None)`; `PrevalenceFilter(min_prevalence:
-   float = 0.1)` with `prevalence_`; `CLR(pseudocount: float = 0.5)`;
+   pseudocount, *, func, columns=None)`; `PrevalenceFilter(*,
+   min_prevalence: float = 0.1)` with `prevalence_`; `CLR(*, pseudocount: float = 0.5)`;
    `to_torch(adata, *, label_key=None, layer=None)`; `embed(adata, model, *,
    batch_size=64, inplace=False)`; plugin `embed(adata, *, batch_size)`;
    `obsm["X_<model>"]`.
