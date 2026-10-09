@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-08T18:13:00Z }
-commit: 872c16d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
+commit: d23cd79
 sources:
   - id: spec
     resource: ../../plan.md
@@ -477,7 +477,7 @@ Execution order inside 4A: **4.1 -> 4.2 -> 4.A0 -> 4.3 -> Checkpoint A.**
 lands before the `feat(ml)` that needs it.
 
 # Tasks (checklist)
-- [ ] 4.1 `io.to_mudata(modalities) -> MuData` and the multi-omics decision
+- [x] 4.1 `io.to_mudata(modalities) -> MuData` and the multi-omics decision
 - [ ] 4.2 `tl.mmvec(mdata, *, microbes="taxa", metabolites="metabolites", seed=None) -> pd.DataFrame`
 - [ ] 4.A0 `refactor(core)`: the pseudocount step moves to `_core/_composition.py`
 - [ ] 4.3 `ml.PrevalenceFilter(min_prevalence=0.1)`, `ml.CLR(pseudocount=0.5)`; scikit-learn's estimator checks pass
@@ -609,7 +609,7 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
 - Consumes: `_core.warn_user`; mudata's `MuData(mapping)`.
 - Produces: `bt.io.to_mudata(modalities: Mapping[str, AnnData]) -> MuData`.
 
-- [ ] **Step 1: Failing tests.** Create `tests/io/test_mudata.py`:
+- [x] **Step 1: Failing tests.** Create `tests/io/test_mudata.py`:
   ```python
   from contextlib import nullcontext
 
@@ -734,10 +734,10 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
       assert mdata.obs_names.tolist() == shared
       assert mdata["metabolites"].obs_names.tolist() == shared
   ```
-- [ ] **Step 2: Run, expect failure** -
+- [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/io/test_mudata.py -q` -> `14 failed`
   (`AttributeError: module 'biotapy.io' has no attribute 'to_mudata'`).
-- [ ] **Step 3: Implement.** Create `src/biotapy/io/_mudata.py`:
+- [x] **Step 3: Implement.** Create `src/biotapy/io/_mudata.py`:
   ```python
   """Several data types over the same samples as one MuData (decisions/multiomics-as-mudata)."""
 
@@ -864,11 +864,11 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
       "write_biom",
   ]
   ```
-- [ ] **Step 4: Run, expect pass** -
+- [x] **Step 4: Run, expect pass** -
   `uv run --group test pytest tests/io/test_mudata.py src/biotapy/io/_mudata.py -q -W error::UserWarning`
   -> `15 passed`; the property test also under `--hypothesis-seed=1`, `2`,
   `3`.
-- [ ] **Step 5: Docs.** Create `docs/guide/multiomics.md`:
+- [x] **Step 5: Docs.** Create `docs/guide/multiomics.md`:
   ````markdown
   # Multi-omics
 
@@ -925,7 +925,7 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
   ````
   In `docs/guide/index.md` add `multiomics` after `function` in the
   toctree. In `docs/api.md` add `io.to_mudata` after `io.read_qiime2`.
-- [ ] **Step 6: Knowledge.** Create
+- [x] **Step 6: Knowledge.** Create
   `.knowledge/decisions/multiomics-as-mudata.md` (`generated.at` is the
   commit time):
   ````markdown
@@ -1048,7 +1048,7 @@ obs=)` and `push_obs()`, already follows the names, and needs no change);
   - **Creation**: [multiomics-as-mudata](decisions/multiomics-as-mudata.md) (`draft`): modality names, `io.to_mudata` keeps the shared samples, no h5mu tree writer.
   - **Update**: [data-model-slots](contracts/data-model-slots.md) gains a Multi-omics section; [function-tables-as-mudata](decisions/function-tables-as-mudata.md)'s forward note says task 4.1 delivered it; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.1.
   ```
-- [ ] **Step 7: Gate and commit**
+- [x] **Step 7: Gate and commit**
   ```bash
   git add src/biotapy/io/_mudata.py src/biotapy/io/__init__.py tests/io/test_mudata.py \
     docs/guide/multiomics.md docs/guide/index.md docs/api.md \

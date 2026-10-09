@@ -11,6 +11,7 @@ datasets
 transforms
 aggregation
 function
+multiomics
 filtering
 diversity
 ordination

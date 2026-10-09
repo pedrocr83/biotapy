@@ -5,8 +5,8 @@ description: A HUMAnN-style function table is a MuData with a community modality
 tags: [fn, io, mudata, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/io/_picrust2.py", "src/biotapy/fn/**", "src/biotapy/datasets/_hmp2.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T11:55:00Z }
-commit: ef2fe8b
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
+commit: d23cd79
 sources:
   - id: research
     resource: ../roadmap/phase-2-function.md
@@ -66,8 +66,9 @@ was brought forward from Phase 4, where multi-omics needs it anyway.
 - **Forward note for Phase 4 task 4.1** ([phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md)):
   a function table is itself a two-modality MuData, so a multi-omics MuData
   needs `function` and `function_by_taxon` side by side with `taxa`,
-  `metabolites` and `host`, not a nested `function` MuData. Task 4.1's modality
-  names must not reuse `function` for anything else, and `io.to_mudata` must
-  accept a function table's two modalities as two entries. `datasets.hmp2`
+  `metabolites` and `host`, not a nested `function` MuData. Task 4.1 does
+  this: `io.to_mudata` takes a function table's two modalities as two entries
+  and refuses a MuData value
+  ([multiomics-as-mudata](/decisions/multiomics-as-mudata.md)). `datasets.hmp2`
   already holds `function`, `function_by_taxon` and `taxa` side by side
   (`datasets/_hmp2.py:hmp2`); `fn.renorm` keeps the extra modality.

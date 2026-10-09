@@ -1,5 +1,9 @@
 # Knowledge bundle log
 
+## 2026-10-09 (Phase 4, slice 4A)
+- **Creation**: [multiomics-as-mudata](decisions/multiomics-as-mudata.md) (`draft`): modality names, `io.to_mudata` keeps the shared samples, no h5mu tree writer.
+- **Update**: [data-model-slots](contracts/data-model-slots.md) gains a Multi-omics section; [function-tables-as-mudata](decisions/function-tables-as-mudata.md)'s forward note says task 4.1 delivered it; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.1.
+
 ## 2026-10-09 (Phase 4 plan)
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) carries the user-approved Phase 4 plan: resolved design notes, global constraints, dependencies, review focus, slices 4A-4D, slice 4A in full TDD steps (4.1 io.to_mudata, 4.2 tl.mmvec, 4.A0 pseudocount helper to `_core`, 4.3 ml.PrevalenceFilter and ml.CLR, Checkpoint A) and later slices as outlines, decisions and self-review; new description, paths and sources, copied into the [roadmap index](roadmap/index.md).
 
