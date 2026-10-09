@@ -1,6 +1,8 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4C)
+- **Creation**: [embedding-plugins](decisions/embedding-plugins.md) (`draft`): the entry-point group `biotapy.embeddings`, the callable `embed(adata)`, the output checks, `obsm["X_<model>"]`, weights never bundled; listed in the [decisions index](decisions/index.md).
+- **Update**: [ml](modules/ml.md) gains `embed` (entry point, discovery per call, the output checks, the fake-plugin distribution in tests, the doctest marker `mgm`), with the description copied into the [modules index](modules/index.md); [data-model-slots](contracts/data-model-slots.md): `X_<plugin>` becomes `X_<model>` and `ml.embed` joins the embedding-adding row; [pure-by-default](decisions/pure-by-default.md) gains the `ml.embed` rows; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.4.
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): the extra `mgm` (`torch>=2.9`, `transformers>=5`), what transformers brings, its size and wheels, the versions MGM was run on, why `microformer-mgm` is not a dependency, the extras table row, and transformers in the description, copied into the [decisions index](decisions/index.md); [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.C1.
 - **Update**: [core](modules/core.md) owns `_download.py:make_pooch`, the one download cache (`BIOTAPY_DATA_DIR` or pooch's per-user cache), moved out of `datasets/_remote.py` so `ml`'s MGM weights (4.4b) use the same cache; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.C0.
 

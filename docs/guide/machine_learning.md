@@ -2,8 +2,8 @@
 
 `bt.ml` holds scikit-learn transformers, so microbiome preprocessing can sit
 inside a [Pipeline](https://scikit-learn.org/stable/modules/compose.html) and
-be fitted on the training samples of each cross-validation fold only, and
-turns a table into a PyTorch dataset.
+be fitted on the training samples of each cross-validation fold only, turns
+a table into a PyTorch dataset, and embeds samples with pretrained models.
 
 ## Which steps leak
 
@@ -109,3 +109,41 @@ CPU-only torch, install it from PyTorch's CPU index first:
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install 'biotapy[torch]'
 ```
+
+## Embeddings
+
+`bt.ml.embed` runs a pretrained model over every sample and returns one
+vector per sample, in `obs` order, or with `inplace=True` stores it in
+`obsm["X_<model>"]`:
+
+```python
+import biotapy as bt
+
+genera = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
+bt.ml.embed(genera, "mgm", inplace=True)
+genera.obsm["X_mgm"].shape  # (26, 256)
+```
+
+A model reads what it was trained on, so filter first: a later feature change
+(`bt.pp.filter_features`, `bt.pp.tax_glom`) drops `obsm`, and the embedding
+with it. An embedding is not fitted to your samples, so computing it before a
+cross-validation split leaks nothing.
+
+### Adding a model
+
+Models are plugins. A package provides a function that takes the AnnData and
+returns a samples x dimensions NumPy array, leaving the AnnData unchanged, and
+registers it under a name in the entry-point group `biotapy.embeddings` of its
+`pyproject.toml`:
+
+```toml
+[project.entry-points."biotapy.embeddings"]
+mymodel = "mypackage.embedding:embed"
+```
+
+Once the package is installed, `bt.ml.embed(adata, "mymodel")` finds it;
+nothing is registered by hand. biotapy checks what the plugin returns - a
+finite float array with one row per sample - and raises an error naming the
+plugin otherwise. An unknown name raises `KeyError` listing the installed
+models, and a name that two installed packages register raises instead of
+picking one.

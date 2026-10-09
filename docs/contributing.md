@@ -49,7 +49,7 @@ uv run --group test pytest
 ```
 
 Network and golden tests are excluded by default (`[tool.pytest]` in
-`pyproject.toml` sets `-m "not network and not r and not torch"`). Run them explicitly:
+`pyproject.toml` sets `-m "not network and not r and not torch and not mgm"`). Run them explicitly:
 
 ```bash
 uv run --group test pytest -m "network or golden"

@@ -1,22 +1,21 @@
 ---
 type: Module
 title: ml
-description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; and to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch.
+description: scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch; and embed, one embedding per sample from a model a plugin registers.
 resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
-tags: [ml, scikit-learn, torch]
+tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T12:00:00Z }
-commit: 7a9c07a
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T12:13:30Z }
+commit: 5b73a1b
 ---
 
 # Responsibility
 
 Owns `bt.ml.*`, the top layer's machine-learning entry points. Today that is
-two scikit-learn transformers (`_transformers.py`) and `to_torch`
-(`_torch.py`, extra `torch`); `ml.embed` (slice 4C) is planned in
-[phase-4-ml-multiomics](/roadmap/phase-4-ml-multiomics.md) and does not exist
-yet. Owns no reader and no table-level transform: `pp.filter_features` and
+two scikit-learn transformers (`_transformers.py`), `to_torch`
+(`_torch.py`, extra `torch`) and `embed` (`_embed.py`), which runs a model
+that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). Owns no reader and no table-level transform: `pp.filter_features` and
 `pp.clr` stay `pp`'s, the transformers are their fold-safe forms.
 
 # Entry points
@@ -28,6 +27,10 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   so `fit` only validates.
 - `_torch.py:to_torch` - a map-style `torch.utils.data.Dataset` over `X` or a
   layer, one float32 row per item, paired with an `obs` label when asked.
+- `_embed.py:embed` - loads the callable registered under `model` in the
+  entry-point group `biotapy.embeddings` (`_embed.py:GROUP`), calls it with
+  the AnnData and returns its samples x dimensions array, or writes
+  `obsm["X_<model>"]` with `inplace=True`.
 
 # Invariants
 
@@ -63,6 +66,13 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
   -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
 - `to_torch` validates its arguments before it imports torch, so its error
   tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
+- `embed` reads the entry points on every call and loads only the one asked
+  for; a name no package registers raises `KeyError` listing those installed,
+  a name two packages register raises `ValueError` naming both.
+  `_embed.py:embed`.
+- `embed` trusts no plugin: the result must be a NumPy array, 2-D with one
+  row per sample and at least one column, float and finite, or it raises
+  naming the plugin, before anything is written. `_embed.py:embed`.
 - Inherited scikit-learn methods (`transform`, `fit_transform`,
   `get_support`, `get_feature_names_out`, `set_output`) are named in each
   class's `Notes`, because the class template leaves inherited members off
@@ -83,7 +93,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 
 `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
 `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
-errors). `uv run --group test --extra torch pytest -m torch` runs the
+errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
 `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
 `.github/workflows/test.yaml`). The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
@@ -130,6 +140,15 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
   sys.modules` after `import biotapy` tells nothing there; the
   `import-without-extras` check is meaningful only on a torch-free
   environment, as in CI.
+- `embed`'s tests install fake plugins as a real distribution: a
+  `<name>-1.0.dist-info` with `METADATA` and `entry_points.txt` under
+  `tmp_path`, prepended to `sys.path`, and a module object in `sys.modules`
+  holding the callables. Discovery is then the same code path as for an
+  installed package, and no test imports `ml/_embed.py`.
+  `tests/ml/test_embed.py:_installer`.
+- `embed`'s docstring example runs MGM, so the root `conftest.py` gives
+  `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
+  `torch`. `conftest.py:_EXTRA_DOCTESTS`.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.
