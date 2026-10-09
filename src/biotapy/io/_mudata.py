@@ -43,7 +43,7 @@ def to_mudata(modalities: Mapping[str, AnnData]) -> MuData:
 
     Notes
     -----
-    R equivalent: ``MultiAssayExperiment::MultiAssayExperiment``
+    R equivalent: ``MultiAssayExperiment::MultiAssayExperiment``, ``MultiAssayExperiment::intersectColumns``
     Guide: :doc:`/guide/multiomics`
 
     A function table from ``bt.io.read_humann`` or ``bt.io.read_picrust2`` is
