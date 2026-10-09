@@ -104,7 +104,12 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
         msg = f"model={model!r} is registered by several packages ({', '.join(packages)}); uninstall all but one"
         raise ValueError(msg)
     # A plugin is not trusted: a wrong row count would pair embeddings with the wrong samples (decisions/embedding-plugins).
-    result = _checked(model, adata, found[0].load()(adata))
+    try:
+        result = found[0].load()(adata)
+    except Exception as err:
+        err.add_note(f"while using the embedding plugin {model!r} ({found[0].value})")
+        raise
+    result = _checked(model, adata, result)
     if not inplace:
         return result
     adata.obsm[f"X_{model}"] = result

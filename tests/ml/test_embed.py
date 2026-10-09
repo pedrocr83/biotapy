@@ -159,6 +159,34 @@ def test_a_result_that_shares_memory_with_the_input_is_copied(install, where):
     np.testing.assert_array_equal(result, held[where](tdata))
 
 
+def test_a_plugin_that_raises_keeps_its_error_and_is_named(install):
+    def plugin(adata):
+        msg = "model exploded"
+        raise RuntimeError(msg)
+
+    install("fake", plugin)
+    with pytest.raises(RuntimeError, match="model exploded") as info:
+        bt.ml.embed(bt.datasets.toy(), "fake")
+    assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
+
+
+def test_a_plugin_that_is_not_callable_is_named(install):
+    install("fake", 3)
+    with pytest.raises(TypeError, match="not callable") as info:
+        bt.ml.embed(bt.datasets.toy(), "fake")
+    assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
+
+
+def test_a_plugin_that_cannot_be_loaded_is_named(install, tmp_path):
+    install("fake", _ones)
+    module = sys.modules[f"biotapy_test_plugins_{tmp_path.name}"]
+    for attribute in [name for name in vars(module) if name.startswith("plugin_")]:
+        delattr(module, attribute)
+    with pytest.raises(AttributeError) as info:
+        bt.ml.embed(bt.datasets.toy(), "fake")
+    assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
+
+
 def test_a_refused_result_is_not_written(install):
     install("fake", lambda adata: np.full((adata.n_obs, 3), np.nan))
     tdata = bt.datasets.toy()
