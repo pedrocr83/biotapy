@@ -133,8 +133,9 @@ def test_keeps_the_input(assert_unchanged):
 def test_embeds_global_patterns_end_to_end():
     # Phase 4 exit gate 2: one foundation model plugged in end to end (decisions 10, 17).
     tdata = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
-    with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose"):
+    with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose") as record:
         bt.ml.embed(tdata, "mgm", inplace=True)
+    assert not [warning for warning in record if "<bos> <eos>" in str(warning.message)]  # no sample is empty
     embedding = tdata.obsm["X_mgm"]
     assert embedding.shape == (26, 256) and embedding.dtype == np.float32 and np.isfinite(embedding).all()
     with pytest.warns(UserWarning, match="mgm leaves out 96"):
