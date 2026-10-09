@@ -54,7 +54,7 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
     (6, 2)
     """
 
-    def __init__(self, min_prevalence: float = 0.1) -> None:
+    def __init__(self, *, min_prevalence: float = 0.1) -> None:
         self.min_prevalence = min_prevalence
 
     def fit(self, X: Table, y: object = None) -> Self:
@@ -120,7 +120,7 @@ class CLR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     0.0
     """
 
-    def __init__(self, pseudocount: float = 0.5) -> None:
+    def __init__(self, *, pseudocount: float = 0.5) -> None:
         self.pseudocount = pseudocount
 
     def fit(self, X: Table, y: object = None) -> Self:

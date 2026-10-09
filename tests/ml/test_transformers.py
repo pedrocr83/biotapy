@@ -196,3 +196,9 @@ def test_prevalence_filter_keeps_exactly_the_features_at_or_above_the_threshold(
 @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 1000)))
 def test_clr_rows_sum_to_zero(X):
     np.testing.assert_allclose(bt.ml.CLR().fit_transform(X).sum(axis=1), 0.0, atol=1e-9)
+
+
+@pytest.mark.parametrize(("estimator", "value"), [(bt.ml.PrevalenceFilter, 0.8), (bt.ml.CLR, 1)])
+def test_transformer_options_are_keyword_only(estimator, value):
+    with pytest.raises(TypeError):
+        estimator(value)

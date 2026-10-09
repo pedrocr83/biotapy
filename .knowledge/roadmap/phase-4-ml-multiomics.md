@@ -560,7 +560,7 @@ inside each cross-validation fold.
     first in `f6`'s mmvec row, and one equal to `f3 + 1` in `f3`'s, with
     `seed=0`.
   - `bt.pp.filter_features(toy(), min_prevalence=1.0)` keeps `f3, f4`;
-    `min_prevalence=0.8` keeps the same features as `PrevalenceFilter(0.8)`.
+    `min_prevalence=0.8` keeps the same features as `PrevalenceFilter(min_prevalence=0.8)`.
   - Building an AnnData with repeated `obs_names` warns "Observation names
     are not unique" (anndata 0.13.4); the 4.1 test expects it.
   - `toy_humann()`'s MuData has modalities `function`,
