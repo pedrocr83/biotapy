@@ -1,9 +1,12 @@
 """Sample embeddings from models that plugins register in the entry-point group ``biotapy.embeddings``."""
 
+from collections.abc import Iterator
 from importlib.metadata import entry_points
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
+import scipy.sparse as sp
 from anndata import AnnData
 
 # The entry-point group a package registers an embedding model in (decisions/embedding-plugins).
@@ -101,8 +104,16 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
         msg = f"model={model!r} is registered by several packages ({', '.join(packages)}); uninstall all but one"
         raise ValueError(msg)
     # A plugin is not trusted: a wrong row count would pair embeddings with the wrong samples (decisions/embedding-plugins).
-    result = found[0].load()(adata)
-    if not isinstance(result, np.ndarray):
+    result = _checked(model, adata, found[0].load()(adata))
+    if not inplace:
+        return result
+    adata.obsm[f"X_{model}"] = result
+    return None
+
+
+def _checked(model: str, adata: AnnData, result: object) -> npt.NDArray[np.floating]:
+    """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``, else an error."""
+    if type(result) is not np.ndarray:  # a masked array would hide NaN from the check below, a matrix is always 2-D
         msg = f"plugin {model!r} returned a {type(result).__name__}, not a NumPy array"
         raise TypeError(msg)
     if result.ndim != 2 or result.shape[0] != adata.n_obs or result.shape[1] == 0:
@@ -116,7 +127,23 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     if not np.isfinite(result).all():
         msg = f"plugin {model!r} returned NaN or infinite values"
         raise ValueError(msg)
-    if not inplace:
-        return result
-    adata.obsm[f"X_{model}"] = result
-    return None
+    if any(np.shares_memory(result, held) for held in _arrays(adata)):
+        return result.copy()  # editing the embedding must not edit the caller's table
+    return result
+
+
+def _arrays(adata: AnnData) -> Iterator[npt.NDArray[np.generic]]:
+    """The arrays adata holds: X, layers, obsm, varm, obsp, varp and the arrays in uns (a sparse matrix by its data)."""
+    for held in (
+        adata.X,
+        *adata.layers.values(),
+        *adata.obsm.values(),
+        *adata.varm.values(),
+        *adata.obsp.values(),
+        *adata.varp.values(),
+        *adata.uns.values(),
+    ):
+        if sp.issparse(held):
+            yield cast("sp.csr_matrix", held).data
+        elif isinstance(held, np.ndarray):
+            yield held

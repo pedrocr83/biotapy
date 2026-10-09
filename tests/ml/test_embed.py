@@ -127,6 +127,38 @@ def test_a_result_that_is_not_an_array_raises(install):
         bt.ml.embed(bt.datasets.toy(), "fake")
 
 
+@pytest.mark.parametrize(
+    ("make", "kind"),
+    [
+        (lambda n: np.ma.masked_invalid(np.full((n, 3), np.nan)), "MaskedArray"),
+        (lambda n: np.ones((n, 3)).view(np.matrix), "matrix"),
+    ],
+)
+def test_an_array_subclass_raises(install, make, kind):
+    install("fake", lambda adata: make(adata.n_obs))
+    with pytest.raises(TypeError, match=f"plugin 'fake' returned a {kind}, not a NumPy array"):
+        bt.ml.embed(bt.datasets.toy(), "fake")
+
+
+@pytest.mark.parametrize("where", ["X", "layer", "obsm", "uns"])
+def test_a_result_that_shares_memory_with_the_input_is_copied(install, where):
+    tdata = bt.datasets.toy()
+    tdata.X = np.ones((tdata.n_obs, tdata.n_vars))
+    tdata.layers["own"] = np.ones((tdata.n_obs, tdata.n_vars))
+    tdata.obsm["own"] = np.ones((tdata.n_obs, 3))
+    tdata.uns["own"] = np.ones((tdata.n_obs, 3))
+    held = {
+        "X": lambda a: a.X,
+        "layer": lambda a: a.layers["own"],
+        "obsm": lambda a: a.obsm["own"],
+        "uns": lambda a: a.uns["own"],
+    }
+    install("fake", held[where])
+    result = bt.ml.embed(tdata, "fake")
+    assert not np.shares_memory(result, held[where](tdata))
+    np.testing.assert_array_equal(result, held[where](tdata))
+
+
 def test_a_refused_result_is_not_written(install):
     install("fake", lambda adata: np.full((adata.n_obs, 3), np.nan))
     tdata = bt.datasets.toy()
