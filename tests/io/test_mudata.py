@@ -116,7 +116,11 @@ def test_every_modality_holds_the_same_samples(samples):
         with pytest.raises(ValueError, match="share no sample"):
             bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
         return
-    with pytest.warns(UserWarning) if len(shared) < max(6, len(samples)) else nullcontext():
+    with (
+        pytest.warns(UserWarning, match="samples missing from another modality are dropped: ")
+        if len(shared) < max(6, len(samples))
+        else nullcontext()
+    ):
         mdata = bt.io.to_mudata({"taxa": tdata, "metabolites": metabolites})
     assert mdata.obs_names.tolist() == shared
     assert mdata["metabolites"].obs_names.tolist() == shared
