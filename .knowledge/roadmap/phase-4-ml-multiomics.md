@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:18:23Z }
-commit: be62117
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T10:25:30Z }
+commit: ed14ac9
 sources:
   - id: spec
     resource: ../../plan.md
@@ -2669,10 +2669,14 @@ their own that blocks merges.
   - CI's `test` job, replayed through hatch at the 4.B1 commit (on `cdc3b07`)
     (`hatch run hatch-test.py3.13-stable:run-cov -n auto`): `1422 passed, 2
     skipped`, coverage total 99%; hatch installed no torch.
-  - Coverage of `ml/_torch.py`: 100% (45 statements) with the extra
+  - Coverage of `ml/_torch.py`: 100% (54 statements) with the extra
     (`coverage run -m pytest -m "torch or not torch" tests/ml/test_torch.py
-    src/biotapy/ml/_torch.py`, 29 passed); 71% without it (the class and
+    src/biotapy/ml/_torch.py`, 32 passed); 71% without it (the class and
     the import are not reached).
+  - After the Checkpoint B fix pass (on `d33d661`, three tests added to the
+    default run and two to `-m torch`): `1437 passed, 2 skipped, 79
+    deselected`; `-m "golden or network"` `36 passed, 1482 deselected`;
+    `-m torch` `25 passed, 1493 deselected` (24 tests and the doctest).
   - Hypothesis seeds 1, 2 and 3: `22 passed, 6 deselected` each.
   - Mutation check: densifying the whole table in `to_torch` fails
     `test_a_large_sparse_table_is_never_dense` (`assert peak < 50_000_000`)
@@ -3056,6 +3060,18 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
 
   @pytest.mark.torch
+  def test_a_subset_of_one_dataset_keeps_the_codes_that_per_split_datasets_shift(torch):
+      tdata = bt.datasets.toy()
+      test = [3, 5]  # both group B: the split lacks class A
+      whole = bt.ml.to_torch(tdata, label_key="group")
+      subset = torch.utils.data.Subset(whole, test)
+      assert [int(subset[i][1]) for i in range(2)] == [1, 1]
+      # anndata drops the unused category on subsetting, so a dataset built per split recodes B as 0.
+      per_split = bt.ml.to_torch(tdata[test], label_key="group")
+      assert [int(per_split[i][1]) for i in range(2)] == [0, 0]
+
+
+  @pytest.mark.torch
   @pytest.mark.parametrize(
       ("values", "codes"), [(["b", "a", "c", "a", "b", "c"], [1, 0, 2, 0, 1, 2]), ([True, False] * 3, [1, 0] * 3)]
   )
@@ -3146,6 +3162,13 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
 
   @pytest.mark.torch
+  def test_a_bool_index_raises(torch):
+      dataset = bt.ml.to_torch(bt.datasets.toy())
+      with pytest.raises(TypeError, match="bool"):
+          dataset[True]
+
+
+  @pytest.mark.torch
   def test_references_x_so_a_later_change_shows(torch):
       tdata = bt.datasets.toy()
       dataset = bt.ml.to_torch(tdata)
@@ -3209,6 +3232,15 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
       tdata.obs.loc["s2", "group"] = np.nan
       with pytest.raises(ValueError, match=r"label_key='group' has 1 missing value\(s\)"):
           bt.ml.to_torch(tdata, label_key="group")
+
+
+  def test_missing_numeric_label_raises():
+      tdata = bt.datasets.toy()
+      tdata.obs["age"] = [30.0, np.nan, 25.0, 60.0, 52.0, 47.0]
+      with pytest.raises(
+          ValueError, match=r"label_key='age' has 1 missing value\(s\); drop those samples or fill them first"
+      ):
+          bt.ml.to_torch(tdata, label_key="age")
 
 
   def test_missing_layer_raises():
@@ -3316,7 +3348,10 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
       once), and reads the labels once, at construction. Do not modify ``adata``
       while using the dataset. Each item is a new tensor, so editing it leaves
       ``adata`` unchanged. Label codes follow
-      ``pd.Categorical(adata.obs[label_key]).categories``.
+      ``pd.Categorical(adata.obs[label_key]).categories``. Label codes are per
+      dataset: build one dataset and split it with
+      :class:`torch.utils.data.Subset`, or splits that lack a class get
+      different codes.
 
       Examples
       --------
@@ -3345,6 +3380,9 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
 
           def __getitem__(self, index: int) -> "Tensor | tuple[Tensor, Tensor]":
               # One row at a time, so the full table is never dense (rules.md R6.2).
+              if isinstance(index, bool):
+                  msg = "a bool is not an index; use an integer"
+                  raise TypeError(msg)
               position = operator.index(index)  # a slice would silently give one CSR row but several dense rows
               row = table[position].toarray()[0] if isinstance(table, sp.csr_matrix) else table[position]
               features = torch.from_numpy(np.array(row, dtype=np.float32))
@@ -3481,17 +3519,23 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   +dense in full. The dataset holds the table without copying it and reads the
   +labels once, so do not modify the AnnData while you use the dataset.
   +
-  +`to_torch` neither splits nor fits anything. Split the samples first and build
-  +one dataset per split. A step that learns from the samples, like the
-  +prevalence filter, is fitted on the training samples only and applied to both
-  +splits:
+  +`to_torch` neither splits nor fits anything. Build one dataset over the whole
+  +table and split it with `torch.utils.data.Subset`: label codes are per
+  +dataset, and anndata drops a category a subset lacks, so a dataset built per
+  +split recodes the classes when a split misses one. A step that learns from the
+  +samples, like the prevalence filter, is fitted on the training samples only and
+  +applied to both splits:
   +
   +```python
+  +from torch.utils.data import Subset
+  +
   +train, test = [0, 1, 3, 4], [2, 5]
   +keep = bt.ml.PrevalenceFilter(min_prevalence=0.1).fit(tdata[train].X).get_support()
-  +train_set = bt.ml.to_torch(tdata[train][:, keep], label_key="group")
-  +test_set = bt.ml.to_torch(tdata[test][:, keep], label_key="group")
+  +dataset = bt.ml.to_torch(tdata[:, keep], label_key="group")
+  +train_set, test_set = Subset(dataset, train), Subset(dataset, test)
   +```
+  +
+  +torch publishes no wheel for Intel macOS, so the extra does not install there.
   +
   +On Linux, pip installs PyPI's torch, which brings CUDA libraries. For a
   +CPU-only torch, install it from PyTorch's CPU index first:
@@ -3583,15 +3627,26 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
      so `fit` only validates.
   +- `_torch.py:to_torch` - a map-style `torch.utils.data.Dataset` over `X` or a
   +  layer, one float32 row per item, paired with an `obs` label when asked.
+  @@ -33,6 +33,7 @@
+
+  -- They take arrays, sparse matrices and DataFrames, not AnnData: inside a
+  -  `Pipeline` the splitter hands over `X`, not an AnnData. This is why `ml`
+  -  is the one place classes are allowed
+  +- The transformers take arrays, sparse matrices and DataFrames, not AnnData:
+  +  inside a `Pipeline` the splitter hands over `X`, not an AnnData (`to_torch`
+  +  is the exception: it takes an AnnData, for its `obs` labels and layers).
+  +  This is why `ml` is the one place classes are allowed
+     ([function-shape](/contracts/function-shape.md), rules.md R3.6).
   @@ -52,6 +54,13 @@
    - CSR stays sparse: `PrevalenceFilter` reads `indices` and `data` of the CSR
      and its output stays sparse; `CLR` accepts sparse input and densifies once
      inside `pseudocounted` (rules.md R6.2).
   +- `to_torch` densifies one row when its item is read, never the table, and
-  +  references `X` (or the layer) instead of copying it; every item is a new
-  +  tensor, so editing it leaves the AnnData unchanged. Labels are converted
-  +  once: category, string or bool -> int64 codes in category order, numeric
-  +  -> float32; a missing label raises. `_torch.py:to_torch`, `_torch.py:_labels`.
+  +  holds `X` (or the layer) instead of copying it, so the AnnData must not be
+  +  modified while the dataset is used; every item is a new tensor (label
+  +  included), so editing it leaves the AnnData unchanged. A non-integer index
+  +  raises `TypeError`. Labels are converted once, at construction: category, string or bool -> int64 codes in category order, numeric
+  +  -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
   +- `to_torch` validates its arguments before it imports torch, so its error
   +  tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
   @@ -62,6 +71,8 @@
@@ -3609,24 +3664,34 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   @@ -91,3 +104,17 @@
      class exists. Both transformers have no R equivalent (`R equivalent: none`)
      and so no golden test; parity is against `pp`.
-  +- `to_torch`'s `Dataset` subclass is defined inside the function, after
-  +  `import_optional`: a module-level class would import torch with biotapy.
+  +- `to_torch`'s `Dataset` subclass is defined inside the module-level
+  +  `_dataset(table, labels)`, after `import_optional`: a module-level class
+  +  would import torch with biotapy. A class defined in a function cannot be
+  +  pickled, so it defines `__reduce__` returning `(_dataset, (table, labels))`;
+  +  that is what lets `DataLoader(num_workers>0)` work under spawn and
+  +  forkserver (macOS, Windows, Linux on Python 3.14).
   +  mypy does not follow torch (`follow_imports = "skip"` in `pyproject.toml`),
   +  so it is `Any` with or without the extra installed and the class line
   +  carries `# type: ignore[misc]` (subclassing `Any`) in both. The return
   +  annotation is the bare `"Dataset"`: sphinx-autodoc-typehints renders a
   +  subscripted `Dataset[Tensor]` from a `TYPE_CHECKING` import as a broken
-  +  cross-reference, which `nitpicky` fails. `_torch.py:to_torch`.
+  +  cross-reference, which `nitpicky` fails. `_torch.py:_dataset`.
   +- The docstring example needs torch: the root `conftest.py` gives the
   +  doctests of `biotapy.ml._torch` the marker `torch`, so the default run
   +  deselects them and `-m torch` runs them. `conftest.py:pytest_collection_modifyitems`.
+  +- Without the extra, `import biotapy` never imports torch. With torch
+  +  installed, scikit-bio 0.7.4 imports it at module level
+  +  (`skbio.util._testing`, reached through `_core._tree`), so `'torch' in
+  +  sys.modules` after `import biotapy` tells nothing there; the
+  +  `import-without-extras` check is meaningful only on a torch-free
+  +  environment, as in CI.
   +- anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   +  `None` even when no layer was added; `to_torch`'s missing-layer error does
   +  not list the layers. `_torch.py:_table`.
   diff --git a/.knowledge/decisions/pure-by-default.md b/.knowledge/decisions/pure-by-default.md
   @@ -30,6 +30,7 @@
    | `ml` estimators (`PrevalenceFilter`, `CLR`) | scikit-learn's protocol: `fit` stores what it learns on the estimator and returns it; `transform` returns a new array | never the data |
-  +| `ml.to_torch` | a new `torch.utils.data.Dataset` that references `X` (or the layer) without copying it; each item a new tensor | never |
+  +| `ml.to_torch` | a new `torch.utils.data.Dataset` that holds `X` (or the layer) without copying it; each item a new tensor | never |
   diff --git a/.knowledge/decisions/optional-heavy-dependencies.md b/.knowledge/decisions/optional-heavy-dependencies.md
   @@ -89,6 +89,12 @@
    - Optional modules are imported inside the function through
@@ -3634,7 +3699,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
      naming the extra to install.
   +- A class that must inherit from an extra's base (rules.md R3.6), such as
   +  `ml.to_torch`'s torch `Dataset`, is defined inside the function after
-  +  `import_optional` (`ml/_torch.py:to_torch`). mypy does not follow the
+  +  `import_optional` (`ml/_torch.py:_dataset`, built by `to_torch`). mypy does not follow the
   +  extra (`follow_imports = "skip"`, `ignore_missing_imports` in
   +  `pyproject.toml`), so the type check gives the same answer whether or not
   +  the extra is installed.
@@ -3657,7 +3722,7 @@ extra; `tests/core/test_optional.py` already uses `extra="torch"`);
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
   Expected: prek passed; `1432 passed, 2 skipped, 77 deselected`; `36
-  passed`; `build succeeded`; `23 passed, 1492 deselected`.
+  passed`; `build succeeded`; `23 passed, 1488 deselected`.
 
 ### Task 4.B1: CI job `ml-extras`
 
@@ -3684,9 +3749,24 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
       assert "uv run --group test --extra torch pytest -m torch" in runs
 
 
+  def test_the_sdist_ships_the_root_conftest_that_marks_the_torch_doctests():
+      sdist = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["hatch"]["build"]["targets"][
+          "sdist"
+      ]
+      assert "/conftest.py" in sdist["include"]
+
+
+  def test_ml_extras_job_has_a_timeout():
+      assert WORKFLOW["jobs"]["ml-extras"]["timeout-minutes"] == 30
+
+
   def test_ml_extras_job_blocks_merges():
       assert "ml-extras" in WORKFLOW["jobs"]["check"]["needs"]
   ```
+  The Checkpoint B fix pass added the two tests before it: `/conftest.py`
+  joins `build.targets.sdist.include` in `pyproject.toml` (its marker hook
+  gives the `to_torch` doctest the marker `torch`, so an sdist test run needs
+  it), and the job gets `timeout-minutes: 30`, as `r-bridge` has.
 - [x] **Step 2: Run, expect failure** -
   `uv run --group test pytest tests/test_ci.py -q` -> `2 failed, 17 passed`
   (`KeyError: 'ml-extras'`; `AssertionError` on `check.needs`).
@@ -3701,6 +3781,7 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   +  # CPU wheel from PyTorch's index ([tool.uv] in pyproject.toml, decisions/optional-heavy-dependencies).
   +  ml-extras:
   +    runs-on: ubuntu-latest
+  +    timeout-minutes: 30
   +    steps:
   +      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
   +        with:
@@ -3784,7 +3865,10 @@ test downloads anything; 4.4b adds it with the MGM `network` test).
   gate's five counts; `uv run --group test --extra torch coverage run -m
   pytest -m "torch or not torch" tests/ml/test_torch.py
   src/biotapy/ml/_torch.py` then `coverage report --include
-  "src/biotapy/ml/*"` (`_torch.py` 100% on the prototype).
+  "src/biotapy/ml/_torch.py"` (exits 0; `ml/*` would add `_transformers.py`,
+  which this run does not exercise, and `fail_under = 90` would fail the
+  total). `_torch.py` was 100% on the prototype and is 100% (54 statements)
+  after the fix pass.
 - [ ] Knowledge: [ml](/modules/ml.md) and
   [optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)
   already carry 4B (4.5, 4.B1); re-check them against the fix pass and

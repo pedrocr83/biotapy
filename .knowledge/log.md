@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-09 (Phase 4, slice 4B)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) syncs slice 4B's blocks with the branch after the Checkpoint B fix pass (label codes per dataset, bool index, sdist `conftest.py`, `ml-extras` timeout, what loads torch), corrects the counts, and makes Checkpoint B's coverage command report `_torch.py` alone so it exits 0.
 - **Update**: [ml](modules/ml.md) says what loads torch (scikit-bio, when installed, not biotapy) and that `to_torch` takes an AnnData; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) corrects the same claim (Checkpoint B fix M5).
 - **Update**: [ml](modules/ml.md) says `to_torch`'s label codes are per dataset, so one dataset is built and split with `torch.utils.data.Subset` (Checkpoint B fix I1).
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): each extra has its CI job (`r-bridge`, `ml-extras`); [ml](modules/ml.md)'s Verification names the `ml-extras` job; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.B1.
