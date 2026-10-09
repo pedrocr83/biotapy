@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:39:41Z }
-commit: bb7b70a
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:40:39Z }
+commit: 8e1567e
 sources:
   - id: spec
     resource: ../../plan.md
@@ -485,7 +485,7 @@ lands before the `feat(ml)` that needs it.
 - [x] Checkpoint A
 - [x] 4.F1 `da.ancombc2`: pin scikit-bio's bias E-M underflow; the schema property keeps to fittable designs
 - [x] 4.F2 `pp.filter_features` names a wrongly typed threshold
-- [ ] 4.F3 `refactor(core)`: one finite, non-negative check
+- [x] 4.F3 `refactor(core)`: one finite, non-negative check
 - [ ] 4.5 `ml.to_torch(adata, *, label_key=None, layer=None) -> torch.utils.data.Dataset` and the extra `torch`
 - [ ] 4.B1 CI job `ml-extras` for `-m torch` tests
 - [ ] Checkpoint B
@@ -2574,7 +2574,7 @@ own message (no user-visible change).
 the three callers, `tests/core/test_matrix.py` (or the existing `_core`
 matrix test file).
 
-- [ ] **Step 1: RED.**
+- [x] **Step 1: RED.**
   ```python
   @pytest.mark.parametrize(
       ("data", "expected"),
@@ -2585,7 +2585,7 @@ matrix test file).
       assert finite_non_negative(X) is expected
   ```
   Expected: ImportError.
-- [ ] **Step 2: GREEN.**
+- [x] **Step 2: GREEN.**
   ```python
   def finite_non_negative(X: sp.csr_matrix) -> bool:
       """True when every stored value of ``X`` is finite and >= 0."""
@@ -2593,7 +2593,7 @@ matrix test file).
   ```
   Export it from `_core/__init__.py`; replace the three inline predicates.
   `tests/pp`, `tests/tl`, `tests/fn`, `tests/core`, `tests/ml` pass unedited.
-- [ ] **Step 3:** update `modules/core.md` (entry point) and log line.
+- [x] **Step 3:** update `modules/core.md` (entry point) and log line.
   Commit `refactor(core): share the finite, non-negative check`.
 
 ### Gates and merge

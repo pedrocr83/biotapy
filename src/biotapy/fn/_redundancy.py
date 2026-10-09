@@ -8,7 +8,7 @@ from anndata import AnnData
 from mudata import MuData
 from scipy.spatial.distance import pdist, squareform
 
-from biotapy._core import as_csr, divide_rows, warn_user
+from biotapy._core import as_csr, divide_rows, finite_non_negative, warn_user
 
 COLUMNS = ["taxonomic_diversity", "functional_diversity", "redundancy", "normalized_redundancy"]
 
@@ -157,7 +157,7 @@ def _abundances(adata: AnnData, known: pd.Index) -> tuple[sp.csr_matrix, pd.Inde
         msg = f"adata repeats taxon ids: {repeated[:3]}"
         raise ValueError(msg)
     X = as_csr(adata.X)
-    if not np.isfinite(X.data).all() or (X.data < 0).any():
+    if not finite_non_negative(X):
         msg = "adata: X holds a missing, negative or infinite abundance"
         raise ValueError(msg)
     found = adata.var_names.isin(known)

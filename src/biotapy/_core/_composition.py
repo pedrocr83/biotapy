@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from ._matrix import as_csr
+from ._matrix import as_csr, finite_non_negative
 from ._warnings import warn_user
 
 
@@ -29,7 +29,7 @@ def pseudocounted(
     if columns is not None:
         # Reordered while sparse, so the dense copy below is the only one.
         matrix = matrix[:, columns]
-    if not np.all(np.isfinite(matrix.data)) or np.any(matrix.data < 0):
+    if not finite_non_negative(matrix):
         msg = f"{func} needs finite, non-negative values in X"
         raise ValueError(msg)
     positive = matrix.data[matrix.data > 0]

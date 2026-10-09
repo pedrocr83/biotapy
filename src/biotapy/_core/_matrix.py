@@ -20,6 +20,11 @@ def as_csr(X: object) -> sp.csr_matrix:
     return sp.csr_matrix(cast(Any, X))
 
 
+def finite_non_negative(X: sp.csr_matrix) -> bool:
+    """True when every stored value of ``X`` is finite and >= 0."""
+    return bool(np.isfinite(X.data).all() and not (X.data < 0).any())
+
+
 def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_matrix:
     """A float64 copy of ``X`` with each stored value divided by its row's total; zero-total rows stay zero."""
     out = X.astype(np.float64)
