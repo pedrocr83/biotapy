@@ -5,6 +5,7 @@ import scipy.sparse as sp
 from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
+from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.pipeline import make_pipeline
@@ -82,12 +83,21 @@ def test_prevalence_filter_with_nothing_kept_raises():
         bt.ml.PrevalenceFilter(min_prevalence=0.6).fit(np.array([[1, 0], [0, 0]]))
 
 
-def test_prevalence_filter_stays_unfitted_when_nothing_is_kept():
-    selector = bt.ml.PrevalenceFilter(min_prevalence=0.6)
+def test_prevalence_filter_stays_unfitted_after_a_failed_first_fit():
+    selector = bt.ml.PrevalenceFilter(min_prevalence=2.0)
+    with pytest.raises(ValueError, match="min_prevalence must be between 0 and 1"):
+        selector.fit(np.array([[1, 0], [1, 1]]))
+    with pytest.raises(NotFittedError):
+        selector.transform(np.array([[3, 4]]))
+
+
+def test_prevalence_filter_stays_unfitted_after_a_failed_refit():
+    selector = bt.ml.PrevalenceFilter(min_prevalence=0.5).fit(np.array([[1, 0], [1, 1]]))
+    selector.set_params(min_prevalence=0.9)
     with pytest.raises(ValueError, match="no feature is non-zero"):
-        selector.fit(np.array([[1, 0], [0, 0]]))
-    # validate_data has already set n_features_in_, so check_is_fitted would pass; prevalence_ is the learned state.
-    assert not hasattr(selector, "prevalence_")
+        selector.fit(np.array([[1, 0], [0, 1]]))
+    with pytest.raises(NotFittedError):
+        selector.transform(np.array([[3, 4]]))
 
 
 def test_prevalence_filter_with_nothing_kept_prints_the_threshold_unrounded():

@@ -59,6 +59,8 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
 
     def fit(self, X: Table, y: object = None) -> Self:
         """Learn each feature's prevalence in ``X``, samples x features."""
+        # validate_data sets n_features_in_ before the checks below can raise, so prevalence_ alone marks a fit.
+        self.__dict__.pop("prevalence_", None)
         X = validate_data(self, X, accept_sparse="csr")
         if isinstance(self.min_prevalence, bool) or not isinstance(
             self.min_prevalence, int | float | np.integer | np.floating
@@ -81,7 +83,7 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
         return self
 
     def _get_support_mask(self) -> npt.NDArray[np.bool_]:
-        check_is_fitted(self)
+        check_is_fitted(self, "prevalence_")
         # Divide rather than multiply, as pp.filter_features does: 7 / 25 >= 0.28 holds, 7 >= 0.28 * 25 does not.
         return np.asarray(self.prevalence_ >= self.min_prevalence)
 
