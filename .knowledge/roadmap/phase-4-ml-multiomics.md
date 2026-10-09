@@ -9,7 +9,7 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T15:07:08Z }
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:19:13Z }
 commit: fd6a8be
 sources:
   - id: spec
@@ -4662,6 +4662,26 @@ sentence).
           bt.ml.embed(bt.datasets.toy(), "nope")
 
 
+  @pytest.mark.parametrize("model", ["", "a/b", "with space", "x=y", "../up"])
+  def test_a_model_name_that_is_not_an_obsm_key_raises(install, model):
+      install("fake", _ones)
+      with pytest.raises(ValueError, match=r"model=.* must be letters, digits, '_', '-' or '\.'"):
+          bt.ml.embed(bt.datasets.toy(), model)
+
+
+  @pytest.mark.parametrize("model", ["fake", "My.Model_2", "mgm-v2"])
+  def test_a_model_name_of_letters_digits_and_separators_is_accepted(install, model):
+      install(model, _ones)
+      assert bt.ml.embed(bt.datasets.toy(), model).shape == (6, 3)
+
+
+  def test_a_package_registering_one_name_twice_is_named_once(install):
+      install("fake", _ones, distribution="only-package")
+      install("fake", _ones, distribution="only-package")
+      with pytest.raises(ValueError, match=r"several packages \(only-package\); uninstall all but one"):
+          bt.ml.embed(bt.datasets.toy(), "fake")
+
+
   def test_two_packages_registering_one_name_raise(install):
       install("fake", _ones, distribution="first-package")
       install("fake", _ones, distribution="second-package")
@@ -4706,6 +4726,66 @@ sentence).
       install("fake", lambda adata: [[1.0, 2.0]] * adata.n_obs)
       with pytest.raises(TypeError, match="plugin 'fake' returned a list, not a NumPy array"):
           bt.ml.embed(bt.datasets.toy(), "fake")
+
+
+  @pytest.mark.parametrize(
+      ("make", "kind"),
+      [
+          (lambda n: np.ma.masked_invalid(np.full((n, 3), np.nan)), "MaskedArray"),
+          (lambda n: np.ones((n, 3)).view(np.matrix), "matrix"),
+      ],
+  )
+  def test_an_array_subclass_raises(install, make, kind):
+      install("fake", lambda adata: make(adata.n_obs))
+      with pytest.raises(TypeError, match=f"plugin 'fake' returned a {kind}, not a NumPy array"):
+          bt.ml.embed(bt.datasets.toy(), "fake")
+
+
+  @pytest.mark.parametrize("where", ["X", "layer", "obsm", "uns"])
+  def test_a_result_that_shares_memory_with_the_input_is_copied(install, where):
+      tdata = bt.datasets.toy()
+      tdata.X = np.ones((tdata.n_obs, tdata.n_vars))
+      tdata.layers["own"] = np.ones((tdata.n_obs, tdata.n_vars))
+      tdata.obsm["own"] = np.ones((tdata.n_obs, 3))
+      tdata.uns["own"] = np.ones((tdata.n_obs, 3))
+      held = {
+          "X": lambda a: a.X,
+          "layer": lambda a: a.layers["own"],
+          "obsm": lambda a: a.obsm["own"],
+          "uns": lambda a: a.uns["own"],
+      }
+      install("fake", held[where])
+      result = bt.ml.embed(tdata, "fake")
+      assert not np.shares_memory(result, held[where](tdata))
+      np.testing.assert_array_equal(result, held[where](tdata))
+
+
+  def test_a_plugin_that_raises_keeps_its_error_and_is_named(install):
+      def plugin(adata):
+          msg = "model exploded"
+          raise RuntimeError(msg)
+
+      install("fake", plugin)
+      with pytest.raises(RuntimeError, match="model exploded") as info:
+          bt.ml.embed(bt.datasets.toy(), "fake")
+      assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
+
+
+  def test_a_plugin_that_is_not_callable_is_named(install):
+      install("fake", 3)
+      with pytest.raises(TypeError, match="not callable") as info:
+          bt.ml.embed(bt.datasets.toy(), "fake")
+      assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
+
+
+  def test_a_plugin_that_cannot_be_loaded_is_named(install, tmp_path):
+      install("fake", _ones)
+      module = sys.modules[f"biotapy_test_plugins_{tmp_path.name}"]
+      for attribute in [name for name in vars(module) if name.startswith("plugin_")]:
+          delattr(module, attribute)
+      with pytest.raises(AttributeError) as info:
+          bt.ml.embed(bt.datasets.toy(), "fake")
+      assert any("embedding plugin 'fake'" in note for note in info.value.__notes__)
 
 
   def test_a_refused_result_is_not_written(install):
@@ -4775,10 +4855,14 @@ sentence).
   ```python
   """Sample embeddings from models that plugins register in the entry-point group ``biotapy.embeddings``."""
 
+  import re
+  from collections.abc import Iterator
   from importlib.metadata import entry_points
+  from typing import cast
 
   import numpy as np
   import numpy.typing as npt
+  import scipy.sparse as sp
   from anndata import AnnData
 
   # The entry-point group a package registers an embedding model in (decisions/embedding-plugins).
@@ -4795,7 +4879,8 @@ sentence).
           relative abundances with ``var["genus"]``).
       model
           The name a plugin registers in the entry-point group
-          ``biotapy.embeddings``. biotapy registers ``"mgm"``.
+          ``biotapy.embeddings``: letters, digits, ``_``, ``-`` or ``.``, so that
+          ``obsm["X_<model>"]`` is a plain key. biotapy registers ``"mgm"``.
       inplace
           Write the embedding to ``obsm[f"X_{model}"]`` and return ``None``.
 
@@ -4809,11 +4894,16 @@ sentence).
       KeyError
           No installed plugin registers ``model``; the message lists those that do.
       TypeError
-          The plugin returns something other than a NumPy array.
+          The plugin returns something other than a plain NumPy array.
       ValueError
-          Two installed packages register ``model``, or the plugin's array is not
-          2-D, float and finite with one row per sample. Errors about the result
-          name the plugin.
+          ``model`` has other characters, two installed packages register
+          ``model``, or the plugin's array is not 2-D, float and finite with one
+          row per sample. Errors about the result name the plugin.
+      Exception
+          What the plugin itself raises passes through with its type and a note
+          that names the plugin. ``"mgm"`` raises ``ImportError`` without the
+          extra, ``KeyError`` without ``var["genus"]`` and ``ValueError`` for
+          negative or non-finite ``X``.
 
       Notes
       -----
@@ -4837,18 +4927,34 @@ sentence).
       >>> bt.ml.embed(genera, "mgm").shape
       (6, 256)
       """
+      if not re.fullmatch(r"[\w.-]+", model):
+          msg = f"model={model!r} must be letters, digits, '_', '-' or '.', so that obsm['X_<model>'] is a plain key"
+          raise ValueError(msg)
       found = [point for point in entry_points(group=GROUP) if point.name == model]
       if not found:
           installed = sorted({point.name for point in entry_points(group=GROUP)})
           msg = f"model={model!r} is not an installed embedding plugin; installed: {installed}"
           raise KeyError(msg)
       if len(found) > 1:
-          packages = sorted(point.dist.name if point.dist else point.value for point in found)
+          packages = sorted({point.dist.name if point.dist else point.value for point in found})
           msg = f"model={model!r} is registered by several packages ({', '.join(packages)}); uninstall all but one"
           raise ValueError(msg)
       # A plugin is not trusted: a wrong row count would pair embeddings with the wrong samples (decisions/embedding-plugins).
-      result = found[0].load()(adata)
-      if not isinstance(result, np.ndarray):
+      try:
+          result = found[0].load()(adata)
+      except Exception as err:
+          err.add_note(f"while using the embedding plugin {model!r} ({found[0].value})")
+          raise
+      result = _checked(model, adata, result)
+      if not inplace:
+          return result
+      adata.obsm[f"X_{model}"] = result
+      return None
+
+
+  def _checked(model: str, adata: AnnData, result: object) -> npt.NDArray[np.floating]:
+      """``result`` if it is a float, finite, samples x dimensions array that shares no memory with ``adata``, else an error."""
+      if type(result) is not np.ndarray:  # a masked array would hide NaN from the check below, a matrix is always 2-D
           msg = f"plugin {model!r} returned a {type(result).__name__}, not a NumPy array"
           raise TypeError(msg)
       if result.ndim != 2 or result.shape[0] != adata.n_obs or result.shape[1] == 0:
@@ -4862,10 +4968,26 @@ sentence).
       if not np.isfinite(result).all():
           msg = f"plugin {model!r} returned NaN or infinite values"
           raise ValueError(msg)
-      if not inplace:
-          return result
-      adata.obsm[f"X_{model}"] = result
-      return None
+      if any(np.shares_memory(result, held) for held in _arrays(adata)):
+          return result.copy()  # editing the embedding must not edit the caller's table
+      return result
+
+
+  def _arrays(adata: AnnData) -> Iterator[npt.NDArray[np.generic]]:
+      """The arrays adata holds: X, layers, obsm, varm, obsp, varp and the arrays in uns (a sparse matrix by its data)."""
+      for held in (
+          adata.X,
+          *adata.layers.values(),
+          *adata.obsm.values(),
+          *adata.varm.values(),
+          *adata.obsp.values(),
+          *adata.varp.values(),
+          *adata.uns.values(),
+      ):
+          if sp.issparse(held):
+              yield cast("sp.csr_matrix", held).data
+          elif isinstance(held, np.ndarray):
+              yield held
   ```
   No private helper: with the lookup and the checks inline, `embed` has 7
   branches and 2 returns, within R5 (ruff passes), so R4.4 allows none. R2.1:
@@ -4879,10 +5001,10 @@ sentence).
   __all__ = ["CLR", "PrevalenceFilter", "embed", "to_torch"]
   ```
 - [ ] **Step 4: Run, expect pass** - `uv run --group test pytest
-  tests/ml/test_embed.py src/biotapy/ml -q -W error::UserWarning` -> `21
-  passed, 2 deselected` (the 19 tests and the two transformer doctests; the
+  tests/ml/test_embed.py src/biotapy/ml -q -W error::UserWarning` -> `39
+  passed, 2 deselected` (the 37 tests and the two transformer doctests; the
   deselected are `to_torch`'s and `embed`'s doctests); `--hypothesis-seed=1`,
-  `2`, `3` -> `19 passed` each; `uv run --group dev --group doc mypy` ->
+  `2`, `3` -> `37 passed` each; `uv run --group dev --group doc mypy` ->
   `Success: no issues found in 67 source files`.
 - [ ] **Step 5: Docs.**
   ````diff
@@ -4917,7 +5039,7 @@ sentence).
 
    ## Which steps leak
 
-  @@ -109,3 +109,41 @@ CPU-only torch, install it from PyTorch's CPU index first:
+  @@ -109,3 +109,42 @@ CPU-only torch, install it from PyTorch's CPU index first:
    pip install torch --index-url https://download.pytorch.org/whl/cpu
    pip install 'biotapy[torch]'
    ```
@@ -4938,8 +5060,9 @@ sentence).
   +
   +A model reads what it was trained on, so filter first: a later feature change
   +(`bt.pp.filter_features`, `bt.pp.tax_glom`) drops `obsm`, and the embedding
-  +with it. An embedding is not fitted to your samples, so computing it before a
-  +cross-validation split leaks nothing.
+  +with it. MGM embeds each sample from that sample alone, so computing its
+  +embedding before a cross-validation split leaks nothing. A plugin that
+  +normalises across samples would leak; check how yours works.
   +
   +### Adding a model
   +
@@ -5002,10 +5125,17 @@ sentence).
     asked for. An unknown name raises `KeyError` listing the installed names;
     a name two packages register raises `ValueError` naming both, never picks
     one (`ml/_embed.py:embed`).
-  - **biotapy checks the result**, not the plugin: a NumPy array (else
-    `TypeError`), 2-D with one row per sample and at least one column, float,
+  - **biotapy checks the result**, not the plugin: a plain `numpy.ndarray`, not
+    a masked array or a matrix (else `TypeError`), 2-D with one row per sample and at least one column, float,
     finite (else `ValueError`), each message naming the plugin
-    (`ml/_embed.py:embed`). A refused result is never stored.
+    (`ml/_embed.py:_checked`). A refused result is never stored, and one that
+    shares memory with the AnnData's arrays is copied. A plugin's own exception
+    propagates with its type and a note naming the plugin. The model name is
+    letters, digits, `_`, `-` or `.`, so `obsm["X_<model>"]` is a plain key.
+  - **The plugin gets the caller's AnnData, not a copy**: a copy would double
+    `X` in memory for every call. The protocol therefore forbids a plugin to
+    modify it; biotapy does not enforce that (MGM's own test does:
+    `tests/ml/test_mgm.py:test_keeps_the_input`).
   - **Where it goes**: returned, or with `inplace=True` written to
     `obsm[f"X_{model}"]` with `None` returned, the `tl` convention
     ([pure-by-default](/decisions/pure-by-default.md),
@@ -5045,7 +5175,8 @@ sentence).
   ```
   List it in `.knowledge/decisions/index.md`, above "Pure by default", with
   the description as its text. Then (`generated` and `commit:` as in 4.C0;
-  the frontmatter hunks are not shown):
+  the frontmatter hunks are not shown; data-model-slots also gains
+  `"src/biotapy/ml/**"` in `paths`):
   ```diff
   diff --git a/.knowledge/contracts/data-model-slots.md b/.knowledge/contracts/data-model-slots.md
   @@ -32,7 +32,7 @@ Extends the spec's data-model table with exact keys.[^spec]
@@ -5118,7 +5249,7 @@ sentence).
 
    # Invariants
 
-  @@ -63,6 +66,13 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
+  @@ -63,6 +66,17 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
      -> float32; a missing label raises. Codes are per dataset (anndata drops a category a subset lacks), so build one dataset and split it with `torch.utils.data.Subset`; per-split datasets recode a class a split lacks. `_torch.py:to_torch`, `_torch.py:_labels`.
    - `to_torch` validates its arguments before it imports torch, so its error
      tests run in every CI job, not only in `ml-extras`. `_torch.py:to_torch`.
@@ -5126,13 +5257,17 @@ sentence).
   +  for; a name no package registers raises `KeyError` listing those installed,
   +  a name two packages register raises `ValueError` naming both.
   +  `_embed.py:embed`.
-  +- `embed` trusts no plugin: the result must be a NumPy array, 2-D with one
-  +  row per sample and at least one column, float and finite, or it raises
-  +  naming the plugin, before anything is written. `_embed.py:embed`.
+  +- `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
+  +  a masked array or a matrix), 2-D with one row per sample and at least one
+  +  column, float and finite, or it raises naming the plugin, before anything
+  +  is written; a result that shares memory with any of the AnnData's arrays is
+  +  copied. A plugin's own exception keeps its type and gains a note naming the
+  +  plugin. The model name must be letters, digits, `_`, `-` or `.`.
+  +  `_embed.py:embed`, `_embed.py:_checked`.
    - Inherited scikit-learn methods (`transform`, `fit_transform`,
      `get_support`, `get_feature_names_out`, `set_output`) are named in each
      class's `Notes`, because the class template leaves inherited members off
-  @@ -83,7 +93,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
+  @@ -83,7 +97,7 @@ yet. Owns no reader and no table-level transform: `pp.filter_features` and
 
    `uv run --group test pytest tests/ml` (the scikit-learn estimator checks, the
    `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
@@ -5141,7 +5276,7 @@ sentence).
    `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
    `.github/workflows/test.yaml`). The pseudocount
    warning's text is unit-tested in `tests/core/test_composition.py`.
-  @@ -130,6 +140,15 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
+  @@ -130,6 +144,15 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
      sys.modules` after `import biotapy` tells nothing there; the
      `import-without-extras` check is meaningful only on a torch-free
      environment, as in CI.
@@ -5176,9 +5311,9 @@ sentence).
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1462 passed, 2 skipped, 80 deselected`; `36
-  passed, 1508 deselected`; `build succeeded`; `25 passed, 1519
-  deselected`; `-m mgm`: `1 failed, 1543 deselected`
+  Expected: prek passed; `1480 passed, 2 skipped, 80 deselected`; `36
+  passed, 1526 deselected`; `build succeeded`; `25 passed, 1537
+  deselected`; `-m mgm`: `1 failed, 1561 deselected`
   (`src/biotapy/ml/_embed.py::biotapy.ml._embed.embed`, `KeyError:
   "model='mgm' is not an installed embedding plugin; installed: []"`).
 
@@ -5220,6 +5355,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   microformer-mgm pins numpy 1.24, pandas 2.0, torch 2.0 and transformers 4.33, so it cannot be installed
   beside biotapy. Run from the repository root, never in CI:
 
+      HF_HOME=<scratch directory> \
       uv run --no-project --python 3.11 --with microformer-mgm==0.5.8 --with torch==2.0.1+cpu \
           --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match \
           python tests/mgm/export_reference.py
@@ -5251,15 +5387,21 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       vocabulary = pd.read_csv(find_pkg_resource("resources/phylogeny.csv"), index_col=0).index
       plain = [name[3:] for name in vocabulary if re.fullmatch(r"g__[A-Za-z0-9_]+", name) and name[3:] not in GUT]
       many = plain[::16][:600]
-      genera = [*GUT, "Escherichia", "Escherichia-Shigella", "Notagenus", None, *many]
+      genera = [*GUT, "Escherichia", "Escherichia-Shigella", "Notagenus", None, "Blautia", *many]
       counts = np.zeros((len(genera), 7), dtype=np.int64)
       gut = np.arange(1, len(GUT) + 1)
       counts[: len(GUT), 0] = gut * 10  # s1: twelve genera
       counts[: len(GUT), 1] = gut[::-1] * 7  # s2: the same, other counts, and the rest below
-      counts[12:16, 1] = [3, 5, 40, 25]  # Escherichia twice (one token), a genus MGM lacks, no genus
+      counts[12:17, 1] = [
+          3,
+          5,
+          40,
+          25,
+          40,
+      ]  # Escherichia twice (one token), a genus MGM lacks, no genus, Blautia again (49 + 40 moves it from rank 5 to 2)
       counts[2, 2] = 9  # s3: one genus
       counts[14:16, 3] = [8, 2]  # s4: only a genus MGM lacks and no genus; s5: all zero
-      counts[16:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
+      counts[17:, 5] = (np.arange(600) * 7919) % 600 + 1  # s6: 600 genera, more than the 510 tokens a sample can hold
       counts[[0, 3, 20, 400], 6] = [500, 1, 1, 30]  # s7: few genera, two of them once
       frame = pd.DataFrame(counts, columns=[f"s{i}" for i in range(1, 8)], index=[f"f{i}" for i in range(len(genera))])
       frame.insert(0, "genus", genera)
@@ -5322,10 +5464,11 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   session scratchpad, `p4c/tests/data/mgm/`). Create
   `tests/data/mgm/NOTICE.txt`:
   ```text
-  counts.csv is synthetic, written for biotapy (BSD-3-Clause): 7 samples x 616
-  features. 613 of their genus names come from MGM's vocabulary
+  counts.csv is synthetic, written for biotapy (BSD-3-Clause): 7 samples x 617
+  features. 614 of their genus names come from MGM's vocabulary
   (mgm/resources/phylogeny.csv); "Escherichia-Shigella" reads as MGM's
-  Escherichia, "Notagenus" is not in it, and one feature has no genus.
+  Escherichia, "Notagenus" is not in it, one feature has no genus, and "Blautia"
+  is the genus of two features.
 
   embeddings.csv holds MGM's own embedding of each sample of counts.csv (7 x 256
   float32 values), computed by tests/mgm/export_reference.py with
@@ -5378,10 +5521,13 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   # torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
   # embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
   ATOL = 1e-3
+  # Only a process's first call is affected by that race, so a later call matches MGM's own output to 1e-5 (measured 1.7e-6);
+  # a changed last token (an <eos> kept at the cut) moves a row by 7.7e-4, which 1e-3 hides.
+  WARM_ATOL = 1e-5
 
 
   def _reference_table():
-      """tests/data/mgm/counts.csv as an AnnData: 7 samples x 616 features, var["genus"] (one missing)."""
+      """tests/data/mgm/counts.csv as an AnnData: 7 samples x 617 features, var["genus"] (one missing)."""
       counts = pd.read_csv(DATA / "counts.csv", index_col=0)
       return AnnData(
           X=sp.csr_matrix(counts.drop(columns="genus").T.to_numpy()),
@@ -5421,11 +5567,14 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       with pytest.warns(UserWarning) as record:
           result = bt.ml.embed(_reference_table(), "mgm")
       assert [str(warning.message) for warning in record] == [
-          "mgm leaves out 2 of 616 features: 1 without a genus and 1 whose genus is not one of MGM's (Notagenus)",
+          "mgm leaves out 2 of 617 features: 1 without a genus and 1 whose genus is not one of MGM's (Notagenus)",
           "mgm embeds 2 sample(s) from <bos> <eos> alone, none of their genera being MGM's: s4, s5",
       ]
       assert result.shape == (7, 256) and result.dtype == np.float32
       np.testing.assert_allclose(result, expected.to_numpy(), rtol=0, atol=ATOL)
+      with pytest.warns(UserWarning):
+          warm = bt.ml.embed(_reference_table(), "mgm")
+      np.testing.assert_allclose(warm, expected.to_numpy(), rtol=0, atol=WARM_ATOL)
 
 
   @pytest.mark.mgm
@@ -5434,6 +5583,15 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       with pytest.warns(UserWarning, match="1 without a genus"):
           raw = bt.ml.embed(tdata, "mgm")
       np.testing.assert_allclose(raw, bt.ml.embed(bt.pp.tax_glom(tdata, "genus"), "mgm"), rtol=0, atol=ATOL)
+
+
+  @pytest.mark.mgm
+  def test_the_leave_out_warning_lists_unknown_genera_only_when_there_are_some():
+      with pytest.warns(UserWarning) as record:
+          bt.ml.embed(bt.datasets.toy(), "mgm")
+      assert [str(warning.message) for warning in record] == [
+          "mgm leaves out 1 of 8 features: 1 without a genus and 0 whose genus is not one of MGM's"
+      ]
 
 
   @pytest.mark.mgm
@@ -5481,8 +5639,9 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   def test_embeds_global_patterns_end_to_end():
       # Phase 4 exit gate 2: one foundation model plugged in end to end (decisions 10, 17).
       tdata = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
-      with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose"):
+      with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose") as record:
           bt.ml.embed(tdata, "mgm", inplace=True)
+      assert not [warning for warning in record if "<bos> <eos>" in str(warning.message)]  # no sample is empty
       embedding = tdata.obsm["X_mgm"]
       assert embedding.shape == (26, 256) and embedding.dtype == np.float32 and np.isfinite(embedding).all()
       with pytest.warns(UserWarning, match="mgm leaves out 96"):
@@ -5491,6 +5650,38 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       neighbour = NearestNeighbors(n_neighbors=2, metric="cosine").fit(embedding).kneighbors(embedding)[1][:, 1]
       types = tdata.obs["SampleType"].to_numpy()
       assert (types[neighbour] == types).all()
+
+
+  def _cached_file(name):
+      """The file ``name`` that MGM's wheel was extracted to, in biotapy's data cache."""
+      from biotapy.ml import _mgm
+
+      cache = _mgm.make_pooch(_mgm._BASE_URL, {_mgm._WHEEL: _mgm._SHA256})
+      paths = cache.fetch(_mgm._WHEEL, processor=_mgm.pooch.Unzip(members=_mgm._MEMBERS))
+      return next(Path(path) for path in paths if Path(path).name == name)
+
+
+  @pytest.mark.mgm
+  @pytest.mark.parametrize("name", ["phylogeny.csv", "config.json"])
+  def test_a_damaged_extracted_file_is_extracted_again(name):
+      genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+      expected = bt.ml.embed(genera, "mgm")
+      path = _cached_file(name)
+      original = path.read_bytes()
+      path.write_bytes(original[: len(original) // 2])
+      result = bt.ml.embed(genera, "mgm")
+      assert path.read_bytes() == original
+      np.testing.assert_allclose(result, expected, rtol=0, atol=ATOL)
+
+
+  @pytest.mark.mgm
+  def test_a_file_that_stays_damaged_raises(monkeypatch):
+      from biotapy.ml import _mgm
+
+      monkeypatch.setitem(_mgm._SHA256_OF, "phylogeny.csv", "0" * 64)
+      genera = bt.pp.tax_glom(bt.datasets.toy(), "genus")
+      with pytest.raises(ValueError, match=r"phylogeny\.csv does not match its SHA-256 after extracting it again"):
+          bt.ml.embed(genera, "mgm")
   ```
   In `tests/test_ci.py`, before `test_ml_extras_job_has_a_timeout`:
   ```diff
@@ -5514,22 +5705,24 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   R11.2 coverage: happy path (MGM's own embeddings, GlobalPatterns end to
   end); edge cases (an all-zero sample and one with only unknown genera,
   `s5` and `s4`; a NaN genus, `f15`; a sample past 510 genera, `s6`; a
-  single sample; an all-zero feature); purity (`test_keeps_the_input`); invariants as tests rather
+  single sample; an all-zero feature; a truncated extracted file, extracted again; a warm call at 1e-5); purity (`test_keeps_the_input`); invariants as tests rather
   than Hypothesis properties, because each MGM call runs a transformer
   (feature order, scale, summing per genus); a parity test against MGM's own
   code instead of an R golden (no R equivalent). The four tests without the
   marker need neither the extra nor the download.
 - [ ] **Step 3: Run, expect failure** - `uv sync --all-groups && uv run
   --group test pytest tests/ml/test_mgm.py tests/test_ci.py -q` -> `5
-  failed, 22 passed, 8 deselected` (no entry point yet: the input tests get
+  failed, 22 passed, 12 deselected` (no entry point yet: the input tests get
   `KeyError: "model='mgm' is not an installed embedding plugin; installed:
   []"`; `test_ci` has no `-m mgm` step). `uv run --group test --extra mgm
-  pytest tests/ml/test_mgm.py -q -m mgm` -> `8 failed, 4 deselected` (the
+  pytest tests/ml/test_mgm.py -q -m mgm` -> `12 failed, 4 deselected` (the
   same `KeyError`, or `DID NOT WARN` around it).
 - [ ] **Step 4: Implement.** Create `src/biotapy/ml/_mgm.py`:
   ```python
   """MGM, the reference embedding plugin: entry point ``mgm`` in ``biotapy.embeddings``, extra ``mgm``."""
 
+  import hashlib
+  import logging
   from collections.abc import Iterable
   from pathlib import Path
   from typing import Any, cast
@@ -5553,6 +5746,13 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       "mgm/resources/general_model/pytorch_model.bin",
       "mgm/resources/phylogeny.csv",
   ]
+  # SHA-256 of each extracted file: Unzip re-extracts only a missing member, so a truncated one would stay.
+  _SHA256_OF = {
+      "config.json": "88e4940036404ca90d2b1a79f38948efd419454484eb394196edeb9957fec499",
+      "pytorch_model.bin": "7a83b442dcb0cbe2a4248ea9922de58e15edfa3a1ad71d07519dc8594f4511b8",
+      "phylogeny.csv": "016b8264eed155b134ab55e387e8f21c7e46241bf987a83df49d6604c6b378db",
+  }
+  _LOG = logging.getLogger(__name__)
   # How MGM reads a genus from a column name (mgm/src/MicroCorpus.py, MicroCorpus._preprocess).
   _TOKEN = r"(g__[A-Za-z0-9_]+)"
   # MGM's vocabulary: <pad>, <mask>, <bos>, <eos>, then phylogeny.csv's genera in file order (mgm/resources/MicroTokenizer.pkl).
@@ -5571,8 +5771,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
           raise ValueError(msg)
       torch: Any = import_optional("torch", extra="mgm")
       transformers: Any = import_optional("transformers", extra="mgm")
-      paths = make_pooch(_BASE_URL, {_WHEEL: _SHA256}).fetch(_WHEEL, processor=pooch.Unzip(members=_MEMBERS))
-      files = {Path(path).name: Path(path) for path in paths}  # Unzip lists them in os.walk order
+      files = _extracted_files()
       # anndata types var columns as Series | DataArray (its lazy variant); the data model guarantees a Series.
       genus = cast("pd.Series[str]", adata.var["genus"])
       sentences = _sentences(adata, genus, pd.read_csv(files["phylogeny.csv"], index_col=0))
@@ -5591,6 +5790,28 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       return out
 
 
+  def _extracted_files() -> dict[str, Path]:
+      """MGM's three files from the cached wheel, extracted again once if one does not match its SHA-256."""
+      cache = make_pooch(_BASE_URL, {_WHEEL: _SHA256})
+
+      def fetch() -> tuple[dict[str, Path], list[str]]:
+          paths = cache.fetch(_WHEEL, processor=pooch.Unzip(members=_MEMBERS))
+          files = {Path(path).name: Path(path) for path in paths}  # Unzip lists them in os.walk order
+          digest = {name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in files.items()}
+          return files, [name for name, value in digest.items() if value != _SHA256_OF[name]]
+
+      files, damaged = fetch()
+      if damaged:
+          _LOG.warning("extracting %s again: it does not match its SHA-256", ", ".join(damaged))
+          for name in damaged:
+              files[name].unlink()
+          files, damaged = fetch()
+      if damaged:
+          msg = f"{', '.join(damaged)} does not match its SHA-256 after extracting it again; delete {cache.abspath}"
+          raise ValueError(msg)
+      return files
+
+
   def _sentences(adata: AnnData, genus: "pd.Series[str]", phylogeny: pd.DataFrame) -> list[npt.NDArray[np.int64]]:
       """Each sample's tokens as MGM builds them: <bos>, its genera by standardised abundance, <eos>, cut to 512."""
       tokens = ("g__" + genus.astype("string")).str.extract(_TOKEN, expand=False)
@@ -5600,8 +5821,10 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
       if missing.any() or unknown.any():
           msg = (
               f"mgm leaves out {int(missing.sum() + unknown.sum())} of {codes.size} features: {int(missing.sum())} "
-              f"without a genus and {int(unknown.sum())} whose genus is not one of MGM's ({_listed(genus[unknown])})"
+              f"without a genus and {int(unknown.sum())} whose genus is not one of MGM's"
           )
+          if unknown.any():
+              msg += f" ({_listed(genus[unknown])})"
           warn_user(msg)
       # Features of one genus are summed, and relative abundance is taken over MGM's genera only, as MGM does.
       grouped = sum_by(as_csr(adata.X), codes, len(phylogeny))
@@ -5704,10 +5927,11 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
      "skbio.stats.composition._ancombc.ancombc2",
      "skbio.stats.composition._base.tree_basis",
   diff --git a/src/biotapy/ml/_embed.py b/src/biotapy/ml/_embed.py
-  @@ -55,6 +55,35 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
+  @@ -64,6 +64,36 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
+
        biotapy finds it when ``embed`` is called, so installing the package is
        enough. It checks the array before returning or storing it.
-
+  +
   +    ``"mgm"`` is MGM, the Microbial General Model (MIT licence), a GPT-2
   +    pretrained on genus profiles from MGnify. It needs the extra ``mgm``
   +    (``pip install 'biotapy[mgm]'``) and, at the first call, downloads the
@@ -5726,7 +5950,8 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   +    genus is embedded from ``<bos> <eos>``, with a warning naming it. The
   +    embedding is the mean of the model's last hidden layer over the sample's
   +    tokens (256 float32 values), the mean pooling MGM's authors use for the
-  +    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6. The
+  +    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6 (up to about 2e-4 on the
+  +    first call of a process, on a CPU with more than four threads). The
   +    model runs on the CPU, one sample at a time: batches were slower there and
   +    needed up to 1.5 GB more memory. Cite Zhang et al. (2026) when you publish
   +    results that use it.
@@ -5736,19 +5961,18 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   +    Zhang H, Zhang Y, Kang Z, Xiong J, Yang R, Ning K (2026) MGM as a
   +    large-scale pretrained foundation model for microbiome analyses in diverse
   +    contexts. Adv Sci 13:e13333.
-  +
+
        Examples
        --------
-       >>> import biotapy as bt
   ```
   pyproject-fmt moves the `entry-points` line after `urls`, as shown. The
   `ml-extras` cache key hashes `_mgm.py` (its URL and hash) and `_remote.py`
   (GlobalPatterns' pin).
 - [ ] **Step 5: Run, expect pass** - `uv sync --all-groups && uv run --group
-  test pytest tests/ml/test_mgm.py tests/test_ci.py -q` -> `27 passed, 8
+  test pytest tests/ml/test_mgm.py tests/test_ci.py -q` -> `27 passed, 12
   deselected`; with `BIOTAPY_DATA_DIR` set, `uv run --group test --extra mgm
   pytest tests/ml/test_mgm.py src/biotapy/ml -q -m "mgm or not mgm" -W
-  error::UserWarning` -> `16 passed` (the 12 tests, `embed`'s, `to_torch`'s
+  error::UserWarning` -> `20 passed` (the 16 tests, `embed`'s, `to_torch`'s
   and the two transformer doctests; the first run downloads 33 MB); `uv run
   --group dev --group doc --extra mgm mypy` -> `Success: no issues found in
   68 source files`; `uv run --no-dev python -c "import importlib, pkgutil,
@@ -5838,7 +6062,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   +
    A model reads what it was trained on, so filter first: a later feature change
    (`bt.pp.filter_features`, `bt.pp.tax_glom`) drops `obsm`, and the embedding
-   with it. An embedding is not fitted to your samples, so computing it before a
+   with it. MGM embeds each sample from that sample alone, so computing its
   ````
   The numbers are the prototype's: 96 of 996 from
   `test_embeds_global_patterns_end_to_end`, 520 GlobalPatterns profiles in
@@ -5906,18 +6130,23 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
 
    # Invariants
 
-  @@ -73,6 +76,34 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
-   - `embed` trusts no plugin: the result must be a NumPy array, 2-D with one
-     row per sample and at least one column, float and finite, or it raises
-     naming the plugin, before anything is written. `_embed.py:embed`.
+  @@ -73,10 +76,39 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+   - `embed` trusts no plugin: the result must be a plain `numpy.ndarray` (not
+     a masked array or a matrix), 2-D with one row per sample and at least one
+     column, float and finite, or it raises naming the plugin, before anything
+     is written; a result that shares memory with any of the AnnData's arrays is
+     copied. A plugin's own exception keeps its type and gains a note naming the
+     plugin. The model name must be letters, digits, `_`, `-` or `.`.
+     `_embed.py:embed`, `_embed.py:_checked`.
   +- MGM's tokens are MGM's own (`mgm/src/MicroCorpus.py`, 0.5.8): a genus is
   +  read with MGM's regex `g__[A-Za-z0-9_]+` on `"g__" + genus`; features of
   +  one token are summed (`_core.sum_by`); relative abundance is taken over
   +  MGM's genera only, as MGM drops the others before dividing; a genus is kept
   +  when its standardised value `(rel - mean) / std` exceeds that of zero
   +  abundance, and the kept ones are sorted by it with pandas' own
-  +  `sort_values(ascending=False)` on the vocabulary-ordered series, so ties
-  +  fall as in MGM; `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
+  +  `sort_values(ascending=False)` on the vocabulary-ordered series (the order
+  +  of tied genera follows numpy's quicksort, which can differ from MGM's numpy
+  +  1.24 environment; GlobalPatterns and enterotype have no such tie); `<bos>` ... `<eos>` is cut to 512 tokens (the `<eos>` is
   +  lost past 510 genera). Vocabulary ids are the position in `phylogeny.csv`
   +  plus 4 (`<pad>`, `<mask>`, `<bos>`, `<eos>`); the pickled tokenizer is
   +  never loaded. `_mgm.py:_sentences`.
@@ -5941,7 +6170,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    - Inherited scikit-learn methods (`transform`, `fit_transform`,
      `get_support`, `get_feature_names_out`, `set_output`) are named in each
      class's `Notes`, because the class template leaves inherited members off
-  @@ -85,6 +116,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+  @@ -89,6 +121,8 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
      `OneToOneFeatureMixin`, `validate_data`. scikit-bio: `clr`.
    - torch (extra `torch`), only through `import_optional` inside `to_torch`
      ([optional-heavy-dependencies](/decisions/optional-heavy-dependencies.md)).
@@ -5950,7 +6179,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    - `ml` imports no sibling top-layer module (`pl`, `da`) and not `pp`; the
      link to `pp` is through `_core` only
      ([module-boundaries](/contracts/module-boundaries.md)).
-  @@ -95,7 +128,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
+  @@ -99,7 +133,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)).
    `pp` parity tests, a `Pipeline` cross-validation test, `to_torch`'s argument
    errors, `embed` with fake plugins). `uv run --group test --extra torch pytest -m torch` runs the
    `to_torch` tests and its docstring example, as CI's `ml-extras` job does (30-minute timeout,
@@ -5961,7 +6190,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
    warning's text is unit-tested in `tests/core/test_composition.py`.
 
    # Gotchas
-  @@ -149,6 +184,19 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
+  @@ -153,6 +189,19 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
    - `embed`'s docstring example runs MGM, so the root `conftest.py` gives
      `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
      `torch`. `conftest.py:_EXTRA_DOCTESTS`.
@@ -5998,9 +6227,9 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1470 passed, 2 skipped, 88 deselected`; `36
-  passed, 1524 deselected`; `build succeeded`; `25 passed, 1535
-  deselected`; `9 passed, 1551 deselected`.
+  Expected: prek passed; `1488 passed, 2 skipped, 92 deselected`; `36
+  passed, 1546 deselected`; `build succeeded`; `25 passed, 1557
+  deselected`; `13 passed, 1569 deselected`.
 
 ### Checkpoint C - review slice 4C
 - [ ] Review the whole slice (superpowers:requesting-code-review) against
@@ -6014,7 +6243,7 @@ already names MGM's entry point); the end-to-end docs page (4.6b, slice 4D).
   tests/core/test_download.py src/biotapy/ml/_embed.py` then `coverage
   report --include
   "src/biotapy/ml/_embed.py,src/biotapy/ml/_mgm.py,src/biotapy/_core/_download.py"`
-  (exits 0; 100% each on the prototype: 32, 65 and 4 statements);
+  (exits 0; 100% each: `_embed.py` 54, `_mgm.py` 87 and `_download.py` 4 statements);
   `tests/ml/test_embed.py` under `--hypothesis-seed=1`, `2`, `3`; the six
   parity mutations of 4.4b Step 5, each failing.
 - [ ] Knowledge: [ml](/modules/ml.md), [core](/modules/core.md),
