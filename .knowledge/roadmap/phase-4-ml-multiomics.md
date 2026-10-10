@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
-commit: 38f9379
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T20:30:46Z }
+commit: 252ae31
 sources:
   - id: spec
     resource: ../../plan.md
@@ -523,15 +523,16 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - [ ] 4.D2 Release 0.4.0
 
 # Exit gate
-- [ ] Leak-free CV example executed in docs: `docs/tutorials/leak_free_cv.md`
-  runs in the docs CI job (design note 9).
+- [x] Leak-free CV example executed in docs: `docs/tutorials/leak_free_cv.md`
+  runs in the docs CI job (design note 9). Proven on PR #31: docs job 114304008718
+  executed `tutorials/leak_free_cv.md`.
 - [x] One foundation model plugged in end to end: `ml-extras`' `-m mgm` step runs
   `tests/ml/test_mgm.py::test_embeds_global_patterns_end_to_end`: GlobalPatterns'
   genera through `bt.ml.embed(..., "mgm", inplace=True)`, 26 x 256, equal
   across calls, every sample's nearest neighbour from its own environment
   (design note 10). Proven on PR #30 (Test run `37962120924`): `ml-extras`'
   `-m mgm` step `13 passed`.
-- [ ] All Phase 1-3 gates still green.
+- [x] All Phase 1-3 gates still green. Proven on PR #31: every job of Test run 38083140914 green.
 
 # Risks
 - **MGM's pooling is the paper's description, not code**: the paper names
@@ -8482,7 +8483,7 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
   current, 0 stale`); `coverage report` on `datasets/_biocrust.py` and `_core/_matrix.py`
   (100%); Hypothesis seeds 1-3 on the 4.F4/4.F5 test files. Confirm `~/.cache/biotapy` and
   `docs/pooch/` do not exist.
-- [ ] **Push** `phase-4d`, open the PR and merge-commit it on green, only after the user approves
+- [x] **Push** `phase-4d`, open the PR and merge-commit it on green, only after the user approves
   that push (decision 42; decision 20 gives no standing approval for Phase 4). CI must be green:
   every hatch-test job, `lint`, `import-without-extras`, `network` (its log shows `40 passed`:
   the leak-free and multi-omics pages and `biocrust`), `r-bridge`, `ml-extras` (its `-m mgm`
@@ -8491,12 +8492,12 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
   merge commit, Test run id and the docs job id: exit-gate items 1 and 3's evidence, ticked in
   4.D2 Step 8. If a page-running test fails only on a number, stop and report the measured
   values; do not edit the constants without the user (R11.5).
-- [ ] **After the merge**, once Read the Docs has built `master`: `curl -s -o /dev/null -w
+- [x] **After the merge**, once Read the Docs has built `master`: `curl -s -o /dev/null -w
   "%{http_code}\n" https://biotapy.readthedocs.io/en/latest/tutorials/leak_free_cv.html` and the
   same for `tutorials/multiomics.html` and `tutorials/embeddings.html` print `200`, and the
   leak-free page shows its table. If a page is missing, read the build log on readthedocs.org
   and report it.
-- [ ] **Ask the user, in one message:** to review slice 4D; to approve pushing
+- [x] **Ask the user, in one message:** to review slice 4D; to approve pushing
   `release-0.4.0`, opening its PR and merge-committing it on green (4.D2 Steps 3-9); and to
   confirm that pypi.org project `biotapy` still lists the trusted publisher (owner `pedrocr83`,
   repository `biotapy`, workflow `release.yaml`, environment `pypi`) that published 0.3.0. Stop
@@ -8677,15 +8678,15 @@ package metadata; `docs/changelog.md` includes `CHANGELOG.md`); the workflows; `
 - Produces: biotapy 0.4.0 on PyPI with the extras `mgm`, `r`, `torch` and the entry point
   `biotapy.embeddings:mgm`; Phase 4 `phase_state: done`.
 
-- [ ] **Step 1: Approval in hand.** Checkpoint D's last box asked for the slice review, the
+- [x] **Step 1: Approval in hand.** Checkpoint D's last box asked for the slice review, the
   release branch push/PR/merge and the PyPI publisher check. Do not start until all three are
   answered.
-- [ ] **Step 2: Check the publish action.** `gh api
+- [x] **Step 2: Check the publish action.** `gh api
   repos/pypa/gh-action-pypi-publish/releases/latest --jq .tag_name` prints `v1.14.2` (checked
   2026-10-10; `release.yaml` pins `v1.14.2`). If newer, stop and report it.
-- [ ] **Step 3: Branch.** `git switch master && git pull --ff-only && git switch -c
+- [x] **Step 3: Branch.** `git switch master && git pull --ff-only && git switch -c
   release-0.4.0`.
-- [ ] **Step 4: Version and changelog.** `## [Unreleased]` is empty (no 4A-4D PR wrote an
+- [x] **Step 4: Version and changelog.** `## [Unreleased]` is empty (no 4A-4D PR wrote an
   entry). Write the 0.4.0 entries from `git log v0.3.0..master --no-merges --oneline` and the
   diff below, with `date -u +%F`; leave a new empty `## [Unreleased]` above. Each "Changed" line
   is a change to a function 0.3.0 shipped: `5978028` (the pseudocount warning's suffix), `8e1567e`
@@ -8763,7 +8764,7 @@ diff --git a/pyproject.toml b/pyproject.toml
  readme = "README.md"
  license = "BSD-3-Clause"
 ````
-- [ ] **Step 5: README** (PyPI's project page): Status, Next and Installation only.
+- [x] **Step 5: README** (PyPI's project page): Status, Next and Installation only.
 ````diff
 diff --git a/README.md b/README.md
 --- a/README.md
@@ -8850,7 +8851,7 @@ diff --git a/README.md b/README.md
  from source and needs a C compiler until biom-format publishes 3.14 wheels
  ([biocore/biom-format#1004][biom-format-1004]).
 ````
-- [ ] **Step 6: Build check.**
+- [x] **Step 6: Build check.**
   - `rm -rf dist && uv build && uvx twine check --strict dist/*`: both files `PASSED`.
   - `unzip -p dist/biotapy-0.4.0-py3-none-any.whl 'biotapy-0.4.0.dist-info/METADATA' | grep -E
     "^(Version|Provides-Extra|Requires-Dist: (torch|transformers|rpy2))"` prints `Version:
@@ -8871,7 +8872,7 @@ diff --git a/README.md b/README.md
     `test_without_biotapy_data_dir_the_cache_is_pooch_s_per_user_directory` (an unnormalised
     `..` in `pooch.os_cache`); that is the command, not the package.
   - `rm -rf dist <scratchpad>/sdist`.
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   ```bash
   git add pyproject.toml CHANGELOG.md README.md
   uvx prek run --all-files
@@ -8883,7 +8884,7 @@ diff --git a/README.md b/README.md
   Expected: prek passed; `1524 passed, 2 skipped, 98 deselected`; `40 passed, 1584
   deselected`; `build succeeded`; `25 passed, 1599 deselected`; `15 passed, 1609 deselected`;
   `knowledge_stale.sh` `23 current, 5 stale` (Step 8 re-stamps them).
-- [ ] **Step 8: Knowledge, second commit.**
+- [x] **Step 8: Knowledge, second commit.**
   - `bash scripts/knowledge_stale.sh --against HEAD` lists `phase-0-foundation`,
     `embedding-plugins`, `module-boundaries`, `tree-access`, `cut-a-release` (their `paths` hold
     `pyproject.toml` or `CHANGELOG.md`). Check each against the bump, which changes nothing they
