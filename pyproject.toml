@@ -28,6 +28,8 @@ classifiers = [
 dependencies = [
   "anndata",
   "biom-format>=2.1.16",
+  # io.write_h5mu / read_h5mu write the trees into the file (decisions/multiomics-as-mudata); anndata's own floor.
+  "h5py>=3.11",
   "matplotlib>=3.8",
   "mudata>=0.4",
   "networkx",
