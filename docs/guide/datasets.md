@@ -113,7 +113,8 @@ mdata = bt.datasets.hmp2()
 mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
 ```
 
-The [function tutorial](../tutorials/function.md) analyses it.
+The [function](../tutorials/function.md) and [leak-free cross-validation](../tutorials/leak_free_cv.md)
+tutorials analyse it.
 
 ## `biocrust`
 
@@ -151,7 +152,7 @@ you publish results that use it. `hmp2` downloads the HMP2 tables from the
 ships none of them, and you should cite the study when you use them: Lloyd-Price J
 et al. (2019) Multi-omics of the gut microbial ecosystem in inflammatory bowel
 diseases. *Nature* 569:655-662. `biocrust` downloads two files from
-[mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils),
+[mmvec's repository](https://github.com/biocore/mmvec/tree/88ca33b408a85b6bf90fae06982936247b860272/examples/soils),
 distributed under its BSD-3-Clause licence; cite Morton JT et al. (2019) Learning
 representations of microbe-metabolite interactions. *Nature Methods*
 16:1306-1314. The data come from Swenson TL et al. (2018) Linking soil biology and

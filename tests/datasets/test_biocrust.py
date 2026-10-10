@@ -9,7 +9,7 @@ import scipy.sparse as sp
 from anndata import AnnData
 
 import biotapy as bt
-from biotapy.datasets import _biocrust
+from biotapy.datasets import _biocrust, _remote
 
 # Synthetic tables in the layout of mmvec's soil example: the metabolite table lacks one microbe sample and lists the
 # others in another order. No data of the example is copied.
@@ -55,6 +55,13 @@ def test_values_and_units_come_from_the_reader(fetched):
 def test_fetches_both_pinned_files_before_reading(fetched):
     bt.datasets.biocrust()
     assert fetched == ["biocrust_microbes.biom", "biocrust_metabolites.biom"]
+
+
+@pytest.mark.parametrize("page", ["guide/datasets.md", "tutorials/multiomics.md"])
+def test_the_pages_link_mmvec_s_example_at_the_pinned_commit(page):
+    commit = _remote._MMVEC.split("/mmvec/")[1].split("/")[0]
+    text = (Path(__file__).parents[2] / "docs" / page).read_text(encoding="utf-8")
+    assert f"https://github.com/biocore/mmvec/tree/{commit}/examples/soils" in text
 
 
 @pytest.mark.network

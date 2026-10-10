@@ -20,7 +20,7 @@ example from mmvec's own repository: a desert biological soil crust from four su
 counted and its metabolites measured (Swenson et al. 2018).
 
 :::{note}
-The two tables are downloaded from [mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils)
+The two tables are downloaded from [mmvec's repository](https://github.com/biocore/mmvec/tree/88ca33b408a85b6bf90fae06982936247b860272/examples/soils)
 on first use (135 KB) and cached; they are distributed there under its BSD-3-Clause licence.
 Cite the mmvec paper when you use them: Morton JT et al. (2019) Learning representations of
 microbe-metabolite interactions. *Nature Methods* 16:1306-1314. The data come from Swenson TL et
