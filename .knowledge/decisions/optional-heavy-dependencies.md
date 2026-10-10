@@ -4,8 +4,8 @@ title: Heavy dependencies are optional extras
 description: torch, transformers, rpy2, plotnine, numba and unifrac install only through extras and are imported lazily; `pip install biotapy` stays light.
 tags: [packaging, dependencies]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 sources:
   - id: spec
     resource: ../../plan.md
@@ -83,7 +83,11 @@ torch or an R installation into every install is unacceptable.[^spec]
   transformers 5 release (2026-01-26); MGM's plugin was run on 5.0.0 with
   torch 2.9.0 and on 5.19.0 with torch 2.14.1. `microformer-mgm` itself is
   not a dependency: it pins numpy 1.24, pandas 2.0, torch 2.0 and
-  transformers 4.33.
+  transformers 4.33. Phase 5 task 5.1 declared h5py (`>=3.11`, approved
+  2026-10-11, anndata's own floor): `io.write_h5mu` and `read_h5mu` open the
+  h5mu file to add and read a TreeData modality's trees. It is already
+  installed through anndata, so no package is new to `uv.lock`; it is BSD-3 and
+  ships wheels for CPython 3.12-3.14.
 - Extras (names fixed now so docs never change), each added in the phase that first uses it:
 
   | Extra | Pulls | First used |

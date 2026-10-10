@@ -5,8 +5,8 @@ description: Which AnnData/TreeData slot holds what, the exact result keys, the 
 tags: [data-model, api]
 status: stable
 paths: ["src/biotapy/_core/**", "src/biotapy/io/**", "src/biotapy/pp/**", "src/biotapy/tl/**", "src/biotapy/fn/**", "src/biotapy/da/**", "src/biotapy/ml/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
-commit: ebe0cbc
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 sources:
   - id: spec
     resource: ../../plan.md
@@ -126,8 +126,8 @@ Several data types over the same samples are one `MuData`
 `taxa`, `function` and `function_by_taxon` (a function table's two, side by
 side), `metabolites`, `host`. `io.to_mudata` builds it from a mapping of
 AnnData, keeping the samples every modality has, in the first modality's
-order, each modality a copy (`io/_mudata.py:to_mudata`). `write_h5mu` drops a
-TreeData modality's tree.
+order, each modality a copy (`io/_mudata.py:to_mudata`). mudata's `write_h5mu` drops a
+TreeData modality's tree; `io.write_h5mu` keeps it.
 
 ## Taxonomic profiles (MetaPhlAn)
 `io.read_metaphlan` keeps one feature per leaf clade: a row that no other

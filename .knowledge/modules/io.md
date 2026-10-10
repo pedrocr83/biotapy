@@ -1,12 +1,12 @@
 ---
 type: Module
 title: io
-description: File readers and writer for BIOM, QIIME 2 artifacts, DADA2 sequence tables, phyloseq objects and MetaPhlAn profiles (each a TreeData through _core.make_treedata), HUMAnN and PICRUSt2 tables (a MuData through _core.make_function_mudata) and PICRUSt2 per-ASV trait tables (a DataFrame).
+description: File readers and writers (BIOM, and h5mu files that keep a TreeData modality's trees) for BIOM, QIIME 2 artifacts, DADA2 sequence tables, phyloseq objects and MetaPhlAn profiles (each a TreeData through _core.make_treedata), HUMAnN and PICRUSt2 tables (a MuData through _core.make_function_mudata) and PICRUSt2 per-ASV trait tables (a DataFrame).
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T01:55:36Z }
-commit: 9883786
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 status: stable
 ---
 
@@ -61,6 +61,11 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   of the samples every modality has, in the first modality's order
   ([multiomics-as-mudata](/decisions/multiomics-as-mudata.md)).
   `_mudata.py:_check_modality` is its private per-entry check.
+- `_h5mu.py:write_h5mu` / `_h5mu.py:read_h5mu` - an `.h5mu` file that keeps a
+  TreeData modality's trees: mudata writes the file from `mdata.copy()`, then
+  `_core.write_tree_slots` adds the trees under each TreeData modality's
+  group; `read_h5mu` runs `mudata.read_h5mu` and rebuilds each marked
+  modality with `_core.read_tree_slots`.
 - `_table.py:_leading_lines` / `_table.py:_header` / `_table.py:_read_table` /
   `_table.py:_numbers` - private; the one strict reading of the tab-separated
   tables, shared by the three readers above (the structure in `_read_table`,
@@ -200,9 +205,13 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
 # Gotchas
 
 - `MuData.write_h5mu` drops a TreeData modality's `vart` and reads it back as
-  an AnnData; `to_mudata` adds no writer, the docstring says to also save the
-  tree with `TreeData.write_h5td`. A test fails the day mudata or treedata
-  keeps the tree. `mudata.to_mudata` exists with another meaning (it splits
+  an AnnData; `io.write_h5mu` / `io.read_h5mu` keep it. Both write mudata's
+  file first, so a plain mudata reader still opens it. `write_h5mu` works on
+  `mdata.copy()` because mudata's writer calls `strings_to_categoricals` on
+  its input (R3.3), at the cost of one more copy in memory. h5mu only, not
+  zarr. `read_h5mu` leaves a modality that already comes back as a TreeData
+  alone (a future mudata that keeps it). `tests/io/test_mudata.py` still pins
+  plain mudata's behaviour and fails the day mudata keeps the tree. `mudata.to_mudata` exists with another meaning (it splits
   one AnnData by a column): biotapy's is always `bt.io.to_mudata`.
   [multiomics-as-mudata](/decisions/multiomics-as-mudata.md).
 - `read_humann` reads the whole table into one dense rows x samples

@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
-commit: 38f9379
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 status: stable
 ---
 
@@ -121,6 +121,14 @@ none of them back.
   `tree_from_newick`; used by `io.read_phyloseq`. Takes the same keyword-only
   `argument: str = "tips"` as `tree_from_newick` and raises `ValueError`
   naming it on an unnamed or repeated tip.
+- `_tree.py:write_tree_slots` / `_tree.py:read_tree_slots` - copy a TreeData's
+  `obst`, `vart`, `label`, `allow_overlap` and `alignment` into, and rebuild
+  them from, an open `h5py.Group` (used by `io.write_h5mu` / `read_h5mu`). The
+  slim TreeData goes through treedata's public `write_h5td` into an
+  in-memory `BytesIO` file and its elements are copied with `Group.copy`; the
+  group gets the attribute `_tree.py:TREE_SLOTS_ATTR`
+  (`biotapy-treedata-encoding`, value `"1"`, the layout version). Reading
+  an unmarked group raises `KeyError`.
 - `_tree.py:tree_tips` - the tree's leaf names (nodes with no children).
 - `_tree.py:relabel_tips` - rename a subset of a tree's nodes (e.g. sequence
   -> ASV id), raising rather than silently merging nodes on a name collision.
@@ -216,6 +224,8 @@ measurement (rules.md R10.1: no optimization without one).
   skips it. Before Task 1.13 it returned `X=None`, which `pp.tax_glom` hid
   by reassigning `out.X` (`_slots.py:feature_subset`,
   `tests/core/test_slots.py:test_feature_subset_keeps_x`).
+- `h5py` ships no `py.typed` either: it gets the same override and sits in
+  `untyped_calls_exclude` (`pyproject.toml`).
 - `mypy --strict` type-checks `treedata` and `skbio` through
   `follow_untyped_imports` (`pyproject.toml` `[[tool.mypy.overrides]]`), not
   `ignore_missing_imports`: neither ships `py.typed`, and
