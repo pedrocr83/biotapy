@@ -1,10 +1,17 @@
+import tempfile
 import warnings
+from pathlib import Path
 
+import h5py
 import mudata
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pytest
+import scipy.sparse as sp
 from anndata import AnnData
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from mudata import MuData
 
 import biotapy as bt
@@ -127,3 +134,114 @@ def test_writing_does_not_change_the_input(tmp_path, assert_unchanged):
     assert mdata["taxa"].obs.dtypes.equals(before_obs_dtypes)
     assert type(mdata["taxa"]) is TreeData
     _assert_same_trees(get_tree(mdata["taxa"]), get_tree(before))
+
+
+def _caterpillar(leaves: list[str], lengths: list[float]) -> nx.DiGraph:
+    tree = nx.DiGraph()
+    parent = "root"
+    for index, leaf in enumerate(leaves[:-1]):
+        tree.add_edge(parent, leaf, length=lengths[index])
+        tree.add_edge(parent, f"n{index}", length=lengths[index])
+        parent = f"n{index}"
+    tree.add_edge(parent, leaves[-1], length=lengths[-1])
+    return tree
+
+
+def _small_tdata(counts: np.ndarray, *, var: pd.DataFrame | None = None, vart: bool = True) -> TreeData:
+    features = [f"f_{i}" for i in range(counts.shape[1])]
+    samples = [f"s_{i}" for i in range(counts.shape[0])]
+    tree = _caterpillar(features, [0.5 + i for i in range(len(features))])
+    return TreeData(
+        sp.csr_matrix(counts.astype(np.float64)),
+        obs=pd.DataFrame(index=samples),
+        var=var if var is not None else pd.DataFrame(index=features),
+        vart={"phylo": tree} if vart else None,
+    )
+
+
+def _round_trip(tdata: TreeData, path) -> TreeData:
+    bt.io.write_h5mu(bt.io.to_mudata({"taxa": tdata}), path)
+    return bt.io.read_h5mu(path)["taxa"]
+
+
+@settings(max_examples=25, deadline=None)
+@given(
+    counts=st.integers(1, 4).flatmap(
+        lambda n_samples: st.integers(1, 5).flatmap(
+            lambda n_features: st.lists(
+                st.lists(st.integers(0, 20), min_size=n_features, max_size=n_features),
+                min_size=n_samples,
+                max_size=n_samples,
+            )
+        )
+    )
+)
+def test_round_trip_keeps_the_table_the_names_and_the_tree(counts):
+    tdata = _small_tdata(np.array(counts))
+    with tempfile.TemporaryDirectory() as directory:
+        back = _round_trip(tdata, Path(directory) / "p.h5mu")
+    np.testing.assert_array_equal(back.X.toarray(), tdata.X.toarray())
+    assert back.obs_names.tolist() == tdata.obs_names.tolist()
+    assert back.var_names.tolist() == tdata.var_names.tolist()
+    _assert_same_trees(get_tree(back), get_tree(tdata))
+
+
+@pytest.mark.parametrize(
+    "counts",
+    [
+        np.array([[0, 0, 0], [1, 2, 3]]),
+        np.array([[0, 1, 2], [0, 3, 4]]),
+        np.array([[4, 5, 6]]),
+    ],
+    ids=["all-zero sample", "all-zero feature", "single sample"],
+)
+def test_degenerate_tables_round_trip(counts, tmp_path):
+    tdata = _small_tdata(counts)
+    back = _round_trip(tdata, tmp_path / "d.h5mu")
+    np.testing.assert_array_equal(back.X.toarray(), tdata.X.toarray())
+    _assert_same_trees(get_tree(back), get_tree(tdata))
+
+
+def test_a_missing_taxonomy_rank_round_trips(tmp_path):
+    var = pd.DataFrame({"genus": ["Alpha", None, "Beta"]}, index=["f_0", "f_1", "f_2"])
+    back = _round_trip(_small_tdata(np.ones((2, 3)), var=var), tmp_path / "n.h5mu")
+    assert back.var["genus"].isna().tolist() == [False, True, False]
+
+
+def test_trees_on_the_sample_axis_only_round_trip(tmp_path):
+    base = _small_tdata(np.ones((3, 2)), vart=False)
+    base.obst["samples"] = _tree_with_attributes(base.obs_names.tolist())
+    back = _round_trip(base, tmp_path / "o.h5mu")
+    assert len(back.vart) == 0
+    _assert_same_trees(back.obst["samples"], base.obst["samples"])
+
+
+def test_trees_on_the_feature_axis_only_round_trip(tmp_path):
+    base = _small_tdata(np.ones((3, 2)))
+    back = _round_trip(base, tmp_path / "v.h5mu")
+    assert len(back.obst) == 0
+    _assert_same_trees(get_tree(back), get_tree(base))
+
+
+def test_a_newer_layout_version_raises(tmp_path):
+    path = tmp_path / "study.h5mu"
+    bt.io.write_h5mu(bt.io.to_mudata({"taxa": bt.datasets.toy()}), path)
+    with h5py.File(path, "a") as handle:
+        handle["mod"]["taxa"].attrs["biotapy-treedata-encoding"] = "99"
+    with pytest.raises(ValueError, match=r"layout version '99'.*newer biotapy"):
+        bt.io.read_h5mu(path)
+
+
+def test_a_non_mudata_raises_naming_mdata(tmp_path):
+    with pytest.raises(TypeError, match="mdata must be a MuData, got TreeData"):
+        bt.io.write_h5mu(bt.datasets.toy(), tmp_path / "x.h5mu")
+
+
+def test_a_backed_mudata_raises_naming_mdata(tmp_path):
+    bt.io.write_h5mu(bt.io.to_mudata({"taxa": bt.datasets.toy()}), tmp_path / "in.h5mu")
+    backed = mudata.read_h5mu(tmp_path / "in.h5mu", backed=True)
+    try:
+        with pytest.raises(ValueError, match=r"mdata is backed.*backed=True"):
+            bt.io.write_h5mu(backed, tmp_path / "out.h5mu")
+    finally:
+        backed.file.close()

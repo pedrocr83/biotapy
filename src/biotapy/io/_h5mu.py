@@ -22,6 +22,13 @@ def write_h5mu(mdata: MuData, path: str | os.PathLike[str]) -> None:
     path
         Output file; an existing file is overwritten.
 
+    Raises
+    ------
+    TypeError
+        ``mdata`` is not a MuData.
+    ValueError
+        ``mdata`` is backed by a file; load it into memory first.
+
     Notes
     -----
     R equivalent: none
@@ -45,6 +52,12 @@ def write_h5mu(mdata: MuData, path: str | os.PathLike[str]) -> None:
     >>> list(bt.io.read_h5mu(path)["taxa"].vart)
     ['phylo']
     """
+    if not isinstance(mdata, MuData):
+        msg = f"mdata must be a MuData, got {type(mdata).__name__}"
+        raise TypeError(msg)
+    if mdata.isbacked:
+        msg = "mdata is backed by a file; load it into memory first (mudata.read_h5mu(path) without backed=True)"
+        raise ValueError(msg)
     # mudata's writer calls strings_to_categoricals on every modality, which would change the caller's obs/var.
     staged = mdata.copy()
     staged.write_h5mu(path)
@@ -70,13 +83,19 @@ def read_h5mu(path: str | os.PathLike[str]) -> MuData:
         A modality is a TreeData, with its trees, where the file holds them, and an
         AnnData otherwise.
 
+    Raises
+    ------
+    ValueError
+        A modality's trees were written by a newer biotapy (a later layout version).
+
     Notes
     -----
     R equivalent: none
     Guide: :doc:`/guide/multiomics`
 
     Runs ``mudata.read_h5mu``, then rebuilds each modality marked by ``write_h5mu``.
-    Only ``.h5mu`` is supported, not zarr.
+    Only ``.h5mu`` is supported, not zarr. String ``obs`` and ``var`` columns come
+    back as categoricals, as with ``mudata.read_h5mu``.
 
     Examples
     --------
