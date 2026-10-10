@@ -20,7 +20,10 @@ and cross-validated scores come out better than they will be on new samples.
 
 `bt.pp.filter_features` on the whole table before cross-validation is the
 leaky version of `bt.ml.PrevalenceFilter`: the same rule, fitted on every
-sample at once.
+sample at once. The {doc}`leak-free cross-validation tutorial
+</tutorials/leak_free_cv>` measures both versions on the HMP2 cohort: there
+the prevalence filter leaks almost nothing, while a step that chooses features
+by the labels inflates the score even on shuffled labels.
 
 ## A leak-free pipeline
 
