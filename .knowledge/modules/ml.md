@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
-commit: 38f9379
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:09Z }
+commit: 5cc503f
 ---
 
 # Responsibility
@@ -201,18 +201,21 @@ that it quotes `GLOBAL_PATTERNS_LEFT_OUT` and `GLOBAL_PATTERNS_SHAPE`
 - `embed`'s docstring example runs MGM, so the root `conftest.py` gives
   `biotapy.ml._embed`'s doctests the marker `mgm`, deselected by default like
   `torch`. `conftest.py:_EXTRA_DOCTESTS`.
-- MGM's tests compare the first call of a process to MGM's own embeddings at
-  `atol=1e-3` and a later call at `WARM_ATOL=1e-5`: torch 2.13 and 2.14 sometimes compute
-  their first `tanh` in a process less precisely on a CPU running more than
-  four threads (measured: 9e-5 on `tanh(-5)`, never with 4 threads or fewer,
-  never after a first call), which moves that call's embedding by up to
-  1.6e-4; otherwise biotapy and MGM 0.5.8 agree to 1.7e-6. The warm bound
-  exists because 1e-3 hides a changed last token (7.7e-4); the first-call
-  bound stays loose and biotapy does not warm torch up (Phase 4 decision 33).
+- MGM's tests compare every call, the first of a process included, to MGM's own
+  embeddings at `atol=1e-5` (biotapy and MGM 0.5.8 agree to 1.7e-6; 1e-3 would
+  hide a changed last token, 7.7e-4). torch's CPU wheels bundle oneMKL 2024.2,
+  whose VML caches the CPU type on its first call without a lock and publishes
+  an unmapped value on the way (pytorch/pytorch#188792); a thread of a parallel
+  first call that reads it runs AVX2's low-accuracy kernel on its chunk, moving
+  an embedding by up to 2e-4 (about 15% of fresh processes at 32 threads, rarely
+  at 4). `_mgm.py` fills the cache with one serial `torch.tanh(torch.zeros(1))`
+  before the forward pass, and
+  `tests/ml/test_mgm.py:test_a_fresh_process_s_first_embedding_is_its_second`
+  runs 24 fresh 32-thread processes (Phase 4 decision 33).
   The mutations the
   parity test was checked against (wrong denominator, ascending sort,
   last-token pooling, dropout on, `z > 0`, vocabulary order) each fail it.
-  `tests/ml/test_mgm.py:ATOL`, `tests/ml/test_mgm.py:WARM_ATOL`.
+  `tests/ml/test_mgm.py:ATOL`.
 - `microformer-mgm` cannot be installed beside biotapy (its pins), so the
   reference embeddings are written by `tests/mgm/export_reference.py` in a
   Python 3.11 environment of its own (`uv run --no-project --python 3.11 --with

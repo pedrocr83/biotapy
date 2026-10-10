@@ -5,8 +5,8 @@ description: Every computation with an R equivalent is tested against gzip CSV g
 tags: [testing, r, validation]
 status: stable
 paths: ["tests/r/**", "tests/golden/**", "tests/**/test_*.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T20:30:46Z }
-commit: 252ae31
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:09Z }
+commit: 5cc503f
 sources:
   - id: spec
     resource: ../../plan.md
@@ -39,9 +39,8 @@ sources:
    scratch directory, never in CI: MGM pins numpy 1.24 and torch 2.0, so it
    cannot share biotapy's environment. Output: `tests/data/mgm/counts.csv`
    (one genus, Blautia, on two features, so that summing them matters) and
-   `embeddings.csv`. A process's first call is compared at `atol=1e-3`, a
-   later call at `atol=1e-5` (`tests/ml/test_mgm.py:ATOL`,
-   `tests/ml/test_mgm.py:WARM_ATOL`, marker `mgm`, which gives the reason).
+   `embeddings.csv`. Every call, a process's first included, is compared at
+   `atol=1e-5` (`tests/ml/test_mgm.py:ATOL`, marker `mgm`, which gives the reason).
 2. Output: `tests/golden/<dataset>/<function>.csv.gz`, samples as rows
    (see [samples-as-rows](/decisions/samples-as-rows.md)), plus
    `tests/golden/VERSIONS.txt` listing R and package versions. Golden files

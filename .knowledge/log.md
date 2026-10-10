@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-10 (fix: MGM first call)
+- **Update**: [ml](modules/ml.md), [r-golden-parity](contracts/r-golden-parity.md) and [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) (decisions 33 and 35, the Risks entry, Step 14, residual risks): MGM's first call in a process matches like every other. The race is oneMKL's VML CPU-type cache in torch's CPU wheels (pytorch/pytorch#188792), which also hits 4 threads, rarely; `_mgm.py` fills the cache with one serial `torch.tanh(torch.zeros(1))` and the tests compare every call at `ATOL=1e-5` (`WARM_ATOL` is gone). The plan's embedded code blocks and diffs keep their old text as a record.
+
 ## 2026-10-10 (release 0.4.0)
 - **Update**: Phase 4 closed after biotapy 0.4.0 reached PyPI (tag v0.4.0, release workflow run 38084530873). [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) is `phase_state: done` with every Task 4.D2 step and exit-gate item ticked (Step 14, the two upstream reports, waits for the user); [phase-5-beyond](roadmap/phase-5-beyond.md) is `phase_state: in-progress`, its items still waiting for an issue or a user request; the [roadmap index](roadmap/index.md) lists it as active.
 

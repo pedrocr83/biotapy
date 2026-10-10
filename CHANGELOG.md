@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+### Fixed
+
+- `bt.ml.embed(..., "mgm")`: the first embedding in a process no longer
+  differs from later ones by up to 2e-4 on CPUs running several threads;
+  biotapy fills oneMKL's CPU-type cache with one serial call before MGM's
+  forward pass (pytorch/pytorch#188792).
+
 ## [0.4.0] - 2026-10-10
 
 ### Added

@@ -83,8 +83,8 @@ def embed(adata: AnnData, model: str, *, inplace: bool = False) -> npt.NDArray[n
     genus is embedded from ``<bos> <eos>``, with a warning naming it. The
     embedding is the mean of the model's last hidden layer over the sample's
     tokens (256 float32 values), the mean pooling MGM's authors use for the
-    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6 (up to about 2e-4 on the
-    first call of a process, on a CPU with more than four threads). The
+    pretrained model; it matches MGM 0.5.8's own forward pass to 2e-6, on its first call
+    in a process as on every other. The
     model runs on the CPU, one sample at a time: batches were slower there and
     needed up to 1.5 GB more memory. Cite Zhang et al. (2026) when you publish
     results that use it.
