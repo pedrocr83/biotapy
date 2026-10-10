@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-10 (Phase 4, slice 4D plan)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4D (4.F4 and 4.F5 sums, 4.6 leak-free tutorial, 4.6b embedding page, 4.6c `datasets.biocrust` and the multi-omics tutorial, 4.D1 Coming-from-R, Checkpoint D with 4.7 knowledge, 4.D2 release 0.4.0) into full TDD steps, prototyped and gated per commit, and records decisions 36-45; ticks Checkpoint C (PR #30 merged, slice 4C approved), exit-gate item 2 (PR #30's `ml-extras`) and 4.F1's upstream box (scikit-bio#2631); [da](modules/da.md)'s ANCOM-BC2 gotcha links the issue.
+
 ## 2026-10-09 (Phase 4, slice 4C)
 - **Update**: Checkpoint C knowledge step: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks the step boxes of 4.C0, 4.C1, 4.4 and 4.4b and records the review (0 Critical, 0 Important, 5 Minor; fix pass `f9b3f50..c87fc13` and follow-up `c87fc13..31aa11d`) and the slice's checks at `31aa11d`.
 - **Update**: [ml](modules/ml.md) gains the hash-checked extracted MGM files and their one re-extraction, the warm-call bound `WARM_ATOL=1e-5` beside the first-call `1e-3` (decision 33), the duplicated Blautia in the reference table, `HF_HOME` in the export command, `.pooch/` git-ignored, and the model-name rule as `[\w.-]+`; [embedding-plugins](decisions/embedding-plugins.md) states the same name rule; [r-golden-parity](contracts/r-golden-parity.md) gives both MGM tolerances, `HF_HOME` and the duplicated genus; [datasets](modules/datasets.md) says its pooch is built by `make_pooch`; [cut-a-release](playbooks/cut-a-release.md) lists the `mgm` extra.

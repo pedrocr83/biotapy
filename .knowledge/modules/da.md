@@ -5,8 +5,8 @@ description: Four differential abundance methods, native LinDA and ANCOM-BC2 and
 resource: /src/biotapy/da/
 paths: ["src/biotapy/da/**"]
 tags: [da, differential-abundance, linda, ancombc2, aldex2, maaslin3, rpy2]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-09T03:47:53Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T17:47:50Z }
+commit: 28de1ad
 status: stable
 ---
 
@@ -252,7 +252,9 @@ per-module command exists: unknown.
   `ancombc2` re-raises it naming scikit-bio, `tests/da/test_ancombc.py`
   pins the table with R's values in a comment, and the schema property test
   rejects only that message. When scikit-bio fixes it, that test fails: turn
-  it into a check against R's values. `_ancombc.py:ancombc2` Notes.
+  it into a check against R's values. Reported upstream as
+  [scikit-bio#2631](https://github.com/scikit-bio/scikit-bio/issues/2631).
+  `_ancombc.py:ancombc2` Notes.
 
 # Rejected
 - Porting LinDA's paper-adaptive zero rule instead of the pseudocount path
