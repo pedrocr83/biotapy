@@ -5,8 +5,8 @@ description: File readers and writers (BIOM, and h5mu files that keep a TreeData
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
-commit: 9001a41
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:26:30Z }
+commit: 5123331
 status: stable
 ---
 
@@ -211,7 +211,9 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   its input (R3.3), at the cost of one more copy in memory. h5mu only, not
   zarr. `read_h5mu` leaves a modality that already comes back as a TreeData
   alone (a future mudata that keeps it). `tests/io/test_mudata.py` still pins
-  plain mudata's behaviour and fails the day mudata keeps the tree. `mudata.to_mudata` exists with another meaning (it splits
+  plain mudata's behaviour and fails the day mudata keeps the tree. Once the
+  upstream PRs ship (mudata#211, treedata#103), `mudata.read_h5mu` may itself
+  return TreeData modalities; `read_h5mu` already leaves those as they are. `mudata.to_mudata` exists with another meaning (it splits
   one AnnData by a column): biotapy's is always `bt.io.to_mudata`.
   [multiomics-as-mudata](/decisions/multiomics-as-mudata.md).
 - `read_humann` reads the whole table into one dense rows x samples

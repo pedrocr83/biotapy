@@ -5,8 +5,8 @@ description: Several data types over the same samples are one MuData whose modal
 tags: [io, mudata, multiomics]
 status: stable
 paths: ["src/biotapy/io/_mudata.py", "src/biotapy/tl/_mmvec.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
-commit: 9001a41
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:26:30Z }
+commit: 5123331
 sources:
   - id: spec
     resource: ../../plan.md
@@ -42,7 +42,10 @@ modalities whose samples only partly overlap: its global `obs` is the union and
   file is written by mudata, then each TreeData modality's `obst`, `vart`,
   `label`, `allow_overlap` and `alignment` are added under its group
   (`_core/_tree.py:write_tree_slots`). Plain `mudata.read_h5mu` still opens the
-  file and ignores them. h5mu only, not zarr.
+  file and ignores them. h5mu only, not zarr. Upstream:
+  [mudata#210](https://github.com/scverse/mudata/issues/210) (PR #211, a
+  duck-typed `_write_mudata_extras` / `_read_mudata_extras` hook) and
+  [treedata#102](https://github.com/YosefLab/treedata/issues/102) (PR #103).
 
 # Rejected
 - **Nested MuData** (`function` holding the function table): MuData's
