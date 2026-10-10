@@ -28,15 +28,18 @@ from ._slots import (
 from ._taxonomy import RANKS, normalize_ranks, split_lineage, split_ranks
 from ._tree import (
     PHYLO_KEY,
+    TREE_SLOTS_ATTR,
     TreeData,
     get_skbio_tree,
     get_tree,
     make_treedata,
+    read_tree_slots,
     relabel_tips,
     tree_from_edges,
     tree_from_newick,
     tree_from_phylo,
     tree_tips,
+    write_tree_slots,
 )
 from ._warnings import warn_user
 
@@ -48,6 +51,7 @@ __all__ = [
     "RANKS",
     "RELATIVE_TOLERANCE",
     "SPECIAL_FEATURES",
+    "TREE_SLOTS_ATTR",
     "UNGROUPED",
     "TreeData",
     "XKind",
@@ -69,6 +73,7 @@ __all__ = [
     "make_treedata",
     "normalize_ranks",
     "pseudocounted",
+    "read_tree_slots",
     "relabel_tips",
     "replace_features",
     "require_categorical",
@@ -82,5 +87,6 @@ __all__ = [
     "tree_from_phylo",
     "tree_tips",
     "warn_user",
+    "write_tree_slots",
     "x_kind",
 ]
