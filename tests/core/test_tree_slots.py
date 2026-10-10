@@ -1,3 +1,5 @@
+import io
+
 import h5py
 import numpy as np
 import pytest
@@ -36,3 +38,34 @@ def test_an_unmarked_group_raises():
     with h5py.File("slots3.h5", "w", driver="core", backing_store=False) as handle:
         with pytest.raises(KeyError, match="biotapy-treedata-encoding"):
             read_tree_slots(handle.create_group("mod"), _plain(toy))
+
+
+def test_a_newer_layout_version_raises():
+    toy = bt.datasets.toy()
+    with h5py.File("slots4.h5", "w", driver="core", backing_store=False) as handle:
+        group = handle.create_group("mod")
+        write_tree_slots(group, toy)
+        group.attrs["biotapy-treedata-encoding"] = "99"
+        with pytest.raises(ValueError, match=r"layout version '99'.*newer biotapy"):
+            read_tree_slots(group, _plain(toy))
+
+
+def test_writing_replaces_slots_the_group_already_holds():
+    toy = bt.datasets.toy()
+    with h5py.File("slots5.h5", "w", driver="core", backing_store=False) as handle:
+        group = handle.create_group("mod")
+        group.create_dataset("obst", data=[1, 2, 3])
+        write_tree_slots(group, toy)
+        back = read_tree_slots(group, _plain(toy))
+    assert set(get_tree(back).edges) == set(get_tree(toy).edges)
+
+
+def test_treedatas_own_root_encoding_is_kept_not_assumed():
+    toy = bt.datasets.toy()
+    buffer = io.BytesIO()
+    toy.write_h5td(buffer)
+    with h5py.File(buffer, "r") as written, h5py.File("slots6.h5", "w", driver="core", backing_store=False) as handle:
+        group = handle.create_group("mod")
+        write_tree_slots(group, toy)
+        assert group.attrs["biotapy-treedata-root-encoding-type"] == written.attrs["encoding-type"]
+        assert group.attrs["biotapy-treedata-root-encoding-version"] == written.attrs["encoding-version"]

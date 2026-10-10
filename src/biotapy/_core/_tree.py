@@ -33,6 +33,8 @@ PHYLO_KEY = "phylo"
 TREE_SLOTS_ATTR = "biotapy-treedata-encoding"
 _TREE_SLOTS_VERSION = "1"
 _TREE_SLOTS = ("obst", "vart", "label", "allow_overlap", "alignment")
+# treedata's root attributes, kept under biotapy names so the copied elements are read back as written.
+_ROOT_ATTRS = ("encoding-type", "encoding-version")
 
 
 def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
@@ -250,7 +252,12 @@ def write_tree_slots(group: h5py.Group, tdata: TreeData) -> None:
     slim.write_h5td(buffer)  # type: ignore[arg-type]
     with h5py.File(buffer, "r") as source:
         for name in _TREE_SLOTS:
+            # A newer mudata/treedata may already have written this element; ours is the layout read_tree_slots reads.
+            if name in group:
+                del group[name]
             source.copy(name, group)
+        for attr in _ROOT_ATTRS:
+            group.attrs[f"biotapy-treedata-root-{attr}"] = source.attrs[attr]
     group.attrs[TREE_SLOTS_ATTR] = _TREE_SLOTS_VERSION
 
 
@@ -259,10 +266,17 @@ def read_tree_slots(group: h5py.Group, adata: AnnData) -> TreeData:
     if TREE_SLOTS_ATTR not in group.attrs:
         msg = f"group {group.name!r} has no {TREE_SLOTS_ATTR!r} attribute, so it holds no tree slots"
         raise KeyError(msg)
+    version = str(group.attrs[TREE_SLOTS_ATTR])
+    if version != _TREE_SLOTS_VERSION:
+        msg = (
+            f"group {group.name!r} has tree-slot layout version {version!r}, but this biotapy reads version "
+            f"{_TREE_SLOTS_VERSION!r}: the file was written by a newer biotapy, so upgrade biotapy"
+        )
+        raise ValueError(msg)
     buffer = io.BytesIO()
     with h5py.File(buffer, "w") as target:
-        target.attrs["encoding-type"] = "treedata"
-        target.attrs["encoding-version"] = "0.1.0"
+        for attr in _ROOT_ATTRS:
+            target.attrs[attr] = group.attrs[f"biotapy-treedata-root-{attr}"]
         for name in _TREE_SLOTS:
             group.copy(name, target)
         write_elem(target, "obs", pd.DataFrame(index=adata.obs_names))
