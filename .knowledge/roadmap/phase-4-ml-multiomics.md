@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:28:24Z }
-commit: 38e6eee
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:47:06Z }
+commit: 33e9dcc
 sources:
   - id: spec
     resource: ../../plan.md
@@ -6358,11 +6358,11 @@ Every run exported absolute `BIOTAPY_DATA_DIR`, `HF_HOME`, `UV_CACHE_DIR`, `XDG_
 | 4.F5 `03d217c` | passed | 1504 passed, 2 skipped, 92 deselected | 36 passed, 1562 deselected | build succeeded (50.1 s; 5) | - | - | 17 current, 11 stale |
 | 4.6 `e46f065` | passed | 1510 passed, 2 skipped, 93 deselected | 37 passed, 1568 deselected | build succeeded (60.6 s; 6, `leak_free_cv` 11.2 s) | - | - | 17 current, 11 stale |
 | 4.6b `f5fb966` | passed | 1512 passed, 2 skipped, 95 deselected | 37 passed, 1572 deselected | build succeeded (67.8 s; 6) | 25 passed, 1584 deselected | 15 passed, 1594 deselected | 17 current, 11 stale |
-| 4.6c `55392ef` | passed | 1520 passed, 2 skipped, 98 deselected | 40 passed, 1580 deselected | build succeeded (69.5 s; 7, `multiomics` 3.1 s) | - | - | 16 current, 12 stale |
-| 4.D1 `b904fa6` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (76.4 s; 7) | - | - | 16 current, 12 stale |
-| 4.7 `a9937e9` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (77.0 s; 7) | - | - | 28 current, 0 stale |
-| 4.D2 release `20151ac` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (75.5 s; 7) | 25 passed, 1598 deselected | 15 passed, 1608 deselected | 23 current, 5 stale |
-| 4.D2 knowledge `ceada96` | passed | 1523 passed, 2 skipped, 98 deselected | - | - | - | - | 28 current, 0 stale |
+| 4.6c `55392ef` | passed | 1521 passed, 2 skipped, 98 deselected | 40 passed, 1581 deselected | build succeeded (69.5 s; 7, `multiomics` 3.1 s) | - | - | 16 current, 12 stale |
+| 4.D1 `b904fa6` | passed | 1524 passed, 2 skipped, 98 deselected | 40 passed, 1584 deselected | build succeeded (76.4 s; 7) | - | - | 16 current, 12 stale |
+| 4.7 `a9937e9` | passed | 1524 passed, 2 skipped, 98 deselected | 40 passed, 1584 deselected | build succeeded (77.0 s; 7) | - | - | 28 current, 0 stale |
+| 4.D2 release `20151ac` | passed | 1524 passed, 2 skipped, 98 deselected | 40 passed, 1584 deselected | build succeeded (75.5 s; 7) | 25 passed, 1599 deselected | 15 passed, 1609 deselected | 23 current, 5 stale |
+| 4.D2 knowledge `ceada96` | passed | 1524 passed, 2 skipped, 98 deselected | - | - | - | - | 28 current, 0 stale |
 
 - Every default run also ends in "2 warnings": scikit-bio's `RuntimeWarning: invalid value
   encountered in divide` from 4.F1's `ancombc2` tests, as on master. The 2 skips are
@@ -6377,8 +6377,8 @@ Every run exported absolute `BIOTAPY_DATA_DIR`, `HF_HOME`, `UV_CACHE_DIR`, `XDG_
   `pyproject.toml` or `CHANGELOG.md`; its knowledge commit re-stamps them.
 - New default-run items: 4.F4 +8 (7 `sum_by` dtype cases, 1 `tax_glom`); 4.F5 +8; 4.6 +6 (the
   prose test and 5 `run_page` tests; the network test is the +1 deselected); 4.6b +2 (two prose
-  tests; the two `mgm` tests are the +2 deselected); 4.6c +8 (3 loader tests, 2 link tests,
-  1 tutorial prose test, the docstring check of `bt.datasets.biocrust` and its doctest; the
+  tests; the two `mgm` tests are the +2 deselected); 4.6c +9 (3 loader tests, 2 link tests,
+  1 figures-prose test, 1 tutorial prose test, the docstring check of `bt.datasets.biocrust` and its doctest; the
   loader's, the figures' and the tutorial's network tests are the +3 deselected); 4.D1 +3
   (2 MultiAssayExperiment cases, 1 no-row check).
 - The docs job's notebooks: on PR #30's run (`37962120924`) the five existing notebooks took
@@ -6501,12 +6501,16 @@ Each settled question gives the answer and the reason. **(user)** marks the ones
   shuffle, whose number (0.754 vs 0.550) depends on which permutation was drawn.
 - **The six numbers the prose quotes**: honest 0.527; filter outside 0.526 ("no measurable
   leak"); `SelectKBest(f_classif, k=20)` inside 0.558, outside 0.705; on shuffled labels inside
-  0.544, outside 0.767 ("higher than on the real labels"). Each is rounded to 3 decimals in the
-  page's own code (`mean_auc` returns `round(float(...), 3)`), so the outputs print `0.527`, not
-  `np.float64(...)`.
+  0.544, outside 0.767 ("higher than on the real labels"). The page's
+  `mean_auc` returns the unrounded `float`, and the cells that show a number wrap it in
+  `round(..., 3)`, so the outputs print `0.527`, not `np.float64(...)`.
 - **How the numbers stay honest. (user, decision 39)** `tests/ml/test_transformers.py` holds
   `LEAK_FREE_CV_AUC`. A `network` test runs the page's own cells through the new `run_page`
-  fixture and compares the six names it defines with the constants; a default-run test checks the
+  fixture and compares the six unrounded names it defines with the constants (`approx(abs=1e-3)`,
+  because one ranking flip moves a 25-fold mean by about 3.6e-4 and the quoted figures have three
+  decimals), pins the "coin toss" wording (|shuffled inside - 0.5| < 0.05, inside < 0.6) and the
+  range of the ten shuffled scores (`LEAK_FREE_CV_SHUFFLED_RANGE`, with the honest scores inside
+  it); a default-run test checks the
   four prose sentences quote the constants and that the words hold (|inside - outside| < 0.01,
   outside - inside > 0.1 for selection, shuffled outside > real outside). A scikit-learn change
   that moves a number fails the `network` job; the constants and the page then change together.
@@ -6567,8 +6571,11 @@ Each settled question gives the answer and the reason. **(user)** marks the ones
   `to_mudata({"taxa": ..., "metabolites": ...})`. No metadata columns: the sample names hold time
   and successional stage, and nothing asks for parsed columns (R2.3).
 - **Tests:** three offline tests with synthetic BIOM files written by `bt.io.write_biom` (no
-  data copied), patching `_biocrust._fetch` as `test_hmp2.py` does; one `network` test of the
-  shapes. The tutorial's `network` test runs the page through `run_page` and checks its
+  data copied; the fixture's values are invented), patching `_biocrust._fetch` as `test_hmp2.py`
+  does; two default-run tests that the guide and the tutorial link mmvec's example at the pinned
+  commit and one that the docstring, the guide and the tutorial quote 135 KB, 20 samples and the
+  most abundant microbe; two `network` tests, one of the shapes and one of those three figures
+  on the downloaded files (shared constants). The tutorial's `network` test runs the page through `run_page` and checks its
   `microcoleus` set equals `MICROCOLEUS_METABOLITES` and `above_zero == 13`; a default-run test
   checks the two sentences that quote 13.
 - **Docs:** the guide's datasets page gains a `biocrust` section, its caching and licensing
@@ -7491,7 +7498,7 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
  def _cached_file(name):
      """The file ``name`` that MGM's wheel was extracted to, in biotapy's data cache."""
      from biotapy.ml import _mgm
-@@ -155,6 +185,26 @@ def _cached_file(name):
+@@ -155,6 +185,28 @@ def _cached_file(name):
      return next(Path(path) for path in paths if Path(path).name == name)
 
 
@@ -7512,6 +7519,8 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
 +    assert f"MGM's vocabulary holds {MGM_GENERA:,} genera" in page
 +    assert f"each sample comes back as a vector of {dimensions} numbers" in page
 +    assert f"{samples} samples" in page
++    left_out, features = re.match(r"mgm leaves out (\d+) of (\d+) features", GLOBAL_PATTERNS_LEFT_OUT).groups()
++    assert f"{left_out} of GlobalPatterns' {features} genus-level features name a genus outside it" in page
 +    assert "one unpinned laptop run, not checked by CI" in page
 +
 +
@@ -7603,8 +7612,8 @@ table.
 
 In one unpinned laptop run, not checked by CI, on a CPU with 8 threads (torch 2.14.1+cpu,
 transformers 5.19.0), the first call took 7 s, most of it importing torch and loading the model,
-and a second call 1 s for the 26 samples: at least 26 samples a second, in line with the guide's
-"a few tens of samples a second". MGM runs one sample at a time and needs no memory beyond the
+and a second call about 1 s for the 26 samples (the timing is rounded, so the rate is in the tens
+of samples a second, as the guide says). MGM runs one sample at a time and needs no memory beyond the
 model's.
 
 ## More
@@ -7715,6 +7724,13 @@ _METABOLITES = AnnData(
     var=pd.DataFrame(index=["adenine", "uracil"]),
 )
 
+# The figures the docstring, the guide and the tutorial quote; the network test checks them on the downloaded files and
+# the default-run test checks the prose quotes them.
+DOWNLOAD_KB = 135
+MICROBE_SAMPLES = 20
+MOST_ABUNDANT = "rplo 1 (Cyanobacteria)"
+ROOT = Path(__file__).parents[2]
+
 
 @pytest.fixture
 def fetched(tmp_path, monkeypatch):
@@ -7751,8 +7767,24 @@ def test_fetches_both_pinned_files_before_reading(fetched):
 @pytest.mark.parametrize("page", ["guide/datasets.md", "tutorials/multiomics.md"])
 def test_the_pages_link_mmvec_s_example_at_the_pinned_commit(page):
     commit = _remote._MMVEC.split("/mmvec/")[1].split("/")[0]
-    text = (Path(__file__).parents[2] / "docs" / page).read_text(encoding="utf-8")
+    text = (ROOT / "docs" / page).read_text(encoding="utf-8")
     assert f"https://github.com/biocore/mmvec/tree/{commit}/examples/soils" in text
+
+
+def test_the_prose_quotes_the_figures_the_network_test_checks():
+    def prose(path):
+        return " ".join((ROOT / path).read_text(encoding="utf-8").split())
+
+    docstring, guide, tutorial = (
+        prose(path)
+        for path in ["src/biotapy/datasets/_biocrust.py", "docs/guide/datasets.md", "docs/tutorials/multiomics.md"]
+    )
+    for text in (docstring, guide, tutorial):
+        assert f"({DOWNLOAD_KB} KB)" in text
+    assert f"counted in {MICROBE_SAMPLES} samples" in guide
+    assert f"{MICROBE_SAMPLES} samples" in docstring
+    assert f"The microbe table has {MICROBE_SAMPLES} samples" in tutorial
+    assert f"The most abundant microbe is `{MOST_ABUNDANT}`" in tutorial
 
 
 @pytest.mark.network
@@ -7766,10 +7798,10 @@ def test_biocrust_downloads_and_loads():
 def test_biocrust_prose_figures_hold():
     # The figures the guide, the tutorial and the docstring quote about the downloaded files.
     paths = [Path(_biocrust._fetch(name)) for name in _biocrust.FILES]
-    assert round(sum(path.stat().st_size for path in paths) / 1000) == 135
+    assert round(sum(path.stat().st_size for path in paths) / 1000) == DOWNLOAD_KB
     microbes = bt.io.read_biom(paths[0])
-    assert microbes.n_obs == 20
-    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == "rplo 1 (Cyanobacteria)"
+    assert microbes.n_obs == MICROBE_SAMPLES
+    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == MOST_ABUNDANT
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_biocrust.py
   -q` -> `1 error` during collection: `ImportError: cannot import name '_biocrust' from
@@ -7974,7 +8006,7 @@ diff --git a/src/biotapy/datasets/_remote.py b/src/biotapy/datasets/_remote.py
   The hashes are the SHA-256 of the two files at commit `88ca33b` (checked by downloading
   both, `sha256sum`); R6.6: nothing is committed but synthetic fixtures.
 - [ ] **Step 4: Run, expect pass** - `uv run --group test pytest tests/datasets/test_biocrust.py
-  -q -m "network or not network" -W error::UserWarning` -> `7 passed` (the network tests
+  -q -m "network or not network" -W error::UserWarning` -> `8 passed` (the network tests
   download 135 KB).
 - [ ] **Step 5: Failing tutorial tests.** In `tests/tl/test_mmvec.py`:
 ````diff
@@ -8154,7 +8186,7 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
  ```
 ````
   Run `uv run --group test pytest tests/tl/test_mmvec.py tests/datasets/test_biocrust.py -q -m
-  "network or not network" -W error::UserWarning` -> `23 passed`. Build the docs:
+  "network or not network" -W error::UserWarning` -> `24 passed`. Build the docs:
   `tutorials/multiomics.md: Executed notebook` (3.0-3.6 s); its outputs read `MuData object with
   n_obs × n_vars = 19 × 551` with `taxa: 19 × 466` and `metabolites: 19 × 85`; `(466, 85)`;
   adenine 5.05, adenosine 5.02, (N6-acetyl-lysine) 4.48, 4-guanidinobutanoate 3.98, isoleucine
@@ -8281,7 +8313,7 @@ diff --git a/.knowledge/modules/index.md b/.knowledge/modules/index.md
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1520 passed, 2 skipped, 98 deselected`; `40 passed, 1580
+  Expected: prek passed; `1521 passed, 2 skipped, 98 deselected`; `40 passed, 1581
   deselected`; `build succeeded` with seven executed notebooks.
 
 ### Task 4.D1: Coming-from-R check
@@ -8424,7 +8456,7 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`; `40 passed, 1583
+  Expected: prek passed; `1524 passed, 2 skipped, 98 deselected`; `40 passed, 1584
   deselected`; `build succeeded`.
 
 ### Checkpoint D - review slice 4D
@@ -8618,8 +8650,8 @@ diff --git a/.knowledge/modules/tl.md b/.knowledge/modules/tl.md
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   bash scripts/knowledge_stale.sh --against HEAD       # 28 current, 0 stale, 12 uncheckable
   ```
-  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`;
-  `40 passed, 1583 deselected`; `build succeeded`.
+  Expected: prek passed; `1524 passed, 2 skipped, 98 deselected`;
+  `40 passed, 1584 deselected`; `build succeeded`.
 
 ### Task 4.D2: Release 0.4.0
 
@@ -8844,8 +8876,8 @@ diff --git a/README.md b/README.md
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   uv run python -c "import biotapy; print(biotapy.__version__)"   # 0.4.0
   ```
-  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`; `40 passed, 1583
-  deselected`; `build succeeded`; `25 passed, 1598 deselected`; `15 passed, 1608 deselected`;
+  Expected: prek passed; `1524 passed, 2 skipped, 98 deselected`; `40 passed, 1584
+  deselected`; `build succeeded`; `25 passed, 1599 deselected`; `15 passed, 1609 deselected`;
   `knowledge_stale.sh` `23 current, 5 stale` (Step 8 re-stamps them).
 - [ ] **Step 8: Knowledge, second commit.**
   - `bash scripts/knowledge_stale.sh --against HEAD` lists `phase-0-foundation`,
@@ -8905,7 +8937,7 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
     ```
   - Commit `docs(knowledge): refresh concepts for the 0.4.0 release` (with the attribution
     line), staging the five concepts, `phase-4-ml-multiomics.md` and `log.md`; prek; the default
-    run (`1523 passed, 2 skipped, 98 deselected`); `knowledge_stale.sh --against HEAD` -> `28
+    run (`1524 passed, 2 skipped, 98 deselected`); `knowledge_stale.sh --against HEAD` -> `28
     current, 0 stale, 12 uncheckable`.
 - [ ] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.4.0`, open the PR,
   wait for green CI (every job, `ml-extras`, `r-bridge` and `docs` included), merge with a merge
