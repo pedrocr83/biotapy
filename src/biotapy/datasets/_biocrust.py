@@ -15,8 +15,9 @@ def biocrust() -> MuData:
 
     Downloaded once (135 KB) from the example of mmvec's repository
     (``examples/soils``), pinned to one commit: 466 microbes counted in 20
-    samples and 85 metabolites measured in 19 of them, taken at five times
-    after wetting.
+    samples and 85 metabolites measured in 19 of them. The 20 samples are
+    four biocrust successional stages (``early``, ``earlymid``, ``latemid``,
+    ``late``) at five times after wetting.
 
     Returns
     -------
@@ -27,7 +28,8 @@ def biocrust() -> MuData:
         feature name ends with its phylum), and ``"metabolites"``, the
         metabolites' intensities (``x_kind == "abundance"``), both as
         ``bt.io.read_biom`` reads them. The tables carry no sample metadata;
-        a sample's name holds its time after wetting and its position.
+        a sample's name holds its time after wetting and its crust's
+        successional stage.
 
     Notes
     -----
@@ -43,6 +45,9 @@ def biocrust() -> MuData:
 
     References
     ----------
+    Swenson TL et al. (2018) Linking soil biology and chemistry in biological soil crust
+    using isolate exometabolomics. Nature Communications 9:19.
+
     Morton JT et al. (2019) Learning representations of microbe-metabolite interactions.
     Nature Methods 16:1306-1314.
 

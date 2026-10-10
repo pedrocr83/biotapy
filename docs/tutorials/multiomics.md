@@ -15,14 +15,17 @@ kernelspec:
 
 This tutorial puts two data types measured on the same samples into one `MuData`, then asks
 which metabolites go with which microbe, with mmvec (Morton et al. 2019). The data are the
-example from mmvec's own repository: a desert biological soil crust, sampled at five times after
-wetting, with its microbes counted and its metabolites measured.
+example from mmvec's own repository: a desert biological soil crust from four successional stages
+(`early`, `earlymid`, `latemid`, `late`), sampled at five times after wetting, with its microbes
+counted and its metabolites measured (Swenson et al. 2018).
 
 :::{note}
 The two tables are downloaded from [mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils)
 on first use (135 KB) and cached; they are distributed there under its BSD-3-Clause licence.
 Cite the mmvec paper when you use them: Morton JT et al. (2019) Learning representations of
-microbe-metabolite interactions. *Nature Methods* 16:1306-1314.
+microbe-metabolite interactions. *Nature Methods* 16:1306-1314. The data come from Swenson TL et
+al. (2018) Linking soil biology and chemistry in biological soil crust using isolate
+exometabolomics. *Nature Communications* 9:19.
 :::
 
 ```{code-cell} ipython3

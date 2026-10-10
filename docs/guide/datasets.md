@@ -118,8 +118,10 @@ The [function tutorial](../tutorials/function.md) analyses it.
 ## `biocrust`
 
 `bt.datasets.biocrust()` is the example mmvec's own repository uses: a desert
-biological soil crust sampled at five times after wetting, with 466 microbes
-counted in 20 samples and 85 metabolites measured in 19 of them. It downloads
+biological soil crust from four successional stages (`early`, `earlymid`,
+`latemid`, `late`; Swenson et al. 2018), sampled at five times after wetting,
+with 466 microbes counted in 20 samples and 85 metabolites measured in 19 of
+them. It downloads
 the two BIOM files once (135 KB) and returns a `MuData` over the 19 samples
 both have:
 
@@ -152,7 +154,9 @@ diseases. *Nature* 569:655-662. `biocrust` downloads two files from
 [mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils),
 distributed under its BSD-3-Clause licence; cite Morton JT et al. (2019) Learning
 representations of microbe-metabolite interactions. *Nature Methods*
-16:1306-1314. biotapy itself is
+16:1306-1314. The data come from Swenson TL et al. (2018) Linking soil biology and
+chemistry in biological soil crust using isolate exometabolomics. *Nature
+Communications* 9:19. biotapy itself is
 [BSD-3-Clause](https://github.com/pedrocr83/biotapy/blob/master/LICENSE).
 
 [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data
