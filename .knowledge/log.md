@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2c also searches the docstrings under `src/` for "not in X.Y" labels; `pl.ordination`'s docstring now says "not in 0.4".
 - **Update**: [core](modules/core.md): `sum_by` and `sum_pairs` share one private helper for `numpy.sum`'s dtype, the tests cover int32 and uint32, and the concept says every integer narrower than 64 bits (and bool) sums to int64 (uint64 if unsigned).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.D1 done: the Coming-from-R rows `MultiAssayExperiment::MultiAssayExperiment` and `::intersectColumns` (to `bt.io.to_mudata`) are pinned, and a test checks `ml`, `tl.mmvec` and `datasets.biocrust` add no row; phyloseq calls without an equivalent read "not in 0.4", as do the page sentence and the phyloseq vignette.
 - **Update**: [datasets](modules/datasets.md) gains `biocrust()`, mmvec's soil example of microbes and metabolites as a MuData over the 19 shared samples, pinned to one mmvec commit and two SHA-256 hashes (description copied into the [modules index](modules/index.md)); [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6c done: `docs/tutorials/multiomics.md` runs `bt.tl.mmvec` on it on every docs build, and a network test checks the page still ranks mmvec's 13 Microcoleus metabolites above zero.
