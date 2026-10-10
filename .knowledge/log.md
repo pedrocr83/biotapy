@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-10 (release 0.4.1)
+- **Verification**: re-checked against the 0.4.1 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [embedding-plugins](decisions/embedding-plugins.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md), [cut-a-release](playbooks/cut-a-release.md).
+
 ## 2026-10-10 (fix: MGM first call)
 - **Verification**: re-checked against the fix's diff (`_mgm.py`, `_embed.py` docstring, `test_mgm.py`, guide, CHANGELOG) and bumped only, none of them states the first-call behaviour: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [embedding-plugins](decisions/embedding-plugins.md), [data-model-slots](contracts/data-model-slots.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [add-a-function](playbooks/add-a-function.md), [cut-a-release](playbooks/cut-a-release.md); [ml](modules/ml.md) and [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) re-stamped to the fix's last commit.
 - **Update**: [ml](modules/ml.md), [r-golden-parity](contracts/r-golden-parity.md) and [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) (decisions 33 and 35, the Risks entry, Step 14, residual risks): MGM's first call in a process matches like every other. The race is oneMKL's VML CPU-type cache in torch's CPU wheels (pytorch/pytorch#188792), which also hits 4 threads, rarely; `_mgm.py` fills the cache with one serial `torch.tanh(torch.zeros(1))` and the tests compare every call at `ATOL=1e-5` (`WARM_ATOL` is gone). The plan's embedded code blocks and diffs keep their old text as a record.
