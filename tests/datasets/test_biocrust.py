@@ -24,6 +24,13 @@ _METABOLITES = AnnData(
     var=pd.DataFrame(index=["adenine", "uracil"]),
 )
 
+# The figures the docstring, the guide and the tutorial quote; the network test checks them on the downloaded files and
+# the default-run test checks the prose quotes them.
+DOWNLOAD_KB = 135
+MICROBE_SAMPLES = 20
+MOST_ABUNDANT = "rplo 1 (Cyanobacteria)"
+ROOT = Path(__file__).parents[2]
+
 
 @pytest.fixture
 def fetched(tmp_path, monkeypatch):
@@ -60,8 +67,24 @@ def test_fetches_both_pinned_files_before_reading(fetched):
 @pytest.mark.parametrize("page", ["guide/datasets.md", "tutorials/multiomics.md"])
 def test_the_pages_link_mmvec_s_example_at_the_pinned_commit(page):
     commit = _remote._MMVEC.split("/mmvec/")[1].split("/")[0]
-    text = (Path(__file__).parents[2] / "docs" / page).read_text(encoding="utf-8")
+    text = (ROOT / "docs" / page).read_text(encoding="utf-8")
     assert f"https://github.com/biocore/mmvec/tree/{commit}/examples/soils" in text
+
+
+def test_the_prose_quotes_the_figures_the_network_test_checks():
+    def prose(path):
+        return " ".join((ROOT / path).read_text(encoding="utf-8").split())
+
+    docstring, guide, tutorial = (
+        prose(path)
+        for path in ["src/biotapy/datasets/_biocrust.py", "docs/guide/datasets.md", "docs/tutorials/multiomics.md"]
+    )
+    for text in (docstring, guide, tutorial):
+        assert f"({DOWNLOAD_KB} KB)" in text
+    assert f"counted in {MICROBE_SAMPLES} samples" in guide
+    assert f"{MICROBE_SAMPLES} samples" in docstring
+    assert f"The microbe table has {MICROBE_SAMPLES} samples" in tutorial
+    assert f"The most abundant microbe is `{MOST_ABUNDANT}`" in tutorial
 
 
 @pytest.mark.network
@@ -75,7 +98,7 @@ def test_biocrust_downloads_and_loads():
 def test_biocrust_prose_figures_hold():
     # The figures the guide, the tutorial and the docstring quote about the downloaded files.
     paths = [Path(_biocrust._fetch(name)) for name in _biocrust.FILES]
-    assert round(sum(path.stat().st_size for path in paths) / 1000) == 135
+    assert round(sum(path.stat().st_size for path in paths) / 1000) == DOWNLOAD_KB
     microbes = bt.io.read_biom(paths[0])
-    assert microbes.n_obs == 20
-    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == "rplo 1 (Cyanobacteria)"
+    assert microbes.n_obs == MICROBE_SAMPLES
+    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == MOST_ABUNDANT
