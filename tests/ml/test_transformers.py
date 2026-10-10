@@ -209,6 +209,7 @@ def test_transformer_options_are_keyword_only(estimator, value):
 LEAK_FREE_CV = Path(__file__).parents[2] / "docs" / "tutorials" / "leak_free_cv.md"
 # The mean ROC AUCs of the leak-free cross-validation tutorial on HMP2 (Phase 4 exit gate 1), which its prose quotes.
 # The network test runs the page's cells and checks they still give these; the next test checks the prose quotes them.
+# The page keeps the AUCs unrounded and shows three decimals.
 LEAK_FREE_CV_AUC = {
     "inside": 0.527,
     "outside": 0.526,
@@ -222,7 +223,12 @@ LEAK_FREE_CV_AUC = {
 @pytest.mark.network
 def test_the_leak_free_cv_tutorial_gives_the_numbers_it_quotes(run_page):
     namespace = run_page(LEAK_FREE_CV)
-    assert {name: namespace[name] for name in LEAK_FREE_CV_AUC} == LEAK_FREE_CV_AUC
+    for name, quoted in LEAK_FREE_CV_AUC.items():
+        # One ranking flip moves a mean over 25 folds by about 3.6e-4, so the 3-decimal figures can slip by a unit.
+        assert namespace[name] == pytest.approx(quoted, abs=1e-3), name
+    # "Near a coin toss" in the prose.
+    assert abs(namespace["shuffled_inside"] - 0.5) < 0.05
+    assert namespace["inside"] < 0.6
 
 
 def test_the_leak_free_cv_tutorial_quotes_its_numbers():

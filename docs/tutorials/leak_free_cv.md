@@ -74,7 +74,7 @@ cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=0)
 
 
 def mean_auc(model, X, y):
-    return round(float(cross_val_score(model, X, y, cv=cv, scoring="roc_auc").mean()), 3)
+    return float(cross_val_score(model, X, y, cv=cv, scoring="roc_auc").mean())
 
 
 pipeline = make_pipeline(
@@ -83,7 +83,7 @@ pipeline = make_pipeline(
     LogisticRegression(max_iter=5000),
 )
 inside = mean_auc(pipeline, taxa.X, ibd)
-inside
+round(inside, 3)
 ```
 
 Close to a coin toss: with this model, a first stool sample's species hardly separate IBD from
@@ -98,7 +98,7 @@ cross-validate only the model:
 ```{code-cell} ipython3
 filtered = bt.pp.filter_features(taxa, min_prevalence=0.1)
 outside = mean_auc(make_pipeline(bt.ml.CLR(pseudocount=1e-6), LogisticRegression(max_iter=5000)), filtered.X, ibd)
-outside
+round(outside, 3)
 ```
 
 The prevalence filter fitted inside the pipeline scores 0.527 and the one fitted on every
@@ -124,7 +124,7 @@ selecting = make_pipeline(
 select_inside = mean_auc(selecting, taxa.X, ibd)
 clr = bt.ml.CLR(pseudocount=1e-6).fit_transform(filtered.X)
 select_outside = mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, ibd), ibd)
-select_inside, select_outside
+round(select_inside, 3), round(select_outside, 3)
 ```
 
 Selected inside the pipeline, the score is 0.558; selected on every sample, 0.705. The second
@@ -139,19 +139,16 @@ versions again. Ten shuffles, each cross-validated as above:
 ```{code-cell} ipython3
 rng = np.random.default_rng(0)
 shuffles = [rng.permutation(ibd) for _ in range(10)]
-shuffled_inside = round(float(np.mean([mean_auc(selecting, taxa.X, labels) for labels in shuffles])), 3)
-shuffled_outside = round(
-    float(
-        np.mean(
-            [
-                mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, labels), labels)
-                for labels in shuffles
-            ]
-        )
-    ),
-    3,
+shuffled_inside = float(np.mean([mean_auc(selecting, taxa.X, labels) for labels in shuffles]))
+shuffled_outside = float(
+    np.mean(
+        [
+            mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, labels), labels)
+            for labels in shuffles
+        ]
+    )
 )
-shuffled_inside, shuffled_outside
+round(shuffled_inside, 3), round(shuffled_outside, 3)
 ```
 
 On shuffled labels the pipeline scores 0.544 on average, near a coin toss, as it should. The
@@ -162,7 +159,7 @@ labels. The leak manufactures a signal from noise.
 pd.DataFrame(
     {"inside the pipeline": [inside, select_inside, shuffled_inside], "on every sample": [outside, select_outside, shuffled_outside]},
     index=["prevalence filter", "SelectKBest, real labels", "SelectKBest, shuffled labels"],
-)
+).round(3)
 ```
 
 ## What goes inside the pipeline
