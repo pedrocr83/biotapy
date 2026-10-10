@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 
 import mudata
 import numpy as np
@@ -18,7 +19,7 @@ _MICROBES = AnnData(
     var=pd.DataFrame(index=["rplo 1 (Cyanobacteria)", "rplo 2 (Firmicutes)", "rplo 3 (Proteobacteria)"]),
 )
 _METABOLITES = AnnData(
-    X=sp.csr_matrix(np.array([[2782242.25, 1.0], [3151923.75, 751234.5]])),
+    X=sp.csr_matrix(np.array([[1500.5, 2.0], [800.25, 31.75]])),
     obs=pd.DataFrame(index=["9hr_early", "3min_early"]),
     var=pd.DataFrame(index=["adenine", "uracil"]),
 )
@@ -48,7 +49,7 @@ def test_values_and_units_come_from_the_reader(fetched):
     assert mdata["taxa"].uns["biotapy"]["x_kind"] == "counts"
     assert mdata["metabolites"].uns["biotapy"]["x_kind"] == "abundance"
     np.testing.assert_array_equal(mdata["taxa"].X.toarray(), [[10, 0, 3], [0, 2, 8]])
-    np.testing.assert_array_equal(mdata["metabolites"].X.toarray(), [[3151923.75, 751234.5], [2782242.25, 1.0]])
+    np.testing.assert_array_equal(mdata["metabolites"].X.toarray(), [[800.25, 31.75], [1500.5, 2.0]])
 
 
 def test_fetches_both_pinned_files_before_reading(fetched):
@@ -61,3 +62,13 @@ def test_biocrust_downloads_and_loads():
     mdata = bt.datasets.biocrust()
     assert {key: mod.shape for key, mod in mdata.mod.items()} == {"taxa": (19, 466), "metabolites": (19, 85)}
     assert "9hr_late" not in mdata.obs_names
+
+
+@pytest.mark.network
+def test_biocrust_prose_figures_hold():
+    # The figures the guide, the tutorial and the docstring quote about the downloaded files.
+    paths = [Path(_biocrust._fetch(name)) for name in _biocrust.FILES]
+    assert round(sum(path.stat().st_size for path in paths) / 1000) == 135
+    microbes = bt.io.read_biom(paths[0])
+    assert microbes.n_obs == 20
+    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == "rplo 1 (Cyanobacteria)"
