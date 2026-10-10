@@ -5,8 +5,8 @@ description: File readers and writers (BIOM, and h5mu files that keep a TreeData
 resource: /src/biotapy/io/
 paths: ["src/biotapy/io/**"]
 tags: [io]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:26:30Z }
-commit: 5123331
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:40:56Z }
+commit: bd5f929
 status: stable
 ---
 
@@ -208,7 +208,10 @@ NOT own downloaded example datasets (`datasets.global_patterns`/`enterotype`,
   an AnnData; `io.write_h5mu` / `io.read_h5mu` keep it. Both write mudata's
   file first, so a plain mudata reader still opens it. `write_h5mu` works on
   `mdata.copy()` because mudata's writer calls `strings_to_categoricals` on
-  its input (R3.3), at the cost of one more copy in memory. h5mu only, not
+  its input (R3.3), at the cost of one more copy in memory; a non-MuData
+  raises `TypeError` and a backed MuData `ValueError` (naming `mdata`) before
+  any copy. String `obs`/`var` columns come back as categoricals (mudata's
+  behaviour), so tests compare with `check_dtype=False`. h5mu only, not
   zarr. `read_h5mu` leaves a modality that already comes back as a TreeData
   alone (a future mudata that keeps it). `tests/io/test_mudata.py` still pins
   plain mudata's behaviour and fails the day mudata keeps the tree. Once the

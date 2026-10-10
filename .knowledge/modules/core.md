@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
-commit: 9001a41
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:40:56Z }
+commit: bd5f929
 status: stable
 ---
 
@@ -128,7 +128,12 @@ none of them back.
   in-memory `BytesIO` file and its elements are copied with `Group.copy`; the
   group gets the attribute `_tree.py:TREE_SLOTS_ATTR`
   (`biotapy-treedata-encoding`, value `"1"`, the layout version). Reading
-  an unmarked group raises `KeyError`.
+  an unmarked group raises `KeyError`, a marker other than `"1"` raises
+  `ValueError` (written by a newer biotapy). treedata's root `encoding-type` /
+  `encoding-version` are saved as `biotapy-treedata-root-*` group attributes and
+  restored on read; `write_tree_slots` deletes an existing element of the same
+  name before `Group.copy`, so a file already holding `obst`/`vart` (a future
+  mudata hook) does not make it fail.
 - `_tree.py:tree_tips` - the tree's leaf names (nodes with no children).
 - `_tree.py:relabel_tips` - rename a subset of a tree's nodes (e.g. sequence
   -> ASV id), raising rather than silently merging nodes on a name collision.
