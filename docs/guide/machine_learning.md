@@ -163,7 +163,8 @@ The embedding is the mean of the last hidden layer over the sample's tokens,
 the "element-wise mean pooling" MGM's paper uses for the pretrained model:
 256 float32 values per sample, within 2e-6 of MGM 0.5.8's own code. The model
 runs on the CPU, one sample at a time; on GlobalPatterns' genus profiles that
-is about 60 samples a second on 8 threads, with no memory beyond the model's.
+is a few tens of samples a second on 8 threads (one unpinned laptop run, not checked by
+CI; the [MGM tutorial](../tutorials/embeddings.md) gives its timings), with no memory beyond the model's.
 On a CPU running more than four threads, the first call in a session can
 differ from later ones by up to about 2e-4: torch 2.13 and 2.14 sometimes
 compute their first `tanh` less precisely.

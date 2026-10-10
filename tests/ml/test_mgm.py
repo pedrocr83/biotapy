@@ -21,6 +21,8 @@ GLOBAL_PATTERNS_LEFT_OUT = (
     "(4-29, 4041AA30, A17, Aquamonas, Arctic95A-2, ...)"
 )
 GLOBAL_PATTERNS_SHAPE = (26, 256)
+# The size of MGM's vocabulary (phylogeny.csv's genera), which the tutorial quotes.
+MGM_GENERA = 9665
 # torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
 # embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
 ATOL = 1e-3
@@ -181,6 +183,26 @@ def _cached_file(name):
     cache = _mgm.make_pooch(_mgm._BASE_URL, {_mgm._WHEEL: _mgm._SHA256})
     paths = cache.fetch(_mgm._WHEEL, processor=_mgm.pooch.Unzip(members=_mgm._MEMBERS))
     return next(Path(path) for path in paths if Path(path).name == name)
+
+
+@pytest.mark.mgm
+def test_the_embedding_tutorial_s_vocabulary_and_example_genera_hold():
+    vocabulary = pd.read_csv(_cached_file("phylogeny.csv"), index_col=0).index
+    genera = set(bt.pp.tax_glom(bt.datasets.global_patterns(), "genus").var["genus"].dropna())
+    assert len(vocabulary) == MGM_GENERA
+    # The clone name and the one-word Candidatus genus the page names: biotapy reads "BD2-13" as MGM's "BD2".
+    assert {"BD2-13", "CandidatusPelagibacter"} <= genera
+    assert "g__BD2" not in vocabulary and "g__CandidatusPelagibacter" not in vocabulary
+    assert "g__Candidatus_Pelagibacter" in vocabulary
+
+
+def test_the_embedding_tutorial_quotes_its_vocabulary_and_labels_its_timings():
+    page = " ".join(EMBEDDINGS.read_text(encoding="utf-8").split())
+    samples, dimensions = GLOBAL_PATTERNS_SHAPE
+    assert f"MGM's vocabulary holds {MGM_GENERA:,} genera" in page
+    assert f"each sample comes back as a vector of {dimensions} numbers" in page
+    assert f"{samples} samples" in page
+    assert "one unpinned laptop run, not checked by CI" in page
 
 
 @pytest.mark.mgm
