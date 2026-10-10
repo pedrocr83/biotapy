@@ -5,10 +5,10 @@ description: User- and issue-driven backlog - time series, community state types
 tags: [roadmap, backlog]
 status: draft
 release: "0.5+"
-phase_state: not-started
+phase_state: in-progress
 depends_on: [/roadmap/phase-4-ml-multiomics.md]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-09-26T08:21:10Z }
-commit: 3b29ffe
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T20:40:40Z }
+commit: 5cdd6ee
 sources:
   - id: spec
     resource: ../../plan.md

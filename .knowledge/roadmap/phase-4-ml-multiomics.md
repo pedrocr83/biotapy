@@ -5,12 +5,12 @@ description: io.to_mudata over shared samples, tl.mmvec through scikit-bio, leak
 tags: [roadmap, ml, multiomics]
 status: stable
 release: "0.4"
-phase_state: in-progress
+phase_state: done
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T20:30:46Z }
-commit: 252ae31
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T20:40:40Z }
+commit: 5cdd6ee
 sources:
   - id: spec
     resource: ../../plan.md
@@ -518,9 +518,9 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - [x] 4.6b End-to-end embedding page (exit gate 2's docs)
 - [x] 4.6c `bt.datasets.biocrust()` and the multi-omics tutorial (decision 37)
 - [x] 4.D1 Coming-from-R check
-- [ ] Checkpoint D
+- [x] Checkpoint D
 - [x] 4.7 Knowledge: `ml` and `tl` gotchas, `embedding-plugins` stable, verification bumps
-- [ ] 4.D2 Release 0.4.0
+- [x] 4.D2 Release 0.4.0
 
 # Exit gate
 - [x] Leak-free CV example executed in docs: `docs/tutorials/leak_free_cv.md`
@@ -6707,7 +6707,7 @@ tutorials use `tax_glom`); 4.6 adds `run_page`, which 4.6b and 4.6c use; 4.6c ad
 - Produces: `sum_by(X, codes, n_groups) -> sp.csr_matrix`, unchanged signature; its dtype is
   `int64` for bool and signed integers, `uint64` for unsigned ones, and `X.dtype` for floats.
 
-- [ ] **Step 1: Failing tests.** `_core` unit test (R4.9's exception) and one through the public
+- [x] **Step 1: Failing tests.** `_core` unit test (R4.9's exception) and one through the public
   API:
 ````diff
 diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
@@ -6759,13 +6759,13 @@ diff --git a/tests/pp/test_glom.py b/tests/pp/test_glom.py
      assert bt.pp.tax_glom(bt.datasets.toy(), "genus", dropna=False).n_vars == 7
 
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
   tests/pp/test_glom.py -q` -> `7 failed, 42 passed`: the `int8`, `uint8`, `int16`, `int32`, `uint32`
   and `bool` cases give `44 (ACTUAL), 300 (DESIRED)`, `88 (ACTUAL), 600 (DESIRED)`, `-5536 (ACTUAL), 60000
   (DESIRED)`, `-1294967296 (ACTUAL), 3000000000 (DESIRED)`, `1705032704 (ACTUAL), 6000000000
   (DESIRED)` and `True (ACTUAL), 3 (DESIRED)`, and `test_narrow_integer_counts_sum_without_wrapping`
   `44 (ACTUAL), 300 (DESIRED)` with `dtype=int8`. The `float32` case passes already.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 ````diff
 diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 --- a/src/biotapy/_core/_matrix.py
@@ -6798,8 +6798,8 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 ````
   R2.1: NumPy's own accumulator rule, no branch of biotapy's; SciPy then multiplies in the wider
   dtype. The helper holds the expression because 4.F5 uses it a second time (R4.3).
-- [ ] **Step 4: Run, expect pass** - the same command -> `49 passed`.
-- [ ] **Step 5: Knowledge.** `core.md` said "today's only caller is `pp.tax_glom`", false since
+- [x] **Step 4: Run, expect pass** - the same command -> `49 passed`.
+- [x] **Step 5: Knowledge.** `core.md` said "today's only caller is `pp.tax_glom`", false since
   slice 4A (`pl.bar`) and 4C (MGM); fixed here (R0.2). Tick 4.F4; the log section opens:
 ````diff
 diff --git a/.knowledge/log.md b/.knowledge/log.md
@@ -6845,7 +6845,7 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
    membership pairs, where a feature may sit in several groups and counts in
    full toward each (many-to-many); the pairs are a set, a repeated pair counts
 ````
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   ```bash
   git add src/biotapy/_core/_matrix.py tests/core/test_matrix.py tests/pp/test_glom.py \
     .knowledge/modules/core.md .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -6871,7 +6871,7 @@ sum, so it was already float); `sum_by`'s body (4.F4 already holds the helper `_
 - Consumes: 4.F4's rule and its helper `_sum_dtype(X)`.
 - Produces: `sum_pairs(X, features, groups, *, n_groups)`, unchanged signature, same dtype rule.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
 ````diff
 diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
 --- a/tests/core/test_matrix.py
@@ -6921,10 +6921,10 @@ diff --git a/tests/fn/test_glom.py b/tests/fn/test_glom.py
      hierarchy = pd.DataFrame({"child": ["f0", "f1"], "parent": "P1", "level": "p"})
      out = bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy, agg="mean")
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
   tests/fn/test_glom.py -q` -> `7 failed, 63 passed` (44, 88, -5536, -1294967296, 1705032704 and `True` as in 4.F4;
   `func_glom` gives `-56 (ACTUAL), 200 (DESIRED)`).
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 ````diff
 diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 --- a/src/biotapy/_core/_matrix.py
@@ -6946,8 +6946,8 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
      )
      # The constructor sums repeated (feature, group) entries; membership is a set, so reset them to 1.
 ````
-- [ ] **Step 4: Run, expect pass** - `70 passed`.
-- [ ] **Step 5: Knowledge.** Tick 4.F5; log line first under the slice heading:
+- [x] **Step 4: Run, expect pass** - `70 passed`.
+- [x] **Step 5: Knowledge.** Tick 4.F5; log line first under the slice heading:
 ````diff
 diff --git a/.knowledge/log.md b/.knowledge/log.md
 --- a/.knowledge/log.md
@@ -6994,7 +6994,7 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
    (`_composition.py:check_pseudocount`), rejects negative or non-finite `X`,
    warns when the pseudocount exceeds the smallest non-zero value (the message ends
 ````
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   ```bash
   git add src/biotapy/_core/_matrix.py tests/core/test_matrix.py tests/fn/test_glom.py \
     .knowledge/modules/core.md .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -7027,7 +7027,7 @@ downloads it for the function tutorial anyway), `src/` (no API change), `.knowle
   page's names `inside`, `outside`, `select_inside`, `select_outside`, `shuffled_inside`,
   `shuffled_outside` (unrounded floats; the page rounds where it shows them) and `shuffled_scores`.
 
-- [ ] **Step 1: Failing tests.** The fixture (with its own tests in `tests/test_run_page.py`),
+- [x] **Step 1: Failing tests.** The fixture (with its own tests in `tests/test_run_page.py`),
   the constants, a `network` test that runs the page and a default-run test of its prose:
 ````diff
 diff --git a/tests/conftest.py b/tests/conftest.py
@@ -7181,10 +7181,10 @@ new file mode 100644
 +    with pytest.raises(ValueError, match="IPython magic"):
 +        run_page(page)
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_transformers.py
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_transformers.py
   -q -m "network or not network" -k leak_free` -> `2 failed, 125 deselected`, both
   `FileNotFoundError: ... docs/tutorials/leak_free_cv.md`.
-- [ ] **Step 3: The tutorial.** Create `docs/tutorials/leak_free_cv.md`:
+- [x] **Step 3: The tutorial.** Create `docs/tutorials/leak_free_cv.md`:
 ````markdown
 ---
 jupytext:
@@ -7391,19 +7391,19 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
 +leak_free_cv
  ```
 ````
-- [ ] **Step 4: Run, expect pass** - the Step 2 command with `-W error::UserWarning` -> `2
+- [x] **Step 4: Run, expect pass** - the Step 2 command with `-W error::UserWarning` -> `2
   passed, 125 deselected` (about 11 s; the first run downloads HMP2, 23 MB).
-- [ ] **Step 5: Build and read the page.** `rm -rf docs/_build docs/generated
+- [x] **Step 5: Build and read the page.** `rm -rf docs/_build docs/generated
   docs/jupyter_execute && uv run --group doc sphinx-build -W -b html docs docs/_build/html` ->
   `build succeeded.` with `tutorials/leak_free_cv.md: Executed notebook in <n> seconds`
   (11.2-13.7 s on the prototype). In `docs/_build/html/tutorials/leak_free_cv.html` the outputs
   read, in order: `diagnosis` counts `CD 65`, `UC 38`, `nonIBD 27`; `'1.5e-06'`; `0.527`;
   `0.526`; `(0.558, 0.705)`; `(0.544, 0.767, 0.484, 0.669)`; and the table (prevalence filter 0.527 / 0.526,
   real labels 0.558 / 0.705, shuffled 0.544 / 0.767). No stderr block.
-- [ ] **Step 6: Bookkeeping.** Tick 4.6 (the exit-gate box waits for the CI docs job, 4.D2);
+- [x] **Step 6: Bookkeeping.** Tick 4.6 (the exit-gate box waits for the CI docs job, 4.D2);
   log line:
   `- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6 done: \`docs/tutorials/leak_free_cv.md\` cross-validates a prevalence filter, CLR and logistic regression on HMP2's species on every docs build, inside and outside the pipeline, with a label-reading \`SelectKBest\` on real and shuffled labels; a network test runs the page's cells against the numbers its prose quotes (\`LEAK_FREE_CV_AUC\`).`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   ```bash
   git add docs/tutorials/leak_free_cv.md docs/tutorials/index.md docs/guide/machine_learning.md \
     tests/conftest.py tests/test_run_page.py tests/ml/test_transformers.py \
@@ -7431,7 +7431,7 @@ already runs every `mgm` test); `docs/conf.py`; the guide's MGM, licence and plu
   `GLOBAL_PATTERNS_SHAPE`, `MGM_GENERA` in `tests/ml/test_mgm.py`; the page's names `genera`, `embedding`,
   `same_type`.
 
-- [ ] **Step 1: Failing tests.** The exit-gate test matches the whole warning through the new
+- [x] **Step 1: Failing tests.** The exit-gate test matches the whole warning through the new
   constant; an `mgm` test runs the page; a default-run test checks what it quotes:
 ````diff
 diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
@@ -7529,12 +7529,12 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
  @pytest.mark.parametrize("name", ["phylogeny.csv", "config.json"])
  def test_a_damaged_extracted_file_is_extracted_again(name):
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_mgm.py -q -k
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_mgm.py -q -k
   tutorial` -> `2 failed, 18 deselected` (`FileNotFoundError`); `uv run --group test --extra mgm
   pytest tests/ml/test_mgm.py -q -m mgm -k tutorial` -> `1 failed, 1 passed, 18 deselected` (the
   failure is `Failed: DID NOT WARN`, from the `FileNotFoundError` inside `pytest.warns`; the
   vocabulary test needs no page).
-- [ ] **Step 3: The page.** Create `docs/tutorials/embeddings.md` (no notebook header, so the
+- [x] **Step 3: The page.** Create `docs/tutorials/embeddings.md` (no notebook header, so the
   docs build does not run it):
 ````markdown
 # Embedding samples with MGM
@@ -7657,14 +7657,14 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
 +embeddings
  ```
 ````
-- [ ] **Step 4: Run, expect pass** - `uv run --group test --extra mgm pytest tests/ml/test_mgm.py
+- [x] **Step 4: Run, expect pass** - `uv run --group test --extra mgm pytest tests/ml/test_mgm.py
   -q -m "mgm or not mgm" -W error::UserWarning` -> `20 passed` (the end-to-end test included);
   then `uv sync --all-groups`.
-- [ ] **Step 5: Build.** The docs build succeeds; `tutorials/embeddings.html` exists and the log
+- [x] **Step 5: Build.** The docs build succeeds; `tutorials/embeddings.html` exists and the log
   has no "Executed notebook" line for it.
-- [ ] **Step 6: Bookkeeping.** Tick 4.6b; log line:
+- [x] **Step 6: Bookkeeping.** Tick 4.6b; log line:
   `- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6b done: \`docs/tutorials/embeddings.md\` shows MGM on GlobalPatterns' genera end to end, not run by the docs build (no torch); an \`mgm\` test runs its code and a default-run test checks it quotes the outputs of exit gate 2's test (\`GLOBAL_PATTERNS_LEFT_OUT\`, \`GLOBAL_PATTERNS_SHAPE\`).`
-- [ ] **Step 7: Gate and commit.**
+- [x] **Step 7: Gate and commit.**
   ```bash
   git add docs/tutorials/embeddings.md docs/tutorials/index.md docs/guide/machine_learning.md \
     tests/ml/test_mgm.py .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -7697,7 +7697,7 @@ the `network`, `r-bridge` and `docs` caches are rebuilt once, as in 4.C0).
   samples); `MULTIOMICS` and `MICROCOLEUS_METABOLITES` in `tests/tl/test_mmvec.py`; the page's
   names `mdata`, `ranks`, `cyanobacterium`, `microcoleus`, `above_zero`.
 
-- [ ] **Step 1: Failing loader tests.** Create `tests/datasets/test_biocrust.py`:
+- [x] **Step 1: Failing loader tests.** Create `tests/datasets/test_biocrust.py`:
 ````python
 import warnings
 from pathlib import Path
@@ -7804,10 +7804,10 @@ def test_biocrust_prose_figures_hold():
     assert microbes.n_obs == MICROBE_SAMPLES
     assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == MOST_ABUNDANT
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_biocrust.py
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_biocrust.py
   -q` -> `1 error` during collection: `ImportError: cannot import name '_biocrust' from
   'biotapy.datasets'`.
-- [ ] **Step 3: The loader.** Create `src/biotapy/datasets/_biocrust.py`:
+- [x] **Step 3: The loader.** Create `src/biotapy/datasets/_biocrust.py`:
 ````python
 """A desert biocrust wetting experiment: microbes and metabolites over the same samples, from mmvec's repository."""
 
@@ -8006,10 +8006,10 @@ diff --git a/src/biotapy/datasets/_remote.py b/src/biotapy/datasets/_remote.py
 ````
   The hashes are the SHA-256 of the two files at commit `88ca33b` (checked by downloading
   both, `sha256sum`); R6.6: nothing is committed but synthetic fixtures.
-- [ ] **Step 4: Run, expect pass** - `uv run --group test pytest tests/datasets/test_biocrust.py
+- [x] **Step 4: Run, expect pass** - `uv run --group test pytest tests/datasets/test_biocrust.py
   -q -m "network or not network" -W error::UserWarning` -> `8 passed` (the network tests
   download 135 KB).
-- [ ] **Step 5: Failing tutorial tests.** In `tests/tl/test_mmvec.py`:
+- [x] **Step 5: Failing tutorial tests.** In `tests/tl/test_mmvec.py`:
 ````diff
 diff --git a/tests/tl/test_mmvec.py b/tests/tl/test_mmvec.py
 --- a/tests/tl/test_mmvec.py
@@ -8062,7 +8062,7 @@ diff --git a/tests/tl/test_mmvec.py b/tests/tl/test_mmvec.py
 ````
   Run `uv run --group test pytest tests/tl/test_mmvec.py -q -m "network or not network" -k
   tutorial` -> `2 failed, 14 deselected` (`FileNotFoundError`).
-- [ ] **Step 6: The tutorial.** Create `docs/tutorials/multiomics.md`:
+- [x] **Step 6: The tutorial.** Create `docs/tutorials/multiomics.md`:
 ````markdown
 ---
 jupytext:
@@ -8192,7 +8192,7 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
   n_obs × n_vars = 19 × 551` with `taxa: 19 × 466` and `metabolites: 19 × 85`; `(466, 85)`;
   adenine 5.05, adenosine 5.02, (N6-acetyl-lysine) 4.48, 4-guanidinobutanoate 3.98, isoleucine
   3.78 at the top of the ten; `13`.
-- [ ] **Step 7: Knowledge.** Tick the new checklist line `4.6c`; the module concept and its
+- [x] **Step 7: Knowledge.** Tick the new checklist line `4.6c`; the module concept and its
   index description:
 ````diff
 diff --git a/.knowledge/log.md b/.knowledge/log.md
@@ -8303,7 +8303,7 @@ diff --git a/.knowledge/modules/index.md b/.knowledge/modules/index.md
  * [ml](ml.md) - scikit-learn transformers over a samples x features table - PrevalenceFilter and CLR - so preprocessing is fitted inside each cross-validation fold, taking arrays, sparse matrices and DataFrames; to_torch, a PyTorch dataset over an AnnData's rows behind the extra torch; and embed, one embedding per sample from a model a plugin registers.
  * [da](da.md) - Four differential abundance methods, native LinDA and ANCOM-BC2 and the R bridges ALDEx2 and MaAsLin 3 (rpy2, extra `r`), that return one result table schema, and a consensus table counting where the methods agree; da writes no slot and filters nothing.
 ````
-- [ ] **Step 8: Gate and commit.**
+- [x] **Step 8: Gate and commit.**
   ```bash
   git add src/biotapy/datasets/_biocrust.py src/biotapy/datasets/__init__.py src/biotapy/datasets/_remote.py \
     tests/datasets/test_biocrust.py tests/tl/test_mmvec.py docs/tutorials/multiomics.md docs/tutorials/index.md \
@@ -8328,7 +8328,7 @@ classes included); any docstring; no new idiom rows (R1.4).
 - Consumes: `coming_from_r.rows()`; `io.to_mudata`'s `R equivalent:` line.
 - Produces: the label `"not in 0.4"`; pins for the two MultiAssayExperiment rows.
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
 ````diff
 diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
 --- a/tests/test_coming_from_r.py
@@ -8382,11 +8382,11 @@ diff --git a/tests/test_coming_from_r.py b/tests/test_coming_from_r.py
      assert coming_from_r.rows()["phyloseq::plot_bar"] == ["{func}`bt.pl.bar <biotapy.pl.bar>`"]
 
 ````
-- [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/test_coming_from_r.py
+- [x] **Step 2: Run, expect failure** - `uv run --group test pytest tests/test_coming_from_r.py
   -q` -> `5 failed, 48 passed`: each `test_uncovered_functions_are_marked` case (`['not in 0.3']
   == ['not in 0.4']`). The three new tests pass at once: they pin rows the 4A-4C docstrings
   already give.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 ````diff
 diff --git a/docs/_data/r_idioms.toml b/docs/_data/r_idioms.toml
 --- a/docs/_data/r_idioms.toml
@@ -8443,12 +8443,12 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
  ```{code-cell} ipython3
  esophagus = bt.datasets.esophagus()
 ````
-- [ ] **Step 4: Run, expect pass** - `53 passed`. `coming_from_r.render()` has 60 rows (58 in
+- [x] **Step 4: Run, expect pass** - `53 passed`. `coming_from_r.render()` has 60 rows (58 in
   0.3.0); `grep -rn "not in 0\.3\|biotapy 0\.3\|Not in 0\.3" docs --include=*.md
   --include=*.toml` prints nothing outside `docs/_build` and `docs/generated`.
-- [ ] **Step 5: Bookkeeping.** Tick 4.D1; log line:
+- [x] **Step 5: Bookkeeping.** Tick 4.D1; log line:
   `- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.D1 done: the Coming-from-R rows \`MultiAssayExperiment::MultiAssayExperiment\` and \`::intersectColumns\` (to \`bt.io.to_mudata\`) are pinned, and a test checks \`ml\`, \`tl.mmvec\` and \`datasets.biocrust\` add no row; phyloseq calls without an equivalent read "not in 0.4", as do the page sentence and the phyloseq vignette.`
-- [ ] **Step 6: Gate and commit.**
+- [x] **Step 6: Gate and commit.**
   ```bash
   git add docs/_data/r_idioms.toml docs/coming_from_r.md docs/tutorials/phyloseq_analysis.md \
     tests/test_coming_from_r.py .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
@@ -8477,12 +8477,21 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
   (11 commits) plus follow-up `1842824..38f9379` (3 commits); scoped re-review: 10 of 11
   addressed, item 2 partial and two stale design paragraphs, all fixed in the follow-up.
 - [x] **Task 4.7** (below), after the fix pass.
-- [ ] **Run the gates** on the committed tree (`git status --short` empty), every command with
+- [x] **Run the gates** on the committed tree (`git status --short` empty), every command with
   absolute `BIOTAPY_DATA_DIR` and `HF_HOME`: the slice gate's seven counts (default, `golden or
   network`, docs, `-m torch`, `-m mgm`, prek, `knowledge_stale.sh --against HEAD` at `28
   current, 0 stale`); `coverage report` on `datasets/_biocrust.py` and `_core/_matrix.py`
   (100%); Hypothesis seeds 1-3 on the 4.F4/4.F5 test files. Confirm `~/.cache/biotapy` and
   `docs/pooch/` do not exist.
+  - At `bc65712` (clean tree): prek passed; `pytest -q -W error::UserWarning` 1524 passed, 2
+    skipped, 98 deselected; `-m "golden or network"` 40 passed; sphinx `-W` succeeded;
+    `-m torch` 25 passed; `-m mgm` 15 passed; asv check no problems; coverage of
+    `_core/_matrix.py` and `datasets/_biocrust.py` 100%; Hypothesis seeds 1-3 on
+    `tests/core/test_matrix.py` 41 passed each; `knowledge_stale.sh` 28 current, 0 stale;
+    `~/.cache/biotapy` and `docs/pooch/` absent. CI on PR #31 failed the three
+    `hatch-test.py3.14-pre` jobs: pre-release pandas' Pandas4Warning on `future.infer_string`
+    (read by anndata) tripped a blanket `simplefilter("error")` in a biocrust test, narrowed to
+    `UserWarning` in `8353fe3`; then 22/22 green (run 38083140914), merged as `b0066c3`.
 - [x] **Push** `phase-4d`, open the PR and merge-commit it on green, only after the user approves
   that push (decision 42; decision 20 gives no standing approval for Phase 4). CI must be green:
   every hatch-test job, `lint`, `import-without-extras`, `network` (its log shows `40 passed`:
@@ -8944,15 +8953,15 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
     line), staging the five concepts, `phase-4-ml-multiomics.md` and `log.md`; prek; the default
     run (`1524 passed, 2 skipped, 98 deselected`); `knowledge_stale.sh --against HEAD` -> `28
     current, 0 stale, 12 uncheckable`.
-- [ ] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.4.0`, open the PR,
+- [x] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.4.0`, open the PR,
   wait for green CI (every job, `ml-extras`, `r-bridge` and `docs` included), merge with a merge
   commit.
-- [ ] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI, which cannot be undone.
+- [x] **Step 10: STOP AND ASK.** Tagging and releasing publishes to PyPI, which cannot be undone.
   Ask the user, in one message, for explicit approval to: tag the merged `master` commit
   `v0.4.0`; push only that tag; create the GitHub release `0.4.0`, which triggers the upload; and
   afterwards push `close-phase-4` (Step 13), open its PR and merge-commit it on green. Wait for a
   yes that names this release.
-- [ ] **Step 11: Tag and release**, only after Step 10's approval:
+- [x] **Step 11: Tag and release**, only after Step 10's approval:
   ```bash
   git switch master && git pull --ff-only
   git log -1 --format=%s   # Merge pull request #<n> from pedrocr83/release-0.4.0
@@ -8967,7 +8976,7 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
   the upload: fix `master`, then delete the release and tag (`gh release delete v0.4.0
   --cleanup-tag`) and re-tag, each only with the user's approval. If it fails after the upload,
   report it: the version is spent, and the fix is 0.4.1.
-- [ ] **Step 12: Verify** (playbook Verification):
+- [x] **Step 12: Verify** (playbook Verification):
   ```bash
   curl -s https://pypi.org/pypi/biotapy/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
   curl -s https://pypi.org/pypi/biotapy/0.4.0/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['provides_extra'])"
@@ -8976,7 +8985,12 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
   Expected: `0.4.0`; `['mgm', 'r', 'torch']`; `0.4.0 ['CLR', 'PrevalenceFilter', 'embed',
   'to_torch'] ['biotapy.ml._mgm:embed'] True` (run with `BIOTAPY_DATA_DIR` set; nothing is
   downloaded).
-- [ ] **Step 13: Close Phase 4** (approved in Step 10), as `close-phase-3` did:
+  - Release 0.4.0: PR #32 (22/22 green, run 38084175167) merged as `5cdd6ee`; tag `v0.4.0`;
+    GitHub release https://github.com/pedrocr83/biotapy/releases/tag/v0.4.0; release workflow
+    run 38084530873 uploaded to PyPI. PyPI shows `0.4.0`, `provides_extra` `['mgm', 'r', 'torch']`;
+    a fresh `uv run --with biotapy==0.4.0` prints `0.4.0 ['CLR', 'PrevalenceFilter', 'embed',
+    'to_torch'] ['biotapy.ml._mgm:embed'] True`.
+- [x] **Step 13: Close Phase 4** (approved in Step 10), as `close-phase-3` did:
   - `git switch master && git pull --ff-only && git switch -c close-phase-4`;
   - `roadmap/phase-4-ml-multiomics.md`: `phase_state: in-progress` becomes `done`; tick Steps
     9-13 and the checklist's `4.D2 Release 0.4.0`; bump `generated` and `commit`;
