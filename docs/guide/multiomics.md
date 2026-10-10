@@ -80,4 +80,6 @@ mdata = bt.io.read_h5mu("study.h5mu")  # mdata["taxa"] is a TreeData again
 ```
 
 The file is an ordinary `.h5mu`: `mudata.read_h5mu` opens it too and gives the
-modality as an AnnData without the trees. Only `.h5mu` is supported, not zarr.
+modality as an AnnData without the trees (upstream:
+[mudata#210](https://github.com/scverse/mudata/issues/210)). Only `.h5mu` is
+supported, not zarr.
