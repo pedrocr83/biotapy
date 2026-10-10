@@ -68,7 +68,7 @@ def test_returns_copies_and_keeps_the_input(assert_unchanged):
 
 
 def test_h5mu_drops_a_treedata_modality_tree(tmp_path):
-    # The documented reason to save a tree-bearing modality with write_h5td too (contracts/tree-access).
+    # Pins plain mudata's behaviour; bt.io.write_h5mu / read_h5mu are the way to keep the tree (contracts/tree-access).
     mdata = bt.io.to_mudata({"taxa": bt.datasets.toy()})
     mdata.write_h5mu(tmp_path / "study.h5mu")
     assert type(mudata.read_h5mu(tmp_path / "study.h5mu")["taxa"]) is AnnData
