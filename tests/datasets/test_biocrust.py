@@ -43,8 +43,10 @@ def fetched(tmp_path, monkeypatch):
 
 
 def test_keeps_the_samples_both_tables_have_in_the_microbe_order_without_a_warning(fetched):
+    # Only biotapy's own warning matters here (to_mudata's dropped-samples UserWarning); dependencies' deprecation
+    # warnings, such as pandas 3.1's on `future.infer_string` read by anndata, are not this test's concern.
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("error", UserWarning)
         mdata = bt.datasets.biocrust()
     assert isinstance(mdata, mudata.MuData) and list(mdata.mod) == ["taxa", "metabolites"]
     for mod in mdata.mod.values():
