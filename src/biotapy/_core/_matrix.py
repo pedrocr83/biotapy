@@ -34,6 +34,11 @@ def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_mat
     return out
 
 
+def _sum_dtype(X: sp.csr_matrix) -> np.dtype[np.generic]:
+    """The dtype ``numpy.sum`` gives ``X``'s: bool and narrower integers widen to 64 bits, floats keep theirs."""
+    return cast("np.dtype[np.generic]", np.zeros(0, dtype=X.dtype).sum().dtype)
+
+
 def sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix:
     """Sum the columns of ``X`` that share a group code; negative codes are dropped.
 
@@ -42,7 +47,7 @@ def sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.c
     """
     rows = np.flatnonzero(codes >= 0)
     # SciPy multiplies in the wider of the two dtypes; an int8 or bool indicator would wrap or saturate the sums.
-    dtype = np.zeros(0, dtype=X.dtype).sum().dtype
+    dtype = _sum_dtype(X)
     indicator = sp.csr_matrix(
         (np.ones(rows.size, dtype=dtype), (rows, codes[rows])),
         shape=(codes.size, n_groups),
@@ -71,7 +76,7 @@ def sum_pairs(
     have the dtype ``numpy.sum`` gives ``X``'s, as in ``sum_by``.
     """
     # As in sum_by: an int8 or bool indicator would wrap or saturate the sums.
-    dtype = np.zeros(0, dtype=X.dtype).sum().dtype
+    dtype = _sum_dtype(X)
     indicator = sp.csr_matrix(
         (np.ones(features.size, dtype=dtype), (features, groups)),
         shape=(X.shape[1], n_groups),
