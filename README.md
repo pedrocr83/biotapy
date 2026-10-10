@@ -14,9 +14,9 @@ against R on real data.
 
 ## Status
 
-**biotapy 0.3 is an early release.** The API can still change between minor versions.
+**biotapy 0.4 is an early release.** The API can still change between minor versions.
 
-What 0.3 does (full signatures in the [API reference][api]):
+What 0.4 does (full signatures in the [API reference][api]):
 
 - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
@@ -25,14 +25,16 @@ What 0.3 does (full signatures in the [API reference][api]):
   and 4 profiles) all read into one `TreeData`. `bt.io.read_humann` and
   `bt.io.read_picrust2` read function tables into a `MuData` with a community
   and a per-taxon modality; `bt.io.read_picrust2_traits` reads PICRUSt2's
-  per-ASV gene copy numbers.
+  per-ASV gene copy numbers. `bt.io.to_mudata` combines data types measured
+  on the same samples into one `MuData`.
 - **Writer**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out.
 - **Datasets**: `bt.datasets.toy` and `bt.datasets.toy_humann` (in-memory,
   for examples and tests), `bt.datasets.global_patterns`,
   `bt.datasets.enterotype` and `bt.datasets.esophagus` (phyloseq's example
-  datasets), `bt.datasets.hmp2` (the HMP2 inflammatory bowel disease cohort)
-  and `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached
-  on first use.
+  datasets), `bt.datasets.hmp2` (the HMP2 inflammatory bowel disease cohort),
+  `bt.datasets.biocrust` (mmvec's microbes and metabolites example) and
+  `bt.datasets.enzyme` (the ENZYME EC hierarchy), downloaded and cached on
+  first use.
 - **Preprocessing**: `bt.pp.relative`, `bt.pp.tax_glom`,
   `bt.pp.filter_features`, `bt.pp.filter_samples` and `bt.pp.rarefy`, and
   the compositional transforms `bt.pp.clr` and `bt.pp.philr` (checked against
@@ -41,18 +43,23 @@ What 0.3 does (full signatures in the [API reference][api]):
   (checked against HUMAnN's own output), `bt.fn.contributions` and
   `bt.fn.functional_redundancy`.
 - **Tools**: `bt.tl.alpha`, `bt.tl.beta`, `bt.tl.unifrac`, `bt.tl.pcoa`,
-  `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data.
+  `bt.tl.nmds` and `bt.tl.permanova`, each checked against R on real data,
+  and `bt.tl.mmvec`, which relates microbes to metabolites.
 - **Differential abundance**: `bt.da.linda` and `bt.da.ancombc2` in Python,
   `bt.da.aldex2` and `bt.da.maaslin3` through R (the `r` extra below), all
   returning one result table and checked against their R packages, and
   `bt.da.consensus`, which reports where the methods agree.
+- **Machine learning**: `bt.ml.PrevalenceFilter` and `bt.ml.CLR`,
+  scikit-learn transformers fitted inside each cross-validation fold;
+  `bt.ml.to_torch`, a PyTorch dataset (the `torch` extra below); and
+  `bt.ml.embed`, sample embeddings from pretrained models that plugins
+  register, with MGM included (the `mgm` extra below).
 - **Plots**: `bt.pl.bar`, `bt.pl.richness`, `bt.pl.ordination`,
   `bt.pl.scree`, `bt.pl.heatmap`, `bt.pl.contributions` and
   `bt.pl.consensus`.
 
-Next, in 0.4: multi-omics conventions on MuData, leak-free scikit-learn
-transformers, a PyTorch loader and an interface for embedding models. See the
-[roadmap][roadmap]; no dates are promised.
+Next: what users and issues ask for. See the [roadmap][roadmap]; no dates are
+promised.
 
 ## Installation
 
@@ -88,6 +95,19 @@ pip install 'biotapy[r]'
 
 rpy2 is GPL-2.0-or-later and the R packages carry their own licences; biotapy
 does not ship any of them.
+
+`bt.ml.to_torch` needs PyTorch, and MGM embeddings need PyTorch and
+transformers, through two extras:
+
+```bash
+pip install 'biotapy[torch]'   # bt.ml.to_torch
+pip install 'biotapy[mgm]'     # bt.ml.embed(..., "mgm")
+```
+
+On Linux, pip installs PyPI's torch, which brings CUDA libraries; for a
+CPU-only torch, run `pip install torch --index-url
+https://download.pytorch.org/whl/cpu` first. torch publishes no wheel for
+Intel macOS.
 
 On Python 3.14, the `biom-format` dependency has no wheels yet, so it is built
 from source and needs a C compiler until biom-format publishes 3.14 wheels

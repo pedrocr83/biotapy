@@ -1,5 +1,10 @@
 # Knowledge bundle log
 
+## 2026-10-10 (release 0.4.0)
+- **Update**: [cut-a-release](playbooks/cut-a-release.md) step 3: check the wheel's `entry_points.txt` too, and run the sdist's tests with absolute cache paths.
+- **Verification**: re-checked against the 0.4.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [embedding-plugins](decisions/embedding-plugins.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md); and against the test-only change `8353fe3` (a warning filter in `tests/datasets/test_biocrust.py`), which they do not state: [phase-1-core](roadmap/phase-1-core.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks the exit gate's notebook and "all gates green" items (docs job 114304008718 and Test run 38083140914 on PR #31), Checkpoint D's push, Read the Docs and approval boxes (its gates box and checklist line wait for the run of its gates on the final tree) and Task 4.D2 Steps 1-8.
+
 ## 2026-10-10 (Phase 4, slice 4D)
 - **Update**: [ml](modules/ml.md): Verification names the two tutorials and the tests that pin what they quote; new gotchas: the tutorials' numbers live in test constants checked by running the pages' code (`tests/conftest.py:run_page`, which strips MyST options and rejects magics; the leak-free AUCs compare with `approx(abs=1e-3)`), the size of the leak on HMP2, and GlobalPatterns' one-word *Candidatus* genera that MGM leaves out.
 - **Update**: [embedding-plugins](decisions/embedding-plugins.md) is `stable`: the user confirmed it when approving slice 4C (2026-10-09).

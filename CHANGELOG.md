@@ -7,8 +7,61 @@ and this project adheres to [Semantic Versioning][].
 
 [keep a changelog]: https://keepachangelog.com/
 [semantic versioning]: https://semver.org/
+[scikit-bio-2631]: https://github.com/scikit-bio/scikit-bio/issues/2631
 
 ## [Unreleased]
+
+## [0.4.0] - 2026-10-10
+
+### Added
+
+- `bt.io.to_mudata`: combine data types measured on the same samples into one
+  `MuData`, keeping the samples every modality has (in the first one's order,
+  with a warning naming how many each lost). Modality names: `taxa`,
+  `function`, `function_by_taxon`, `metabolites`, `host`.
+- `bt.tl.mmvec`: which metabolites go with which microbe (mmvec, Morton et
+  al. 2019), fitted by scikit-bio, as a microbes x metabolites table of
+  row-centred log probabilities.
+- `bt.ml.PrevalenceFilter` and `bt.ml.CLR`: scikit-learn transformers, so a
+  prevalence filter and CLR are fitted inside each cross-validation fold.
+  They pass scikit-learn's estimator checks and give `bt.pp.filter_features`'s
+  and `bt.pp.clr`'s results. Relative abundance is scikit-learn's own
+  `Normalizer(norm="l1")`.
+- `bt.ml.to_torch`: a PyTorch dataset over a table's samples, densifying one
+  row at a time, with integer or float labels from an `obs` column. It needs
+  the new extra `biotapy[torch]` (`torch>=2.9`).
+- `bt.ml.embed`: one embedding per sample from a pretrained model, returned or
+  stored in `obsm["X_<model>"]`. Models are plugins: a package registers one
+  in the entry-point group `biotapy.embeddings`, and biotapy checks what it
+  returns.
+- MGM, the Microbial General Model (Zhang et al. 2026), as the first such
+  model, behind the new extra `biotapy[mgm]` (`torch>=2.9`,
+  `transformers>=5`). Its pretrained weights (MIT) are downloaded once from
+  the `microformer-mgm` 0.5.8 wheel on PyPI and checked against its SHA-256;
+  biotapy's embeddings are within 2e-6 of MGM's own code.
+- `bt.datasets.biocrust`: mmvec's soil example, microbes and metabolites of
+  a desert biocrust after wetting, downloaded and cached on first use.
+- Guide pages for multi-omics and machine learning, and three tutorials:
+  multi-omics with mmvec, leak-free cross-validation on the HMP2 cohort, and
+  MGM embeddings of GlobalPatterns.
+
+### Changed
+
+- The pseudocount warning of `bt.pp.clr` and `bt.pp.philr` ends with the
+  step that gave it, `(pp.clr)` or `(pp.philr)`.
+- `bt.pp.filter_features` raises `TypeError` naming `min_prevalence` or
+  `min_total` when the threshold is a bool or not a number.
+- `bt.pp.tax_glom`, `bt.fn.func_glom` and `bt.pl.bar`'s `fill` sum a table
+  of bools or integers narrower than 64 bits in 64 bits, as NumPy's `sum`
+  does (unsigned stays unsigned): an `int8` table no longer wraps around, and
+  a bool table is counted instead of saturating at `True`. An `int32` table
+  now gives `int64` sums.
+- `bt.da.ancombc2` documents that scikit-bio 0.7.4 can fail to estimate the
+  bias with two samples in the reference level, where R returns results;
+  biotapy raises naming scikit-bio
+  ([scikit-bio#2631][scikit-bio-2631]).
+- The Coming-from-R page marks the phyloseq calls biotapy does not cover yet
+  "not in 0.4".
 
 ## [0.3.0] - 2026-10-07
 
