@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-10
+
 ### Fixed
 
 - `bt.ml.embed(..., "mgm")`: the first embedding in a process no longer
