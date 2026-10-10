@@ -5,8 +5,8 @@ description: Layered package (_core at the bottom, pl/ml/da at the top); public 
 tags: [architecture, modularization]
 status: stable
 paths: ["src/biotapy/**", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:41:02Z }
-commit: bd5f929
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:56:11Z }
+commit: 3be7a23
 sources:
   - id: spec
     resource: ../../plan.md

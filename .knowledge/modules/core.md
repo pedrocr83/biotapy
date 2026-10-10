@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:40:56Z }
-commit: bd5f929
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:56:11Z }
+commit: 3be7a23
 status: stable
 ---
 
@@ -129,7 +129,7 @@ none of them back.
   group gets the attribute `_tree.py:TREE_SLOTS_ATTR`
   (`biotapy-treedata-encoding`, value `"1"`, the layout version). Reading
   an unmarked group raises `KeyError`, a marker other than `"1"` raises
-  `ValueError` (written by a newer biotapy). treedata's root `encoding-type` /
+  `ValueError` (unknown layout version, possibly from a newer biotapy). treedata's root `encoding-type` /
   `encoding-version` are saved as `biotapy-treedata-root-*` group attributes and
   restored on read; `write_tree_slots` deletes an existing element of the same
   name before `Group.copy`, so a file already holding `obst`/`vart` (a future
