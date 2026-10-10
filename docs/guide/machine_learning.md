@@ -127,6 +127,9 @@ bt.ml.embed(genera, "mgm", inplace=True)
 genera.obsm["X_mgm"].shape  # (26, 256)
 ```
 
+The {doc}`embedding tutorial </tutorials/embeddings>` runs this on
+GlobalPatterns and checks what the embedding keeps.
+
 ### MGM
 
 `"mgm"` is MGM, the Microbial General Model of Zhang et al. (2026): a GPT-2

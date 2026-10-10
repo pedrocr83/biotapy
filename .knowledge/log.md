@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6b done: `docs/tutorials/embeddings.md` shows MGM on GlobalPatterns' genera end to end, not run by the docs build (no torch); an `mgm` test runs its code and a default-run test checks it quotes the outputs of exit gate 2's test (`GLOBAL_PATTERNS_LEFT_OUT`, `GLOBAL_PATTERNS_SHAPE`).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6 done: `docs/tutorials/leak_free_cv.md` cross-validates a prevalence filter, CLR and logistic regression on HMP2's species on every docs build, inside and outside the pipeline, with a label-reading `SelectKBest` on real and shuffled labels; a network test runs the page's cells against the numbers its prose quotes (`LEAK_FREE_CV_AUC`).
 - **Update**: [core](modules/core.md): `sum_pairs` sums in `numpy.sum`'s dtype for `X`, as `sum_by` does, so `fn.func_glom` cannot wrap an int8 table; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F5.
 - **Update**: [core](modules/core.md): `sum_by` sums in `numpy.sum`'s dtype for `X` (an int8 or bool table no longer wraps or saturates) and names its three callers (`pp.tax_glom`, `pl.bar`'s `fill`, MGM), not "today's only caller"; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F4.
