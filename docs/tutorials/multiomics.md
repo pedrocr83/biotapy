@@ -56,7 +56,7 @@ ranks.shape
 ```
 
 The most abundant microbe is `rplo 1 (Cyanobacteria)`, which mmvec's example treats as the
-cyanobacterium *Microcoleus vaginatus*. Its ten highest-ranked metabolites:
+cyanobacterium *Microcoleus* sp. (closest isolate *M. vaginatus* PCC 9802). Its ten highest-ranked metabolites:
 
 ```{code-cell} ipython3
 cyanobacterium = ranks.loc["rplo 1 (Cyanobacteria)"].sort_values(ascending=False)
@@ -86,6 +86,8 @@ dimensions (scikit-bio's default of 3, where the example used 1).
 
 - A rank compares metabolites within one microbe's row. It is not a correlation, and a low rank
   means no association rather than a negative one.
+- The page runs scikit-bio's default of 3 latent dimensions, while mmvec's README advises at least
+  10 samples per dimension, which allows 1 dimension for 19 samples. Read the ranks with that in mind.
 - 19 samples is few: mmvec's README says studies this small need careful tuning of the number
   of dimensions and the priors, which scikit-bio's `mmvec` exposes and `bt.tl.mmvec` leaves at
   their defaults.
