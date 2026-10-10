@@ -218,6 +218,8 @@ LEAK_FREE_CV_AUC = {
     "shuffled_inside": 0.544,
     "shuffled_outside": 0.767,
 }
+# The range of the ten shuffled-label scores of the pipeline, which the prose quotes.
+LEAK_FREE_CV_SHUFFLED_RANGE = (0.484, 0.669)
 
 
 @pytest.mark.network
@@ -229,6 +231,16 @@ def test_the_leak_free_cv_tutorial_gives_the_numbers_it_quotes(run_page):
     # "Near a coin toss" in the prose.
     assert abs(namespace["shuffled_inside"] - 0.5) < 0.05
     assert namespace["inside"] < 0.6
+    low, high = LEAK_FREE_CV_SHUFFLED_RANGE
+    assert min(namespace["shuffled_scores"]) == pytest.approx(low, abs=1e-3)
+    assert max(namespace["shuffled_scores"]) == pytest.approx(high, abs=1e-3)
+    # "The honest scores fall inside that range."
+    assert (
+        min(namespace["shuffled_scores"])
+        < namespace["inside"]
+        < namespace["select_inside"]
+        < max(namespace["shuffled_scores"])
+    )
 
 
 def test_the_leak_free_cv_tutorial_quotes_its_numbers():
@@ -237,9 +249,13 @@ def test_the_leak_free_cv_tutorial_quotes_its_numbers():
     for sentence in [
         f"The prevalence filter fitted inside the pipeline scores {auc['inside']} and the one fitted on every sample "
         f"{auc['outside']}: no measurable leak.",
+        "here, fitting it on the test samples moves the score by 0.001",
         f"Selected inside the pipeline, the score is {auc['select_inside']}; selected on every sample, "
         f"{auc['select_outside']}.",
         f"On shuffled labels the pipeline scores {auc['shuffled_inside']} on average, near a coin toss",
+        f"The ten shuffled-label scores of the pipeline range from {LEAK_FREE_CV_SHUFFLED_RANGE[0]} to "
+        f"{LEAK_FREE_CV_SHUFFLED_RANGE[1]}, and the honest scores of {auc['inside']} and {auc['select_inside']} fall "
+        "inside that range",
         f"The version that selects species on every sample scores {auc['shuffled_outside']}: higher than it scored on "
         "the real labels.",
     ]:

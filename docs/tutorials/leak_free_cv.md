@@ -102,10 +102,11 @@ round(outside, 3)
 ```
 
 The prevalence filter fitted inside the pipeline scores 0.527 and the one fitted on every
-sample 0.526: no measurable leak. The filter never looks at the labels, so seeing the test
-samples tells it nothing about the answer; it only changes which rare species the model gets.
-Keep it inside the pipeline all the same: it costs nothing, and then no step is fitted on a test
-sample without anyone having to argue that this one is harmless.
+sample 0.526: no measurable leak. The filter never looks at the labels, so here, fitting it on the
+test samples moves the score by 0.001; it only changes which rare species the model gets. A step
+fitted on all samples without the labels can still bias cross-validation in general, so keep it
+inside the pipeline all the same: it costs nothing, and then no step is fitted on a test sample
+without anyone having to argue that this one is harmless.
 
 ## A step that reads the labels
 
@@ -139,7 +140,8 @@ versions again. Ten shuffles, each cross-validated as above:
 ```{code-cell} ipython3
 rng = np.random.default_rng(0)
 shuffles = [rng.permutation(ibd) for _ in range(10)]
-shuffled_inside = float(np.mean([mean_auc(selecting, taxa.X, labels) for labels in shuffles]))
+shuffled_scores = [mean_auc(selecting, taxa.X, labels) for labels in shuffles]
+shuffled_inside = float(np.mean(shuffled_scores))
 shuffled_outside = float(
     np.mean(
         [
@@ -148,12 +150,16 @@ shuffled_outside = float(
         ]
     )
 )
-round(shuffled_inside, 3), round(shuffled_outside, 3)
+round(shuffled_inside, 3), round(shuffled_outside, 3), round(min(shuffled_scores), 3), round(max(shuffled_scores), 3)
 ```
 
 On shuffled labels the pipeline scores 0.544 on average, near a coin toss, as it should. The
 version that selects species on every sample scores 0.767: higher than it scored on the real
 labels. The leak manufactures a signal from noise.
+
+The ten shuffled-label scores of the pipeline range from 0.484 to 0.669, and the honest scores of
+0.527 and 0.558 fall inside that range: on this cohort they cannot be told apart from scores on
+shuffled labels.
 
 ```{code-cell} ipython3
 pd.DataFrame(
