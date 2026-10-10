@@ -49,6 +49,10 @@ def embed(adata: AnnData) -> npt.NDArray[np.float32]:
         msg = "mgm reads counts or relative abundances; adata.X holds negative or non-finite values"
         raise ValueError(msg)
     torch: Any = import_optional("torch", extra="mgm")
+    # torch's CPU wheels bundle oneMKL 2024.2, whose VML caches the CPU type on its first call without a lock and
+    # publishes an unmapped value on the way; a thread of a parallel first call that reads it runs AVX2's low-accuracy
+    # kernel on its chunk (pytorch/pytorch#188792). One serial VML call fixes the cache before the forward pass.
+    torch.tanh(torch.zeros(1))
     transformers: Any = import_optional("transformers", extra="mgm")
     files = _extracted_files()
     # anndata types var columns as Series | DataArray (its lazy variant); the data model guarantees a Series.
