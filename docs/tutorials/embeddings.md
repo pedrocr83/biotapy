@@ -74,8 +74,8 @@ table.
 
 In one unpinned laptop run, not checked by CI, on a CPU with 8 threads (torch 2.14.1+cpu,
 transformers 5.19.0), the first call took 7 s, most of it importing torch and loading the model,
-and a second call 1 s for the 26 samples: at least 26 samples a second, in line with the guide's
-"a few tens of samples a second". MGM runs one sample at a time and needs no memory beyond the
+and a second call about 1 s for the 26 samples (the timing is rounded, so the rate is in the tens
+of samples a second, as the guide says). MGM runs one sample at a time and needs no memory beyond the
 model's.
 
 ## More

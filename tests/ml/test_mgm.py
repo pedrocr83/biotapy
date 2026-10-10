@@ -202,6 +202,8 @@ def test_the_embedding_tutorial_quotes_its_vocabulary_and_labels_its_timings():
     assert f"MGM's vocabulary holds {MGM_GENERA:,} genera" in page
     assert f"each sample comes back as a vector of {dimensions} numbers" in page
     assert f"{samples} samples" in page
+    left_out, features = re.match(r"mgm leaves out (\d+) of (\d+) features", GLOBAL_PATTERNS_LEFT_OUT).groups()
+    assert f"{left_out} of GlobalPatterns' {features} genus-level features name a genus outside it" in page
     assert "one unpinned laptop run, not checked by CI" in page
 
 
