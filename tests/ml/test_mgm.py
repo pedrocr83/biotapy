@@ -1,4 +1,5 @@
 import re
+import subprocess
 import sys
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -80,6 +81,37 @@ def test_matches_mgm_s_own_embedding():
     with pytest.warns(UserWarning):
         warm = bt.ml.embed(_reference_table(), "mgm")
     np.testing.assert_allclose(warm, expected.to_numpy(), rtol=0, atol=WARM_ATOL)
+
+
+# A process's first VML call races inside torch's oneMKL (pytorch/pytorch#188792), so each run is a fresh process,
+# oversubscribed to 32 threads (about 15% differ without the fix, hence 24 runs); the first sample fills MGM's 512
+# tokens, the largest GELU MGM computes.
+FIRST_CALL_SCRIPT = """
+import sys, warnings
+import numpy as np, pandas as pd, scipy.sparse as sp, torch
+from anndata import AnnData
+import biotapy as bt
+torch.set_num_threads(32)
+genera = pd.read_csv(sys.argv[1], index_col=0)["genus"].dropna()
+counts = np.random.default_rng(0).integers(1, 1000, size=(2, genera.size)).astype(float)
+table = AnnData(sp.csr_matrix(counts), obs=pd.DataFrame(index=["a", "b"]),
+                var=pd.DataFrame({"genus": list(genera)}, index=[f"f{i}" for i in range(genera.size)]))
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    print(int(np.array_equal(bt.ml.embed(table, "mgm"), bt.ml.embed(table, "mgm"))))
+"""
+
+
+@pytest.mark.mgm
+def test_a_fresh_process_s_first_embedding_is_its_second():
+    for _ in range(24):
+        run = subprocess.run(
+            [sys.executable, "-c", FIRST_CALL_SCRIPT, str(DATA / "counts.csv")],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert run.stdout.strip() == "1"
 
 
 @pytest.mark.mgm
