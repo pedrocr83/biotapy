@@ -15,10 +15,10 @@ kernelspec:
 
 This notebook redoes the sections of phyloseq's
 [analysis vignette](https://github.com/joey711/phyloseq/blob/master/vignettes/phyloseq-analysis.Rmd)
-that biotapy 0.3 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
+that biotapy 0.4 covers, on the same three datasets: GlobalPatterns, enterotype and esophagus.
 Each section names the R chunk it follows. Everything runs in biotapy; nothing is read from R.
 
-**Not in 0.3**, so left out:
+**Not in 0.4**, so left out:
 
 - `plot_tree` (exploratory tree plots) and `plot_net` (sample networks);
 - correspondence analysis (`ordinate(..., "CCA")`) and DPCoA, with their scree, species and biplot plots;
@@ -170,7 +170,7 @@ bt.pl.ordination(global_patterns, basis="nmds", color="SampleType");
 
 `distance(esophagus, "bray")`, `"wunifrac"` and `"jaccard"`. phyloseq's `"jaccard"` is vegan's
 quantitative Jaccard; biotapy's is presence/absence, phyloseq's
-`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.3.
+`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.4.
 
 ```{code-cell} ipython3
 esophagus = bt.datasets.esophagus()

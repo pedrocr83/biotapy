@@ -63,7 +63,7 @@ def ordination(
 
     As in phyloseq, PCoA labels append ``round(100 * Relative_eig, 1)`` and NMDS
     labels carry no percentage. The stress note is biotapy's; phyloseq shows none.
-    Taxa, biplot and split plots are not in 0.1.
+    Taxa, biplot and split plots are not in 0.4.
 
     Examples
     --------

@@ -30,6 +30,25 @@ def test_sum_by_keeps_integer_dtype():
     assert sum_by(X, np.array([0, 0, 0]), 1).dtype == np.int64
 
 
+@pytest.mark.parametrize(
+    ("dtype", "value", "summed"),
+    [
+        (np.int8, 100, np.int64),
+        (np.uint8, 200, np.uint64),
+        (np.int16, 20_000, np.int64),
+        (np.int32, 1_000_000_000, np.int64),
+        (np.uint32, 2_000_000_000, np.uint64),
+        (np.bool_, True, np.int64),
+        (np.float32, 0.5, np.float32),
+    ],
+)
+def test_sum_by_sums_in_the_dtype_numpy_sums_in(dtype, value, summed):
+    # Three columns into one group: 3 * value overflows int8, uint8 and int16, and bool would saturate at True.
+    out = sum_by(sp.csr_matrix(np.full((2, 3), value, dtype=dtype)), np.array([0, 0, 0]), 1)
+    np.testing.assert_array_equal(out.toarray(), np.full((2, 1), 3 * value))
+    assert out.dtype == summed
+
+
 def test_argmax_by_one_index_per_group_in_code_order():
     np.testing.assert_array_equal(argmax_by(np.array([1.0, 9.0, 3.0, 7.0]), np.array([1, 0, 1, 0])), [1, 2])
 
@@ -71,6 +90,25 @@ def test_sum_pairs_with_no_pairs_is_empty_per_group():
 
 def test_sum_pairs_keeps_integer_dtype():
     assert sum_pairs(X, np.array([0]), np.array([0]), n_groups=1).dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    ("dtype", "value", "summed"),
+    [
+        (np.int8, 100, np.int64),
+        (np.uint8, 200, np.uint64),
+        (np.int16, 20_000, np.int64),
+        (np.int32, 1_000_000_000, np.int64),
+        (np.uint32, 2_000_000_000, np.uint64),
+        (np.bool_, True, np.int64),
+        (np.float32, 0.5, np.float32),
+    ],
+)
+def test_sum_pairs_sums_in_the_dtype_numpy_sums_in(dtype, value, summed):
+    dense = np.full((2, 3), value, dtype=dtype)
+    out = sum_pairs(sp.csr_matrix(dense), np.array([0, 1, 2]), np.array([0, 0, 0]), n_groups=1)
+    np.testing.assert_array_equal(out.toarray(), np.full((2, 1), 3 * value))
+    assert out.dtype == summed
 
 
 @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 50)), st.data())

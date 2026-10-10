@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:22:07Z }
+commit: f0f095b
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/
@@ -33,7 +33,8 @@ A phase exit gate asks for a release (0.0.1 in Phase 0, 0.1 in Phase 1, ...).
    project page, and 0.1.0 replaced 0.0.1's placeholder text.
 2c. Move the "not in X.Y" labels to the new version: `docs/_data/r_idioms.toml`,
    `docs/coming_from_r.md`, `tests/test_coming_from_r.py` and the phyloseq
-   vignette (`docs/tutorials/phyloseq_analysis.md`). 0.2.0 did this in Task 2.13.
+   vignette (`docs/tutorials/phyloseq_analysis.md`), and the docstrings under `src/` (`grep -rn "not in 0\." src docs tests`;
+   `pl.ordination`'s still said "not in 0.1" at 0.3.0). 0.2.0 did this in Task 2.13.
 3. Commit `chore: release X.Y.Z` and merge it to `master` through a PR
    (merge commit, not squash). Before the PR, build and run `pytest` from the
    extracted sdist (`uv build --sdist`, `tar xzf`, then `pytest` inside it); it

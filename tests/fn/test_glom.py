@@ -113,6 +113,14 @@ def test_counts_keep_their_label_when_each_feature_has_one_parent(make_adata):
     assert bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy).uns["biotapy"]["x_kind"] == "counts"
 
 
+def test_narrow_integer_counts_sum_without_wrapping(make_adata):
+    # int8 holds up to 127: two features of 100 under one parent must give 200, not -56.
+    hierarchy = pd.DataFrame({"child": ["f0", "f1"], "parent": "P1", "level": "p"})
+    out = bt.fn.func_glom(make_adata(np.full((2, 2), 100, dtype=np.int8)), "p", hierarchy=hierarchy)
+    np.testing.assert_array_equal(out.X.toarray(), [[200], [200]])
+    assert out.X.dtype == np.int64
+
+
 def test_a_mean_is_labelled_abundance(make_adata):
     hierarchy = pd.DataFrame({"child": ["f0", "f1"], "parent": "P1", "level": "p"})
     out = bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy, agg="mean")

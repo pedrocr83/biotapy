@@ -3,10 +3,10 @@ type: Decision
 title: Embedding models are plugins found through entry points
 description: ml.embed(adata, model) loads the callable a package registers under model in the entry-point group biotapy.embeddings, checks that it returned a finite 2-D float array with one row per sample, and returns it or writes obsm["X_<model>"]; biotapy's own MGM is registered the same way, its weights downloaded, never bundled.
 tags: [ml, plugins, api]
-status: draft
+status: stable
 paths: ["src/biotapy/ml/_embed.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 sources:
   - id: spec
     resource: ../../plan.md

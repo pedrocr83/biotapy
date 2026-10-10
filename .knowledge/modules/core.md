@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 status: stable
 ---
 
@@ -39,13 +39,19 @@ none of them back.
   `pp.relative`, `fn.renorm` (`_renorm.py:_rescaled`) and
   `fn.functional_redundancy`.
 - `_matrix.py:sum_by` / `_matrix.py:argmax_by` - grouped column sum and
-  grouped argmax by integer group codes, negative codes dropped; today's only
-  caller is `pp.tax_glom`.
+  grouped argmax by integer group codes, negative codes dropped. `sum_by`
+  sums in the dtype `numpy.sum` gives `X`'s (bool and every integer narrower
+  than 64 bits sum to int64, or uint64 if unsigned; floats keep theirs), so an
+  int8 or int32 table cannot wrap (`sum_by` and `sum_pairs` take the dtype
+  from one private helper, `_matrix.py:_sum_dtype`). The callers of `sum_by`
+  are `pp.tax_glom`, `pl.bar`'s `fill` by a `var` column
+  (`pl/_abundance.py:_segments`) and MGM (`ml/_mgm.py`); `argmax_by`'s is
+  `pp.tax_glom`.
 - `_matrix.py:sum_pairs` - column sums into groups from `(feature, group)`
   membership pairs, where a feature may sit in several groups and counts in
   full toward each (many-to-many); the pairs are a set, a repeated pair counts
   once; used by `fn.func_glom`. Where `sum_by` assigns each feature one group,
-  this does not.
+  this does not. It sums in `numpy.sum`'s dtype for `X`, as `sum_by` does.
 - `_composition.py:pseudocounted` - validates `pseudocount`
   (`_composition.py:check_pseudocount`), rejects negative or non-finite `X`,
   warns when the pseudocount exceeds the smallest non-zero value (the message ends

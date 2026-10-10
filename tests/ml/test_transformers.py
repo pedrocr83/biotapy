@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -202,3 +204,63 @@ def test_clr_rows_sum_to_zero(X):
 def test_transformer_options_are_keyword_only(estimator, value):
     with pytest.raises(TypeError):
         estimator(value)
+
+
+LEAK_FREE_CV = Path(__file__).parents[2] / "docs" / "tutorials" / "leak_free_cv.md"
+# The mean ROC AUCs of the leak-free cross-validation tutorial on HMP2 (Phase 4 exit gate 1), which its prose quotes.
+# The network test runs the page's cells and checks they still give these; the next test checks the prose quotes them.
+# The page keeps the AUCs unrounded and shows three decimals.
+LEAK_FREE_CV_AUC = {
+    "inside": 0.527,
+    "outside": 0.526,
+    "select_inside": 0.558,
+    "select_outside": 0.705,
+    "shuffled_inside": 0.544,
+    "shuffled_outside": 0.767,
+}
+# The range of the ten shuffled-label scores of the pipeline, which the prose quotes.
+LEAK_FREE_CV_SHUFFLED_RANGE = (0.484, 0.669)
+
+
+@pytest.mark.network
+def test_the_leak_free_cv_tutorial_gives_the_numbers_it_quotes(run_page):
+    namespace = run_page(LEAK_FREE_CV)
+    for name, quoted in LEAK_FREE_CV_AUC.items():
+        # One ranking flip moves a mean over 25 folds by about 3.6e-4, so the 3-decimal figures can slip by a unit.
+        assert namespace[name] == pytest.approx(quoted, abs=1e-3), name
+    # "Near a coin toss" in the prose.
+    assert abs(namespace["shuffled_inside"] - 0.5) < 0.05
+    assert namespace["inside"] < 0.6
+    low, high = LEAK_FREE_CV_SHUFFLED_RANGE
+    assert min(namespace["shuffled_scores"]) == pytest.approx(low, abs=1e-3)
+    assert max(namespace["shuffled_scores"]) == pytest.approx(high, abs=1e-3)
+    # "The honest scores fall inside that range."
+    assert (
+        min(namespace["shuffled_scores"])
+        < namespace["inside"]
+        < namespace["select_inside"]
+        < max(namespace["shuffled_scores"])
+    )
+
+
+def test_the_leak_free_cv_tutorial_quotes_its_numbers():
+    page = " ".join(LEAK_FREE_CV.read_text(encoding="utf-8").split())
+    auc = LEAK_FREE_CV_AUC
+    for sentence in [
+        f"The prevalence filter fitted inside the pipeline scores {auc['inside']} and the one fitted on every sample "
+        f"{auc['outside']}: no measurable leak.",
+        "here, fitting it on the test samples moves the score by 0.001",
+        f"Selected inside the pipeline, the score is {auc['select_inside']}; selected on every sample, "
+        f"{auc['select_outside']}.",
+        f"On shuffled labels the pipeline scores {auc['shuffled_inside']} on average, near a coin toss",
+        f"The ten shuffled-label scores of the pipeline range from {LEAK_FREE_CV_SHUFFLED_RANGE[0]} to "
+        f"{LEAK_FREE_CV_SHUFFLED_RANGE[1]}, and the honest scores of {auc['inside']} and {auc['select_inside']} fall "
+        "inside that range",
+        f"The version that selects species on every sample scores {auc['shuffled_outside']}: higher than it scored on "
+        "the real labels.",
+    ]:
+        assert sentence in page
+    # What the prose says about the numbers: no measurable leak, a large one, and a larger one on noise.
+    assert abs(auc["inside"] - auc["outside"]) < 0.01
+    assert auc["select_outside"] - auc["select_inside"] > 0.1
+    assert auc["shuffled_outside"] > auc["select_outside"]

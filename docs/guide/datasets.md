@@ -1,9 +1,10 @@
 # Example datasets
 
-`biotapy.datasets` ships seven datasets: six examples and the ENZYME hierarchy
+`biotapy.datasets` ships eight datasets: seven examples and the ENZYME hierarchy
 for `bt.fn.func_glom`. Four of the examples return the [data model](data_model.md)
 every biotapy function relies on; `toy_humann` returns a `MuData` function
-table, and `hmp2` a `MuData` cohort of function tables and taxa.
+table, `hmp2` a `MuData` cohort of function tables and taxa, and `biocrust` a
+`MuData` of microbes and metabolites.
 
 ## `toy`
 
@@ -61,7 +62,8 @@ Each of `global_patterns`, `enterotype` and `esophagus` is downloaded once from
 [pooch](https://www.fatiando.org/pooch/). A later call re-hashes the cached
 file and, as long as the hash still matches, reads it straight from disk
 with no network access at all. `hmp2`'s three files are pinned the same way,
-to the SHA-256 hashes of the IBDMDB's dated releases.
+to the SHA-256 hashes of the IBDMDB's dated releases, and `biocrust`'s two to
+one commit of mmvec's repository.
 
 Set `BIOTAPY_DATA_DIR` to change the cache directory; the default is a
 per-user cache directory (`pooch.os_cache("biotapy")`):
@@ -111,7 +113,32 @@ mdata = bt.datasets.hmp2()
 mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
 ```
 
-The [function tutorial](../tutorials/function.md) analyses it.
+The [function](../tutorials/function.md) and [leak-free cross-validation](../tutorials/leak_free_cv.md)
+tutorials analyse it.
+
+## `biocrust`
+
+`bt.datasets.biocrust()` is the example mmvec's own repository uses: a desert
+biological soil crust from four successional stages (`early`, `earlymid`,
+`latemid`, `late`; Swenson et al. 2018), sampled at five times after wetting,
+with 466 microbes counted in 20 samples and 85 metabolites measured in 19 of
+them. It downloads
+the two BIOM files once (135 KB) and returns a `MuData` over the 19 samples
+both have:
+
+| Modality | Holds | `x_kind` |
+|---|---|---|
+| `"taxa"` | microbe counts, no taxonomy columns and no tree; each name ends with its phylum | `counts` |
+| `"metabolites"` | metabolite intensities | `abundance` |
+
+```python
+import biotapy as bt
+
+mdata = bt.datasets.biocrust()
+ranks = bt.tl.mmvec(mdata, seed=0)  # 466 microbes x 85 metabolites
+```
+
+The [multi-omics tutorial](../tutorials/multiomics.md) analyses it.
 
 ## Licensing
 
@@ -124,7 +151,13 @@ you publish results that use it. `hmp2` downloads the HMP2 tables from the
 [IBDMDB](https://ibdmdb.org/); the IBDMDB states no licence for them, so biotapy
 ships none of them, and you should cite the study when you use them: Lloyd-Price J
 et al. (2019) Multi-omics of the gut microbial ecosystem in inflammatory bowel
-diseases. *Nature* 569:655-662. biotapy itself is
+diseases. *Nature* 569:655-662. `biocrust` downloads two files from
+[mmvec's repository](https://github.com/biocore/mmvec/tree/88ca33b408a85b6bf90fae06982936247b860272/examples/soils),
+distributed under its BSD-3-Clause licence; cite Morton JT et al. (2019) Learning
+representations of microbe-metabolite interactions. *Nature Methods*
+16:1306-1314. The data come from Swenson TL et al. (2018) Linking soil biology and
+chemistry in biological soil crust using isolate exometabolomics. *Nature
+Communications* 9:19. biotapy itself is
 [BSD-3-Clause](https://github.com/pedrocr83/biotapy/blob/master/LICENSE).
 
 [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data

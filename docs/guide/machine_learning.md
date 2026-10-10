@@ -20,7 +20,10 @@ and cross-validated scores come out better than they will be on new samples.
 
 `bt.pp.filter_features` on the whole table before cross-validation is the
 leaky version of `bt.ml.PrevalenceFilter`: the same rule, fitted on every
-sample at once.
+sample at once. The {doc}`leak-free cross-validation tutorial
+</tutorials/leak_free_cv>` measures both versions on the HMP2 cohort: there
+the prevalence filter leaks almost nothing, while a step that chooses features
+by the labels inflates the score even on shuffled labels.
 
 ## A leak-free pipeline
 
@@ -124,6 +127,9 @@ bt.ml.embed(genera, "mgm", inplace=True)
 genera.obsm["X_mgm"].shape  # (26, 256)
 ```
 
+The {doc}`embedding tutorial </tutorials/embeddings>` runs this on
+GlobalPatterns and checks what the embedding keeps.
+
 ### MGM
 
 `"mgm"` is MGM, the Microbial General Model of Zhang et al. (2026): a GPT-2
@@ -157,7 +163,8 @@ The embedding is the mean of the last hidden layer over the sample's tokens,
 the "element-wise mean pooling" MGM's paper uses for the pretrained model:
 256 float32 values per sample, within 2e-6 of MGM 0.5.8's own code. The model
 runs on the CPU, one sample at a time; on GlobalPatterns' genus profiles that
-is about 60 samples a second on 8 threads, with no memory beyond the model's.
+is a few tens of samples a second on 8 threads (one unpinned laptop run, not checked by
+CI; the [MGM tutorial](../tutorials/embeddings.md) gives its timings), with no memory beyond the model's.
 On a CPU running more than four threads, the first call in a session can
 differ from later ones by up to about 2e-4: torch 2.13 and 2.14 sometimes
 compute their first `tanh` less precisely.

@@ -1,4 +1,4 @@
-"""Datasets downloaded once and cached with pooch: phyloseq's examples, the ENZYME files and the HMP2 tables."""
+"""Datasets downloaded once and cached with pooch: phyloseq's examples, the ENZYME files, the HMP2 and biocrust tables."""
 
 from functools import cache
 
@@ -21,14 +21,20 @@ _REGISTRY = {
     "pathabundances_3.tsv.gz": "sha256:dd983871b0e155255844b91ec10d50fb09230d2f4e915464ab680fa3a9c9ddb3",
     "taxonomic_profiles_3.tsv.gz": "sha256:d790ff15e46d61ca0cadc55d9f918de4e3415d7f97c992ac37610aaee02117ed",
     "hmp2_metadata_2018-08-20.csv": "sha256:656b7bd97660ddb875548805e30bede31f2d1208293f7170d2d5755e33862ec9",
+    # mmvec's soil biocrust example, pinned to one commit of biocore/mmvec.
+    "biocrust_microbes.biom": "sha256:7f634b8dcdbe3ad0c25a97223e2e3b130cfc7ae69100c21415bffbc3d86ef4a7",
+    "biocrust_metabolites.biom": "sha256:cfea3e7233102680f628e71c75229a2a55640fa6c704583ce89b0b9b77f32c72",
 }
 _IBDMDB = "https://g-227ca.190ebd.75bc.data.globus.org/ibdmdb/"
+_MMVEC = "https://raw.githubusercontent.com/biocore/mmvec/88ca33b408a85b6bf90fae06982936247b860272/examples/soils/"
 _URLS = {
     "enzyme.dat": "https://ftp.expasy.org/databases/enzyme/enzyme.dat",
     "enzclass.txt": "https://ftp.expasy.org/databases/enzyme/enzclass.txt",
     "pathabundances_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/pathabundances_3.tsv.gz",
     "taxonomic_profiles_3.tsv.gz": f"{_IBDMDB}products/HMP2/MGX/2018-05-04/taxonomic_profiles_3.tsv.gz",
     "hmp2_metadata_2018-08-20.csv": f"{_IBDMDB}metadata/hmp2_metadata_2018-08-20.csv",
+    "biocrust_microbes.biom": f"{_MMVEC}microbes.biom",
+    "biocrust_metabolites.biom": f"{_MMVEC}metabolites.biom",
 }
 
 

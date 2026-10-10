@@ -1,3 +1,4 @@
+import re
 import sys
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -12,6 +13,16 @@ from sklearn.neighbors import NearestNeighbors
 import biotapy as bt
 
 DATA = Path(__file__).parents[1] / "data" / "mgm"
+EMBEDDINGS = Path(__file__).parents[2] / "docs" / "tutorials" / "embeddings.md"
+# Phase 4 exit gate 2 on GlobalPatterns' genera. docs/tutorials/embeddings.md quotes these outputs; its build has no torch,
+# so an mgm test runs the page's code and a default-run test checks the page quotes them.
+GLOBAL_PATTERNS_LEFT_OUT = (
+    "mgm leaves out 96 of 996 features: 0 without a genus and 96 whose genus is not one of MGM's "
+    "(4-29, 4041AA30, A17, Aquamonas, Arctic95A-2, ...)"
+)
+GLOBAL_PATTERNS_SHAPE = (26, 256)
+# The size of MGM's vocabulary (phylogeny.csv's genera), which the tutorial quotes.
+MGM_GENERA = 9665
 # torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
 # embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
 ATOL = 1e-3
@@ -133,17 +144,36 @@ def test_keeps_the_input(assert_unchanged):
 def test_embeds_global_patterns_end_to_end():
     # Phase 4 exit gate 2: one foundation model plugged in end to end (decisions 10, 17).
     tdata = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
-    with pytest.warns(UserWarning, match="mgm leaves out 96 of 996 features: 0 without a genus and 96 whose") as record:
+    with pytest.warns(UserWarning, match=re.escape(GLOBAL_PATTERNS_LEFT_OUT)) as record:
         bt.ml.embed(tdata, "mgm", inplace=True)
     assert not [warning for warning in record if "<bos> <eos>" in str(warning.message)]  # no sample is empty
     embedding = tdata.obsm["X_mgm"]
-    assert embedding.shape == (26, 256) and embedding.dtype == np.float32 and np.isfinite(embedding).all()
+    assert embedding.shape == GLOBAL_PATTERNS_SHAPE and embedding.dtype == np.float32 and np.isfinite(embedding).all()
     with pytest.warns(UserWarning, match="mgm leaves out 96"):
         np.testing.assert_allclose(bt.ml.embed(tdata, "mgm"), embedding, rtol=0, atol=ATOL)
     # Every sample's nearest neighbour in the embedding comes from the same environment.
     neighbour = NearestNeighbors(n_neighbors=2, metric="cosine").fit(embedding).kneighbors(embedding)[1][:, 1]
     types = tdata.obs["SampleType"].to_numpy()
     assert (types[neighbour] == types).all()
+
+
+@pytest.mark.mgm
+def test_the_embedding_tutorial_gives_the_outputs_it_quotes(run_page):
+    with pytest.warns(UserWarning, match=re.escape(GLOBAL_PATTERNS_LEFT_OUT)):
+        namespace = run_page(EMBEDDINGS)
+    assert (namespace["embedding"].shape, namespace["embedding"].dtype) == (GLOBAL_PATTERNS_SHAPE, np.float32)
+    assert namespace["same_type"] == GLOBAL_PATTERNS_SHAPE[0]
+
+
+def test_the_embedding_tutorial_quotes_the_end_to_end_outputs():
+    page = EMBEDDINGS.read_text(encoding="utf-8")
+    assert f"```text\nUserWarning: {GLOBAL_PATTERNS_LEFT_OUT}\n```" in page
+    assert f"```text\n({GLOBAL_PATTERNS_SHAPE}, dtype('float32'))\n```" in page
+    assert f"```text\n{GLOBAL_PATTERNS_SHAPE[0]}\n```" in page
+    assert (
+        f"For all {GLOBAL_PATTERNS_SHAPE[0]} samples, the nearest neighbour is a sample of the same type"
+        in " ".join(page.split())
+    )
 
 
 def _cached_file(name):
@@ -153,6 +183,28 @@ def _cached_file(name):
     cache = _mgm.make_pooch(_mgm._BASE_URL, {_mgm._WHEEL: _mgm._SHA256})
     paths = cache.fetch(_mgm._WHEEL, processor=_mgm.pooch.Unzip(members=_mgm._MEMBERS))
     return next(Path(path) for path in paths if Path(path).name == name)
+
+
+@pytest.mark.mgm
+def test_the_embedding_tutorial_s_vocabulary_and_example_genera_hold():
+    vocabulary = pd.read_csv(_cached_file("phylogeny.csv"), index_col=0).index
+    genera = set(bt.pp.tax_glom(bt.datasets.global_patterns(), "genus").var["genus"].dropna())
+    assert len(vocabulary) == MGM_GENERA
+    # The clone name and the one-word Candidatus genus the page names: biotapy reads "BD2-13" as MGM's "BD2".
+    assert {"BD2-13", "CandidatusPelagibacter"} <= genera
+    assert "g__BD2" not in vocabulary and "g__CandidatusPelagibacter" not in vocabulary
+    assert "g__Candidatus_Pelagibacter" in vocabulary
+
+
+def test_the_embedding_tutorial_quotes_its_vocabulary_and_labels_its_timings():
+    page = " ".join(EMBEDDINGS.read_text(encoding="utf-8").split())
+    samples, dimensions = GLOBAL_PATTERNS_SHAPE
+    assert f"MGM's vocabulary holds {MGM_GENERA:,} genera" in page
+    assert f"each sample comes back as a vector of {dimensions} numbers" in page
+    assert f"{samples} samples" in page
+    left_out, features = re.match(r"mgm leaves out (\d+) of (\d+) features", GLOBAL_PATTERNS_LEFT_OUT).groups()
+    assert f"{left_out} of GlobalPatterns' {features} genus-level features name a genus outside it" in page
+    assert "one unpinned laptop run, not checked by CI" in page
 
 
 @pytest.mark.mgm

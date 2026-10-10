@@ -5,8 +5,8 @@ description: Diversity, ordination, PERMANOVA and mmvec over AnnData/TreeData/Mu
 resource: /src/biotapy/tl/
 paths: ["src/biotapy/tl/**"]
 tags: [tl, diversity, ordination]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 status: stable
 ---
 
@@ -116,7 +116,12 @@ cache: `BIOTAPY_DATA_DIR=<cache> uv run --group test pytest -m golden tests/tl -
 - `mmvec` has no R golden (`R equivalent: none`); its tests check shape, row
   centring, that a metabolite ranks highest for the microbe it follows, and
   the checks above, not scikit-bio's learned values, which depend on the seed
-  (`tests/tl/test_mmvec.py`). The fit holds dense microbes x metabolites
+  (`tests/tl/test_mmvec.py`). On real data, a network test runs
+  `docs/tutorials/multiomics.md` on `bt.datasets.biocrust()` and repeats the
+  check mmvec's own soil example makes: all 13 metabolites it lists for
+  `rplo 1 (Cyanobacteria)` rank above zero
+  (`tests/tl/test_mmvec.py:MICROCOLEUS_METABOLITES`), with scikit-bio's L-BFGS
+  fit and 3 dimensions where the example used 1. The fit holds dense microbes x metabolites
   arrays, 8 bytes each, on top of the dense inputs. An all-zero sample or
   feature in either modality raises rather than being dropped.
 - All-zero samples give scikit-bio's values, with no custom mapping: two of

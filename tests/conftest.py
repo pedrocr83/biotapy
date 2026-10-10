@@ -1,4 +1,6 @@
+import re
 from collections.abc import Callable
+from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -51,3 +53,31 @@ def _make_adata(dense: np.ndarray) -> AnnData:
 def make_adata() -> Callable[[np.ndarray], AnnData]:
     """AnnData from a dense samples x features array, with samples ``s0..`` and features ``f0..``."""
     return _make_adata
+
+
+# A MyST notebook's code cells and a page's fenced Python blocks, in page order.
+_PAGE_CODE = re.compile(r"^```(?:\{code-cell\} ipython3|python)\n(.*?)^```$", re.MULTILINE | re.DOTALL)
+
+
+# A cell's MyST options come first: ":key: value" lines, or a YAML block between two "---" lines.
+_CELL_OPTIONS = re.compile(r"\A(?:---\n.*?^---\n|(?::[\w-]+:[^\n]*\n)+)", re.MULTILINE | re.DOTALL)
+_MAGIC = re.compile(r"^\s*[%!]", re.MULTILINE)
+
+
+def _cell_source(cell: str) -> str:
+    source = _CELL_OPTIONS.sub("", cell, count=1)
+    if _MAGIC.search(source):
+        raise ValueError(f"run_page cannot run an IPython magic or shell escape:\n{source}")
+    return source
+
+
+def _run_page(path: Path) -> dict[str, object]:
+    namespace: dict[str, object] = {}
+    exec("\n".join(_cell_source(cell) for cell in _PAGE_CODE.findall(path.read_text(encoding="utf-8"))), namespace)
+    return namespace
+
+
+@pytest.fixture(scope="session")
+def run_page() -> Callable[[Path], dict[str, object]]:
+    """Run a docs page's code, as a reader would, and return the names it defines (tests quoting a page's numbers)."""
+    return _run_page
