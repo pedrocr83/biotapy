@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:09Z }
-commit: 5cc503f
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
+commit: ebe0cbc
 ---
 
 # Responsibility
