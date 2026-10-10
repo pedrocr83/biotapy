@@ -269,8 +269,8 @@ def read_tree_slots(group: h5py.Group, adata: AnnData) -> TreeData:
     version = str(group.attrs[TREE_SLOTS_ATTR])
     if version != _TREE_SLOTS_VERSION:
         msg = (
-            f"group {group.name!r} has tree-slot layout version {version!r}, but this biotapy reads version "
-            f"{_TREE_SLOTS_VERSION!r}: the file was written by a newer biotapy, so upgrade biotapy"
+            f"group {group.name!r} has unknown tree-slot layout version {version!r} "
+            f"(this biotapy reads {_TREE_SLOTS_VERSION!r}); the file may come from a newer biotapy, so upgrade biotapy"
         )
         raise ValueError(msg)
     buffer = io.BytesIO()

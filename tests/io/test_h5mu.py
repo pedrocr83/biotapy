@@ -147,10 +147,32 @@ def _caterpillar(leaves: list[str], lengths: list[float]) -> nx.DiGraph:
     return tree
 
 
-def _small_tdata(counts: np.ndarray, *, var: pd.DataFrame | None = None, vart: bool = True) -> TreeData:
+@st.composite
+def _random_trees(draw, leaves: list[str]) -> nx.DiGraph:
+    """A binary tree over ``leaves`` from a drawn merge order, with drawn positive branch lengths."""
+    tree = nx.DiGraph()
+    pending = list(leaves)
+    for step in range(len(leaves) - 1):
+        first = draw(st.integers(0, len(pending) - 1))
+        second = draw(st.integers(0, len(pending) - 2))
+        second += second >= first
+        parent = f"n{step}"
+        for child in (pending[first], pending[second]):
+            tree.add_edge(parent, child, length=draw(st.floats(0.01, 10.0)))
+        pending = [node for index, node in enumerate(pending) if index not in (first, second)] + [parent]
+    return tree
+
+
+def _small_tdata(
+    counts: np.ndarray,
+    *,
+    var: pd.DataFrame | None = None,
+    vart: bool = True,
+    tree: nx.DiGraph | None = None,
+) -> TreeData:
     features = [f"f_{i}" for i in range(counts.shape[1])]
     samples = [f"s_{i}" for i in range(counts.shape[0])]
-    tree = _caterpillar(features, [0.5 + i for i in range(len(features))])
+    tree = tree if tree is not None else _caterpillar(features, [0.5 + i for i in range(len(features))])
     return TreeData(
         sp.csr_matrix(counts.astype(np.float64)),
         obs=pd.DataFrame(index=samples),
@@ -164,20 +186,24 @@ def _round_trip(tdata: TreeData, path) -> TreeData:
     return bt.io.read_h5mu(path)["taxa"]
 
 
-@settings(max_examples=25, deadline=None)
-@given(
-    counts=st.integers(1, 4).flatmap(
-        lambda n_samples: st.integers(1, 5).flatmap(
-            lambda n_features: st.lists(
-                st.lists(st.integers(0, 20), min_size=n_features, max_size=n_features),
-                min_size=n_samples,
-                max_size=n_samples,
-            )
+@st.composite
+def _tables_with_trees(draw) -> tuple[np.ndarray, nx.DiGraph]:
+    n_samples, n_features = draw(st.integers(1, 4)), draw(st.integers(1, 5))
+    counts = draw(
+        st.lists(
+            st.lists(st.integers(0, 20), min_size=n_features, max_size=n_features),
+            min_size=n_samples,
+            max_size=n_samples,
         )
     )
-)
-def test_round_trip_keeps_the_table_the_names_and_the_tree(counts):
-    tdata = _small_tdata(np.array(counts))
+    return np.array(counts), draw(_random_trees([f"f_{i}" for i in range(n_features)]))
+
+
+@settings(max_examples=25, deadline=None)
+@given(_tables_with_trees())
+def test_round_trip_keeps_the_table_the_names_and_the_tree(table):
+    counts, tree = table
+    tdata = _small_tdata(counts, tree=tree)
     with tempfile.TemporaryDirectory() as directory:
         back = _round_trip(tdata, Path(directory) / "p.h5mu")
     np.testing.assert_array_equal(back.X.toarray(), tdata.X.toarray())
@@ -228,7 +254,9 @@ def test_a_newer_layout_version_raises(tmp_path):
     bt.io.write_h5mu(bt.io.to_mudata({"taxa": bt.datasets.toy()}), path)
     with h5py.File(path, "a") as handle:
         handle["mod"]["taxa"].attrs["biotapy-treedata-encoding"] = "99"
-    with pytest.raises(ValueError, match=r"layout version '99'.*newer biotapy"):
+    with pytest.raises(
+        ValueError, match=r"unknown tree-slot layout version '99' \(this biotapy reads '1'\).*newer biotapy"
+    ):
         bt.io.read_h5mu(path)
 
 

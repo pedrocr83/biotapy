@@ -46,7 +46,9 @@ def test_a_newer_layout_version_raises():
         group = handle.create_group("mod")
         write_tree_slots(group, toy)
         group.attrs["biotapy-treedata-encoding"] = "99"
-        with pytest.raises(ValueError, match=r"layout version '99'.*newer biotapy"):
+        with pytest.raises(
+            ValueError, match=r"unknown tree-slot layout version '99' \(this biotapy reads '1'\).*newer biotapy"
+        ):
             read_tree_slots(group, _plain(toy))
 
 
