@@ -9,8 +9,8 @@ phase_state: done
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T20:40:40Z }
-commit: 5cdd6ee
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
+commit: ebe0cbc
 sources:
   - id: spec
     resource: ../../plan.md
@@ -538,9 +538,10 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - **MGM's pooling is the paper's description, not code**: the paper names
   mean pooling for the pretrained model but no layer (decision 28); parity is
   pinned against MGM's own code.
-- **torch's first `tanh` in a process** can be less precise on CPUs running
-  more than four threads (torch 2.13-2.14) -> tests at 1e-3, documented in
-  the guide; report upstream (decision 35).
+- **oneMKL's VML CPU-type cache in torch's CPU wheels** races on a process's
+  first parallel call (pytorch/pytorch#188792; 4 threads hit it too, rarely)
+  -> biotapy fills the cache with one serial call and tests every call at
+  1e-5 (decision 33).
 - **The weights URL is a PyPI file** -> files.pythonhosted.org URLs are
   immutable and pinned by hash; if the release is yanked the download still
   works (yanking does not delete files), but a deletion would break the
@@ -4057,8 +4058,11 @@ end on GlobalPatterns (exit gate 2).
   `OMP_NUM_THREADS` 2 or 4 it never happened (24 processes), with 8 in 3 of
   12; torch 2.13.0+cpu has it too (1 of 12), torch 2.0.1+cpu did not show it
   (0 of 8). Calling `torch.tanh(torch.zeros(1))` first removed it (16 of
-  16). CI's runners have 4 vCPUs. biotapy does not work around it; the tests
-  compare at `atol=1e-3` and say why (decision 33).
+  16). CI's runners have 4 vCPUs. (Amended 2026-10-10: the race is oneMKL's
+  VML CPU-type cache, pytorch/pytorch#188792, and it also hits 4 threads,
+  rarely; the claim above that 2 or 4 threads never showed it was a sample
+  too small. biotapy now makes that serial call itself and tests at 1e-5;
+  decision 33.)
 - **Resolved: how MGM's vocabulary meets a biotapy table.**
   - MGM reads a genus from a column name with
     `str.extract(r'(g__[A-Za-z0-9_]+)')`, sums columns that give the same
@@ -9009,7 +9013,8 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
     push, PR, merge-commit on green.
 - [ ] **Step 14: After 0.4.** Two upstream reports wait for the user's approval of their text
   (GitHub actions on other projects): the h5mu tree loss (decision 4) and the torch first-`tanh`
-  race (decision 35). Ask once, after the release; do nothing without a yes.
+  race (decision 35, superseded: the issue exists upstream as pytorch/pytorch#188792). Ask once,
+  after the release; do nothing without a yes.
 
 # Decisions for the user
 Each changes a contract, rule, dependency, CI or a roadmap signature, or is
@@ -9183,6 +9188,9 @@ a judgement call. Recommended answer first.
     call's embedding by up to 1.6e-4; biotapy does not work around torch.
     Alternative: call `torch.tanh(torch.zeros(1))` once before the forward
     (removed it in 16 of 16 runs on the prototype) and compare at 1e-5.
+    (Amended 2026-10-10 at the user's request: the race is oneMKL's VML
+    CPU-type cache, pytorch/pytorch#188792; biotapy fills the cache with one
+    serial call and tests every call at 1e-5.)
 34. **`ml.embed`'s docstring example runs MGM** (`bt.ml.embed(bt.pp.tax_glom(
     bt.datasets.toy(), "genus"), "mgm").shape` -> `(6, 256)`), marked `mgm`
     from 4.4 on; between 4.4 and 4.4b, `-m mgm` fails on it, and no CI job
@@ -9192,7 +9200,8 @@ a judgement call. Recommended answer first.
     text (a GitHub action outside this repository): a ten-line reproducer
     (`torch.tanh` on a seeded 7 x 512 x 1024 tensor, first call against the
     second, 8+ threads) shows it on torch 2.13.0+cpu and 2.14.1+cpu.
-    Alternative: do not report.
+    Alternative: do not report. (Superseded: the issue exists upstream as
+    pytorch/pytorch#188792.)
 
 **Slice 4D (approved by the user on 2026-10-10):**
 
@@ -9305,8 +9314,8 @@ Run against the brief, the roadmap outline and the writing-plans checklist.
    - The gate counts were measured on Python 3.13 only; the CI matrix adds
      3.12, 3.14 and pre-release dependencies. scikit-learn's estimator
      checks are the likeliest to differ under pre-releases.
-   - The torch first-`tanh` race (decision 35) and that the pooling follows
-     the paper's prose (decision 28).
+   - That the pooling follows the paper's prose (decision 28). (The torch
+     first-`tanh` race, decision 35, is fixed by a serial call; see decision 33.)
    - Upstream: the weights live in a PyPI wheel the MGM authors control;
      MGM2 may supersede MGM before 0.4 ships.
 

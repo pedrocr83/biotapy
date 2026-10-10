@@ -1,4 +1,5 @@
 import re
+import subprocess
 import sys
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -23,12 +24,9 @@ GLOBAL_PATTERNS_LEFT_OUT = (
 GLOBAL_PATTERNS_SHAPE = (26, 256)
 # The size of MGM's vocabulary (phylogeny.csv's genera), which the tutorial quotes.
 MGM_GENERA = 9665
-# torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
-# embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
-ATOL = 1e-3
-# Only a process's first call is affected by that race, so a later call matches MGM's own output to 1e-5 (measured 1.7e-6);
-# a changed last token (an <eos> kept at the cut) moves a row by 7.7e-4, which 1e-3 hides.
-WARM_ATOL = 1e-5
+# biotapy and MGM 0.5.8 agree to 1.7e-6 (measured); 1e-5 keeps a margin, and a changed last token (an <eos> kept at
+# the cut) moves a row by 7.7e-4, which a looser bound would hide.
+ATOL = 1e-5
 
 
 def _reference_table():
@@ -77,9 +75,37 @@ def test_matches_mgm_s_own_embedding():
     ]
     assert result.shape == (7, 256) and result.dtype == np.float32
     np.testing.assert_allclose(result, expected.to_numpy(), rtol=0, atol=ATOL)
-    with pytest.warns(UserWarning):
-        warm = bt.ml.embed(_reference_table(), "mgm")
-    np.testing.assert_allclose(warm, expected.to_numpy(), rtol=0, atol=WARM_ATOL)
+
+
+# A process's first VML call races inside torch's oneMKL (pytorch/pytorch#188792), so each run is a fresh process,
+# oversubscribed to 32 threads (about 15% differ without the fix, hence 24 runs); the first sample fills MGM's 512
+# tokens, the largest GELU MGM computes.
+FIRST_CALL_SCRIPT = """
+import sys, warnings
+import numpy as np, pandas as pd, scipy.sparse as sp, torch
+from anndata import AnnData
+import biotapy as bt
+torch.set_num_threads(32)
+genera = pd.read_csv(sys.argv[1], index_col=0)["genus"].dropna()
+counts = np.random.default_rng(0).integers(1, 1000, size=(2, genera.size)).astype(float)
+table = AnnData(sp.csr_matrix(counts), obs=pd.DataFrame(index=["a", "b"]),
+                var=pd.DataFrame({"genus": list(genera)}, index=[f"f{i}" for i in range(genera.size)]))
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    print(int(np.array_equal(bt.ml.embed(table, "mgm"), bt.ml.embed(table, "mgm"))))
+"""
+
+
+@pytest.mark.mgm
+def test_a_fresh_process_s_first_embedding_is_its_second():
+    for _ in range(24):
+        run = subprocess.run(
+            [sys.executable, "-c", FIRST_CALL_SCRIPT, str(DATA / "counts.csv")],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert run.stdout.strip() == "1"
 
 
 @pytest.mark.mgm

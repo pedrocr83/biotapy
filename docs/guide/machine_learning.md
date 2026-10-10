@@ -165,9 +165,6 @@ the "element-wise mean pooling" MGM's paper uses for the pretrained model:
 runs on the CPU, one sample at a time; on GlobalPatterns' genus profiles that
 is a few tens of samples a second on 8 threads (one unpinned laptop run, not checked by
 CI; the [MGM tutorial](../tutorials/embeddings.md) gives its timings), with no memory beyond the model's.
-On a CPU running more than four threads, the first call in a session can
-differ from later ones by up to about 2e-4: torch 2.13 and 2.14 sometimes
-compute their first `tanh` less precisely.
 
 Cite MGM when you publish results that use it: Zhang H, Zhang Y, Kang Z,
 Xiong J, Yang R, Ning K (2026) MGM as a large-scale pretrained foundation
