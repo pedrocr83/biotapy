@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -136,3 +138,38 @@ def test_every_microbe_row_is_centred(counts):
     )
     ranks = bt.tl.mmvec(bt.io.to_mudata({"taxa": taxa, "metabolites": metabolites}), seed=0)
     np.testing.assert_allclose(ranks.sum(axis=1), 0.0, atol=1e-9)
+
+
+MULTIOMICS = Path(__file__).parents[2] / "docs" / "tutorials" / "multiomics.md"
+# The 13 metabolites mmvec's own soil example checks for rplo 1, Microcoleus vaginatus (biocore/mmvec
+# examples/soils/check_soils.ipynb at 88ca33b): each ranks above zero in that microbe's row. The multi-omics tutorial
+# runs the check on bt.datasets.biocrust() and quotes the count.
+MICROCOLEUS_METABOLITES = {
+    "(3-methyladenine)",
+    "7-methyladenine",
+    "4-guanidinobutanoate",
+    "uracil",
+    "xanthine",
+    "hypoxanthine",
+    "(N6-acetyl-lysine)",
+    "cytosine",
+    "N-acetylornithine",
+    "succinate",
+    "adenosine",
+    "guanine",
+    "adenine",
+}
+
+
+@pytest.mark.network
+def test_the_multiomics_tutorial_ranks_mmvec_s_microcoleus_metabolites_above_zero(run_page):
+    namespace = run_page(MULTIOMICS)
+    assert namespace["microcoleus"] == MICROCOLEUS_METABOLITES
+    assert namespace["above_zero"] == len(MICROCOLEUS_METABOLITES)
+
+
+def test_the_multiomics_tutorial_quotes_its_check():
+    page = " ".join(MULTIOMICS.read_text(encoding="utf-8").split())
+    count = len(MICROCOLEUS_METABOLITES)
+    assert f"checks its fit of these data against {count} metabolites it lists for this microbe" in page
+    assert f"All {count} of the metabolites mmvec's example lists rank above zero for the cyanobacterium" in page

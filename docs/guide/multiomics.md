@@ -3,7 +3,8 @@
 When several data types are measured on the same samples - taxa, a function
 table, metabolites, host data - biotapy keeps them in one
 [MuData](https://mudata.scverse.org/): one AnnData per data type, called a
-modality, over shared samples.
+modality, over shared samples. The {doc}`multi-omics tutorial
+</tutorials/multiomics>` runs mmvec on a real pair of tables.
 
 ## Modality names
 

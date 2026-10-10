@@ -516,7 +516,7 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - [x] 4.F5 `_core.sum_pairs` does the same, for `fn.func_glom` (decision 36)
 - [x] 4.6 Leak-free cross-validation notebook (exit gate 1)
 - [x] 4.6b End-to-end embedding page (exit gate 2's docs)
-- [ ] 4.6c `bt.datasets.biocrust()` and the multi-omics tutorial (decision 37)
+- [x] 4.6c `bt.datasets.biocrust()` and the multi-omics tutorial (decision 37)
 - [ ] 4.D1 Coming-from-R check
 - [ ] Checkpoint D
 - [ ] 4.7 Knowledge: `ml` and `tl` gotchas, `embedding-plugins` stable, verification bumps

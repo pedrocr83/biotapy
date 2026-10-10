@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [datasets](modules/datasets.md) gains `biocrust()`, mmvec's soil example of microbes and metabolites as a MuData over the 19 shared samples, pinned to one mmvec commit and two SHA-256 hashes (description copied into the [modules index](modules/index.md)); [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6c done: `docs/tutorials/multiomics.md` runs `bt.tl.mmvec` on it on every docs build, and a network test checks the page still ranks mmvec's 13 Microcoleus metabolites above zero.
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6b done: `docs/tutorials/embeddings.md` shows MGM on GlobalPatterns' genera end to end, not run by the docs build (no torch); an `mgm` test runs its code and a default-run test checks it quotes the outputs of exit gate 2's test (`GLOBAL_PATTERNS_LEFT_OUT`, `GLOBAL_PATTERNS_SHAPE`).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.6 done: `docs/tutorials/leak_free_cv.md` cross-validates a prevalence filter, CLR and logistic regression on HMP2's species on every docs build, inside and outside the pipeline, with a label-reading `SelectKBest` on real and shuffled labels; a network test runs the page's cells against the numbers its prose quotes (`LEAK_FREE_CV_AUC`).
 - **Update**: [core](modules/core.md): `sum_pairs` sums in `numpy.sum`'s dtype for `X`, as `sum_by` does, so `fn.func_glom` cannot wrap an int8 table; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F5.

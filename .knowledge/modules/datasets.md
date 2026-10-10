@@ -1,12 +1,12 @@
 ---
 type: Module
 title: datasets
-description: In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, and the ENZYME hierarchy as an edge table.
+description: In-memory and pooch-cached example data for docs, doctests and tests - TreeData objects, a HUMAnN-style function MuData, the HMP2 cohort as a three-modality MuData, mmvec's soil biocrust example as a microbes-and-metabolites MuData, and the ENZYME hierarchy as an edge table.
 resource: /src/biotapy/datasets/
 paths: ["src/biotapy/datasets/**"]
 tags: [datasets]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T17:01:49Z }
+commit: f5fb966
 status: stable
 ---
 
@@ -17,8 +17,9 @@ entirely in memory; `global_patterns()`/`enterotype()`/`esophagus()`,
 downloaded once from phyloseq's repository and cached with pooch (Task 1.11,
 esophagus Task 1.15b); `enzyme()`, the ENZYME EC hierarchy downloaded from
 ExPASy the same way; and `hmp2()`, the HMP2 (IBDMDB) cohort's pathway and
-taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
-(`toy_humann`, `hmp2`) or a `pandas.DataFrame` (`enzyme`).
+taxon tables (Task 2.10); and `biocrust()`, mmvec's soil example of microbes
+and metabolites (Phase 4 Task 4.6c). The return type varies: a TreeData, a MuData
+(`toy_humann`, `hmp2`, `biocrust`) or a `pandas.DataFrame` (`enzyme`).
 
 # Entry points
 
@@ -44,6 +45,12 @@ taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
   `visit_num` only orders and is not in `obs`, and a missing one sorts last.
   Seven metadata columns (`_hmp2.py:COLUMNS`) sit in the global `obs` and are
   pushed into every modality; `diagnosis` is categorical `nonIBD`, `UC`, `CD`.
+- `_biocrust.py:biocrust` - mmvec's soil example (`biocore/mmvec`,
+  `examples/soils`): 466 microbe counts in 20 samples and 85 metabolite
+  intensities in 19, read by `io.read_biom` and combined by `io.to_mudata` as
+  `taxa` and `metabolites` over the 19 shared samples, in the microbe table's
+  order. The loader intersects the samples itself, so `to_mudata` does not
+  warn about the one microbe sample (`9hr_late`) without metabolites.
 - `_remote.py:global_patterns` - GlobalPatterns: 26 samples x 19,216 OTUs,
   with taxonomy and a tree, read through `bt.io.read_phyloseq`.
 - `_remote.py:enterotype` - enterotype: 280 samples x 553 genera, as relative
@@ -78,6 +85,11 @@ taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
   sample metadata; only its 1,638 stool metagenomes are used, and they share
   their ids with both tables (checked 2026-10-05), so the selected samples
   index every table. `_hmp2.py:hmp2`
+- `biocrust()`'s two files are pinned to one commit of `biocore/mmvec`
+  (`88ca33b`, `_remote.py:_MMVEC`) and to SHA-256 hashes; both are fetched
+  before either is parsed (`_biocrust.py:FILES`). Their registry names carry a
+  `biocrust_` prefix because the repository calls them `microbes.biom` and
+  `metabolites.biom`.
 - `enzyme()` is the one download that carries no pinned hash: ENZYME keeps only
   its current release online, so `_remote.py:_REGISTRY` lists `enzyme.dat` and
   `enzclass.txt` with `None`. The first download is cached for good, and
@@ -90,13 +102,14 @@ taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
 - [core](/modules/core.md): `make_treedata`, `make_function_mudata`,
   `tree_from_edges`, `TreeData`.
 - [io](/modules/io.md): `read_phyloseq`, used by `_remote.py`'s three loaders;
-  `read_humann` and `read_metaphlan`, used by `_hmp2.py:hmp2`.
+  `read_humann` and `read_metaphlan`, used by `_hmp2.py:hmp2`; `read_biom` and
+  `to_mudata`, used by `_biocrust.py:biocrust`.
 - `mudata`: `hmp2` builds its MuData and pushes the global `obs` into the
   modalities (`MuData.push_obs`).
 - `pooch` (runtime, Task 1.11): fetches and caches `GlobalPatterns.RData`/
   `enterotype.RData`/`esophagus.RData` and, from the ExPASy FTP site,
   `enzyme.dat`/`enzclass.txt`, and from the IBDMDB's Globus endpoint the three
-  HMP2 files (`_remote.py:_URLS`); `BIOTAPY_DATA_DIR` overrides its
+  HMP2 files, and from GitHub mmvec's two BIOM files (`_remote.py:_URLS`); `BIOTAPY_DATA_DIR` overrides its
   cache directory (the pooch is built by `_core._download.py:make_pooch`,
   [core](/modules/core.md), which `ml/_mgm.py` shares).
 
@@ -106,8 +119,9 @@ taxon tables (Task 2.10). The return type varies: a TreeData, a MuData
 for `toy()` and `_remote.py`'s offline test; add
 `BIOTAPY_DATA_DIR=<dir> uv run --group test pytest -m network tests/datasets -q`
 to actually exercise the downloads (CI's dedicated `network` job runs
-`-m "network or golden"`). The docs job runs `docs/tutorials/function.md`,
-which calls `hmp2()`.
+`-m "network or golden"`). The docs job runs `docs/tutorials/function.md`
+and `docs/tutorials/leak_free_cv.md`, which call `hmp2()`, and
+`docs/tutorials/multiomics.md`, which calls `biocrust()`.
 
 # Gotchas
 
