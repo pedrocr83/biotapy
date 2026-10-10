@@ -1,6 +1,9 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (release 0.4.0)
+- **Update**: Phase 4 closed after biotapy 0.4.0 reached PyPI (tag v0.4.0, release workflow run 38084530873). [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) is `phase_state: done` with every Task 4.D2 step and exit-gate item ticked (Step 14, the two upstream reports, waits for the user); [phase-5-beyond](roadmap/phase-5-beyond.md) is `phase_state: in-progress`, its items still waiting for an issue or a user request; the [roadmap index](roadmap/index.md) lists it as active.
+
+## 2026-10-10 (release 0.4.0)
 - **Update**: [cut-a-release](playbooks/cut-a-release.md) step 3: check the wheel's `entry_points.txt` too, and run the sdist's tests with absolute cache paths.
 - **Verification**: re-checked against the 0.4.0 version bump and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [embedding-plugins](decisions/embedding-plugins.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md); and against the test-only change `8353fe3` (a warning filter in `tests/datasets/test_biocrust.py`), which they do not state: [phase-1-core](roadmap/phase-1-core.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks the exit gate's notebook and "all gates green" items (docs job 114304008718 and Test run 38083140914 on PR #31), Checkpoint D's push, Read the Docs and approval boxes (its gates box and checklist line wait for the run of its gates on the final tree) and Task 4.D2 Steps 1-8.
