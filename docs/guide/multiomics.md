@@ -68,11 +68,16 @@ values, so pass `seed` for the same ranks every time.
 
 ## Saving
 
-`mdata.write_h5mu("study.h5mu")` saves every modality, but a TreeData
-modality reads back as a plain AnnData without its tree. Save that modality
-with its tree as well:
+`mdata.write_h5mu("study.h5mu")` saves every modality, but mudata writes a
+TreeData modality as a plain AnnData, so its trees are lost. `bt.io.write_h5mu`
+and `bt.io.read_h5mu` keep them: the trees (`obst`, `vart`) and the `label`,
+`allow_overlap` and `alignment` settings are stored under the modality's group
+in the same file.
 
 ```python
-mdata.write_h5mu("study.h5mu")
-mdata["taxa"].write_h5td("taxa.h5td")
+bt.io.write_h5mu(mdata, "study.h5mu")
+mdata = bt.io.read_h5mu("study.h5mu")  # mdata["taxa"] is a TreeData again
 ```
+
+The file is an ordinary `.h5mu`: `mudata.read_h5mu` opens it too and gives the
+modality as an AnnData without the trees. Only `.h5mu` is supported, not zarr.

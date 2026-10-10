@@ -13,6 +13,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
 
     io.read_biom
     io.read_dada2
+    io.read_h5mu
     io.read_humann
     io.read_metaphlan
     io.read_phyloseq
@@ -21,6 +22,7 @@ Public functions are listed here as they ship, from Phase 1 onward.
     io.read_qiime2
     io.to_mudata
     io.write_biom
+    io.write_h5mu
 ```
 
 ## Datasets
