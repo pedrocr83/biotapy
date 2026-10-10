@@ -2,7 +2,7 @@
 
 Every public biotapy function names its R equivalent in its docstring. This table is generated
 from those lines each time the docs are built, plus a short list of phyloseq accessors that are
-plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.3" have no
+plain AnnData/TreeData code (`docs/_data/r_idioms.toml`). Rows marked "not in 0.4" have no
 biotapy equivalent yet.
 
 biotapy keeps samples as rows, so `tdata.X` is phyloseq's `otu_table` with
