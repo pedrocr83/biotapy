@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T17:47:50Z }
-commit: 28de1ad
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:28:24Z }
+commit: 38e6eee
 sources:
   - id: spec
     resource: ../../plan.md
@@ -6354,15 +6354,15 @@ Every run exported absolute `BIOTAPY_DATA_DIR`, `HF_HOME`, `UV_CACHE_DIR`, `XDG_
 | Commit (scratch hash) | `uvx prek run --all-files` | `pytest -q -W error::UserWarning` | `pytest -q -m "golden or network"` | `sphinx-build -W` (wall; notebooks) | `--extra torch -m torch` | `--extra mgm -m mgm` | `knowledge_stale.sh --against HEAD` |
 |---|---|---|---|---|---|---|---|
 | base `28de1ad` | passed (14 hooks) | 1488 passed, 2 skipped, 92 deselected | 36 passed, 1546 deselected | build succeeded (59.9 s; 5) | 25 passed, 1557 deselected | 13 passed, 1569 deselected | 28 current, 0 stale |
-| 4.F4 `d5ca5aa` | passed | 1494 passed, 2 skipped, 92 deselected | 36 passed, 1552 deselected | build succeeded (50.2 s; 5) | 25 passed, 1563 deselected | 13 passed, 1575 deselected | 17 current, 11 stale |
-| 4.F5 `03d217c` | passed | 1500 passed, 2 skipped, 92 deselected | 36 passed, 1558 deselected | build succeeded (50.1 s; 5) | - | - | 17 current, 11 stale |
-| 4.6 `e46f065` | passed | 1501 passed, 2 skipped, 93 deselected | 37 passed, 1559 deselected | build succeeded (60.6 s; 6, `leak_free_cv` 11.2 s) | - | - | 17 current, 11 stale |
-| 4.6b `f5fb966` | passed | 1502 passed, 2 skipped, 94 deselected | 37 passed, 1561 deselected | build succeeded (67.8 s; 6) | 25 passed, 1573 deselected | 14 passed, 1584 deselected | 17 current, 11 stale |
-| 4.6c `55392ef` | passed | 1508 passed, 2 skipped, 96 deselected | 39 passed, 1567 deselected | build succeeded (69.5 s; 7, `multiomics` 3.1 s) | - | - | 16 current, 12 stale |
-| 4.D1 `b904fa6` | passed | 1511 passed, 2 skipped, 96 deselected | 39 passed, 1570 deselected | build succeeded (76.4 s; 7) | - | - | 16 current, 12 stale |
-| 4.7 `a9937e9` | passed | 1511 passed, 2 skipped, 96 deselected | 39 passed, 1570 deselected | build succeeded (77.0 s; 7) | - | - | 28 current, 0 stale |
-| 4.D2 release `20151ac` | passed | 1511 passed, 2 skipped, 96 deselected | 39 passed, 1570 deselected | build succeeded (75.5 s; 7) | 25 passed, 1584 deselected | 14 passed, 1595 deselected | 23 current, 5 stale |
-| 4.D2 knowledge `ceada96` | passed | 1511 passed, 2 skipped, 96 deselected | - | - | - | - | 28 current, 0 stale |
+| 4.F4 `d5ca5aa` | passed | 1496 passed, 2 skipped, 92 deselected | 36 passed, 1554 deselected | build succeeded (50.2 s; 5) | 25 passed, 1565 deselected | 13 passed, 1577 deselected | 17 current, 11 stale |
+| 4.F5 `03d217c` | passed | 1504 passed, 2 skipped, 92 deselected | 36 passed, 1562 deselected | build succeeded (50.1 s; 5) | - | - | 17 current, 11 stale |
+| 4.6 `e46f065` | passed | 1510 passed, 2 skipped, 93 deselected | 37 passed, 1568 deselected | build succeeded (60.6 s; 6, `leak_free_cv` 11.2 s) | - | - | 17 current, 11 stale |
+| 4.6b `f5fb966` | passed | 1512 passed, 2 skipped, 95 deselected | 37 passed, 1572 deselected | build succeeded (67.8 s; 6) | 25 passed, 1584 deselected | 15 passed, 1594 deselected | 17 current, 11 stale |
+| 4.6c `55392ef` | passed | 1520 passed, 2 skipped, 98 deselected | 40 passed, 1580 deselected | build succeeded (69.5 s; 7, `multiomics` 3.1 s) | - | - | 16 current, 12 stale |
+| 4.D1 `b904fa6` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (76.4 s; 7) | - | - | 16 current, 12 stale |
+| 4.7 `a9937e9` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (77.0 s; 7) | - | - | 28 current, 0 stale |
+| 4.D2 release `20151ac` | passed | 1523 passed, 2 skipped, 98 deselected | 40 passed, 1583 deselected | build succeeded (75.5 s; 7) | 25 passed, 1598 deselected | 15 passed, 1608 deselected | 23 current, 5 stale |
+| 4.D2 knowledge `ceada96` | passed | 1523 passed, 2 skipped, 98 deselected | - | - | - | - | 28 current, 0 stale |
 
 - Every default run also ends in "2 warnings": scikit-bio's `RuntimeWarning: invalid value
   encountered in divide` from 4.F1's `ancombc2` tests, as on master. The 2 skips are
@@ -6375,11 +6375,12 @@ Every run exported absolute `BIOTAPY_DATA_DIR`, `HF_HOME`, `UV_CACHE_DIR`, `XDG_
   4.7 re-stamps every flagged concept after reading it against the slice (Phase 3's Task 3.14
   did the same). The release commit re-stales the five concepts whose `paths` hold
   `pyproject.toml` or `CHANGELOG.md`; its knowledge commit re-stamps them.
-- New default-run items: 4.F4 +6 (5 `sum_by` dtype cases, 1 `tax_glom`); 4.F5 +6; 4.6 +1 (the
-  prose test; the network test is the +1 deselected); 4.6b +1 (prose; the `mgm` test is the +1
-  deselected); 4.6c +6 (3 loader tests, 1 tutorial prose test, the docstring check of
-  `bt.datasets.biocrust` and its doctest; the loader's and the tutorial's network tests are the
-  +2 deselected); 4.D1 +3 (2 MultiAssayExperiment cases, 1 no-row check).
+- New default-run items: 4.F4 +8 (7 `sum_by` dtype cases, 1 `tax_glom`); 4.F5 +8; 4.6 +6 (the
+  prose test and 5 `run_page` tests; the network test is the +1 deselected); 4.6b +2 (two prose
+  tests; the two `mgm` tests are the +2 deselected); 4.6c +8 (3 loader tests, 2 link tests,
+  1 tutorial prose test, the docstring check of `bt.datasets.biocrust` and its doctest; the
+  loader's, the figures' and the tutorial's network tests are the +3 deselected); 4.D1 +3
+  (2 MultiAssayExperiment cases, 1 no-row check).
 - The docs job's notebooks: on PR #30's run (`37962120924`) the five existing notebooks took
   2.0-11.7 s on GitHub's runner, close to the local 2.3-16.8 s; `leak_free_cv` (11.2-13.7 s
   locally, 85 s of CPU time across threads in its network test) and `multiomics` (3.0-3.6 s)
@@ -6388,8 +6389,8 @@ Every run exported absolute `BIOTAPY_DATA_DIR`, `HF_HOME`, `UV_CACHE_DIR`, `XDG_
   cache: `leak_free_cv` reuses the HMP2 download the function tutorial already makes (23 MB), and
   `multiomics` adds 135 KB from GitHub.
 - Coverage (`coverage run -m pytest tests/datasets/test_biocrust.py tests/core/test_matrix.py`):
-  `datasets/_biocrust.py` 9 statements, `_core/_matrix.py` 32, each 100%. Hypothesis seeds 1, 2
-  and 3 on `tests/core/test_matrix.py tests/pp/test_glom.py tests/fn/test_glom.py`: `81 passed`
+  `datasets/_biocrust.py` 9 statements, `_core/_matrix.py` 34, each 100%. Hypothesis seeds 1, 2
+  and 3 on `tests/core/test_matrix.py tests/pp/test_glom.py tests/fn/test_glom.py`: `85 passed`
   each.
 - The release state (`release-0.4.0`, `20151ac`): `uv build` and `uvx twine check --strict
   dist/*` PASSED for both files; the wheel's METADATA reads `Version: 0.4.0`, `Provides-Extra:
@@ -6545,12 +6546,12 @@ Each settled question gives the answer and the reason. **(user)** marks the ones
 
 - **Decision 18 said the mmvec tutorial waits for 0.5 unless 4D finds a small public paired
   dataset. It found one (user, decision 37):** the example in mmvec's own repository,
-  `biocore/mmvec` `examples/soils`: a desert biological soil crust sampled at five times after
-  wetting, 466 microbe counts in 20 samples and 85 metabolite intensities in 19 (sample
+  `biocore/mmvec` `examples/soils`: a desert biological soil crust from four successional stages
+  (Swenson et al. 2018) sampled at five times after wetting, 466 microbe counts in 20 samples and 85 metabolite intensities in 19 (sample
   `9hr_late` has no metabolite profile), 135 KB in two BIOM files, BSD-3-Clause repository.
   `bt.tl.mmvec(seed=0)` fits it in 0.84 s.
 - **Validation it brings:** mmvec's `check_soils.ipynb` asserts that 13 metabolites it lists for
-  `rplo 1 (Cyanobacteria)` (*Microcoleus vaginatus*) all rank above zero. biotapy's fit (scikit-bio's
+  `rplo 1 (Cyanobacteria)` (*Microcoleus* sp.) all rank above zero. biotapy's fit (scikit-bio's
   L-BFGS, 3 dimensions; the example used TensorFlow's Adam and 1 dimension) gives 13 of 13 for
   seeds 0-4, with the same top four (adenine, adenosine, N6-acetyl-lysine,
   4-guanidinobutanoate). `bt.tl.mmvec` had no check on real data (no R implementation); this is
@@ -6564,7 +6565,7 @@ Each settled question gives the answer and the reason. **(user)** marks the ones
   `bt.io.read_biom` (microbes `x_kind="counts"`, metabolites `"abundance"`), intersects the
   samples itself (so `io.to_mudata` does not warn about `9hr_late`) and returns
   `to_mudata({"taxa": ..., "metabolites": ...})`. No metadata columns: the sample names hold time
-  and position, and nothing asks for parsed columns (R2.3).
+  and successional stage, and nothing asks for parsed columns (R2.3).
 - **Tests:** three offline tests with synthetic BIOM files written by `bt.io.write_biom` (no
   data copied), patching `_biocrust._fetch` as `test_hmp2.py` does; one `network` test of the
   shapes. The tutorial's `network` test runs the page through `run_page` and checks its
@@ -6693,7 +6694,8 @@ tutorials use `tax_glom`); 4.6 adds `run_page`, which 4.6b and 4.6c use; 4.6c ad
 (`pp/_glom.py`, `pl/_abundance.py`, `ml/_mgm.py`), which need no change; `divide_rows`;
 `.knowledge/contracts/data-model-slots.md` (it fixes no dtype for `X`).
 **Interfaces:**
-- Consumes: NumPy's `sum` accumulator rule, read as `np.zeros(0, dtype=X.dtype).sum().dtype`.
+- Consumes: NumPy's `sum` accumulator rule, read as `np.zeros(0, dtype=X.dtype).sum().dtype` by
+  one private helper, `_sum_dtype(X)`, which 4.F5's `sum_pairs` shares.
 - Produces: `sum_by(X, codes, n_groups) -> sp.csr_matrix`, unchanged signature; its dtype is
   `int64` for bool and signed integers, `uint64` for unsigned ones, and `X.dtype` for floats.
 
@@ -6703,7 +6705,7 @@ tutorials use `tax_glom`); 4.6 adds `run_page`, which 4.6b and 4.6c use; 4.6c ad
 diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
 --- a/tests/core/test_matrix.py
 +++ b/tests/core/test_matrix.py
-@@ -30,6 +30,23 @@ def test_sum_by_keeps_integer_dtype():
+@@ -30,6 +30,25 @@ def test_sum_by_keeps_integer_dtype():
      assert sum_by(X, np.array([0, 0, 0]), 1).dtype == np.int64
 
 
@@ -6713,6 +6715,8 @@ diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
 +        (np.int8, 100, np.int64),
 +        (np.uint8, 200, np.uint64),
 +        (np.int16, 20_000, np.int64),
++        (np.int32, 1_000_000_000, np.int64),
++        (np.uint32, 2_000_000_000, np.uint64),
 +        (np.bool_, True, np.int64),
 +        (np.float32, 0.5, np.float32),
 +    ],
@@ -6748,8 +6752,9 @@ diff --git a/tests/pp/test_glom.py b/tests/pp/test_glom.py
 
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
-  tests/pp/test_glom.py -q` -> `5 failed, 42 passed`: the `int8`, `uint8`, `int16` and `bool`
-  cases give `44 (ACTUAL), 300 (DESIRED)`, `88 (ACTUAL), 600 (DESIRED)`, `-5536 (ACTUAL), 60000
+  tests/pp/test_glom.py -q` -> `7 failed, 42 passed`: the `int8`, `uint8`, `int16`, `int32`, `uint32`
+  and `bool` cases give `44 (ACTUAL), 300 (DESIRED)`, `88 (ACTUAL), 600 (DESIRED)`, `-5536 (ACTUAL), 60000
+  (DESIRED)`, `-1294967296 (ACTUAL), 3000000000 (DESIRED)`, `1705032704 (ACTUAL), 6000000000
   (DESIRED)` and `True (ACTUAL), 3 (DESIRED)`, and `test_narrow_integer_counts_sum_without_wrapping`
   `44 (ACTUAL), 300 (DESIRED)` with `dtype=int8`. The `float32` case passes already.
 - [ ] **Step 3: Implement.**
@@ -6757,9 +6762,15 @@ diff --git a/tests/pp/test_glom.py b/tests/pp/test_glom.py
 diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 --- a/src/biotapy/_core/_matrix.py
 +++ b/src/biotapy/_core/_matrix.py
-@@ -35,10 +35,16 @@ def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_mat
+@@ -34,11 +34,22 @@ def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_mat
+     return out
 
 
++def _sum_dtype(X: sp.csr_matrix) -> np.dtype[np.generic]:
++    """The dtype ``numpy.sum`` gives ``X``'s: bool and narrower integers widen to 64 bits, floats keep theirs."""
++    return cast("np.dtype[np.generic]", np.zeros(0, dtype=X.dtype).sum().dtype)
++
++
  def sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix:
 -    """Sum the columns of ``X`` that share a group code; negative codes are dropped."""
 +    """Sum the columns of ``X`` that share a group code; negative codes are dropped.
@@ -6769,7 +6780,7 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 +    """
      rows = np.flatnonzero(codes >= 0)
 +    # SciPy multiplies in the wider of the two dtypes; an int8 or bool indicator would wrap or saturate the sums.
-+    dtype = np.zeros(0, dtype=X.dtype).sum().dtype
++    dtype = _sum_dtype(X)
      indicator = sp.csr_matrix(
 -        (np.ones(rows.size, dtype=X.dtype), (rows, codes[rows])),
 +        (np.ones(rows.size, dtype=dtype), (rows, codes[rows])),
@@ -6778,8 +6789,8 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
      return sp.csr_matrix(X @ indicator)
 ````
   R2.1: NumPy's own accumulator rule, no branch of biotapy's; SciPy then multiplies in the wider
-  dtype.
-- [ ] **Step 4: Run, expect pass** - the same command -> `47 passed`.
+  dtype. The helper holds the expression because 4.F5 uses it a second time (R4.3).
+- [ ] **Step 4: Run, expect pass** - the same command -> `49 passed`.
 - [ ] **Step 5: Knowledge.** `core.md` said "today's only caller is `pp.tax_glom`", false since
   slice 4A (`pl.bar`) and 4C (MGM); fixed here (R0.2). Tick 4.F4; the log section opens:
 ````diff
@@ -6793,7 +6804,7 @@ diff --git a/.knowledge/log.md b/.knowledge/log.md
 +- **Update**: [core](modules/core.md): `sum_by` sums in `numpy.sum`'s dtype for `X` (an int8 or bool table no longer wraps or saturates) and names its three callers (`pp.tax_glom`, `pl.bar`'s `fill`, MGM), not "today's only caller"; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F4.
 +
  ## 2026-10-10 (Phase 4, slice 4D plan)
- - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4D into full TDD steps (stand-in in the prototype: checklist lines 4.F4 and 4.F5, Checkpoint C ticked, 4.F1's upstream box ticked); [da](modules/da.md)'s two-sample ANCOM-BC2 gotcha links the upstream issue scikit-bio#2631.
+ - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4D (4.F4 and 4.F5 sums, 4.6 leak-free tutorial, 4.6b embedding page, 4.6c `datasets.biocrust` and the multi-omics tutorial, 4.D1 Coming-from-R, Checkpoint D with 4.7 knowledge, 4.D2 release 0.4.0) into full TDD steps, prototyped and gated per commit, and records decisions 36-45; ticks Checkpoint C (PR #30 merged, slice 4C approved), exit-gate item 2 (PR #30's `ml-extras`) and 4.F1's upstream box (scikit-bio#2631); [da](modules/da.md)'s ANCOM-BC2 gotcha links the issue.
 
 diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
 --- a/.knowledge/modules/core.md
@@ -6809,15 +6820,16 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
  status: stable
  ---
 
-@@ -39,8 +39,12 @@ none of them back.
+@@ -39,8 +39,13 @@ none of them back.
    `pp.relative`, `fn.renorm` (`_renorm.py:_rescaled`) and
    `fn.functional_redundancy`.
  - `_matrix.py:sum_by` / `_matrix.py:argmax_by` - grouped column sum and
 -  grouped argmax by integer group codes, negative codes dropped; today's only
 -  caller is `pp.tax_glom`.
 +  grouped argmax by integer group codes, negative codes dropped. `sum_by`
-+  sums in the dtype `numpy.sum` gives `X`'s (bool and narrower integers widen
-+  to 64 bits, floats keep theirs), so an int8 table cannot wrap; its callers
++  sums in the dtype `numpy.sum` gives `X`'s (bool and every integer narrower
++  than 64 bits sum to int64, or uint64 if unsigned; floats keep theirs), so an
++  int8 or int32 table cannot wrap. The callers of `sum_by`
 +  are `pp.tax_glom`, `pl.bar`'s `fill` by a `var` column
 +  (`pl/_abundance.py:_segments`) and MGM (`ml/_mgm.py`); `argmax_by`'s is
 +  `pp.tax_glom`.
@@ -6834,9 +6846,9 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Then the full gate, with both extras (MGM calls `sum_by`). Expected: prek passed; `1494
-  passed, 2 skipped, 92 deselected`; `36 passed, 1552 deselected`; `build succeeded`; `25 passed,
-  1563 deselected`; `13 passed, 1575 deselected`.
+  Then the full gate, with both extras (MGM calls `sum_by`). Expected: prek passed; `1496
+  passed, 2 skipped, 92 deselected`; `36 passed, 1554 deselected`; `build succeeded`; `25 passed,
+  1565 deselected`; `13 passed, 1577 deselected`.
 
 ### Task 4.F5: `_core.sum_pairs`, the same fix (`fix(core)`, decision 36)
 
@@ -6846,10 +6858,9 @@ Drop this task if the user declines decision 36; nothing later depends on it.
 `tests/fn/test_glom.py`, `.knowledge/modules/core.md`,
 `.knowledge/roadmap/phase-4-ml-multiomics.md`, `.knowledge/log.md`.
 **Not touched:** `fn/_glom.py` (its `agg="mean"` path multiplies by a float64 diagonal after the
-sum, so it was already float); `sum_by`; a shared helper for the one expression (two one-line
-uses with a comment each are clearer than a private function, R4.4).
+sum, so it was already float); `sum_by`'s body (4.F4 already holds the helper `_sum_dtype`).
 **Interfaces:**
-- Consumes: 4.F4's rule.
+- Consumes: 4.F4's rule and its helper `_sum_dtype(X)`.
 - Produces: `sum_pairs(X, features, groups, *, n_groups)`, unchanged signature, same dtype rule.
 
 - [ ] **Step 1: Failing tests.**
@@ -6857,7 +6868,7 @@ uses with a comment each are clearer than a private function, R4.4).
 diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
 --- a/tests/core/test_matrix.py
 +++ b/tests/core/test_matrix.py
-@@ -90,6 +90,23 @@ def test_sum_pairs_keeps_integer_dtype():
+@@ -92,6 +92,25 @@ def test_sum_pairs_keeps_integer_dtype():
      assert sum_pairs(X, np.array([0]), np.array([0]), n_groups=1).dtype == np.int64
 
 
@@ -6867,6 +6878,8 @@ diff --git a/tests/core/test_matrix.py b/tests/core/test_matrix.py
 +        (np.int8, 100, np.int64),
 +        (np.uint8, 200, np.uint64),
 +        (np.int16, 20_000, np.int64),
++        (np.int32, 1_000_000_000, np.int64),
++        (np.uint32, 2_000_000_000, np.uint64),
 +        (np.bool_, True, np.int64),
 +        (np.float32, 0.5, np.float32),
 +    ],
@@ -6901,14 +6914,14 @@ diff --git a/tests/fn/test_glom.py b/tests/fn/test_glom.py
      out = bt.fn.func_glom(_counts(make_adata), "p", hierarchy=hierarchy, agg="mean")
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/core/test_matrix.py
-  tests/fn/test_glom.py -q` -> `5 failed, 61 passed` (44, 88, -5536 and `True` as in 4.F4;
+  tests/fn/test_glom.py -q` -> `7 failed, 63 passed` (44, 88, -5536, -1294967296, 1705032704 and `True` as in 4.F4;
   `func_glom` gives `-56 (ACTUAL), 200 (DESIRED)`).
 - [ ] **Step 3: Implement.**
 ````diff
 diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 --- a/src/biotapy/_core/_matrix.py
 +++ b/src/biotapy/_core/_matrix.py
-@@ -67,10 +67,13 @@ def sum_pairs(
+@@ -72,10 +72,13 @@ def sum_pairs(
 
      A feature listed with several groups counts in full toward each of them
      (many-to-many, as ``humann_regroup_table`` does). The pairs are a set: a
@@ -6917,7 +6930,7 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
 +    have the dtype ``numpy.sum`` gives ``X``'s, as in ``sum_by``.
      """
 +    # As in sum_by: an int8 or bool indicator would wrap or saturate the sums.
-+    dtype = np.zeros(0, dtype=X.dtype).sum().dtype
++    dtype = _sum_dtype(X)
      indicator = sp.csr_matrix(
 -        (np.ones(features.size, dtype=X.dtype), (features, groups)),
 +        (np.ones(features.size, dtype=dtype), (features, groups)),
@@ -6925,7 +6938,7 @@ diff --git a/src/biotapy/_core/_matrix.py b/src/biotapy/_core/_matrix.py
      )
      # The constructor sums repeated (feature, group) entries; membership is a set, so reset them to 1.
 ````
-- [ ] **Step 4: Run, expect pass** - `66 passed`.
+- [ ] **Step 4: Run, expect pass** - `70 passed`.
 - [ ] **Step 5: Knowledge.** Tick 4.F5; log line first under the slice heading:
 ````diff
 diff --git a/.knowledge/log.md b/.knowledge/log.md
@@ -6948,12 +6961,22 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
  tags: [core, kernel]
 -generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T16:40:30Z }
 -commit: b5654af
-+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T16:44:39Z }
-+commit: d5ca5aa
++generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:21:05Z }
++commit: 024d532
  status: stable
  ---
 
-@@ -49,7 +49,7 @@ none of them back.
+@@ -42,7 +42,8 @@ none of them back.
+   grouped argmax by integer group codes, negative codes dropped. `sum_by`
+   sums in the dtype `numpy.sum` gives `X`'s (bool and every integer narrower
+   than 64 bits sum to int64, or uint64 if unsigned; floats keep theirs), so an
+-  int8 or int32 table cannot wrap. The callers of `sum_by`
++  int8 or int32 table cannot wrap (`sum_by` and `sum_pairs` take the dtype
++  from one private helper, `_matrix.py:_sum_dtype`). The callers of `sum_by`
+   are `pp.tax_glom`, `pl.bar`'s `fill` by a `var` column
+   (`pl/_abundance.py:_segments`) and MGM (`ml/_mgm.py`); `argmax_by`'s is
+   `pp.tax_glom`.
+@@ -50,7 +51,7 @@ none of them back.
    membership pairs, where a feature may sit in several groups and counts in
    full toward each (many-to-many); the pairs are a set, a repeated pair counts
    once; used by `fn.func_glom`. Where `sum_by` assigns each feature one group,
@@ -6972,12 +6995,12 @@ diff --git a/.knowledge/modules/core.md b/.knowledge/modules/core.md
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1500 passed, 2 skipped, 92 deselected`; `36 passed, 1558
+  Expected: prek passed; `1504 passed, 2 skipped, 92 deselected`; `36 passed, 1562
   deselected`; `build succeeded`.
 
 ### Task 4.6: The leak-free cross-validation tutorial (exit gate 1)
 
-**Files:** create `docs/tutorials/leak_free_cv.md`; modify `tests/conftest.py`,
+**Files:** create `docs/tutorials/leak_free_cv.md` and `tests/test_run_page.py`; modify `tests/conftest.py`,
 `tests/ml/test_transformers.py`, `docs/tutorials/index.md`, `docs/guide/machine_learning.md`,
 `.knowledge/roadmap/phase-4-ml-multiomics.md`, `.knowledge/log.md`.
 **Not touched:** `docs/conf.py` (the cache mode and the 300 s cell timeout hold), the workflows
@@ -6990,12 +7013,14 @@ downloads it for the function tutorial anyway), `src/` (no API change), `.knowle
   `make_pipeline`, `RepeatedStratifiedKFold`, `cross_val_score`, `SelectKBest`, `f_classif`,
   `LogisticRegression`.
 - Produces: the page `tutorials/leak_free_cv` (exit gate 1); the fixture `run_page(path: Path)
-  -> dict[str, object]` in `tests/conftest.py` (4.6b and 4.6c use it); `LEAK_FREE_CV` and
-  `LEAK_FREE_CV_AUC` in `tests/ml/test_transformers.py`; the page's names `inside`, `outside`,
-  `select_inside`, `select_outside`, `shuffled_inside`, `shuffled_outside` (floats, 3 decimals).
+  -> dict[str, object]` in `tests/conftest.py` (4.6b and 4.6c use it; it skips a cell's MyST
+  options and raises a `ValueError` on IPython magics and shell escapes); `LEAK_FREE_CV`,
+  `LEAK_FREE_CV_AUC` and `LEAK_FREE_CV_SHUFFLED_RANGE` in `tests/ml/test_transformers.py`; the
+  page's names `inside`, `outside`, `select_inside`, `select_outside`, `shuffled_inside`,
+  `shuffled_outside` (unrounded floats; the page rounds where it shows them) and `shuffled_scores`.
 
-- [ ] **Step 1: Failing tests.** The fixture, the constants, a `network` test that runs the
-  page and a default-run test of its prose:
+- [ ] **Step 1: Failing tests.** The fixture (with its own tests in `tests/test_run_page.py`),
+  the constants, a `network` test that runs the page and a default-run test of its prose:
 ````diff
 diff --git a/tests/conftest.py b/tests/conftest.py
 --- a/tests/conftest.py
@@ -7007,7 +7032,7 @@ diff --git a/tests/conftest.py b/tests/conftest.py
 
  import matplotlib
  import numpy as np
-@@ -51,3 +53,19 @@ def _make_adata(dense: np.ndarray) -> AnnData:
+@@ -51,3 +53,31 @@ def _make_adata(dense: np.ndarray) -> AnnData:
  def make_adata() -> Callable[[np.ndarray], AnnData]:
      """AnnData from a dense samples x features array, with samples ``s0..`` and features ``f0..``."""
      return _make_adata
@@ -7017,9 +7042,21 @@ diff --git a/tests/conftest.py b/tests/conftest.py
 +_PAGE_CODE = re.compile(r"^```(?:\{code-cell\} ipython3|python)\n(.*?)^```$", re.MULTILINE | re.DOTALL)
 +
 +
++# A cell's MyST options come first: ":key: value" lines, or a YAML block between two "---" lines.
++_CELL_OPTIONS = re.compile(r"\A(?:---\n.*?^---\n|(?::[\w-]+:[^\n]*\n)+)", re.MULTILINE | re.DOTALL)
++_MAGIC = re.compile(r"^\s*[%!]", re.MULTILINE)
++
++
++def _cell_source(cell: str) -> str:
++    source = _CELL_OPTIONS.sub("", cell, count=1)
++    if _MAGIC.search(source):
++        raise ValueError(f"run_page cannot run an IPython magic or shell escape:\n{source}")
++    return source
++
++
 +def _run_page(path: Path) -> dict[str, object]:
 +    namespace: dict[str, object] = {}
-+    exec("\n".join(_PAGE_CODE.findall(path.read_text(encoding="utf-8"))), namespace)
++    exec("\n".join(_cell_source(cell) for cell in _PAGE_CODE.findall(path.read_text(encoding="utf-8"))), namespace)
 +    return namespace
 +
 +
@@ -7036,7 +7073,7 @@ diff --git a/tests/ml/test_transformers.py b/tests/ml/test_transformers.py
  import numpy as np
  import pandas as pd
  import pytest
-@@ -202,3 +204,41 @@ def test_clr_rows_sum_to_zero(X):
+@@ -202,3 +204,63 @@ def test_clr_rows_sum_to_zero(X):
  def test_transformer_options_are_keyword_only(estimator, value):
      with pytest.raises(TypeError):
          estimator(value)
@@ -7045,6 +7082,7 @@ diff --git a/tests/ml/test_transformers.py b/tests/ml/test_transformers.py
 +LEAK_FREE_CV = Path(__file__).parents[2] / "docs" / "tutorials" / "leak_free_cv.md"
 +# The mean ROC AUCs of the leak-free cross-validation tutorial on HMP2 (Phase 4 exit gate 1), which its prose quotes.
 +# The network test runs the page's cells and checks they still give these; the next test checks the prose quotes them.
++# The page keeps the AUCs unrounded and shows three decimals.
 +LEAK_FREE_CV_AUC = {
 +    "inside": 0.527,
 +    "outside": 0.526,
@@ -7053,12 +7091,29 @@ diff --git a/tests/ml/test_transformers.py b/tests/ml/test_transformers.py
 +    "shuffled_inside": 0.544,
 +    "shuffled_outside": 0.767,
 +}
++# The range of the ten shuffled-label scores of the pipeline, which the prose quotes.
++LEAK_FREE_CV_SHUFFLED_RANGE = (0.484, 0.669)
 +
 +
 +@pytest.mark.network
 +def test_the_leak_free_cv_tutorial_gives_the_numbers_it_quotes(run_page):
 +    namespace = run_page(LEAK_FREE_CV)
-+    assert {name: namespace[name] for name in LEAK_FREE_CV_AUC} == LEAK_FREE_CV_AUC
++    for name, quoted in LEAK_FREE_CV_AUC.items():
++        # One ranking flip moves a mean over 25 folds by about 3.6e-4, so the 3-decimal figures can slip by a unit.
++        assert namespace[name] == pytest.approx(quoted, abs=1e-3), name
++    # "Near a coin toss" in the prose.
++    assert abs(namespace["shuffled_inside"] - 0.5) < 0.05
++    assert namespace["inside"] < 0.6
++    low, high = LEAK_FREE_CV_SHUFFLED_RANGE
++    assert min(namespace["shuffled_scores"]) == pytest.approx(low, abs=1e-3)
++    assert max(namespace["shuffled_scores"]) == pytest.approx(high, abs=1e-3)
++    # "The honest scores fall inside that range."
++    assert (
++        min(namespace["shuffled_scores"])
++        < namespace["inside"]
++        < namespace["select_inside"]
++        < max(namespace["shuffled_scores"])
++    )
 +
 +
 +def test_the_leak_free_cv_tutorial_quotes_its_numbers():
@@ -7067,9 +7122,13 @@ diff --git a/tests/ml/test_transformers.py b/tests/ml/test_transformers.py
 +    for sentence in [
 +        f"The prevalence filter fitted inside the pipeline scores {auc['inside']} and the one fitted on every sample "
 +        f"{auc['outside']}: no measurable leak.",
++        "here, fitting it on the test samples moves the score by 0.001",
 +        f"Selected inside the pipeline, the score is {auc['select_inside']}; selected on every sample, "
 +        f"{auc['select_outside']}.",
 +        f"On shuffled labels the pipeline scores {auc['shuffled_inside']} on average, near a coin toss",
++        f"The ten shuffled-label scores of the pipeline range from {LEAK_FREE_CV_SHUFFLED_RANGE[0]} to "
++        f"{LEAK_FREE_CV_SHUFFLED_RANGE[1]}, and the honest scores of {auc['inside']} and {auc['select_inside']} fall "
++        "inside that range",
 +        f"The version that selects species on every sample scores {auc['shuffled_outside']}: higher than it scored on "
 +        "the real labels.",
 +    ]:
@@ -7078,6 +7137,41 @@ diff --git a/tests/ml/test_transformers.py b/tests/ml/test_transformers.py
 +    assert abs(auc["inside"] - auc["outside"]) < 0.01
 +    assert auc["select_outside"] - auc["select_inside"] > 0.1
 +    assert auc["shuffled_outside"] > auc["select_outside"]
+diff --git a/tests/test_run_page.py b/tests/test_run_page.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_run_page.py
+@@ -0,0 +1,30 @@
++import pytest
++
++PAGE = """# A page
++
++```{{code-cell}} ipython3
++{options}x = 1
++```
++
++```python
++y = x + 1
++```
++"""
++
++
++@pytest.mark.parametrize(
++    "options",
++    ["", ":tags: [hide-input]\n:mystnb-key: value\n", "---\ntags: [hide-input]\nraises-exception: false\n---\n"],
++)
++def test_run_page_skips_myst_cell_options(run_page, tmp_path, options):
++    page = tmp_path / "page.md"
++    page.write_text(PAGE.format(options=options), encoding="utf-8")
++    assert {name: run_page(page)[name] for name in ("x", "y")} == {"x": 1, "y": 2}
++
++
++@pytest.mark.parametrize("magic", ["%matplotlib inline", "!pip list"])
++def test_run_page_fails_clearly_on_ipython_magics(run_page, tmp_path, magic):
++    page = tmp_path / "page.md"
++    page.write_text(PAGE.format(options=f"{magic}\n"), encoding="utf-8")
++    with pytest.raises(ValueError, match="IPython magic"):
++        run_page(page)
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_transformers.py
   -q -m "network or not network" -k leak_free` -> `2 failed, 125 deselected`, both
@@ -7160,7 +7254,7 @@ cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=0)
 
 
 def mean_auc(model, X, y):
-    return round(float(cross_val_score(model, X, y, cv=cv, scoring="roc_auc").mean()), 3)
+    return float(cross_val_score(model, X, y, cv=cv, scoring="roc_auc").mean())
 
 
 pipeline = make_pipeline(
@@ -7169,7 +7263,7 @@ pipeline = make_pipeline(
     LogisticRegression(max_iter=5000),
 )
 inside = mean_auc(pipeline, taxa.X, ibd)
-inside
+round(inside, 3)
 ```
 
 Close to a coin toss: with this model, a first stool sample's species hardly separate IBD from
@@ -7184,14 +7278,15 @@ cross-validate only the model:
 ```{code-cell} ipython3
 filtered = bt.pp.filter_features(taxa, min_prevalence=0.1)
 outside = mean_auc(make_pipeline(bt.ml.CLR(pseudocount=1e-6), LogisticRegression(max_iter=5000)), filtered.X, ibd)
-outside
+round(outside, 3)
 ```
 
 The prevalence filter fitted inside the pipeline scores 0.527 and the one fitted on every
-sample 0.526: no measurable leak. The filter never looks at the labels, so seeing the test
-samples tells it nothing about the answer; it only changes which rare species the model gets.
-Keep it inside the pipeline all the same: it costs nothing, and then no step is fitted on a test
-sample without anyone having to argue that this one is harmless.
+sample 0.526: no measurable leak. The filter never looks at the labels, so here, fitting it on the
+test samples moves the score by 0.001; it only changes which rare species the model gets. A step
+fitted on all samples without the labels can still bias cross-validation in general, so keep it
+inside the pipeline all the same: it costs nothing, and then no step is fitted on a test sample
+without anyone having to argue that this one is harmless.
 
 ## A step that reads the labels
 
@@ -7210,7 +7305,7 @@ selecting = make_pipeline(
 select_inside = mean_auc(selecting, taxa.X, ibd)
 clr = bt.ml.CLR(pseudocount=1e-6).fit_transform(filtered.X)
 select_outside = mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, ibd), ibd)
-select_inside, select_outside
+round(select_inside, 3), round(select_outside, 3)
 ```
 
 Selected inside the pipeline, the score is 0.558; selected on every sample, 0.705. The second
@@ -7225,30 +7320,32 @@ versions again. Ten shuffles, each cross-validated as above:
 ```{code-cell} ipython3
 rng = np.random.default_rng(0)
 shuffles = [rng.permutation(ibd) for _ in range(10)]
-shuffled_inside = round(float(np.mean([mean_auc(selecting, taxa.X, labels) for labels in shuffles])), 3)
-shuffled_outside = round(
-    float(
-        np.mean(
-            [
-                mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, labels), labels)
-                for labels in shuffles
-            ]
-        )
-    ),
-    3,
+shuffled_scores = [mean_auc(selecting, taxa.X, labels) for labels in shuffles]
+shuffled_inside = float(np.mean(shuffled_scores))
+shuffled_outside = float(
+    np.mean(
+        [
+            mean_auc(LogisticRegression(max_iter=5000), SelectKBest(f_classif, k=20).fit_transform(clr, labels), labels)
+            for labels in shuffles
+        ]
+    )
 )
-shuffled_inside, shuffled_outside
+round(shuffled_inside, 3), round(shuffled_outside, 3), round(min(shuffled_scores), 3), round(max(shuffled_scores), 3)
 ```
 
 On shuffled labels the pipeline scores 0.544 on average, near a coin toss, as it should. The
 version that selects species on every sample scores 0.767: higher than it scored on the real
 labels. The leak manufactures a signal from noise.
 
+The ten shuffled-label scores of the pipeline range from 0.484 to 0.669, and the honest scores of
+0.527 and 0.558 fall inside that range: on this cohort they cannot be told apart from scores on
+shuffled labels.
+
 ```{code-cell} ipython3
 pd.DataFrame(
     {"inside the pipeline": [inside, select_inside, shuffled_inside], "on every sample": [outside, select_outside, shuffled_outside]},
     index=["prevalence filter", "SelectKBest, real labels", "SelectKBest, shuffled labels"],
-)
+).round(3)
 ```
 
 ## What goes inside the pipeline
@@ -7293,7 +7390,7 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
   `build succeeded.` with `tutorials/leak_free_cv.md: Executed notebook in <n> seconds`
   (11.2-13.7 s on the prototype). In `docs/_build/html/tutorials/leak_free_cv.html` the outputs
   read, in order: `diagnosis` counts `CD 65`, `UC 38`, `nonIBD 27`; `'1.5e-06'`; `0.527`;
-  `0.526`; `(0.558, 0.705)`; `(0.544, 0.767)`; and the table (prevalence filter 0.527 / 0.526,
+  `0.526`; `(0.558, 0.705)`; `(0.544, 0.767, 0.484, 0.669)`; and the table (prevalence filter 0.527 / 0.526,
   real labels 0.558 / 0.705, shuffled 0.544 / 0.767). No stderr block.
 - [ ] **Step 6: Bookkeeping.** Tick 4.6 (the exit-gate box waits for the CI docs job, 4.D2);
   log line:
@@ -7301,13 +7398,14 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
 - [ ] **Step 7: Gate and commit.**
   ```bash
   git add docs/tutorials/leak_free_cv.md docs/tutorials/index.md docs/guide/machine_learning.md \
-    tests/conftest.py tests/ml/test_transformers.py .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
+    tests/conftest.py tests/test_run_page.py tests/ml/test_transformers.py \
+    .knowledge/roadmap/phase-4-ml-multiomics.md .knowledge/log.md
   uvx prek run --all-files
   git commit -m "docs: add the leak-free cross-validation tutorial on HMP2
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1501 passed, 2 skipped, 93 deselected`; `37 passed, 1559
+  Expected: prek passed; `1510 passed, 2 skipped, 93 deselected`; `37 passed, 1568
   deselected`; `build succeeded` with six executed notebooks.
 
 ### Task 4.6b: The MGM embedding tutorial (exit gate 2's page)
@@ -7322,7 +7420,7 @@ already runs every `mgm` test); `docs/conf.py`; the guide's MGM, licence and plu
 - Consumes: `run_page` (4.6); `bt.pp.tax_glom`, `bt.datasets.global_patterns`, `bt.ml.embed(adata,
   model, *, inplace=False)`; scikit-learn's `NearestNeighbors`.
 - Produces: the page `tutorials/embeddings`; `EMBEDDINGS`, `GLOBAL_PATTERNS_LEFT_OUT`,
-  `GLOBAL_PATTERNS_SHAPE` in `tests/ml/test_mgm.py`; the page's names `genera`, `embedding`,
+  `GLOBAL_PATTERNS_SHAPE`, `MGM_GENERA` in `tests/ml/test_mgm.py`; the page's names `genera`, `embedding`,
   `same_type`.
 
 - [ ] **Step 1: Failing tests.** The exit-gate test matches the whole warning through the new
@@ -7336,7 +7434,7 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
  import sys
  from importlib.metadata import entry_points
  from pathlib import Path
-@@ -12,6 +13,14 @@ from sklearn.neighbors import NearestNeighbors
+@@ -12,6 +13,16 @@ from sklearn.neighbors import NearestNeighbors
  import biotapy as bt
 
  DATA = Path(__file__).parents[1] / "data" / "mgm"
@@ -7348,10 +7446,12 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
 +    "(4-29, 4041AA30, A17, Aquamonas, Arctic95A-2, ...)"
 +)
 +GLOBAL_PATTERNS_SHAPE = (26, 256)
++# The size of MGM's vocabulary (phylogeny.csv's genera), which the tutorial quotes.
++MGM_GENERA = 9665
  # torch 2.13-2.14's first tanh in a process can saturate on CPUs running more than 4 threads (measured: the
  # embedding's first call off by up to 1.6e-4, later calls by 1.7e-6), so equality is checked to 1e-3.
  ATOL = 1e-3
-@@ -133,11 +142,11 @@ def test_keeps_the_input(assert_unchanged):
+@@ -133,11 +144,11 @@ def test_keeps_the_input(assert_unchanged):
  def test_embeds_global_patterns_end_to_end():
      # Phase 4 exit gate 2: one foundation model plugged in end to end (decisions 10, 17).
      tdata = bt.pp.tax_glom(bt.datasets.global_patterns(), "genus")
@@ -7365,7 +7465,7 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
      with pytest.warns(UserWarning, match="mgm leaves out 96"):
          np.testing.assert_allclose(bt.ml.embed(tdata, "mgm"), embedding, rtol=0, atol=ATOL)
      # Every sample's nearest neighbour in the embedding comes from the same environment.
-@@ -146,6 +155,25 @@ def test_embeds_global_patterns_end_to_end():
+@@ -146,6 +157,25 @@ def test_embeds_global_patterns_end_to_end():
      assert (types[neighbour] == types).all()
 
 
@@ -7391,11 +7491,39 @@ diff --git a/tests/ml/test_mgm.py b/tests/ml/test_mgm.py
  def _cached_file(name):
      """The file ``name`` that MGM's wheel was extracted to, in biotapy's data cache."""
      from biotapy.ml import _mgm
+@@ -155,6 +185,26 @@ def _cached_file(name):
+     return next(Path(path) for path in paths if Path(path).name == name)
+
+
++@pytest.mark.mgm
++def test_the_embedding_tutorial_s_vocabulary_and_example_genera_hold():
++    vocabulary = pd.read_csv(_cached_file("phylogeny.csv"), index_col=0).index
++    genera = set(bt.pp.tax_glom(bt.datasets.global_patterns(), "genus").var["genus"].dropna())
++    assert len(vocabulary) == MGM_GENERA
++    # The clone name and the one-word Candidatus genus the page names: biotapy reads "BD2-13" as MGM's "BD2".
++    assert {"BD2-13", "CandidatusPelagibacter"} <= genera
++    assert "g__BD2" not in vocabulary and "g__CandidatusPelagibacter" not in vocabulary
++    assert "g__Candidatus_Pelagibacter" in vocabulary
++
++
++def test_the_embedding_tutorial_quotes_its_vocabulary_and_labels_its_timings():
++    page = " ".join(EMBEDDINGS.read_text(encoding="utf-8").split())
++    samples, dimensions = GLOBAL_PATTERNS_SHAPE
++    assert f"MGM's vocabulary holds {MGM_GENERA:,} genera" in page
++    assert f"each sample comes back as a vector of {dimensions} numbers" in page
++    assert f"{samples} samples" in page
++    assert "one unpinned laptop run, not checked by CI" in page
++
++
+ @pytest.mark.mgm
+ @pytest.mark.parametrize("name", ["phylogeny.csv", "config.json"])
+ def test_a_damaged_extracted_file_is_extracted_again(name):
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/ml/test_mgm.py -q -k
-  tutorial` -> `1 failed, 17 deselected` (`FileNotFoundError`); `uv run --group test --extra mgm
-  pytest tests/ml/test_mgm.py -q -m mgm -k tutorial` -> `1 failed, 17 deselected` (`Failed: DID
-  NOT WARN`, from the `FileNotFoundError` inside `pytest.warns`).
+  tutorial` -> `2 failed, 18 deselected` (`FileNotFoundError`); `uv run --group test --extra mgm
+  pytest tests/ml/test_mgm.py -q -m mgm -k tutorial` -> `1 failed, 1 passed, 18 deselected` (the
+  failure is `Failed: DID NOT WARN`, from the `FileNotFoundError` inside `pytest.warns`; the
+  vocabulary test needs no page).
 - [ ] **Step 3: The page.** Create `docs/tutorials/embeddings.md` (no notebook header, so the
   docs build does not run it):
 ````markdown
@@ -7473,9 +7601,11 @@ table.
 
 ## Time and memory
 
-On a laptop CPU with 8 threads (torch 2.14.1+cpu, transformers 5.19.0), the first call took 7 s,
-most of it importing torch and loading the model, and a second call 1 s for the 26 samples. MGM
-runs one sample at a time and needs no memory beyond the model's.
+In one unpinned laptop run, not checked by CI, on a CPU with 8 threads (torch 2.14.1+cpu,
+transformers 5.19.0), the first call took 7 s, most of it importing torch and loading the model,
+and a second call 1 s for the 26 samples: at least 26 samples a second, in line with the guide's
+"a few tens of samples a second". MGM runs one sample at a time and needs no memory beyond the
+model's.
 
 ## More
 
@@ -7497,6 +7627,16 @@ diff --git a/docs/guide/machine_learning.md b/docs/guide/machine_learning.md
  ### MGM
 
  `"mgm"` is MGM, the Microbial General Model of Zhang et al. (2026): a GPT-2
+@@ -160,7 +163,8 @@ The embedding is the mean of the last hidden layer over the sample's tokens,
+ the "element-wise mean pooling" MGM's paper uses for the pretrained model:
+ 256 float32 values per sample, within 2e-6 of MGM 0.5.8's own code. The model
+ runs on the CPU, one sample at a time; on GlobalPatterns' genus profiles that
+-is about 60 samples a second on 8 threads, with no memory beyond the model's.
++is a few tens of samples a second on 8 threads (one unpinned laptop run, not checked by
++CI; the [MGM tutorial](../tutorials/embeddings.md) gives its timings), with no memory beyond the model's.
+ On a CPU running more than four threads, the first call in a session can
+ differ from later ones by up to about 2e-4: torch 2.13 and 2.14 sometimes
+ compute their first `tanh` less precisely.
 diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
 --- a/docs/tutorials/index.md
 +++ b/docs/tutorials/index.md
@@ -7508,7 +7648,7 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
  ```
 ````
 - [ ] **Step 4: Run, expect pass** - `uv run --group test --extra mgm pytest tests/ml/test_mgm.py
-  -q -m "mgm or not mgm" -W error::UserWarning` -> `18 passed` (the end-to-end test included);
+  -q -m "mgm or not mgm" -W error::UserWarning` -> `20 passed` (the end-to-end test included);
   then `uv sync --all-groups`.
 - [ ] **Step 5: Build.** The docs build succeeds; `tutorials/embeddings.html` exists and the log
   has no "Executed notebook" line for it.
@@ -7523,8 +7663,8 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1502 passed, 2 skipped, 94 deselected`; `37 passed, 1561
-  deselected`; `build succeeded`; `25 passed, 1573 deselected`; `14 passed, 1584 deselected`.
+  Expected: prek passed; `1512 passed, 2 skipped, 95 deselected`; `37 passed, 1572
+  deselected`; `build succeeded`; `25 passed, 1584 deselected`; `15 passed, 1594 deselected`.
 
 ### Task 4.6c: `bt.datasets.biocrust()` and the multi-omics tutorial (decision 37)
 
@@ -7550,6 +7690,7 @@ the `network`, `r-bridge` and `docs` caches are rebuilt once, as in 4.C0).
 - [ ] **Step 1: Failing loader tests.** Create `tests/datasets/test_biocrust.py`:
 ````python
 import warnings
+from pathlib import Path
 
 import mudata
 import numpy as np
@@ -7559,7 +7700,7 @@ import scipy.sparse as sp
 from anndata import AnnData
 
 import biotapy as bt
-from biotapy.datasets import _biocrust
+from biotapy.datasets import _biocrust, _remote
 
 # Synthetic tables in the layout of mmvec's soil example: the metabolite table lacks one microbe sample and lists the
 # others in another order. No data of the example is copied.
@@ -7569,7 +7710,7 @@ _MICROBES = AnnData(
     var=pd.DataFrame(index=["rplo 1 (Cyanobacteria)", "rplo 2 (Firmicutes)", "rplo 3 (Proteobacteria)"]),
 )
 _METABOLITES = AnnData(
-    X=sp.csr_matrix(np.array([[2782242.25, 1.0], [3151923.75, 751234.5]])),
+    X=sp.csr_matrix(np.array([[1500.5, 2.0], [800.25, 31.75]])),
     obs=pd.DataFrame(index=["9hr_early", "3min_early"]),
     var=pd.DataFrame(index=["adenine", "uracil"]),
 )
@@ -7599,7 +7740,7 @@ def test_values_and_units_come_from_the_reader(fetched):
     assert mdata["taxa"].uns["biotapy"]["x_kind"] == "counts"
     assert mdata["metabolites"].uns["biotapy"]["x_kind"] == "abundance"
     np.testing.assert_array_equal(mdata["taxa"].X.toarray(), [[10, 0, 3], [0, 2, 8]])
-    np.testing.assert_array_equal(mdata["metabolites"].X.toarray(), [[3151923.75, 751234.5], [2782242.25, 1.0]])
+    np.testing.assert_array_equal(mdata["metabolites"].X.toarray(), [[800.25, 31.75], [1500.5, 2.0]])
 
 
 def test_fetches_both_pinned_files_before_reading(fetched):
@@ -7607,11 +7748,28 @@ def test_fetches_both_pinned_files_before_reading(fetched):
     assert fetched == ["biocrust_microbes.biom", "biocrust_metabolites.biom"]
 
 
+@pytest.mark.parametrize("page", ["guide/datasets.md", "tutorials/multiomics.md"])
+def test_the_pages_link_mmvec_s_example_at_the_pinned_commit(page):
+    commit = _remote._MMVEC.split("/mmvec/")[1].split("/")[0]
+    text = (Path(__file__).parents[2] / "docs" / page).read_text(encoding="utf-8")
+    assert f"https://github.com/biocore/mmvec/tree/{commit}/examples/soils" in text
+
+
 @pytest.mark.network
 def test_biocrust_downloads_and_loads():
     mdata = bt.datasets.biocrust()
     assert {key: mod.shape for key, mod in mdata.mod.items()} == {"taxa": (19, 466), "metabolites": (19, 85)}
     assert "9hr_late" not in mdata.obs_names
+
+
+@pytest.mark.network
+def test_biocrust_prose_figures_hold():
+    # The figures the guide, the tutorial and the docstring quote about the downloaded files.
+    paths = [Path(_biocrust._fetch(name)) for name in _biocrust.FILES]
+    assert round(sum(path.stat().st_size for path in paths) / 1000) == 135
+    microbes = bt.io.read_biom(paths[0])
+    assert microbes.n_obs == 20
+    assert microbes.var_names[np.asarray(microbes.X.sum(axis=0)).ravel().argmax()] == "rplo 1 (Cyanobacteria)"
 ````
 - [ ] **Step 2: Run, expect failure** - `uv run --group test pytest tests/datasets/test_biocrust.py
   -q` -> `1 error` during collection: `ImportError: cannot import name '_biocrust' from
@@ -7635,8 +7793,9 @@ def biocrust() -> MuData:
 
     Downloaded once (135 KB) from the example of mmvec's repository
     (``examples/soils``), pinned to one commit: 466 microbes counted in 20
-    samples and 85 metabolites measured in 19 of them, taken at five times
-    after wetting.
+    samples and 85 metabolites measured in 19 of them. The 20 samples are
+    four biocrust successional stages (``early``, ``earlymid``, ``latemid``,
+    ``late``) at five times after wetting.
 
     Returns
     -------
@@ -7647,7 +7806,8 @@ def biocrust() -> MuData:
         feature name ends with its phylum), and ``"metabolites"``, the
         metabolites' intensities (``x_kind == "abundance"``), both as
         ``bt.io.read_biom`` reads them. The tables carry no sample metadata;
-        a sample's name holds its time after wetting and its position.
+        a sample's name holds its time after wetting and its crust's
+        successional stage.
 
     Notes
     -----
@@ -7663,6 +7823,9 @@ def biocrust() -> MuData:
 
     References
     ----------
+    Swenson TL et al. (2018) Linking soil biology and chemistry in biological soil crust
+    using isolate exometabolomics. Nature Communications 9:19.
+
     Morton JT et al. (2019) Learning representations of microbe-metabolite interactions.
     Nature Methods 16:1306-1314.
 
@@ -7716,15 +7879,21 @@ diff --git a/docs/guide/datasets.md b/docs/guide/datasets.md
 
  Set `BIOTAPY_DATA_DIR` to change the cache directory; the default is a
  per-user cache directory (`pooch.os_cache("biotapy")`):
-@@ -113,6 +115,28 @@ mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
+@@ -111,7 +113,32 @@ mdata = bt.datasets.hmp2()
+ mdata.obs["diagnosis"].value_counts()  # CD 65, UC 38, nonIBD 27
+ ```
 
- The [function tutorial](../tutorials/function.md) analyses it.
-
+-The [function tutorial](../tutorials/function.md) analyses it.
++The [function](../tutorials/function.md) and [leak-free cross-validation](../tutorials/leak_free_cv.md)
++tutorials analyse it.
++
 +## `biocrust`
 +
 +`bt.datasets.biocrust()` is the example mmvec's own repository uses: a desert
-+biological soil crust sampled at five times after wetting, with 466 microbes
-+counted in 20 samples and 85 metabolites measured in 19 of them. It downloads
++biological soil crust from four successional stages (`early`, `earlymid`,
++`latemid`, `late`; Swenson et al. 2018), sampled at five times after wetting,
++with 466 microbes counted in 20 samples and 85 metabolites measured in 19 of
++them. It downloads
 +the two BIOM files once (135 KB) and returns a `MuData` over the 19 samples
 +both have:
 +
@@ -7741,20 +7910,21 @@ diff --git a/docs/guide/datasets.md b/docs/guide/datasets.md
 +```
 +
 +The [multi-omics tutorial](../tutorials/multiomics.md) analyses it.
-+
+
  ## Licensing
 
- `global_patterns`, `enterotype` and `esophagus` download data from phyloseq's repository
-@@ -124,7 +148,11 @@ you publish results that use it. `hmp2` downloads the HMP2 tables from the
+@@ -124,7 +151,13 @@ you publish results that use it. `hmp2` downloads the HMP2 tables from the
  [IBDMDB](https://ibdmdb.org/); the IBDMDB states no licence for them, so biotapy
  ships none of them, and you should cite the study when you use them: Lloyd-Price J
  et al. (2019) Multi-omics of the gut microbial ecosystem in inflammatory bowel
 -diseases. *Nature* 569:655-662. biotapy itself is
 +diseases. *Nature* 569:655-662. `biocrust` downloads two files from
-+[mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils),
++[mmvec's repository](https://github.com/biocore/mmvec/tree/88ca33b408a85b6bf90fae06982936247b860272/examples/soils),
 +distributed under its BSD-3-Clause licence; cite Morton JT et al. (2019) Learning
 +representations of microbe-metabolite interactions. *Nature Methods*
-+16:1306-1314. biotapy itself is
++16:1306-1314. The data come from Swenson TL et al. (2018) Linking soil biology and
++chemistry in biological soil crust using isolate exometabolomics. *Nature
++Communications* 9:19. biotapy itself is
  [BSD-3-Clause](https://github.com/pedrocr83/biotapy/blob/master/LICENSE).
 
  [phyloseq-data]: https://github.com/joey711/phyloseq/tree/master/data
@@ -7804,8 +7974,8 @@ diff --git a/src/biotapy/datasets/_remote.py b/src/biotapy/datasets/_remote.py
   The hashes are the SHA-256 of the two files at commit `88ca33b` (checked by downloading
   both, `sha256sum`); R6.6: nothing is committed but synthetic fixtures.
 - [ ] **Step 4: Run, expect pass** - `uv run --group test pytest tests/datasets/test_biocrust.py
-  -q -m "network or not network" -W error::UserWarning` -> `4 passed` (the network test
-  downloads 135 KB).
+  -q -m "network or not network" -W error::UserWarning` -> `7 passed` (the network tests
+  download 135 KB).
 - [ ] **Step 5: Failing tutorial tests.** In `tests/tl/test_mmvec.py`:
 ````diff
 diff --git a/tests/tl/test_mmvec.py b/tests/tl/test_mmvec.py
@@ -7878,14 +8048,17 @@ kernelspec:
 
 This tutorial puts two data types measured on the same samples into one `MuData`, then asks
 which metabolites go with which microbe, with mmvec (Morton et al. 2019). The data are the
-example from mmvec's own repository: a desert biological soil crust, sampled at five times after
-wetting, with its microbes counted and its metabolites measured.
+example from mmvec's own repository: a desert biological soil crust from four successional stages
+(`early`, `earlymid`, `latemid`, `late`), sampled at five times after wetting, with its microbes
+counted and its metabolites measured (Swenson et al. 2018).
 
 :::{note}
-The two tables are downloaded from [mmvec's repository](https://github.com/biocore/mmvec/tree/master/examples/soils)
+The two tables are downloaded from [mmvec's repository](https://github.com/biocore/mmvec/tree/88ca33b408a85b6bf90fae06982936247b860272/examples/soils)
 on first use (135 KB) and cached; they are distributed there under its BSD-3-Clause licence.
 Cite the mmvec paper when you use them: Morton JT et al. (2019) Learning representations of
-microbe-metabolite interactions. *Nature Methods* 16:1306-1314.
+microbe-metabolite interactions. *Nature Methods* 16:1306-1314. The data come from Swenson TL et
+al. (2018) Linking soil biology and chemistry in biological soil crust using isolate
+exometabolomics. *Nature Communications* 9:19.
 :::
 
 ```{code-cell} ipython3
@@ -7916,7 +8089,7 @@ ranks.shape
 ```
 
 The most abundant microbe is `rplo 1 (Cyanobacteria)`, which mmvec's example treats as the
-cyanobacterium *Microcoleus vaginatus*. Its ten highest-ranked metabolites:
+cyanobacterium *Microcoleus* sp. (closest isolate *M. vaginatus* PCC 9802). Its ten highest-ranked metabolites:
 
 ```{code-cell} ipython3
 cyanobacterium = ranks.loc["rplo 1 (Cyanobacteria)"].sort_values(ascending=False)
@@ -7946,6 +8119,8 @@ dimensions (scikit-bio's default of 3, where the example used 1).
 
 - A rank compares metabolites within one microbe's row. It is not a correlation, and a low rank
   means no association rather than a negative one.
+- The page runs scikit-bio's default of 3 latent dimensions, while mmvec's README advises at least
+  10 samples per dimension, which allows 1 dimension for 19 samples. Read the ranks with that in mind.
 - 19 samples is few: mmvec's README says studies this small need careful tuning of the number
   of dimensions and the priors, which scikit-bio's `mmvec` exposes and `bt.tl.mmvec` leaves at
   their defaults.
@@ -7979,7 +8154,7 @@ diff --git a/docs/tutorials/index.md b/docs/tutorials/index.md
  ```
 ````
   Run `uv run --group test pytest tests/tl/test_mmvec.py tests/datasets/test_biocrust.py -q -m
-  "network or not network" -W error::UserWarning` -> `20 passed`. Build the docs:
+  "network or not network" -W error::UserWarning` -> `23 passed`. Build the docs:
   `tutorials/multiomics.md: Executed notebook` (3.0-3.6 s); its outputs read `MuData object with
   n_obs × n_vars = 19 × 551` with `taxa: 19 × 466` and `metabolites: 19 × 85`; `(466, 85)`;
   adenine 5.05, adenosine 5.02, (N6-acetyl-lysine) 4.48, 4-guanidinobutanoate 3.98, isoleucine
@@ -8106,7 +8281,7 @@ diff --git a/.knowledge/modules/index.md b/.knowledge/modules/index.md
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1508 passed, 2 skipped, 96 deselected`; `39 passed, 1567
+  Expected: prek passed; `1520 passed, 2 skipped, 98 deselected`; `40 passed, 1580
   deselected`; `build succeeded` with seven executed notebooks.
 
 ### Task 4.D1: Coming-from-R check
@@ -8249,7 +8424,7 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
 
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   ```
-  Expected: prek passed; `1511 passed, 2 skipped, 96 deselected`; `39 passed, 1570
+  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`; `40 passed, 1583
   deselected`; `build succeeded`.
 
 ### Checkpoint D - review slice 4D
@@ -8273,9 +8448,9 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
   `docs/pooch/` do not exist.
 - [ ] **Push** `phase-4d`, open the PR and merge-commit it on green, only after the user approves
   that push (decision 42; decision 20 gives no standing approval for Phase 4). CI must be green:
-  every hatch-test job, `lint`, `import-without-extras`, `network` (its log shows `39 passed`:
+  every hatch-test job, `lint`, `import-without-extras`, `network` (its log shows `40 passed`:
   the leak-free and multi-omics pages and `biocrust`), `r-bridge`, `ml-extras` (its `-m mgm`
-  step `14 passed`, the embedding page among them), `docs` (seven `Executed notebook` lines,
+  step `15 passed`, the embedding page among them), `docs` (seven `Executed notebook` lines,
   `tutorials/leak_free_cv.md` and `tutorials/multiomics.md` among them). Record the PR number,
   merge commit, Test run id and the docs job id: exit-gate items 1 and 3's evidence, ticked in
   4.D2 Step 8. If a page-running test fails only on a number, stop and report the measured
@@ -8443,8 +8618,8 @@ diff --git a/.knowledge/modules/tl.md b/.knowledge/modules/tl.md
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   bash scripts/knowledge_stale.sh --against HEAD       # 28 current, 0 stale, 12 uncheckable
   ```
-  Expected: prek passed; `1511 passed, 2 skipped, 96 deselected` (plus the fix pass's tests);
-  `39 passed, 1570 deselected`; `build succeeded`.
+  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`;
+  `40 passed, 1583 deselected`; `build succeeded`.
 
 ### Task 4.D2: Release 0.4.0
 
@@ -8669,8 +8844,8 @@ diff --git a/README.md b/README.md
   Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
   uv run python -c "import biotapy; print(biotapy.__version__)"   # 0.4.0
   ```
-  Expected: prek passed; `1511 passed, 2 skipped, 96 deselected`; `39 passed, 1570
-  deselected`; `build succeeded`; `25 passed, 1584 deselected`; `14 passed, 1595 deselected`;
+  Expected: prek passed; `1523 passed, 2 skipped, 98 deselected`; `40 passed, 1583
+  deselected`; `build succeeded`; `25 passed, 1598 deselected`; `15 passed, 1608 deselected`;
   `knowledge_stale.sh` `23 current, 5 stale` (Step 8 re-stamps them).
 - [ ] **Step 8: Knowledge, second commit.**
   - `bash scripts/knowledge_stale.sh --against HEAD` lists `phase-0-foundation`,
@@ -8730,7 +8905,7 @@ diff --git a/.knowledge/playbooks/cut-a-release.md b/.knowledge/playbooks/cut-a-
     ```
   - Commit `docs(knowledge): refresh concepts for the 0.4.0 release` (with the attribution
     line), staging the five concepts, `phase-4-ml-multiomics.md` and `log.md`; prek; the default
-    run (`1511 passed, 2 skipped, 96 deselected`); `knowledge_stale.sh --against HEAD` -> `28
+    run (`1523 passed, 2 skipped, 98 deselected`); `knowledge_stale.sh --against HEAD` -> `28
     current, 0 stale, 12 uncheckable`.
 - [ ] **Step 9: PR and merge** (approved at Checkpoint D): push `release-0.4.0`, open the PR,
   wait for green CI (every job, `ml-extras`, `r-bridge` and `docs` included), merge with a merge
@@ -9062,8 +9237,7 @@ Run against the brief, the roadmap outline and the writing-plans checklist.
    Slice 4D carries full steps, rendered from the scratch clone's commits `b5654af`..`ceada96`
    on branches `phase-4d` and `release-0.4.0`.
    The only open values are the log section's `<date>` and each concept's
-   `generated.at`, filled at commit time. The outline slice gives a proposed
-   answer to each open question and marks what is [UNVERIFIED].
+   `generated.at`, filled at commit time.
 3. **Type consistency.** Used throughout: `to_mudata(modalities:
    Mapping[str, AnnData]) -> MuData`; `mmvec(mdata, *, microbes="taxa",
    metabolites="metabolites", seed=None) -> pd.DataFrame`;

@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) syncs slice 4D's blocks and counts (4.F4-4.6c) with the Checkpoint D fix pass: `_sum_dtype` and the int32/uint32 cases, the `run_page` option and magic handling, the leak-free page's unrounded AUCs and shuffled range, the MGM page's figures, biocrust's successional stages and synthetic fixture, and the pinned mmvec links.
 - **Update**: [cut-a-release](playbooks/cut-a-release.md) step 2c also searches the docstrings under `src/` for "not in X.Y" labels; `pl.ordination`'s docstring now says "not in 0.4".
 - **Update**: [core](modules/core.md): `sum_by` and `sum_pairs` share one private helper for `numpy.sum`'s dtype, the tests cover int32 and uint32, and the concept says every integer narrower than 64 bits (and bool) sums to int64 (uint64 if unsigned).
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.D1 done: the Coming-from-R rows `MultiAssayExperiment::MultiAssayExperiment` and `::intersectColumns` (to `bt.io.to_mudata`) are pinned, and a test checks `ml`, `tl.mmvec` and `datasets.biocrust` add no row; phyloseq calls without an equivalent read "not in 0.4", as do the page sentence and the phyloseq vignette.
