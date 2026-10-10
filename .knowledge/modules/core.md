@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T16:40:30Z }
-commit: b5654af
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T16:44:39Z }
+commit: d5ca5aa
 status: stable
 ---
 
@@ -49,7 +49,7 @@ none of them back.
   membership pairs, where a feature may sit in several groups and counts in
   full toward each (many-to-many); the pairs are a set, a repeated pair counts
   once; used by `fn.func_glom`. Where `sum_by` assigns each feature one group,
-  this does not.
+  this does not. It sums in `numpy.sum`'s dtype for `X`, as `sum_by` does.
 - `_composition.py:pseudocounted` - validates `pseudocount`
   (`_composition.py:check_pseudocount`), rejects negative or non-finite `X`,
   warns when the pseudocount exceeds the smallest non-zero value (the message ends

@@ -90,6 +90,23 @@ def test_sum_pairs_keeps_integer_dtype():
     assert sum_pairs(X, np.array([0]), np.array([0]), n_groups=1).dtype == np.int64
 
 
+@pytest.mark.parametrize(
+    ("dtype", "value", "summed"),
+    [
+        (np.int8, 100, np.int64),
+        (np.uint8, 200, np.uint64),
+        (np.int16, 20_000, np.int64),
+        (np.bool_, True, np.int64),
+        (np.float32, 0.5, np.float32),
+    ],
+)
+def test_sum_pairs_sums_in_the_dtype_numpy_sums_in(dtype, value, summed):
+    dense = np.full((2, 3), value, dtype=dtype)
+    out = sum_pairs(sp.csr_matrix(dense), np.array([0, 1, 2]), np.array([0, 0, 0]), n_groups=1)
+    np.testing.assert_array_equal(out.toarray(), np.full((2, 1), 3 * value))
+    assert out.dtype == summed
+
+
 @given(arrays(np.int64, st.tuples(st.integers(1, 6), st.integers(1, 6)), elements=st.integers(0, 50)), st.data())
 def test_sum_pairs_with_one_group_per_feature_equals_sum_by(dense, data):
     codes = np.array(data.draw(st.lists(st.integers(-1, 2), min_size=dense.shape[1], max_size=dense.shape[1])))

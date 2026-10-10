@@ -1,6 +1,7 @@
 # Knowledge bundle log
 
 ## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [core](modules/core.md): `sum_pairs` sums in `numpy.sum`'s dtype for `X`, as `sum_by` does, so `fn.func_glom` cannot wrap an int8 table; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F5.
 - **Update**: [core](modules/core.md): `sum_by` sums in `numpy.sum`'s dtype for `X` (an int8 or bool table no longer wraps or saturates) and names its three callers (`pp.tax_glom`, `pl.bar`'s `fill`, MGM), not "today's only caller"; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F4.
 
 ## 2026-10-10 (Phase 4, slice 4D plan)
