@@ -66,6 +66,15 @@ def test_genus_sums_members_and_drops_unassigned():
     np.testing.assert_array_equal(out[:, "f4"].X.toarray().ravel(), [30, 25, 36, 10, 14, 9])
 
 
+def test_narrow_integer_counts_sum_without_wrapping():
+    # int8 holds up to 127: summing three features of 100 into one genus must give 300, not 44.
+    var = pd.DataFrame({"kingdom": ["K"] * 3, "genus": ["G"] * 3}, index=["a", "b", "c"])
+    adata = AnnData(X=sp.csr_matrix(np.full((2, 3), 100, dtype=np.int8)), var=var, obs=pd.DataFrame(index=["s1", "s2"]))
+    out = bt.pp.tax_glom(adata, "genus")
+    np.testing.assert_array_equal(out.X.toarray(), [[300], [300]])
+    assert out.X.dtype == np.int64
+
+
 def test_dropna_false_keeps_unassigned_as_own_group():
     assert bt.pp.tax_glom(bt.datasets.toy(), "genus", dropna=False).n_vars == 7
 

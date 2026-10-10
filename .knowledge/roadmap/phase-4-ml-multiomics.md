@@ -512,7 +512,7 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - [x] 4.4 `ml.embed(adata, model, *, inplace=False)` and the entry-point group `biotapy.embeddings`
 - [x] 4.4b MGM reference plugin, its reference embeddings and the marker `mgm`
 - [x] Checkpoint C (PR #30 merged as `28de1ad`; the user approved slice 4C on 2026-10-09)
-- [ ] 4.F4 `_core.sum_by` sums narrow integer and bool tables in NumPy's sum dtype, so `pp.tax_glom` cannot wrap
+- [x] 4.F4 `_core.sum_by` sums narrow integer and bool tables in NumPy's sum dtype, so `pp.tax_glom` cannot wrap
 - [ ] 4.F5 `_core.sum_pairs` does the same, for `fn.func_glom` (decision 36)
 - [ ] 4.6 Leak-free cross-validation notebook (exit gate 1)
 - [ ] 4.6b End-to-end embedding page (exit gate 2's docs)

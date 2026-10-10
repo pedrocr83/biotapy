@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-10 (Phase 4, slice 4D)
+- **Update**: [core](modules/core.md): `sum_by` sums in `numpy.sum`'s dtype for `X` (an int8 or bool table no longer wraps or saturates) and names its three callers (`pp.tax_glom`, `pl.bar`'s `fill`, MGM), not "today's only caller"; [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) ticks 4.F4.
+
 ## 2026-10-10 (Phase 4, slice 4D plan)
 - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) expands slice 4D (4.F4 and 4.F5 sums, 4.6 leak-free tutorial, 4.6b embedding page, 4.6c `datasets.biocrust` and the multi-omics tutorial, 4.D1 Coming-from-R, Checkpoint D with 4.7 knowledge, 4.D2 release 0.4.0) into full TDD steps, prototyped and gated per commit, and records decisions 36-45; ticks Checkpoint C (PR #30 merged, slice 4C approved), exit-gate item 2 (PR #30's `ml-extras`) and 4.F1's upstream box (scikit-bio#2631); [da](modules/da.md)'s ANCOM-BC2 gotcha links the issue.
 

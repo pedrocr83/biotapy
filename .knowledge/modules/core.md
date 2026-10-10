@@ -5,8 +5,8 @@ description: Private kernel package - sparse group math, taxonomic rank order, f
 resource: /src/biotapy/_core/
 paths: ["src/biotapy/_core/**"]
 tags: [core, kernel]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T16:40:30Z }
+commit: b5654af
 status: stable
 ---
 
@@ -39,8 +39,12 @@ none of them back.
   `pp.relative`, `fn.renorm` (`_renorm.py:_rescaled`) and
   `fn.functional_redundancy`.
 - `_matrix.py:sum_by` / `_matrix.py:argmax_by` - grouped column sum and
-  grouped argmax by integer group codes, negative codes dropped; today's only
-  caller is `pp.tax_glom`.
+  grouped argmax by integer group codes, negative codes dropped. `sum_by`
+  sums in the dtype `numpy.sum` gives `X`'s (bool and narrower integers widen
+  to 64 bits, floats keep theirs), so an int8 table cannot wrap; its callers
+  are `pp.tax_glom`, `pl.bar`'s `fill` by a `var` column
+  (`pl/_abundance.py:_segments`) and MGM (`ml/_mgm.py`); `argmax_by`'s is
+  `pp.tax_glom`.
 - `_matrix.py:sum_pairs` - column sums into groups from `(feature, group)`
   membership pairs, where a feature may sit in several groups and counts in
   full toward each (many-to-many); the pairs are a set, a repeated pair counts

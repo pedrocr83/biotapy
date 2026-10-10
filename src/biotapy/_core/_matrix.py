@@ -35,10 +35,16 @@ def divide_rows(X: sp.csr_matrix, totals: npt.NDArray[np.float64]) -> sp.csr_mat
 
 
 def sum_by(X: sp.csr_matrix, codes: npt.NDArray[np.intp], n_groups: int) -> sp.csr_matrix:
-    """Sum the columns of ``X`` that share a group code; negative codes are dropped."""
+    """Sum the columns of ``X`` that share a group code; negative codes are dropped.
+
+    The sums have the dtype ``numpy.sum`` gives ``X``'s: bool and integers
+    narrower than 64 bits widen to 64 bits, floats keep theirs.
+    """
     rows = np.flatnonzero(codes >= 0)
+    # SciPy multiplies in the wider of the two dtypes; an int8 or bool indicator would wrap or saturate the sums.
+    dtype = np.zeros(0, dtype=X.dtype).sum().dtype
     indicator = sp.csr_matrix(
-        (np.ones(rows.size, dtype=X.dtype), (rows, codes[rows])),
+        (np.ones(rows.size, dtype=dtype), (rows, codes[rows])),
         shape=(codes.size, n_groups),
     )
     return sp.csr_matrix(X @ indicator)
