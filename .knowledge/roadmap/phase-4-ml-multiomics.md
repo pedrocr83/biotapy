@@ -9,8 +9,8 @@ phase_state: in-progress
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:47:06Z }
-commit: 33e9dcc
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 sources:
   - id: spec
     resource: ../../plan.md
@@ -519,7 +519,7 @@ Execution order inside 4D: **4.F4 -> 4.F5 -> 4.6 -> 4.6b -> 4.6c -> 4.D1 -> Chec
 - [x] 4.6c `bt.datasets.biocrust()` and the multi-omics tutorial (decision 37)
 - [x] 4.D1 Coming-from-R check
 - [ ] Checkpoint D
-- [ ] 4.7 Knowledge: `ml` and `tl` gotchas, `embedding-plugins` stable, verification bumps
+- [x] 4.7 Knowledge: `ml` and `tl` gotchas, `embedding-plugins` stable, verification bumps
 - [ ] 4.D2 Release 0.4.0
 
 # Exit gate
@@ -8461,7 +8461,7 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
 
 ### Checkpoint D - review slice 4D
 
-- [ ] **Review the whole slice** with superpowers:requesting-code-review (opus: the pages make
+- [x] **Review the whole slice** with superpowers:requesting-code-review (opus: the pages make
   claims a user will act on), against data-model-slots, function-shape, module-boundaries,
   pure-by-default, optional-heavy-dependencies, the Phase 4 review focus, and the slice 4D
   design, review focus and global constraints. The reviewer reads each tutorial's prose against
@@ -8471,7 +8471,11 @@ diff --git a/docs/tutorials/phyloseq_analysis.md b/docs/tutorials/phyloseq_analy
   against every caller. Then a fix pass, one commit per finding, each with a test where a test
   can show it; then a scoped re-review. Record: counts (Critical / Important / Minor), fix range,
   re-review result.
-- [ ] **Task 4.7** (below), after the fix pass.
+  Recorded: review 0 Critical / 0 Important / 4 Minor new (the per-task reviews' 4.6c Important
+  I1, biocrust's successional stages, and their minors carried in); fix pass `4976b14..1842824`
+  (11 commits) plus follow-up `1842824..38f9379` (3 commits); scoped re-review: 10 of 11
+  addressed, item 2 partial and two stale design paragraphs, all fixed in the follow-up.
+- [x] **Task 4.7** (below), after the fix pass.
 - [ ] **Run the gates** on the committed tree (`git status --short` empty), every command with
   absolute `BIOTAPY_DATA_DIR` and `HF_HOME`: the slice gate's seven counts (default, `golden or
   network`, docs, `-m torch`, `-m mgm`, prek, `knowledge_stale.sh --against HEAD` at `28
@@ -8516,7 +8520,7 @@ anywhere (R12.3).
 - Consumes: the final slice tree; `bash scripts/knowledge_stale.sh --against HEAD`.
 - Produces: a bundle with `28 current, 0 stale, 12 uncheckable`.
 
-- [ ] **Step 1: Concepts the slice changes.** Re-check each sentence against the code after the
+- [x] **Step 1: Concepts the slice changes.** Re-check each sentence against the code after the
   fix pass (a fix may move a number). `embedding-plugins` becomes `stable` only because the user
   confirmed it with slice 4C (Checkpoint C's last box, ticked by approving this plan); if they
   have not, leave it `draft` and say so:
@@ -8620,7 +8624,7 @@ diff --git a/.knowledge/modules/tl.md b/.knowledge/modules/tl.md
    feature in either modality raises rather than being dropped.
  - All-zero samples give scikit-bio's values, with no custom mapping: two of
 ````
-- [ ] **Step 2: Concepts the diff only touches.** `bash scripts/knowledge_stale.sh --against
+- [x] **Step 2: Concepts the diff only touches.** `bash scripts/knowledge_stale.sh --against
   HEAD` on the fix pass's last commit lists 12 stale on the prototype: `phase-0-foundation`,
   `phase-1-core`, `phase-2-function`, `phase-4-ml-multiomics`, `core`, `datasets`,
   `data-model-slots`, `engine-parity`, `function-shape`, `module-boundaries`, `r-golden-parity`,
@@ -8631,9 +8635,9 @@ diff --git a/.knowledge/modules/tl.md b/.knowledge/modules/tl.md
   golden, and `tl.md` records it). Bump only `generated` and `commit` on each (and on `ml`, `tl`,
   `embedding-plugins` with Step 1): the model that runs the task, `date -u +%FT%TZ`, and the
   parent's short hash.
-- [ ] **Step 3: Roadmap.** Tick `4.7 Knowledge` in the checklist; record Checkpoint D's review
+- [x] **Step 3: Roadmap.** Tick `4.7 Knowledge` in the checklist; record Checkpoint D's review
   counts, fix range and re-review in its first box.
-- [ ] **Step 4: Log**, first under the slice heading:
+- [x] **Step 4: Log**, first under the slice heading:
   ```markdown
   - **Update**: [ml](modules/ml.md): Verification names the two tutorials and the tests that pin what they quote; new gotchas: the tutorials' numbers live in test constants checked by running the pages' code (`tests/conftest.py:run_page`), the size of the leak on HMP2, and GlobalPatterns' one-word *Candidatus* genera that MGM leaves out.
   - **Update**: [embedding-plugins](decisions/embedding-plugins.md) is `stable`: the user confirmed it with slice 4C.
@@ -8641,7 +8645,7 @@ diff --git a/.knowledge/modules/tl.md b/.knowledge/modules/tl.md
   - **Verification**: re-checked against the slice 4D diff and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [phase-2-function](roadmap/phase-2-function.md), [core](modules/core.md), [datasets](modules/datasets.md), [data-model-slots](contracts/data-model-slots.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
   - **Update**: [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) task 4.7 done.
   ```
-- [ ] **Step 5: Gate and commit.**
+- [x] **Step 5: Gate and commit.**
   ```bash
   git add .knowledge
   uvx prek run --all-files

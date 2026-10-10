@@ -5,8 +5,8 @@ description: Plots of what tl, pp, fn and da give - stacked bars, heatmap, a fun
 resource: /src/biotapy/pl/
 paths: ["src/biotapy/pl/**"]
 tags: [pl, plots, matplotlib]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-05T20:48:45Z }
-commit: 927e5ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 status: stable
 ---
 

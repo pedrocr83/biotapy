@@ -5,8 +5,8 @@ description: In-memory and pooch-cached example data for docs, doctests and test
 resource: /src/biotapy/datasets/
 paths: ["src/biotapy/datasets/**"]
 tags: [datasets]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T17:01:49Z }
-commit: f5fb966
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 status: stable
 ---
 

@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T16:44:46Z }
-commit: 31aa11d
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T18:52:47Z }
+commit: 38f9379
 ---
 
 # Responsibility
@@ -143,6 +143,13 @@ runs MGM against its own embeddings (`tests/data/mgm`), the end-to-end GlobalPat
 and `embed`'s docstring example, as the job's last step does. The pseudocount
 warning's text is unit-tested in `tests/core/test_composition.py`.
 
+The docs build runs `docs/tutorials/leak_free_cv.md` on HMP2;
+`-m network` runs its cells again and compares them with `LEAK_FREE_CV_AUC`
+(`tests/ml/test_transformers.py`). `docs/tutorials/embeddings.md` is not run by
+the docs build (no torch): `-m mgm` runs its code, and a default-run test checks
+that it quotes `GLOBAL_PATTERNS_LEFT_OUT` and `GLOBAL_PATTERNS_SHAPE`
+(`tests/ml/test_mgm.py`).
+
 # Gotchas
 
 - `check_estimator` cannot run under `-W error::UserWarning`, the project's
@@ -216,6 +223,31 @@ warning's text is unit-tested in `tests/core/test_composition.py`.
   features on purpose: summing them moves its rank in one sample, so a reader
   that does not sum features of one genus fails the parity test.
   `tests/mgm/export_reference.py:table`.
+- **The two tutorials quote numbers that tests pin.** The prose of
+  `docs/tutorials/leak_free_cv.md` and the quoted outputs of
+  `docs/tutorials/embeddings.md` are constants in `tests/ml/test_transformers.py`
+  and `tests/ml/test_mgm.py`; the root `tests/conftest.py:run_page` fixture runs
+  a page's code cells and Python blocks (it strips MyST cell options and raises
+  on an IPython magic), so the network and `mgm` tests check the page's own
+  code. The leak-free page keeps its AUCs unrounded and shows three decimals, so
+  its test compares them with `approx(abs=1e-3)`. A scikit-learn, torch or data
+  change that moves a number fails one of them: update the constant and the page
+  together.
+- **The leak on HMP2 is small for the prevalence filter and large for a step
+  that reads the labels**: the filter outside the pipeline moves the mean AUC
+  by 0.001 (0.527 against 0.526), `SelectKBest(k=20)` by 0.147 on the real
+  labels and by 0.223 on shuffled ones (0.544 against 0.767). The honest
+  pipeline is near chance: a first stool sample's species barely separate IBD
+  from non-IBD there. The tutorial is about leakage, not a classifier.
+  `tests/ml/test_transformers.py:LEAK_FREE_CV_AUC`.
+- **GlobalPatterns writes *Candidatus* genera as one word** (Greengenes:
+  `CandidatusPelagibacter`), MGM's vocabulary as `Candidatus_Pelagibacter`. Of
+  the 96 GlobalPatterns genus-level features MGM leaves out, 28 are such names,
+  23 of which MGM's vocabulary holds with the underscore (counted against
+  `phylogeny.csv` of mgm 0.5.8; no test pins the 28 and 23). MGM's own regex
+  reads the name as written, so biotapy leaves them out as MGM would (Phase 4
+  decision 30); `tests/ml/test_mgm.py:test_embeds_global_patterns_end_to_end`
+  pins the 96.
 - anndata 0.13 lists `X` as `layers[None]`, so `list(adata.layers)` holds
   `None` even when no layer was added; `to_torch`'s missing-layer error does
   not list the layers. `_torch.py:_table`.
