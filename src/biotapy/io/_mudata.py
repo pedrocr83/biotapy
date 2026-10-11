@@ -51,8 +51,8 @@ def to_mudata(modalities: Mapping[str, AnnData]) -> MuData:
     "taxa": tdata}``.
 
     ``MuData.write_h5mu`` does not keep a TreeData's tree: the modality reads
-    back as an AnnData without ``vart``. Save a tree-bearing modality with
-    ``TreeData.write_h5td`` as well.
+    back as an AnnData without ``vart``. Save and read the file with
+    :func:`biotapy.io.write_h5mu` and :func:`biotapy.io.read_h5mu` to keep it.
 
     Examples
     --------

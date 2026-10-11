@@ -1,12 +1,12 @@
 ---
 type: Decision
 title: Multi-omics data is one MuData with fixed modality names
-description: Several data types over the same samples are one MuData whose modalities are named taxa, function, function_by_taxon, metabolites and host; io.to_mudata keeps only the samples every modality has; a TreeData modality loses its tree in h5mu.
+description: Several data types over the same samples are one MuData whose modalities are named taxa, function, function_by_taxon, metabolites and host; io.to_mudata keeps only the samples every modality has; `io.write_h5mu` and `io.read_h5mu` keep a TreeData modality's trees in h5mu, which plain mudata drops.
 tags: [io, mudata, multiomics]
 status: stable
 paths: ["src/biotapy/io/_mudata.py", "src/biotapy/tl/_mmvec.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:26:30Z }
+commit: 5123331
 sources:
   - id: spec
     resource: ../../plan.md
@@ -35,18 +35,25 @@ modalities whose samples only partly overlap: its global `obs` is the union and
   raises `TypeError`: a function table goes in as `{**table.mod, ...}`.
 - The global `obs` stays as MuData builds it (no columns); `mdata.pull_obs()`
   gathers them.
-- Saving: `write_h5mu` drops a TreeData modality's `vart` and reads it back
-  as AnnData ([tree-access](/contracts/tree-access.md), Gotchas). biotapy
-  adds no writer; the docstring and the guide say to save that modality with
-  `write_h5td` too.
+- Saving: mudata's `write_h5mu` writes a TreeData modality as an AnnData, so
+  its trees are lost ([tree-access](/contracts/tree-access.md), Gotchas).
+  `io.write_h5mu(mdata, path)` / `io.read_h5mu(path)` keep them (task 5.1,
+  user request 2026-10-11, reversing the earlier "no biotapy writer"): the
+  file is written by mudata, then each TreeData modality's `obst`, `vart`,
+  `label`, `allow_overlap` and `alignment` are added under its group
+  (`_core/_tree.py:write_tree_slots`). Plain `mudata.read_h5mu` still opens the
+  file and ignores them. h5mu only, not zarr. Upstream:
+  [mudata#210](https://github.com/scverse/mudata/issues/210) (PR #211, a
+  duck-typed `_write_mudata_extras` / `_read_mudata_extras` hook) and
+  [treedata#102](https://github.com/YosefLab/treedata/issues/102) (PR #103).
 
 # Rejected
 - **Nested MuData** (`function` holding the function table): MuData's
   modalities must be AnnData.
 - **Union of samples** (MuData's default): a sample missing from one modality
   becomes NaN rows that a paired method would have to drop anyway.
-- **A biotapy `write_h5mu`** that writes trees beside the file: a second file
-  format for one gotcha; reconsider when treedata or mudata supports it.
+- **Trees beside the file** (a `.h5td` per modality): a second file to keep in
+  step; the trees live in the one `.h5mu` instead.
 - **Rejecting unknown modality names**: blocks a `proteins` or `viruses`
   modality for no benefit.
 

@@ -5,27 +5,36 @@
 # below from being evaluated eagerly and raising TypeError.
 from __future__ import annotations
 
+import io
 import itertools
 import math
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from typing import cast
 
+import h5py
 import networkx as nx
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import scipy.sparse as sp
 from anndata import AnnData
+from anndata.io import write_elem
 from skbio import TreeNode
 from skbio.io import NewickFormatError, UnrecognizedFormatError
 from treedata import TreeData as TreeData
+from treedata import read_h5td
 
 from ._matrix import as_csr
 from ._slots import XKind, add_provenance
 from ._warnings import warn_user
 
 PHYLO_KEY = "phylo"
+TREE_SLOTS_ATTR = "biotapy-treedata-encoding"
+_TREE_SLOTS_VERSION = "1"
+_TREE_SLOTS = ("obst", "vart", "label", "allow_overlap", "alignment")
+# treedata's root attributes, kept under biotapy names so the copied elements are read back as written.
+_ROOT_ATTRS = ("encoding-type", "encoding-version")
 
 
 def tree_from_edges(edges: Iterable[tuple[str, str, float]]) -> nx.DiGraph[str]:
@@ -220,3 +229,66 @@ def _align_tree(
     kept = var.index[shared]
     keep_nodes = set(kept).union(*(nx.ancestors(tree, tip) for tip in kept))
     return X[:, np.flatnonzero(shared)], var.loc[kept], tree.subgraph(keep_nodes).copy()
+
+
+def write_tree_slots(group: h5py.Group, tdata: TreeData) -> None:
+    """Copy a TreeData's trees and tree settings into an open h5 group, marked with a layout version.
+
+    treedata's own writer only writes a file root, so a slim copy (names, trees, ``label``,
+    ``allow_overlap``, ``alignment``; no ``X``) goes through ``write_h5td`` into an in-memory
+    file and its elements are copied over. ``tdata`` is not changed.
+    """
+    slim = TreeData(
+        obs=pd.DataFrame(index=tdata.obs_names),
+        var=pd.DataFrame(index=tdata.var_names),
+        obst=dict(tdata.obst),
+        vart=dict(tdata.vart),
+        label=tdata.label,
+        allow_overlap=tdata.allow_overlap,
+        alignment=tdata.alignment,
+    )
+    buffer = io.BytesIO()
+    # treedata annotates filename as a path; h5py.File takes the in-memory buffer it forwards it to.
+    slim.write_h5td(buffer)  # type: ignore[arg-type]
+    with h5py.File(buffer, "r") as source:
+        for name in _TREE_SLOTS:
+            # A newer mudata/treedata may already have written this element; ours is the layout read_tree_slots reads.
+            if name in group:
+                del group[name]
+            source.copy(name, group)
+        for attr in _ROOT_ATTRS:
+            group.attrs[f"biotapy-treedata-root-{attr}"] = source.attrs[attr]
+    group.attrs[TREE_SLOTS_ATTR] = _TREE_SLOTS_VERSION
+
+
+def read_tree_slots(group: h5py.Group, adata: AnnData) -> TreeData:
+    """Rebuild a TreeData from ``adata`` and the tree slots ``write_tree_slots`` put in ``group``."""
+    if TREE_SLOTS_ATTR not in group.attrs:
+        msg = f"group {group.name!r} has no {TREE_SLOTS_ATTR!r} attribute, so it holds no tree slots"
+        raise KeyError(msg)
+    version = str(group.attrs[TREE_SLOTS_ATTR])
+    if version != _TREE_SLOTS_VERSION:
+        msg = (
+            f"group {group.name!r} has unknown tree-slot layout version {version!r} "
+            f"(this biotapy reads {_TREE_SLOTS_VERSION!r}); the file may come from a newer biotapy, so upgrade biotapy"
+        )
+        raise ValueError(msg)
+    buffer = io.BytesIO()
+    with h5py.File(buffer, "w") as target:
+        for attr in _ROOT_ATTRS:
+            target.attrs[attr] = group.attrs[f"biotapy-treedata-root-{attr}"]
+        for name in _TREE_SLOTS:
+            group.copy(name, target)
+        write_elem(target, "obs", pd.DataFrame(index=adata.obs_names))
+        write_elem(target, "var", pd.DataFrame(index=adata.var_names))
+    buffer.seek(0)
+    slots = read_h5td(buffer)  # type: ignore[arg-type]
+    # AnnData's constructor accepts an AnnData as X and copies every slot; treedata's stub narrows it.
+    return TreeData(
+        adata,  # type: ignore[arg-type]
+        obst=dict(slots.obst),
+        vart=dict(slots.vart),
+        label=slots.label,
+        allow_overlap=slots.allow_overlap,
+        alignment=slots.alignment,
+    )

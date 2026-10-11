@@ -5,8 +5,8 @@ description: The only sanctioned path from "we need X" to a merged public functi
 tags: [workflow, api, testing]
 status: stable
 paths: ["src/biotapy/**", "tests/**", "docs/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
-commit: ebe0cbc
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T00:20:06Z }
+commit: f6e2884
 ---
 
 # When

@@ -5,8 +5,8 @@ description: Only biotapy/_core/_tree.py imports treedata or networkx, so a Tree
 tags: [data-model, tree, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_tree.py", "pyproject.toml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T23:15:12Z }
-commit: 0858352
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T00:04:27Z }
+commit: c757fa9
 sources:
   - id: treedata
     resource: https://pypi.org/pypi/treedata/json
@@ -45,9 +45,15 @@ reaches past the helpers.[^spec]
   `alignment="leaves"` leaf names must be a subset of `var_names`.
 - Subsetting prunes trees to kept leaves plus ancestors (unary nodes kept,
   branch lengths not merged).
-- `MuData` holds TreeData modalities in memory, but `write_h5mu` drops `vart`
-  and reading returns plain AnnData. Save tree-bearing modalities with
-  `write_h5td` (matters from Phase 2).
+- `MuData` holds TreeData modalities in memory, but mudata's `write_h5mu`
+  drops the trees and reading returns plain AnnData. `bt.io.write_h5mu` /
+  `read_h5mu` keep them: `write_tree_slots` / `read_tree_slots` go through
+  treedata's public `write_h5td` / `read_h5td` on an in-memory h5 file (no
+  monkeypatching) and copy `obst`, `vart`, `label`, `allow_overlap` and
+  `alignment` into the modality's group, marked with the attribute
+  `biotapy-treedata-encoding` (layout version `"1"`; `read_tree_slots` raises `ValueError` for any other, saying the file may come from a newer biotapy) and keeps treedata's root `encoding-type` / `encoding-version` under `biotapy-treedata-root-*` attributes instead of assuming them. `write_tree_slots` deletes an element the group already holds before copying (a future mudata#211 hook may write one). `X`, `obs`, `var` and the
+  other slots stay mudata's. `write_h5td` calls `strings_to_categoricals` on what
+  it writes, so the slim TreeData it gets is a new object.
 - `tree_from_newick` always passes `convert_underscores=False`: scikit-bio's
   default turns unescaped `ASV_1` into `ASV 1`, corrupting ids.
 - Malformed Newick surfaces as two scikit-bio exceptions, not one: with the

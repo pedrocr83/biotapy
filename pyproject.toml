@@ -28,6 +28,8 @@ classifiers = [
 dependencies = [
   "anndata",
   "biom-format>=2.1.16",
+  # io.write_h5mu / read_h5mu write the trees into the file (decisions/multiomics-as-mudata); anndata's own floor.
+  "h5py>=3.11",
   "matplotlib>=3.8",
   "mudata>=0.4",
   "networkx",
@@ -191,12 +193,13 @@ lint.pylint.max-statements = 30
 [tool.mypy]
 files = [ "docs/extensions", "src/biotapy" ]
 python_version = "3.12"
-# biom-format and scikit-learn ship no type annotations at all, nor do scikit-bio's
+# biom-format, h5py and scikit-learn ship no type annotations at all, nor do scikit-bio's
 # subsample_counts, tree_basis and ancombc2, threadpoolctl's threadpool_limits, mudata's MuData.update and pooch's
 # Unzip; exempt only calls into them (not our own code) from strict's disallow_untyped_calls (mypy/checkexpr.py
 # matches by callee fullname).
 untyped_calls_exclude = [
   "biom",
+  "h5py",
   "mudata",
   "pooch.processors.Unzip",
   "skbio.stats._subsample",
@@ -218,6 +221,9 @@ overrides = [
   # biom-format 2.1.17 ships no py.typed marker either; same treatment.
   { module = "biom", follow_untyped_imports = true, implicit_reexport = true },
   { module = "biom.*", follow_untyped_imports = true, implicit_reexport = true },
+  # h5py 3.16.0 ships no py.typed marker either; same treatment.
+  { module = "h5py", follow_untyped_imports = true, implicit_reexport = true },
+  { module = "h5py.*", follow_untyped_imports = true, implicit_reexport = true },
   # mudata 0.4.1 ships no py.typed marker either; same treatment.
   { module = "mudata", follow_untyped_imports = true, implicit_reexport = true },
   { module = "mudata.*", follow_untyped_imports = true, implicit_reexport = true },

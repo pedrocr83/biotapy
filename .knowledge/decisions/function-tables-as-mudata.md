@@ -5,8 +5,8 @@ description: A HUMAnN-style function table is a MuData with a community modality
 tags: [fn, io, mudata, dependencies]
 status: stable
 paths: ["src/biotapy/_core/_function.py", "src/biotapy/io/_humann.py", "src/biotapy/io/_picrust2.py", "src/biotapy/fn/**", "src/biotapy/datasets/_hmp2.py"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-09T03:45:07Z }
-commit: 1c5d1ae
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 sources:
   - id: research
     resource: ../roadmap/phase-2-function.md
@@ -52,8 +52,8 @@ was brought forward from Phase 4, where multi-omics needs it anyway.
   The two-modality form makes the footgun unrepresentable.
 
 # Consequences
-- **h5mu drops a TreeData modality's tree**: `write_h5mu` then `read_h5mu`
-  returns plain AnnData without `vart`
+- **mudata's h5mu drops a TreeData modality's tree**: `write_h5mu` then
+  `read_h5mu` returns plain AnnData without `vart`; `bt.io.write_h5mu` keeps it
   ([tree-access](/contracts/tree-access.md), Gotchas). No function modality
   has a tree, so Phase 2 is unaffected.
 - **mudata joins the dependencies**, with `scverse-misc[settings]` (pydantic-settings,

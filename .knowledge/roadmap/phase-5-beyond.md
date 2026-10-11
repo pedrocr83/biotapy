@@ -7,8 +7,8 @@ status: draft
 release: "0.5+"
 phase_state: in-progress
 depends_on: [/roadmap/phase-4-ml-multiomics.md]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-10T20:40:40Z }
-commit: 5cdd6ee
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:24:38Z }
+commit: 9001a41
 sources:
   - id: spec
     resource: ../../plan.md
@@ -29,5 +29,8 @@ asks for it.[^spec] Each item then gets its own phase concept.
 | MCP server | exposes `tl`/`da` to agents; separate package likely |
 | pyloseq importer | spec's mitigation if pyloseq gains traction; build when a pyloseq user asks |
 | Federated meta-analysis | **blocked**: check employment IP and side-project clauses before any public work |
+
+# Tasks (user requests)
+- [x] 5.1 `io.write_h5mu` / `io.read_h5mu` keep TreeData trees in h5mu (user request 2026-10-11)
 
 [^spec]: Python Microbiome Toolkit development report, sections Roadmap and Risks

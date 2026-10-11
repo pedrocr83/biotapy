@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+### Added
+
+- `bt.io.write_h5mu` and `bt.io.read_h5mu`: save a `MuData` to an `.h5mu` file
+  and read it back with each TreeData modality's trees kept (mudata alone
+  writes a TreeData as an AnnData). biotapy now declares `h5py` as a
+  dependency.
+
 ## [0.4.1] - 2026-10-10
 
 ### Fixed

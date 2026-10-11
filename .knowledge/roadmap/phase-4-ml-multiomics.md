@@ -9,8 +9,8 @@ phase_state: done
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
-commit: ebe0cbc
+generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:56:11Z }
+commit: 3be7a23
 sources:
   - id: spec
     resource: ../../plan.md
@@ -9034,7 +9034,8 @@ a judgement call. Recommended answer first.
 3. **Name:** keep `bt.io.to_mudata` although `mudata.to_mudata` means
    something else (splitting one AnnData). Alternative: `bt.io.combine`.
 4. **Trees in h5mu:** document the loss and pin it with a test; no biotapy
-   writer. Filing an issue with mudata or treedata is a GitHub action on
+   writer (reversed 2026-10-11 at the user's request: `bt.io.write_h5mu`,
+   task 5.1 in [phase-5-beyond](phase-5-beyond.md)). Filing an issue with mudata or treedata is a GitHub action on
    another project: recommended after 0.4, with your approval of the text.
 5. **mmvec route:** wrap `skbio.stats.ordination.mmvec` (scikit-bio 0.7.4,
    NumPy/SciPy, no TensorFlow); return the row-centred ranks table only; no
