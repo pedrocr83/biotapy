@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+### Fixed
+
+- `bt.ml.PrevalenceFilter` and `bt.ml.CLR`: given an AnnData, TreeData or
+  MuData instead of its matrix, `fit` and `transform` raise a `TypeError`
+  saying to pass `adata.X`. An AnnData used to fail with an unrelated NumPy
+  error about array dimensions, and a MuData never returned.
+
 ## [0.5.0] - 2026-10-11
 
 ### Added

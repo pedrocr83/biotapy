@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
@@ -204,6 +205,33 @@ def test_clr_rows_sum_to_zero(X):
 def test_transformer_options_are_keyword_only(estimator, value):
     with pytest.raises(TypeError):
         estimator(value)
+
+
+def _containers() -> dict[str, object]:
+    tdata = bt.datasets.toy()
+    return {"TreeData": tdata, "AnnData": ad.AnnData(tdata.X.copy()), "MuData": bt.io.to_mudata({"taxa": tdata})}
+
+
+@pytest.mark.parametrize("container", ["TreeData", "AnnData", "MuData"])
+@pytest.mark.parametrize("estimator", [bt.ml.PrevalenceFilter, bt.ml.CLR])
+def test_a_data_object_in_fit_raises_naming_x(estimator, container):
+    with pytest.raises(TypeError, match=rf"^X must be .* got a {container}; pass the matrix itself, such as adata\.X"):
+        estimator().fit(_containers()[container])
+
+
+@pytest.mark.parametrize("container", ["TreeData", "AnnData", "MuData"])
+@pytest.mark.parametrize("estimator", [bt.ml.PrevalenceFilter, bt.ml.CLR])
+def test_a_data_object_in_transform_raises_naming_x(estimator, container):
+    fitted = estimator().fit(_toy_x())
+    with pytest.raises(TypeError, match=rf"^X must be .* got a {container}; pass the matrix itself, such as adata\.X"):
+        fitted.transform(_containers()[container])
+
+
+def test_a_data_object_in_a_pipeline_raises_naming_x():
+    tdata = bt.datasets.toy()
+    pipeline = make_pipeline(bt.ml.PrevalenceFilter(), bt.ml.CLR(), LogisticRegression())
+    with pytest.raises(TypeError, match=r"got a TreeData; pass the matrix itself"):
+        pipeline.fit(tdata, tdata.obs["group"])
 
 
 LEAK_FREE_CV = Path(__file__).parents[2] / "docs" / "tutorials" / "leak_free_cv.md"
