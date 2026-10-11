@@ -94,8 +94,10 @@ def test_the_toy_dataset_keeps_its_tree(tmp_path):
 
 def test_plain_mudata_still_reads_the_file_without_a_warning(tmp_path):
     bt.io.write_h5mu(bt.io.to_mudata({"taxa": _rich_tdata()}), tmp_path / "study.h5mu")
+    # Only warnings about the file matter here (UserWarning and its subclasses, such as anndata's); dependencies'
+    # deprecation warnings, such as pre-release pandas' on mudata's own `drop(inplace=True)`, are not this test's concern.
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("error", UserWarning)
         plain = mudata.read_h5mu(tmp_path / "study.h5mu")
     assert type(plain["taxa"]) is AnnData
 
