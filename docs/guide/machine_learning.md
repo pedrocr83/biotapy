@@ -44,7 +44,8 @@ scores = cross_validate(pipeline, tdata.X, tdata.obs["group"], cv=3)
 
 The transformers take what scikit-learn takes: a samples x features array, a
 sparse matrix (`tdata.X`) or a DataFrame, whose column names they keep with
-`set_output(transform="pandas")`. They do not take an AnnData.
+`set_output(transform="pandas")`. They do not take an AnnData, TreeData or
+MuData: pass its matrix, such as `tdata.X`, or they raise a `TypeError` saying so.
 
 `PrevalenceFilter` keeps a sparse `X` sparse. `CLR` returns a dense array,
 because a log-ratio has no zeros, and gives the values of `bt.pp.clr`; like

@@ -5,6 +5,8 @@ from typing import Self
 import numpy as np
 import numpy.typing as npt
 import scipy.sparse as sp
+from anndata import AnnData
+from mudata import MuData
 from skbio.stats.composition import clr as skbio_clr
 from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 from sklearn.feature_selection import SelectorMixin
@@ -15,6 +17,16 @@ from biotapy._core import as_csr, check_pseudocount, pseudocounted
 
 # What fit and transform take: a samples x features array, sparse matrix or DataFrame.
 Table = npt.ArrayLike | sp.spmatrix
+
+
+def _check_table(X: object) -> None:
+    # NumPy turns an AnnData into a ValueError about array dimensions, and never returns from a MuData.
+    if isinstance(X, AnnData | MuData):
+        msg = (
+            "X must be a samples x features array, sparse matrix or DataFrame, "
+            f"got a {type(X).__name__}; pass the matrix itself, such as adata.X"
+        )
+        raise TypeError(msg)
 
 
 class PrevalenceFilter(SelectorMixin, BaseEstimator):
@@ -64,6 +76,7 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
         """Learn each feature's prevalence in ``X``, samples x features."""
         # validate_data sets n_features_in_ before the checks below can raise, so prevalence_ alone marks a fit.
         self.__dict__.pop("prevalence_", None)
+        _check_table(X)
         X = validate_data(self, X, accept_sparse="csr")
         if isinstance(self.min_prevalence, bool) or not isinstance(
             self.min_prevalence, int | float | np.integer | np.floating
@@ -84,6 +97,13 @@ class PrevalenceFilter(SelectorMixin, BaseEstimator):
             raise ValueError(msg)
         self.prevalence_ = prevalence
         return self
+
+    def transform(self, X: Table) -> Table:
+        """Keep the selected features of ``X``, samples x features."""
+        _check_table(X)
+        # SelectorMixin.transform is unannotated, and mypy's untyped_calls_exclude does not reach super().
+        kept: Table = super().transform(X)  # type: ignore[no-untyped-call]
+        return kept
 
     def _get_support_mask(self) -> npt.NDArray[np.bool_]:
         check_is_fitted(self, "prevalence_")
@@ -131,6 +151,7 @@ class CLR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
 
     def fit(self, X: Table, y: object = None) -> Self:
         """Check ``X`` (samples x features, non-negative) and ``pseudocount``; nothing is learned."""
+        _check_table(X)
         X = validate_data(self, X, accept_sparse="csr")
         check_pseudocount(self.pseudocount)
         check_non_negative(X, "CLR")
@@ -139,6 +160,7 @@ class CLR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     def transform(self, X: Table) -> npt.NDArray[np.float64]:
         """Return the CLR of each sample of ``X`` as a dense float64 array."""
         check_is_fitted(self)
+        _check_table(X)
         X = validate_data(self, X, accept_sparse="csr", reset=False)
         return np.asarray(skbio_clr(pseudocounted(X, self.pseudocount, func="ml.CLR")), dtype=np.float64)
 
