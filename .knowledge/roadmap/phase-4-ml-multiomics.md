@@ -9,8 +9,8 @@ phase_state: done
 effort: ~4-6 weeks part-time
 depends_on: [/roadmap/phase-3-stats.md]
 paths: ["src/biotapy/ml/**", "src/biotapy/tl/**", "src/biotapy/io/**", "src/biotapy/_core/**", "src/biotapy/datasets/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:56:11Z }
-commit: 3be7a23
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T18:28:18Z }
+commit: 0d7af20
 sources:
   - id: spec
     resource: ../../plan.md

@@ -1,5 +1,9 @@
 # Knowledge bundle log
 
+## 2026-10-11 (Phase 5, task 5.2)
+- **Update**: [ml](modules/ml.md): `PrevalenceFilter` and `CLR` raise `TypeError` for an AnnData or MuData `X` (`_transformers.py:_check_table`, `0d7af20`); [phase-5-beyond](roadmap/phase-5-beyond.md) gains task 5.2, ticked.
+- **Verification**: re-checked against `0d7af20` and bumped only, none of them states what it changes: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md), [data-model-slots](contracts/data-model-slots.md), [engine-parity](contracts/engine-parity.md), [function-shape](contracts/function-shape.md), [module-boundaries](contracts/module-boundaries.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md), [cut-a-release](playbooks/cut-a-release.md).
+
 ## 2026-10-11 (release 0.5.0)
 - **Verification**: re-checked against the 0.5.0 version bump (`4b0b274`) and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [embedding-plugins](decisions/embedding-plugins.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md), [add-a-function](playbooks/add-a-function.md), [cut-a-release](playbooks/cut-a-release.md).
 

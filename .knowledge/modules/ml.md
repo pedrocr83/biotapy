@@ -6,8 +6,8 @@ resource: /src/biotapy/ml/
 paths: ["src/biotapy/ml/**"]
 tags: [ml, scikit-learn, torch, plugins]
 status: stable
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T21:29:30Z }
-commit: ebe0cbc
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T18:28:00Z }
+commit: 0d7af20
 ---
 
 # Responsibility
@@ -37,7 +37,9 @@ that a plugin registers ([embedding-plugins](/decisions/embedding-plugins.md)). 
 
 # Invariants
 
-- The transformers take arrays, sparse matrices and DataFrames, not AnnData:
+- The transformers take arrays, sparse matrices and DataFrames, not AnnData (`fit` and `transform` raise
+  `TypeError` for an AnnData or MuData, `_transformers.py:_check_table`; NumPy alone fails with an unrelated
+  dimensions error on an AnnData and never returns on a MuData):
   inside a `Pipeline` the splitter hands over `X`, not an AnnData (`to_torch`
   is the exception: it takes an AnnData, for its `obs` labels and layers).
   This is why `ml` is the one place classes are allowed
