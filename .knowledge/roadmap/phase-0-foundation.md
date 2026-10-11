@@ -9,8 +9,8 @@ phase_state: done
 effort: ~1 week part-time
 depends_on: []
 paths: ["pyproject.toml", ".pre-commit-config.yaml", ".github/**", "docs/**", "src/biotapy/__init__.py", "src/biotapy/_core/**", "tests/**", "scripts/**"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:56:11Z }
-commit: 3be7a23
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T00:04:27Z }
+commit: c757fa9
 sources:
   - id: spec
     resource: ../../plan.md

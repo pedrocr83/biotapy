@@ -5,8 +5,8 @@ description: ml.embed(adata, model) loads the callable a package registers under
 tags: [ml, plugins, api]
 status: stable
 paths: ["src/biotapy/ml/_embed.py", "pyproject.toml"]
-generated: { by: claude-code/claude-sonnet-5-5, at: 2026-10-10T23:25:03Z }
-commit: 9001a41
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T00:04:27Z }
+commit: c757fa9
 sources:
   - id: spec
     resource: ../../plan.md
