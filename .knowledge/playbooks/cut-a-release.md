@@ -5,8 +5,8 @@ description: Bump the version, move the changelog entry, tag, publish a GitHub r
 tags: [release, workflow]
 status: stable
 paths: ["pyproject.toml", "CHANGELOG.md", ".github/workflows/release.yaml"]
-generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T00:04:27Z }
-commit: c757fa9
+generated: { by: claude-code/claude-opus-5-5, at: 2026-10-11T16:46:26Z }
+commit: 4b0b274
 sources:
   - id: trusted-publishing
     resource: https://docs.pypi.org/trusted-publishers/

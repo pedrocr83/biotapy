@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-11 (release 0.5.0)
+- **Verification**: re-checked against the 0.5.0 version bump (`4b0b274`) and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [embedding-plugins](decisions/embedding-plugins.md), [module-boundaries](contracts/module-boundaries.md), [tree-access](contracts/tree-access.md), [add-a-function](playbooks/add-a-function.md), [cut-a-release](playbooks/cut-a-release.md).
+
 ## 2026-10-11 (fix: R test warning filters)
 - **Verification**: re-checked against the R tests' narrowed warning filters (`96cae26`) and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
 
