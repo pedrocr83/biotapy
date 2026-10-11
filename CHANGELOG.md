@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-11
+
 ### Added
 
 - `bt.io.write_h5mu` and `bt.io.read_h5mu`: save a `MuData` to an `.h5mu` file
