@@ -1,5 +1,8 @@
 # Knowledge bundle log
 
+## 2026-10-11 (fix: R test warning filters)
+- **Verification**: re-checked against the R tests' narrowed warning filters (`96cae26`) and bumped only: [phase-0-foundation](roadmap/phase-0-foundation.md), [phase-1-core](roadmap/phase-1-core.md), [r-golden-parity](contracts/r-golden-parity.md), [add-a-function](playbooks/add-a-function.md).
+
 ## 2026-10-11 (Phase 5, task 5.1)
 - **Update**: [multiomics-as-mudata](decisions/multiomics-as-mudata.md), [decisions index](decisions/index.md), [function-tables-as-mudata](decisions/function-tables-as-mudata.md), [tree-access](contracts/tree-access.md), [data-model-slots](contracts/data-model-slots.md), [io](modules/io.md), [modules index](modules/index.md), [core](modules/core.md): `bt.io.write_h5mu` / `bt.io.read_h5mu` keep a TreeData modality's trees in an h5mu file (reverses "no biotapy writer"); the helpers `_core/_tree.py:write_tree_slots` / `read_tree_slots` copy `obst`, `vart`, `label`, `allow_overlap` and `alignment` through an in-memory h5 file and mark the group `biotapy-treedata-encoding`.
 - **Update**: [optional-heavy-dependencies](decisions/optional-heavy-dependencies.md): h5py `>=3.11` declared (R9.2); [phase-4-ml-multiomics](roadmap/phase-4-ml-multiomics.md) decision 4 notes its reversal; [phase-5-beyond](roadmap/phase-5-beyond.md) gains "Tasks (user requests)" with 5.1 ticked.

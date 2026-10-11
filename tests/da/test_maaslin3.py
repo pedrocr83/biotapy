@@ -161,8 +161,10 @@ def test_r_errors_name_the_function(fake_rpy2):
 def test_r_warnings_before_an_error_are_in_its_message(fake_rpy2):
     fake_rpy2.warnings = ["first", "second"]
     fake_rpy2.error = "boom"
+    # biotapy re-emits R warnings as UserWarning (rpy2 logs R's console output); dependencies' deprecation warnings,
+    # such as pre-release pandas', are not this test's concern.
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("error", UserWarning)
         with pytest.raises(RuntimeError, match=r"^da\.maaslin3: R stopped: boom \(R warned first: first; second\)$"):
             bt.da.maaslin3(bt.datasets.toy(), "group", seed=0)
 
