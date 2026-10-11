@@ -170,7 +170,7 @@ bt.pl.ordination(global_patterns, basis="nmds", color="SampleType");
 
 `distance(esophagus, "bray")`, `"wunifrac"` and `"jaccard"`. phyloseq's `"jaccard"` is vegan's
 quantitative Jaccard; biotapy's is presence/absence, phyloseq's
-`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.4.
+`distance(esophagus, "jaccard", binary = TRUE)`. The `betadiver` method `"g"` is not in 0.5.
 
 ```{code-cell} ipython3
 esophagus = bt.datasets.esophagus()

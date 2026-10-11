@@ -14,9 +14,9 @@ against R on real data.
 
 ## Status
 
-**biotapy 0.4 is an early release.** The API can still change between minor versions.
+**biotapy 0.5 is an early release.** The API can still change between minor versions.
 
-What 0.4 does (full signatures in the [API reference][api]):
+What 0.5 does (full signatures in the [API reference][api]):
 
 - **Readers**: `bt.io.read_biom` (BIOM 1.0/2.1), `bt.io.read_qiime2`
   (`.qza` artifacts, no QIIME 2 install needed), `bt.io.read_dada2`
@@ -27,7 +27,9 @@ What 0.4 does (full signatures in the [API reference][api]):
   and a per-taxon modality; `bt.io.read_picrust2_traits` reads PICRUSt2's
   per-ASV gene copy numbers. `bt.io.to_mudata` combines data types measured
   on the same samples into one `MuData`.
-- **Writer**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out.
+- **Writers**: `bt.io.write_biom` writes a BIOM 2.1 or 1.0 table back out;
+  `bt.io.write_h5mu` and `bt.io.read_h5mu` save and reload a `MuData` with
+  each TreeData modality's trees kept.
 - **Datasets**: `bt.datasets.toy` and `bt.datasets.toy_humann` (in-memory,
   for examples and tests), `bt.datasets.global_patterns`,
   `bt.datasets.enterotype` and `bt.datasets.esophagus` (phyloseq's example
